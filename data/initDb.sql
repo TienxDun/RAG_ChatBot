@@ -1,0 +1,110 @@
+IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'GarmentDB')
+BEGIN
+    CREATE DATABASE GarmentDB;
+END
+GO
+USE GarmentDB;
+GO
+
+-- 1. Bảng Chuyền may
+CREATE TABLE PRODUCTION_LINES (
+    LineID VARCHAR(50) PRIMARY KEY,
+    ManagerName NVARCHAR(100),
+    Department NVARCHAR(100),
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    UpdatedAt DATETIME DEFAULT GETDATE()
+);
+
+-- 2. Bảng Sản phẩm (Mã hàng)
+CREATE TABLE PRODUCTS (
+    ProductID VARCHAR(50) PRIMARY KEY,
+    ProductName NVARCHAR(200),
+    UnitPrice DECIMAL(18, 2), -- Đơn giá để AI tính doanh thu
+    Description NVARCHAR(500),
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    UpdatedAt DATETIME DEFAULT GETDATE()
+);
+
+-- 3. Bảng Ca làm việc
+CREATE TABLE SHIFTS (
+    ShiftID INT PRIMARY KEY,
+    ShiftName NVARCHAR(50),
+    StartTime TIME,
+    EndTime TIME,
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    UpdatedAt DATETIME DEFAULT GETDATE()
+);
+
+-- 4. Bảng Nhân sự
+CREATE TABLE EMPLOYEES (
+    EmployeeID INT PRIMARY KEY IDENTITY(1,1),
+    EmployeeName NVARCHAR(100),
+    Position NVARCHAR(100),
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    UpdatedAt DATETIME DEFAULT GETDATE()
+);
+
+-- 5. Bảng Danh mục Lỗi
+CREATE TABLE DEFECT_CATEGORIES (
+    DefectTypeCode VARCHAR(50) PRIMARY KEY,
+    DefectName NVARCHAR(200),
+    Severity NVARCHAR(50), -- VD: Cao, Trung bình, Thấp
+    IsRepairable BIT,      -- 1: Sửa được, 0: Hàng rớt (phế phẩm)
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    UpdatedAt DATETIME DEFAULT GETDATE()
+);
+
+-- =========================================
+-- TẠO CÁC BẢNG GIAO DỊCH (TRANSACTION DATA)
+-- =========================================
+
+-- 6. Bảng Kế hoạch sản xuất
+CREATE TABLE PRODUCTION_PLANS (
+    PlanID INT PRIMARY KEY IDENTITY(1,1),
+    ProductID VARCHAR(50) FOREIGN KEY REFERENCES PRODUCTS(ProductID),
+    LineID VARCHAR(50) FOREIGN KEY REFERENCES PRODUCTION_LINES(LineID),
+    TargetQuantity INT,
+    Deadline DATE,
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    UpdatedAt DATETIME DEFAULT GETDATE()
+);
+
+-- 7. Bảng Phân công công việc
+CREATE TABLE WORK_ASSIGNMENTS (
+    AssignmentID INT PRIMARY KEY IDENTITY(1,1),
+    EmployeeID INT FOREIGN KEY REFERENCES EMPLOYEES(EmployeeID),
+    LineID VARCHAR(50) FOREIGN KEY REFERENCES PRODUCTION_LINES(LineID),
+    ShiftID INT FOREIGN KEY REFERENCES SHIFTS(ShiftID),
+    WorkDate DATE,
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    UpdatedAt DATETIME DEFAULT GETDATE()
+);
+
+-- 8. Bảng Ghi nhận Năng suất
+CREATE TABLE PRODUCTIVITY (
+    ID INT PRIMARY KEY IDENTITY(1,1),
+    LineID VARCHAR(50) FOREIGN KEY REFERENCES PRODUCTION_LINES(LineID),
+    ProductID VARCHAR(50) FOREIGN KEY REFERENCES PRODUCTS(ProductID),
+    PlanID INT FOREIGN KEY REFERENCES PRODUCTION_PLANS(PlanID),
+    Quantity INT,
+    StartTime DATETIME,
+    EndTime DATETIME,
+    ShiftID INT FOREIGN KEY REFERENCES SHIFTS(ShiftID),
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    UpdatedAt DATETIME DEFAULT GETDATE()
+);
+
+-- 9. Bảng Ghi nhận Lỗi
+CREATE TABLE DEFECTS (
+    ID INT PRIMARY KEY IDENTITY(1,1),
+    LineID VARCHAR(50) FOREIGN KEY REFERENCES PRODUCTION_LINES(LineID),
+    ProductID VARCHAR(50) FOREIGN KEY REFERENCES PRODUCTS(ProductID),
+    ProductivityID INT FOREIGN KEY REFERENCES PRODUCTIVITY(ID),
+    DefectTypeCode VARCHAR(50) FOREIGN KEY REFERENCES DEFECT_CATEGORIES(DefectTypeCode),
+    ShiftID INT FOREIGN KEY REFERENCES SHIFTS(ShiftID),
+    DefectCount INT,
+    RecordedAt DATETIME DEFAULT GETDATE(),
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    UpdatedAt DATETIME DEFAULT GETDATE()
+);
+GO

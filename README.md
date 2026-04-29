@@ -45,6 +45,42 @@ Open `http://localhost:5173`.
 - `POST /api/chat` { `message`: string }
 - `POST /api/embeddings` { `text`: string, `taskType`: string?, `outputDimensionality`: number? }
 
-## Notes
-- The backend loads `.env` from the repo root.
 - Vertex AI REST is called with the API key in the request URL query string.
+
+## Docker & Database Setup
+
+This project uses Docker to run Qdrant and SQL Server.
+
+1. **Start containers**:
+   ```bash
+   docker-compose up -d
+   ```
+
+2. **Initialize SQL Server Database**:
+   Bạn có thể sử dụng script đã tạo sẵn để tự động tạo database và nạp dữ liệu:
+
+   **Trên Windows (PowerShell):**
+   ```powershell
+   ./scripts/setup-db.ps1
+   ```
+
+   **Trên Linux/Mac/Git Bash:**
+   ```bash
+   chmod +x scripts/setup-db.sh
+   ./scripts/setup-db.sh
+   ```
+
+   *(Script sẽ tự động đọc mật khẩu từ file `.env` và đợi SQL Server khởi động hoàn tất trước khi chạy lệnh SQL)*
+
+## Database Viewer (UI Riêng biệt)
+
+Bạn có thể xem và quản lý database trực tiếp qua giao diện Web:
+
+- **Địa chỉ**: `http://localhost:8978`
+- **Hướng dẫn kết nối**:
+    1. Khi mở lần đầu, hãy làm theo các bước setup cơ bản của CloudBeaver.
+    2. Chọn **Connection** -> **SQL Server**.
+    3. **Host**: `sqlserver-db` (tên container).
+    4. **Database**: `GarmentDB`.
+    5. **Username**: `sa`.
+    6. **Password**: (Mật khẩu trong file `.env`).

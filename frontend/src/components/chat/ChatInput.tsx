@@ -153,6 +153,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ value, onChange, onSend, i
             </div>
 
             <Button
+              id="send-button"
               onClick={onSend}
               disabled={!value.trim() || isLoading || isListening}
               size="icon"

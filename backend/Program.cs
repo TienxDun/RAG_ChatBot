@@ -13,6 +13,10 @@ var options = VertexAiOptions.FromEnvironment();
 
 builder.Services.AddSingleton(options);
 builder.Services.AddHttpClient<VertexAiClient>();
+builder.Services.AddSingleton<SqlService>();
+builder.Services.AddSingleton<QdrantService>();
+builder.Services.AddSingleton<RagOrchestrator>();
+
 builder.Services.AddCors(cors =>
 {
     cors.AddDefaultPolicy(policy =>
@@ -38,15 +42,15 @@ app.UseCors();
 
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
 
-app.MapPost("/api/chat", async (ChatRequest request, VertexAiClient client, CancellationToken ct) =>
+app.MapPost("/api/chat", async (ChatRequest request, RagOrchestrator orchestrator, CancellationToken ct) =>
     {
         if (string.IsNullOrWhiteSpace(request.Message))
         {
             return Results.BadRequest(new { error = "Message is required." });
         }
 
-        var responseText = await client.GenerateContentAsync(request.Message, ct);
-        return Results.Ok(new ChatResponse(responseText));
+        var response = await orchestrator.ProcessQueryAsync(request.Message, ct);
+        return Results.Ok(response);
     })
     .WithName("Chat")
     .WithOpenApi();

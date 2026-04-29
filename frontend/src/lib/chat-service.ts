@@ -1,15 +1,23 @@
+export type RagStep = {
+  title: string;
+  content: string;
+};
+
 export type Message = {
   role: "user" | "model";
   content: string;
+  steps?: RagStep[];
+  suggestedQuestions?: string[];
 };
 
 export class ChatService {
   private static MODE = process.env.NEXT_PUBLIC_API_MODE || 'dotnet';
   private static DOTNET_URL = process.env.NEXT_PUBLIC_DOTNET_API_URL || 'http://localhost:5000/api/chat';
 
-  static async *sendMessage(userMessage: string, history: Message[]): AsyncGenerator<string> {
+  static async *sendMessage(userMessage: string, history: Message[]): AsyncGenerator<{ content: string, steps?: RagStep[], suggestedQuestions?: string[] }> {
     if (userMessage.startsWith('/embed ')) {
-      yield* this.sendToEmbedding(userMessage.replace('/embed ', ''));
+      const response = await this.sendToEmbedding(userMessage.replace('/embed ', ''));
+      yield { content: response };
       return;
     }
 
@@ -20,7 +28,7 @@ export class ChatService {
     }
   }
 
-  private static async *sendToEmbedding(text: string): AsyncGenerator<string> {
+  private static async sendToEmbedding(text: string): Promise<string> {
     const response = await fetch('http://localhost:5000/api/embeddings', {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -35,11 +43,12 @@ export class ChatService {
     if (data.values) {
       const vector = data.values;
       const preview = vector.slice(0, 5).join(', ');
-      yield `VECTOR_GENERATED [DIM: ${vector.length}]\n\nDATA: [${preview}, ...]`;
+      return `VECTOR_GENERATED [DIM: ${vector.length}]\n\nDATA: [${preview}, ...]`;
     }
+    return "";
   }
 
-  private static async *sendToDotnet(message: string): AsyncGenerator<string> {
+  private static async *sendToDotnet(message: string): AsyncGenerator<{ content: string, steps?: RagStep[], suggestedQuestions?: string[] }> {
     const response = await fetch(this.DOTNET_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -53,11 +62,15 @@ export class ChatService {
 
     const data = await response.json();
     if (data.text) {
-      yield data.text;
+      yield { 
+        content: data.text, 
+        steps: data.steps, 
+        suggestedQuestions: data.suggestedQuestions 
+      };
     }
   }
 
-  private static async *sendToDirect(userMessage: string, history: Message[]): AsyncGenerator<string> {
+  private static async *sendToDirect(userMessage: string, history: Message[]): AsyncGenerator<{ content: string }> {
     const chatHistory = history
       .filter(msg => msg.content.trim() !== "")
       .map(msg => ({
@@ -81,6 +94,7 @@ export class ChatService {
     const reader = response.body?.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
+    let accumulatedText = "";
 
     if (!reader) return;
 
@@ -110,7 +124,10 @@ export class ChatService {
           try {
             const json = JSON.parse(jsonStr);
             const text = json.candidates?.[0]?.content?.parts?.[0]?.text || "";
-            if (text) yield text;
+            if (text) {
+              accumulatedText += text;
+              yield { content: accumulatedText };
+            }
           } catch (e) {
             console.error("Error parsing JSON chunk", e);
           }

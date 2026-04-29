@@ -1,3 +1,9 @@
 namespace Backend.Models;
 
-public sealed record ChatResponse(string Text);
+public sealed record RagStep(string Title, string Content);
+
+public sealed record ChatResponse(
+    string Text, 
+    List<RagStep>? Steps = null,
+    List<string>? SuggestedQuestions = null
+);

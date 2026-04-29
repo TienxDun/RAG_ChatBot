@@ -1,0 +1,44 @@
+{
+	"folders": {},
+	"connections": {
+		"microsoft-19dd82b4c44-ee18aa79d37a05d": {
+			"provider": "sqlserver",
+			"driver": "microsoft",
+			"name": "sqlserver-db",
+			"save-password": true,
+			"configuration": {
+				"host": "sqlserver",
+				"port": "1433",
+				"database": "GarmentDB",
+				"url": "jdbc:sqlserver://;serverName\u003dsqlserver;databaseName\u003dGarmentDB",
+				"configurationType": "MANUAL",
+				"type": "dev",
+				"closeIdleConnection": true,
+				"provider-properties": {
+					"@dbeaver-show-all-schemas@": "true",
+					"sslTrustServerCertificate": "true"
+				},
+				"auth-model": "sqlserver_database",
+				"bootstrap": {
+					"autocommit": true
+				}
+			}
+		}
+	},
+	"connection-types": {
+		"dev": {
+			"name": "Development",
+			"color": "255,255,255",
+			"description": "Regular development database",
+			"auto-commit": true,
+			"confirm-execute": false,
+			"confirm-data-change": false,
+			"smart-commit": false,
+			"smart-commit-recover": true,
+			"auto-close-transactions": true,
+			"close-transactions-period": 1800,
+			"auto-close-connections": true,
+			"close-connections-period": 14400
+		}
+	}
+}

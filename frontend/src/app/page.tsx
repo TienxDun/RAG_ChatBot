@@ -59,21 +59,25 @@ export default function Home() {
       
       let assistantMessage = "";
 
+      let finalMsgs: Message[] = [];
       for await (const chunk of ChatService.sendMessage(userMessage, messages)) {
-        assistantMessage += chunk;
         setMessages((prev) => {
           const newMsgs = [...prev];
           const lastMsg = newMsgs[newMsgs.length - 1];
           if (lastMsg && lastMsg.role === "model") {
-            lastMsg.content = assistantMessage;
+            lastMsg.content = chunk.content;
+            lastMsg.steps = chunk.steps;
+            lastMsg.suggestedQuestions = chunk.suggestedQuestions;
           }
-          return [...newMsgs];
+          finalMsgs = newMsgs;
+          return newMsgs;
         });
       }
       
       // Save after completion
-      const finalMessages: Message[] = [...newMessages, { role: "model", content: assistantMessage }];
-      saveChat(finalMessages);
+      if (finalMsgs.length > 0) {
+        saveChat(finalMsgs);
+      }
       
     } catch (error) {
       console.error("Chat error:", error);
@@ -97,6 +101,15 @@ export default function Home() {
         inputEl.setSelectionRange(inputEl.value.length, inputEl.value.length);
       }
     }, 0);
+  };
+  
+  const handleSuggestionClick = (suggestion: string) => {
+    setInputValue(suggestion);
+    // Focus vào input và gửi sau một nhịp render
+    setTimeout(() => {
+      const sendBtn = document.getElementById("send-button");
+      if (sendBtn) sendBtn.click();
+    }, 100);
   };
 
   return (
@@ -154,7 +167,7 @@ export default function Home() {
               }}
               className="flex-1 flex flex-col items-center justify-center px-4"
             >
-              <div className="w-full max-w-2xl flex flex-col items-center space-y-6">
+              <div className="w-full max-w-4xl flex flex-col items-center space-y-6">
                 {/* Logo / Branding */}
                 <div className="flex flex-col items-center space-y-2">
                   <motion.div 
@@ -170,7 +183,7 @@ export default function Home() {
                 </div>
 
                 {/* Centered Input Area */}
-                <div className="w-full max-w-2xl">
+                <div className="w-full max-w-4xl">
                   <ChatInput 
                     value={inputValue} 
                     onChange={setInputValue} 
@@ -227,7 +240,7 @@ export default function Home() {
                   WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 60px, black calc(100% - 40px), transparent)'
                 }}
               >
-                <div className="max-w-3xl mx-auto w-full px-4 py-8 space-y-8">
+                <div className="max-w-5xl mx-auto w-full px-4 py-8 space-y-8">
                   {messages.map((msg, index) => (
                     <ChatMessage 
                       key={index} 
@@ -235,12 +248,13 @@ export default function Home() {
                       isLoading={isLoading} 
                       isLast={index === messages.length - 1} 
                       onEdit={handleEdit}
+                      onSuggestionClick={handleSuggestionClick}
                     />
                   ))}
                 </div>
               </div>
 
-              <div className="w-full max-w-3xl mx-auto px-4 pb-8 pt-2">
+              <div className="w-full max-w-5xl mx-auto px-4 pb-8 pt-2">
                 <ChatInput 
                   value={inputValue} 
                   onChange={setInputValue} 
