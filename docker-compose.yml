@@ -1,0 +1,21 @@
+services:
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant-1
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - ./qdrant_storage:/qdrant/storage
+    restart: always
+
+# Optional: Add backend and frontend if needed in the future
+#  backend:
+#    build: ./backend
+#    ports:
+#      - "5000:5000"
+#
+#  frontend:
+#    build: ./frontend
+#    ports:
+#      - "3000:3000"
