@@ -46,3 +46,31 @@ Thumbs.db
 
 # Databases
 qdrant_storage/
+*.db-shm
+*.db-wal
+
+# IDE - JetBrains
+.idea/
+
+# Temp & Backup
+*.bak
+*.tmp
+*.swp
+*.swo
+*~
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+
+# Antigravity / AI
+.gemini/
+.ai/
+
+# Test Coverage
+coverage/
+*.lcov
