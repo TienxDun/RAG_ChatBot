@@ -14,8 +14,11 @@ const firaCode = Fira_Code({
 });
 
 export const metadata: Metadata = {
-  title: "SQL AI Insight",
-  description: "Truy vấn dữ liệu dễ dàng với sức mạnh từ AI",
+  title: "RAG ChatBot - AI Intelligent Assistant",
+  description: "Hệ thống ChatBot thông minh sử dụng công nghệ RAG (Retrieval-Augmented Generation)",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({
