@@ -6,7 +6,8 @@ public sealed record VertexAiOptions(
     string Region,
     string LlmModelId,
     string EmbeddingModelId,
-    bool ExpressMode)
+    bool ExpressMode,
+    string ApiUrlTemplate)
 {
     public static VertexAiOptions FromEnvironment()
     {
@@ -17,6 +18,7 @@ public sealed record VertexAiOptions(
         var embeddingModelId = Environment.GetEnvironmentVariable("VERTEX_EMBED_MODEL");
         var expressModeStr = Environment.GetEnvironmentVariable("VERTEX_EXPRESS_MODE");
         var expressMode = expressModeStr?.ToLowerInvariant() == "true";
+        var apiUrlTemplate = Environment.GetEnvironmentVariable("VERTEX_API_URL_TEMPLATE");
 
         var missing = new List<string>();
         if (string.IsNullOrWhiteSpace(apiKey)) missing.Add("VERTEX_API_KEY");
@@ -24,6 +26,14 @@ public sealed record VertexAiOptions(
         if (string.IsNullOrWhiteSpace(region)) missing.Add("VERTEX_REGION");
         if (string.IsNullOrWhiteSpace(llmModelId)) missing.Add("VERTEX_LLM_MODEL");
         if (string.IsNullOrWhiteSpace(embeddingModelId)) missing.Add("VERTEX_EMBED_MODEL");
+
+        if (string.IsNullOrWhiteSpace(apiUrlTemplate))
+        {
+            // Default template if not provided
+            apiUrlTemplate = expressMode
+                ? "https://aiplatform.googleapis.com/v1/publishers/google/models/{modelId}:{action}"
+                : "https://{region}-aiplatform.googleapis.com/v1/projects/{projectId}/locations/{region}/publishers/google/models/{modelId}:{action}";
+        }
 
         if (missing.Count > 0)
         {
@@ -36,6 +46,7 @@ public sealed record VertexAiOptions(
             region!,
             llmModelId!,
             embeddingModelId!,
-            expressMode);
+            expressMode,
+            apiUrlTemplate);
     }
 }

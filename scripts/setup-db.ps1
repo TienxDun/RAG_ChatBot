@@ -1,10 +1,10 @@
 $ErrorActionPreference = 'Stop'
 
-# Đường dẫn tới file .env
+# Duong dan toi file .env
 $envFile = Join-Path $PSScriptRoot "..\.env"
 $saPassword = ""
 
-# Đọc mật khẩu từ file .env
+# Doc mat khau tu file .env
 if (Test-Path $envFile) {
     $content = Get-Content $envFile
     foreach ($line in $content) {
@@ -15,29 +15,29 @@ if (Test-Path $envFile) {
     }
 }
 
-# Nếu không tìm thấy trong .env, dùng mặc định
+# Neu khong tim thay trong .env, dung mac dinh
 if (-not $saPassword) {
     $saPassword = "YourStrong@Password123"
 }
 
-Write-Host "--- Khởi tạo Database SQL Server ---" -ForegroundColor Cyan
+Write-Host "--- Khoi tao Database SQL Server ---" -ForegroundColor Cyan
 
-# Kiểm tra container có đang chạy không
+# Kiem tra container co dang chay khong
 $containerStatus = docker inspect -f '{{.State.Running}}' sqlserver-db 2>$null
 if ($containerStatus -ne "true") {
-    Write-Host "Lỗi: Container 'sqlserver-db' không chạy. Hãy chạy 'docker-compose up -d' trước." -ForegroundColor Red
+    Write-Host "Loi: Container 'sqlserver-db' khong chay. Hay chay 'docker-compose up -d' truoc." -ForegroundColor Red
     exit 1
 }
 
-# Đợi SQL Server sẵn sàng
-Write-Host "Đang đợi SQL Server khởi động hoàn tất..."
+# Doi SQL Server san sang
+Write-Host "Dang doi SQL Server khoi dong hoan tat..."
 $ready = $false
 for ($i=0; $i -lt 30; $i++) {
-    # Thử chạy một lệnh đơn giản
+    # Thu chay mot lenh don gian
     $test = docker exec sqlserver-db /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P $saPassword -C -Q "SELECT 1" 2>$null
     if ($LASTEXITCODE -eq 0) {
         $ready = $true
-        Write-Host "`nSQL Server đã sẵn sàng!" -ForegroundColor Green
+        Write-Host "`nSQL Server da san sang!" -ForegroundColor Green
         break
     }
     Write-Host "." -NoNewline
@@ -45,14 +45,14 @@ for ($i=0; $i -lt 30; $i++) {
 }
 
 if (-not $ready) {
-    Write-Host "`nLỗi: SQL Server không phản hồi sau 60 giây." -ForegroundColor Red
+    Write-Host "`nLoi: SQL Server khong phan hoi sau 60 giay." -ForegroundColor Red
     exit 1
 }
 
-Write-Host "Bước 1: Chạy initDb.sql (Tạo Database và Bảng)..."
-docker exec -it sqlserver-db /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P $saPassword -C -i /data/initDb.sql
+Write-Host "Buoc 1: Chay initDb.sql (Tao Database va Bang)..."
+docker exec -i sqlserver-db /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P $saPassword -C -i /data/initDb.sql
 
-Write-Host "Bước 2: Chạy seedDb.sql (Nạp dữ liệu mẫu)..."
-docker exec -it sqlserver-db /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P $saPassword -C -i /data/seedDb.sql
+Write-Host "Buoc 2: Chay seedDb.sql (Nap du lieu mau)..."
+docker exec -i sqlserver-db /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P $saPassword -C -i /data/seedDb.sql
 
-Write-Host "--- Hoàn tất thiết lập Database! ---" -ForegroundColor Green
+Write-Host "--- Hoan tat thiet lap Database! ---" -ForegroundColor Green

@@ -17,11 +17,11 @@ public sealed class VertexAiClient
 
     public async Task<string> GenerateContentAsync(string message, CancellationToken ct)
     {
-        var host = _options.Region == "global" ? "aiplatform.googleapis.com" : $"{_options.Region}-aiplatform.googleapis.com";
-        var endpoint = _options.ExpressMode
-            ? $"https://aiplatform.googleapis.com/v1/publishers/google/models/{_options.LlmModelId}:generateContent"
-            : $"https://{host}/v1/projects/{_options.ProjectId}/locations/{_options.Region}/publishers/google/models/{_options.LlmModelId}:generateContent";
-        var url = $"{endpoint}?key={_options.ApiKey}";
+        var url = _options.ApiUrlTemplate
+            .Replace("{region}", _options.Region)
+            .Replace("{projectId}", _options.ProjectId)
+            .Replace("{modelId}", _options.LlmModelId)
+            .Replace("{action}", "generateContent") + $"?key={_options.ApiKey}";
         var payload = new
         {
             contents = new[]
@@ -71,11 +71,11 @@ public sealed class VertexAiClient
         int? outputDimensionality,
         CancellationToken ct)
     {
-        var host = _options.Region == "global" ? "aiplatform.googleapis.com" : $"{_options.Region}-aiplatform.googleapis.com";
-        var endpoint = _options.ExpressMode
-            ? $"https://aiplatform.googleapis.com/v1/publishers/google/models/{_options.EmbeddingModelId}:predict"
-            : $"https://{host}/v1/projects/{_options.ProjectId}/locations/{_options.Region}/publishers/google/models/{_options.EmbeddingModelId}:predict";
-        var url = $"{endpoint}?key={_options.ApiKey}";
+        var url = _options.ApiUrlTemplate
+            .Replace("{region}", _options.Region)
+            .Replace("{projectId}", _options.ProjectId)
+            .Replace("{modelId}", _options.EmbeddingModelId)
+            .Replace("{action}", "predict") + $"?key={_options.ApiKey}";
         var resolvedTaskType = string.IsNullOrWhiteSpace(taskType) ? "RETRIEVAL_QUERY" : taskType;
         var parameters = new Dictionary<string, object>
         {

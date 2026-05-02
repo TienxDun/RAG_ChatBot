@@ -44,8 +44,10 @@ Thumbs.db
 .expo/
 .turbo/
 
-# Databases
+# Databases & Docker Volumes
 qdrant_storage/
+data/
+cloudbeaver_data/
 *.db-shm
 *.db-wal
 
@@ -68,9 +70,13 @@ venv/
 ENV/
 
 # Antigravity / AI
+.agent/
 .gemini/
 .ai/
 
 # Test Coverage
 coverage/
-*.lcov
+
+
+
+
