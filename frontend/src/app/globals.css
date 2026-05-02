@@ -235,3 +235,25 @@ body::selection {
   background-color: color-mix(in srgb, var(--primary) 2%, transparent);
 }
 
+/* Global Cursor for Interactive Elements */
+button,
+a,
+[role="button"],
+select,
+input[type="checkbox"],
+input[type="radio"],
+input[type="submit"],
+input[type="button"],
+label {
+  cursor: pointer;
+}
+
+/* Fallback for disabled states */
+button:disabled,
+input:disabled,
+select:disabled,
+[aria-disabled="true"],
+.disabled {
+  cursor: not-allowed;
+}
+
