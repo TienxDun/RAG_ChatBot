@@ -58,6 +58,17 @@
     ]
   },
   {
+    "table": "WORK_ASSIGNMENTS",
+    "description": "Bảng phân công nhân sự làm việc tại các chuyền theo từng ca và ngày cụ thể.",
+    "columns": [
+      { "name": "AssignmentID", "description": "ID phân công công việc." },
+      { "name": "EmployeeID", "description": "ID nhân viên được phân công. Join với bảng EMPLOYEES." },
+      { "name": "LineID", "description": "Mã chuyền may nhân viên làm việc. Join với bảng PRODUCTION_LINES." },
+      { "name": "ShiftID", "description": "Ca làm việc của nhân viên. Join với bảng SHIFTS." },
+      { "name": "WorkDate", "description": "Ngày làm việc thực tế." }
+    ]
+  },
+  {
     "table": "PRODUCTIVITY",
     "description": "Dữ liệu ghi nhận năng suất thực tế (số lượng làm được) theo từng ca và chuyền.",
     "columns": [
