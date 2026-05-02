@@ -1,44 +1,13 @@
 <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <!-- Gradient chiều sâu cho Chat Bubble -->
-    <linearGradient id="bubbleGradient" x1="4" y1="4" x2="28" y2="26" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#9333EA"/>
-      <stop offset="1" stop-color="#6B21A8"/>
-    </linearGradient>
-    
-    <!-- Filter tạo bóng đổ mềm mại (Drop Shadow) -->
-    <filter id="dropShadow" x="-2" y="-2" width="38" height="38" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
-      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
-      <feOffset dy="1.5"/>
-      <feGaussianBlur stdDeviation="1"/>
-      <feComposite in2="hardAlpha" operator="out"/>
-      <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.3 0"/>
-      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow"/>
-      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow" result="shape"/>
-    </filter>
-
-    <!-- Filter tạo hiệu ứng sáng bóng (Inner Glow/Highlight) -->
-    <linearGradient id="highlightGradient" x1="16" y1="4" x2="16" y2="10" gradientUnits="userSpaceOnUse">
-      <stop stop-color="white" stop-opacity="0.3"/>
-      <stop offset="1" stop-color="white" stop-opacity="0"/>
-    </linearGradient>
-  </defs>
-
-  <g filter="url(#dropShadow)">
-    <!-- Thân Chat Bubble (Tách nền - không có rect bao quanh) -->
-    <path d="M5 6C5 4.89543 5.89543 4 7 4H25C26.1046 4 27 4.89543 27 6V17C27 18.1046 26.1046 19 25 19H14L8 25V19H7C5.89543 19 5 18.1046 5 17V6Z" fill="url(#bubbleGradient)"/>
-    
-    <!-- Ánh sáng phản chiếu phía trên (Glass effect) -->
-    <path d="M7 5H25C25.5523 5 26 5.44772 26 6V8H6V6C6 5.44772 6.44772 5 7 5Z" fill="url(#highlightGradient)"/>
-
-    <!-- Các vạch dữ liệu RAG (Retrieval) -->
-    <rect x="9" y="9" width="13" height="2" rx="1" fill="white" fill-opacity="0.9"/>
-    <rect x="9" y="13" width="9" height="2" rx="1" fill="white" fill-opacity="0.7"/>
-
-    <!-- Biểu tượng Search (Augmentation) nổi bật với màu Cyan 3D -->
-    <circle cx="23" cy="20" r="5.5" fill="#06B6D4" stroke="white" stroke-width="1.5"/>
-    <circle cx="21.5" cy="18.5" r="1.5" fill="white" fill-opacity="0.5"/> <!-- Điểm sáng trên kính lúp -->
-    <path d="M22 20L24 22" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
-  </g>
+  <!-- Soft Outer Container -->
+  <rect x="2" y="2" width="28" height="28" rx="8" fill="#FFFFFF" stroke="#7C3AED" stroke-width="2"/>
+  
+  <!-- Sleek "R" Monogram (for RAG) -->
+  <path d="M10 10h5c2.5 0 4 1.5 4 4s-1.5 4-4 4h-1v4H10V10zm4 5h1c.8 0 1.5-.5 1.5-1.5S15.8 12 15 12h-1v3z" fill="#7C3AED"/>
+  
+  <!-- Cyber/AI Accent (Extending the R leg) -->
+  <path d="M14 18l4 6h4.5l-5-6H14z" fill="#06B6D4"/>
+  
+  <!-- Bot/Chat Indicator Dot -->
+  <circle cx="23" cy="9" r="2.5" fill="#06B6D4"/>
 </svg>
