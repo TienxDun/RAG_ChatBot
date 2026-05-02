@@ -9,12 +9,14 @@ public sealed class RagOrchestrator
     private readonly VertexAiClient _aiClient;
     private readonly QdrantService _qdrantService;
     private readonly SqlService _sqlService;
+    private readonly VertexAiOptions _options;
 
-    public RagOrchestrator(VertexAiClient aiClient, QdrantService qdrantService, SqlService sqlService)
+    public RagOrchestrator(VertexAiClient aiClient, QdrantService qdrantService, SqlService sqlService, VertexAiOptions options)
     {
         _aiClient = aiClient;
         _qdrantService = qdrantService;
         _sqlService = sqlService;
+        _options = options;
     }
 
     public async Task<ChatResponse> ProcessQueryAsync(string userQuery, CancellationToken ct)
@@ -26,7 +28,7 @@ public sealed class RagOrchestrator
         steps.Add(new RagStep("Vectorization", $"Câu hỏi đã được chuyển đổi thành vector 3072 chiều."));
 
         // 2. Search Qdrant for relevant schema context
-        var schemaContexts = await _qdrantService.SearchSchemaAsync(vector, limit: 5);
+        var schemaContexts = await _qdrantService.SearchSchemaAsync(vector, limit: _options.TopK);
         var schemaInfo = string.Join("\n\n", schemaContexts);
         steps.Add(new RagStep("Schema Retrieval", $"Tìm thấy {schemaContexts.Count} thông tin cấu trúc database liên quan nhất:\n\n{schemaInfo}"));
 

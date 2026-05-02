@@ -7,7 +7,8 @@ public sealed record VertexAiOptions(
     string LlmModelId,
     string EmbeddingModelId,
     bool ExpressMode,
-    string ApiUrlTemplate)
+    string ApiUrlTemplate,
+    int TopK)
 {
     public static VertexAiOptions FromEnvironment()
     {
@@ -19,6 +20,11 @@ public sealed record VertexAiOptions(
         var expressModeStr = Environment.GetEnvironmentVariable("VERTEX_EXPRESS_MODE");
         var expressMode = expressModeStr?.ToLowerInvariant() == "true";
         var apiUrlTemplate = Environment.GetEnvironmentVariable("VERTEX_API_URL_TEMPLATE");
+        var topKStr = Environment.GetEnvironmentVariable("RAG_TOP_K");
+        if (!int.TryParse(topKStr, out var topK))
+        {
+            topK = 5;
+        }
 
         var missing = new List<string>();
         if (string.IsNullOrWhiteSpace(apiKey)) missing.Add("VERTEX_API_KEY");
@@ -47,6 +53,7 @@ public sealed record VertexAiOptions(
             llmModelId!,
             embeddingModelId!,
             expressMode,
-            apiUrlTemplate);
+            apiUrlTemplate,
+            topK);
     }
 }

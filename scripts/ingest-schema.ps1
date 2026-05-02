@@ -5,11 +5,13 @@ $envFile = Join-Path $PSScriptRoot "..\.env"
 $envData = @{}
 
 if (Test-Path $envFile) {
-    Get-Content $envFile | ForEach-Object {
+    Get-Content $envFile -Encoding UTF8 | ForEach-Object {
         $line = $_.Trim()
         if ($line -match "^(?<name>[^#\s][^=]*)=(?<value>.*)$") {
             $name = $Matches.name.Trim()
             $value = $Matches.value.Trim()
+            # Remove quotes if present
+            $value = $value -replace '^"|"$',''
             $envData[$name] = $value
         }
     }
@@ -48,7 +50,7 @@ Invoke-RestMethod -Uri "$qdrantUrl/collections/$collectionName" -Method Put -Bod
 
 # 3. Read Schema Description
 $schemaPath = Join-Path $PSScriptRoot "..\data\schema-description.json"
-$schemaData = Get-Content $schemaPath -Raw | ConvertFrom-Json
+$schemaData = Get-Content $schemaPath -Raw -Encoding UTF8 | ConvertFrom-Json
 
 Write-Host "Starting ingestion of $($schemaData.Count) tables..." -ForegroundColor Cyan
 
