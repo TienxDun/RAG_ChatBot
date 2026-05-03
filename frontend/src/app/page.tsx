@@ -27,6 +27,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = React.useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
   const [isUploadOpen, setIsUploadOpen] = React.useState(false);
+  const [isApiConnected, setIsApiConnected] = React.useState<boolean | null>(null);
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
   // Sync messages when current session changes
@@ -43,6 +44,37 @@ export default function Home() {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  // Check API connection status
+  React.useEffect(() => {
+    const apiMode = process.env.NEXT_PUBLIC_API_MODE || 'dotnet';
+    if (apiMode !== 'dotnet') return;
+
+    const checkApi = async () => {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_DOTNET_API_URL || 'http://localhost:5000/api/chat';
+        const healthUrl = apiUrl.replace('/chat', '/health');
+        
+        // Use AbortController for timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        
+        const res = await fetch(healthUrl, { 
+          method: 'GET', 
+          signal: controller.signal 
+        });
+        
+        clearTimeout(timeoutId);
+        setIsApiConnected(res.ok);
+      } catch (e) {
+        setIsApiConnected(false);
+      }
+    };
+
+    checkApi();
+    const interval = setInterval(checkApi, 15000); // Check every 15s
+    return () => clearInterval(interval);
+  }, []);
 
   const handleSend = async () => {
     if (!inputValue.trim() || isLoading) return;
@@ -147,7 +179,8 @@ export default function Home() {
       <ChatHeader 
         onOpenSidebar={() => setIsSidebarOpen(true)} 
         onOpenUpload={() => setIsUploadOpen(true)}
-        apiMode={process.env.NEXT_PUBLIC_API_MODE} 
+        apiMode={process.env.NEXT_PUBLIC_API_MODE || 'dotnet'} 
+        isApiConnected={isApiConnected}
       />
 
       <UploadModal isOpen={isUploadOpen} onClose={() => setIsUploadOpen(false)} />
