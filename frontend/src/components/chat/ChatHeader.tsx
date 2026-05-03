@@ -1,13 +1,14 @@
 import * as React from "react";
-import { List } from "@phosphor-icons/react";
+import { List, UploadSimple } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 
 interface ChatHeaderProps {
   onOpenSidebar: () => void;
+  onOpenUpload: () => void;
   apiMode: string | undefined;
 }
 
-export const ChatHeader: React.FC<ChatHeaderProps> = ({ onOpenSidebar, apiMode }) => {
+export const ChatHeader: React.FC<ChatHeaderProps> = ({ onOpenSidebar, onOpenUpload, apiMode }) => {
   return (
     <header className="fixed top-6 left-0 right-0 z-50 px-8 flex justify-between items-center pointer-events-none animate-in fade-in duration-1000">
       <div className="flex items-center gap-4 pointer-events-auto">
@@ -38,6 +39,14 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({ onOpenSidebar, apiMode }
 
       <div className="flex items-center gap-2 pointer-events-auto">
         <div className="flex items-center p-1 rounded-full glass-panel border border-primary/5 shadow-sm">
+          <button 
+            onClick={onOpenUpload}
+            className="px-4 py-1.5 rounded-full text-[10px] font-black text-muted-foreground/60 hover:text-primary transition-all active:scale-95 uppercase tracking-[0.15em] flex items-center gap-1.5"
+          >
+            <UploadSimple size={12} weight="bold" />
+            Import
+          </button>
+          <div className="h-4 w-[1px] bg-foreground/10" />
           <button 
             onClick={() => window.location.reload()}
             className="px-4 py-1.5 rounded-full text-[10px] font-black text-muted-foreground/60 hover:text-primary transition-all active:scale-95 uppercase tracking-[0.15em]"

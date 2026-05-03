@@ -8,6 +8,7 @@ import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatMessage } from "@/components/chat/ChatMessage";
 import { ChatInput } from "@/components/chat/ChatInput";
 import StarfieldBackground from "@/components/ui/StarfieldBackground";
+import { UploadModal } from "@/components/UploadModal";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function Home() {
@@ -25,6 +26,7 @@ export default function Home() {
   const [messages, setMessages] = React.useState<Message[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
+  const [isUploadOpen, setIsUploadOpen] = React.useState(false);
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
   // Sync messages when current session changes
@@ -144,8 +146,11 @@ export default function Home() {
       
       <ChatHeader 
         onOpenSidebar={() => setIsSidebarOpen(true)} 
+        onOpenUpload={() => setIsUploadOpen(true)}
         apiMode={process.env.NEXT_PUBLIC_API_MODE} 
       />
+
+      <UploadModal isOpen={isUploadOpen} onClose={() => setIsUploadOpen(false)} />
 
       <div className="w-full flex-1 flex flex-col pt-16 z-10 overflow-hidden">
         <AnimatePresence mode="wait">
