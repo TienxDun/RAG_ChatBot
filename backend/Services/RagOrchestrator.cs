@@ -19,18 +19,22 @@ public sealed class RagOrchestrator
         _options = options;
     }
 
-    public async Task<ChatResponse> ProcessQueryAsync(string userQuery, CancellationToken ct)
+    public async Task<ChatResponse> ProcessQueryAsync(string userQuery, Func<RagStep, Task> onStep, CancellationToken ct)
     {
         var steps = new List<RagStep>();
 
         // 1. Get Embeddings for the question
         var vector = await _aiClient.GetEmbeddingAsync(userQuery, "RETRIEVAL_QUERY", 3072, ct);
-        steps.Add(new RagStep("Vectorization", $"Câu hỏi đã được chuyển đổi thành vector 3072 chiều."));
+        var step1 = new RagStep("Vectorization", $"Câu hỏi đã được chuyển đổi thành vector 3072 chiều.");
+        steps.Add(step1);
+        await onStep(step1);
 
         // 2. Search Qdrant for relevant schema context
         var schemaContexts = await _qdrantService.SearchSchemaAsync(vector, limit: _options.TopK);
         var schemaInfo = string.Join("\n\n", schemaContexts);
-        steps.Add(new RagStep("Schema Retrieval", $"Tìm thấy {schemaContexts.Count} thông tin cấu trúc database liên quan nhất:\n\n{schemaInfo}"));
+        var step2 = new RagStep("Schema Retrieval", $"Tìm thấy {schemaContexts.Count} thông tin cấu trúc database liên quan nhất:\n\n{schemaInfo}");
+        steps.Add(step2);
+        await onStep(step2);
 
         // 3 & 4. SQL Generation & Execution Loop (Self-Healing)
         string generatedSql = string.Empty;
@@ -70,7 +74,9 @@ public sealed class RagOrchestrator
 
                     Lưu ý: Chỉ trả về mã SQL mới, không giải thích.";
                 
-                steps.Add(new RagStep($"Self-Healing (Lần {attempt - 1})", $"AI đang sửa lỗi SQL...\nLỗi vừa gặp: {lastError}"));
+                var healingStep = new RagStep($"Self-Healing (Lần {attempt - 1})", $"AI đang sửa lỗi SQL...\nLỗi vừa gặp: {lastError}");
+                steps.Add(healingStep);
+                await onStep(healingStep);
             }
 
             generatedSql = await _aiClient.GenerateContentAsync(sqlPrompt, ct);
@@ -79,7 +85,9 @@ public sealed class RagOrchestrator
             try 
             {
                 sqlResultJson = await _sqlService.ExecuteQueryAsJsonAsync(generatedSql, ct);
-                steps.Add(new RagStep($"SQL Generation & Execution (Lần {attempt})", $"Mã SQL chạy thành công:\n\n```sql\n{generatedSql}\n```\n\nKết quả JSON:\n\n```json\n{sqlResultJson}\n```"));
+                var stepSuccess = new RagStep($"SQL Generation & Execution (Lần {attempt})", $"Mã SQL chạy thành công:\n\n```sql\n{generatedSql}\n```\n\nKết quả JSON:\n\n```json\n{sqlResultJson}\n```");
+                steps.Add(stepSuccess);
+                await onStep(stepSuccess);
                 break; // Thành công thì thoát vòng lặp
             }
             catch (Exception ex)
@@ -87,7 +95,9 @@ public sealed class RagOrchestrator
                 lastError = ex.Message;
                 if (attempt == maxAttempts)
                 {
-                    steps.Add(new RagStep("SQL Final Failure", $"Đã thử {maxAttempts} lần nhưng vẫn gặp lỗi: {lastError}"));
+                    var finalFailStep = new RagStep("SQL Final Failure", $"Đã thử {maxAttempts} lần nhưng vẫn gặp lỗi: {lastError}");
+                    steps.Add(finalFailStep);
+                    await onStep(finalFailStep);
                     sqlResultJson = $"[ERROR] Đã thử {maxAttempts} lần nhưng không thể tạo truy vấn SQL chính xác. Lỗi cuối cùng: {lastError}";
                 }
             }

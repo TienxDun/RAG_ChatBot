@@ -60,13 +60,52 @@ export class ChatService {
       throw new Error(errorText || "Failed to fetch from .NET API");
     }
 
-    const data = await response.json();
-    if (data.text) {
-      yield { 
-        content: data.text, 
-        steps: data.steps, 
-        suggestedQuestions: data.suggestedQuestions 
-      };
+    const reader = response.body?.getReader();
+    const decoder = new TextDecoder();
+    let accumulatedSteps: RagStep[] = [];
+    let accumulatedText = "";
+    let buffer = "";
+
+    if (!reader) return;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      
+      // Phân tách theo dòng để xử lý từng block 'data: '
+      const lines = buffer.split("\n");
+      // Dòng cuối cùng có thể chưa hoàn chỉnh, giữ lại trong buffer
+      buffer = lines.pop() || "";
+
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        if (!trimmedLine || !trimmedLine.startsWith("data: ")) continue;
+
+        const jsonStr = trimmedLine.substring(5).trim(); // "data:" có 5 ký tự, cộng 1 khoảng trắng là 6
+        if (!jsonStr) continue;
+
+        try {
+          const data = JSON.parse(jsonStr);
+          
+          if (data.type === "step") {
+            accumulatedSteps.push(data.step);
+            yield { content: accumulatedText, steps: [...accumulatedSteps] };
+          } else if (data.type === "final") {
+            accumulatedText = data.text;
+            yield { 
+              content: accumulatedText, 
+              steps: accumulatedSteps, 
+              suggestedQuestions: data.suggestedQuestions 
+            };
+          } else if (data.type === "error") {
+            throw new Error(data.message);
+          }
+        } catch (e) {
+          console.error("Error parsing SSE JSON:", jsonStr, e);
+        }
+      }
     }
   }
 

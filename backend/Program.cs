@@ -4,10 +4,21 @@ using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var envPath = Path.GetFullPath(Path.Combine(builder.Environment.ContentRootPath, "..", ".env"));
+// Load .env file from root directory
+var rootDir = builder.Environment.ContentRootPath;
+var envPath = Path.GetFullPath(Path.Combine(rootDir, "..", ".env"));
+
+// Fallback to current directory if not found (in case it's run from root)
+if (!File.Exists(envPath))
+{
+    envPath = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), ".env"));
+}
+
 if (File.Exists(envPath))
 {
     DotNetEnv.Env.Load(envPath);
+    // Explicitly refresh configuration to include variables loaded by DotNetEnv
+    builder.Configuration.AddEnvironmentVariables();
 }
 
 var options = VertexAiOptions.FromEnvironment();
@@ -46,15 +57,45 @@ app.UseCors();
 
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
 
-app.MapPost("/api/chat", async (ChatRequest request, RagOrchestrator orchestrator, CancellationToken ct) =>
+app.MapPost("/api/chat", async (ChatRequest request, RagOrchestrator orchestrator, HttpContext context, CancellationToken ct) =>
     {
         if (string.IsNullOrWhiteSpace(request.Message))
         {
             return Results.BadRequest(new { error = "Message is required." });
         }
 
-        var response = await orchestrator.ProcessQueryAsync(request.Message, ct);
-        return Results.Ok(response);
+        // Thiết lập Server-Sent Events
+        context.Response.ContentType = "text/event-stream";
+        context.Response.Headers.Append("Cache-Control", "no-cache");
+        context.Response.Headers.Append("Connection", "keep-alive");
+
+        var serializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+
+        // Hàm helper để gửi event
+        async Task SendEventAsync(object data)
+        {
+            var json = JsonSerializer.Serialize(data, serializerOptions);
+            await context.Response.WriteAsync($"data: {json}\n\n", ct);
+            await context.Response.Body.FlushAsync(ct);
+        }
+
+        try 
+        {
+            var response = await orchestrator.ProcessQueryAsync(request.Message, async (step) => 
+            {
+                // Gửi từng bước ngay khi hoàn thành
+                await SendEventAsync(new { type = "step", step });
+            }, ct);
+
+            // Gửi kết quả cuối cùng
+            await SendEventAsync(new { type = "final", text = response.Text, suggestedQuestions = response.SuggestedQuestions });
+        }
+        catch (Exception ex)
+        {
+            await SendEventAsync(new { type = "error", message = ex.Message });
+        }
+
+        return Results.Empty;
     })
     .WithName("Chat")
     .WithOpenApi();

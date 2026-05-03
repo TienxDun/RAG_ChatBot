@@ -6,17 +6,15 @@ namespace Backend.Services;
 
 public sealed class SqlService
 {
+    private readonly IConfiguration _configuration;
     private readonly string _connectionString;
 
-    public SqlService()
+    public SqlService(IConfiguration configuration)
     {
-        var password = Environment.GetEnvironmentVariable("MSSQL_SA_PASSWORD") ?? "YourStrong@Password123";
-        var user = Environment.GetEnvironmentVariable("MSSQL_USER") ?? "sa";
-        var port = Environment.GetEnvironmentVariable("MSSQL_PORT") ?? "1433";
-        var db = Environment.GetEnvironmentVariable("MSSQL_DATABASE") ?? "GarmentDB";
-        
-        // Dùng localhost vì Backend chạy local ngoài Docker
-        _connectionString = $"Server=localhost,{port};Database={db};User Id={user};Password={password};TrustServerCertificate=True";
+        _configuration = configuration;
+        // Ưu tiên lấy từ IConfiguration (nó bao gồm cả Environment Variables)
+        _connectionString = _configuration["MSSQL_CONNECTION_STRING"] 
+            ?? throw new InvalidOperationException("MSSQL_CONNECTION_STRING is not set in environment variables or configuration.");
     }
 
     public async Task<string> ExecuteQueryAsJsonAsync(string sql, CancellationToken ct)
