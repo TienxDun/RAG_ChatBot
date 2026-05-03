@@ -3,11 +3,17 @@ import { NextResponse } from 'next/server';
 export async function POST(req: Request) {
   try {
     const { contents } = await req.json();
-    const apiKey = process.env.GEMINI_API_KEY;
-    const apiUrl = process.env.GEMINI_API_URL;
+    const apiKey = process.env.VERTEX_API_KEY;
+    const modelId = process.env.VERTEX_LLM_MODEL || "gemini-3.1-flash-lite-preview";
+    const urlTemplate = process.env.VERTEX_API_URL_TEMPLATE || "https://aiplatform.googleapis.com/v1/publishers/google/models/{modelId}:{action}";
+    
+    // Construct Vertex AI URL from template
+    const apiUrl = urlTemplate
+      .replace("{modelId}", modelId)
+      .replace("{action}", "streamGenerateContent");
 
-    if (!apiKey || !apiUrl) {
-      return NextResponse.json({ error: 'API configuration missing' }, { status: 500 });
+    if (!apiKey) {
+      return NextResponse.json({ error: 'VERTEX_API_KEY missing in .env' }, { status: 500 });
     }
 
     const maxTokens = parseInt(process.env.NEXT_PUBLIC_MAX_OUTPUT_TOKENS || '2048');

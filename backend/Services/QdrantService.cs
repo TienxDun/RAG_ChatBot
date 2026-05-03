@@ -10,8 +10,13 @@ public sealed class QdrantService
 
     public QdrantService()
     {
-        // Qdrant chạy trong Docker, map port 6333 ra localhost
-        _client = new QdrantClient("localhost", 6334); // gRPC port
+        var host = Environment.GetEnvironmentVariable("QDRANT_HOST") ?? "localhost";
+        var apiKey = Environment.GetEnvironmentVariable("QDRANT_API_KEY");
+        
+        // Nếu host không phải localhost thì mặc định dùng HTTPS (cho Cloud)
+        bool useHttps = host != "localhost";
+        
+        _client = new QdrantClient(host, port: 6334, https: useHttps, apiKey: apiKey);
     }
 
     public async Task<List<string>> SearchSchemaAsync(IReadOnlyList<float> vector, int limit = 3)

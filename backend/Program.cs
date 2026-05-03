@@ -17,11 +17,13 @@ builder.Services.AddSingleton<SqlService>();
 builder.Services.AddSingleton<QdrantService>();
 builder.Services.AddSingleton<RagOrchestrator>();
 
+var allowedOrigins = Environment.GetEnvironmentVariable("ALLOWED_ORIGINS")?.Split(',') ?? new[] { "http://localhost:3000" };
+
 builder.Services.AddCors(cors =>
 {
     cors.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "http://localhost:3000")
+        policy.WithOrigins(allowedOrigins)
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
