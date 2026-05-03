@@ -1,119 +1,115 @@
-# Hướng dẫn chi tiết thiết lập dự án RAG ChatBot với Vertex AI
+# 🤖 DODO ChatBot - Hệ thống RAG ChatBot Thông Minh
 
-Chào mừng bạn đến với dự án RAG ChatBot. Dưới đây là hướng dẫn từng bước từ việc tải mã nguồn về cho đến khi bạn có thể bắt đầu trò chuyện trên giao diện người dùng.
+DODO ChatBot là một ứng dụng **RAG (Retrieval-Augmented Generation)** hiện đại, kết hợp sức mạnh của mô hình ngôn ngữ lớn **Gemini (Vertex AI)** với cơ sở dữ liệu Vector và SQL để cung cấp câu trả lời chính xác dựa trên dữ liệu của riêng bạn.
 
-## Bước 1: Clone dự án từ GitHub
+![DODO ChatBot Banner](https://img.shields.io/badge/Status-Production--Ready-success?style=for-the-badge)
+![Tech Stack](https://img.shields.io/badge/Stack-Next.js%20%7C%20.NET%208%20%7C%20Gemini-blue?style=for-the-badge)
 
-Mở terminal hoặc Command Prompt và chạy lệnh sau để tải dự án về máy:
+---
+
+## ✨ Tính năng nổi bật
+
+- **🔍 RAG Search (Retrieval-Augmented Generation):** Tự động tìm kiếm ngữ cảnh từ kho dữ liệu văn bản trước khi trả lời.
+- **📄 Đa dạng nguồn dữ liệu:** Hỗ trợ nạp và bóc tách nội dung từ file **PDF, TXT, và JSON** thông qua Vertex AI.
+- **⚡ Real-time Progress (SSE):** Theo dõi quá trình xử lý (Vectorization, Retrieval, SQL Execution) theo thời gian thực với hiệu ứng mượt mà.
+- **🗄️ SQL Insight:** Khả năng hiểu cấu trúc database, tự sinh câu lệnh SQL và thực thi để lấy dữ liệu thực tế từ hệ thống.
+- **🎨 Giao diện Premium:** Thiết kế theo phong cách Glassmorphism, hỗ trợ hiệu ứng Starfield, Sidebar quản lý lịch sử chat và trải nghiệm người dùng tối ưu.
+
+---
+
+## 🛠️ Công nghệ sử dụng
+
+### **Frontend (Vercel)**
+- **Framework:** Next.js 15+ (App Router, TypeScript)
+- **Styling:** Tailwind CSS (Modern Dark Mode)
+- **Animation:** Framer Motion (Micro-animations, SSE transitions)
+- **Icons:** Phosphor Icons
+
+### **Backend (Render)**
+- **Framework:** .NET 8 Web API (C#)
+- **AI Engine:** Google Vertex AI (Gemini 1.5 Flash, Text Embedding)
+- **Vector DB:** Qdrant Cloud (Lưu trữ và tìm kiếm vector)
+- **RDBMS:** SQL Server Online (Lưu trữ dữ liệu nghiệp vụ)
+- **Containerization:** Docker
+
+---
+
+## 🏗️ Kiến trúc hệ thống
+
+```mermaid
+graph LR
+    User((Người dùng)) --> FE[Next.js Frontend]
+    FE -- SSE (Real-time) --> BE[.NET 8 Backend]
+    BE -- Embedding --> VAI[Vertex AI]
+    BE -- Retrieval --> QDR[Qdrant Cloud]
+    BE -- Query --> SQL[SQL Server Online]
+    BE -- Reasoning --> GEM[Gemini 1.5 Flash]
+    GEM --> BE
+    BE --> FE
+```
+
+---
+
+## 🚀 Cài đặt và Chạy Local
+
+### 1. Yêu cầu hệ thống
+- .NET 8 SDK
+- Node.js 18+ & npm
+- Docker (Tùy chọn, nếu muốn chạy backend qua Docker)
+
+### 2. Thiết lập biến môi trường
+Tạo file `.env` tại thư mục gốc dựa trên mẫu `.env.example`:
 
 ```bash
-git clone https://github.com/TienxDun/RAG_ChatBot.git
-cd RAG_ChatBot
+cp .env.example .env
 ```
 
-## Bước 2: Thiết lập biến môi trường
+Cập nhật các thông tin quan trọng như `VERTEX_API_KEY`, `QDRANT_HOST`, và `MSSQL_CONNECTION_STRING`.
 
-Dự án cần một số cấu hình để kết nối với các dịch vụ của Google Vertex AI và thiết lập mật khẩu cho cơ sở dữ liệu.
+### 3. Chạy ứng dụng
 
-1. Tạo file `.env` bằng cách sao chép từ file mẫu:
-   ```bash
-   cp .env.example .env
-   ```
-2. Mở file `.env` vừa tạo và điền các thông tin cần thiết, đặc biệt là `VERTEX_API_KEY`:
-   ```env
-   VERTEX_API_KEY=YOUR_API_KEY
-   VERTEX_PROJECT_ID=chatbot-494104
-   VERTEX_REGION=asia-southeast1
-   VERTEX_LLM_MODEL=gemini-3.1-flash-lite-preview
-   VERTEX_EMBED_MODEL=gemini-embedding-001
-   VERTEX_EXPRESS_MODE=true
-   MSSQL_SA_PASSWORD=YourStrong!Passw0rd
-   ```
-
-## Bước 3: Khởi động Docker (Cơ sở dữ liệu & VectorDB)
-
-Dự án sử dụng **Qdrant** (lưu trữ vector) và **SQL Server** (cơ sở dữ liệu quan hệ), cùng với **CloudBeaver** để xem dữ liệu. Tất cả đều được đóng gói bằng Docker.
-
-Chạy lệnh sau để tải các image và khởi động container (chạy ngầm):
-
+**Chạy Backend:**
 ```bash
-docker-compose up -d
+cd backend
+dotnet run
 ```
+*Backend mặc định chạy tại `http://localhost:5000`*
 
-Hãy đợi khoảng 1-2 phút để đảm bảo SQL Server khởi động thành công trước khi chuyển sang bước tiếp theo.
-
-## Bước 4: Khởi tạo Cơ sở dữ liệu SQL Server
-
-Tiếp theo, chúng ta cần tạo bảng và nạp dữ liệu mẫu vào SQL Server thông qua script đã được cung cấp.
-
-- **Trên Windows (PowerShell):**
-  ```powershell
-  ./scripts/setup-db.ps1
-  ```
-- **Trên Linux / macOS / Git Bash:**
-  ```bash
-  chmod +x scripts/setup-db.sh
-  ./scripts/setup-db.sh
-  ```
-
-*Lưu ý: Script này sẽ tự động đọc mật khẩu từ file `.env` và thiết lập database `GarmentDB`.*
-
-## Bước 5: Nạp dữ liệu vào VectorDB (Qdrant)
-
-Để ChatBot có thể tìm kiếm được thông tin (Retrieval-Augmented Generation - RAG), ta cần biến đổi (embed) lược đồ dữ liệu thành vector và lưu vào Qdrant.
-
-Chạy lệnh PowerShell sau:
-```powershell
-./scripts/ingest-schema.ps1
+**Chạy Frontend:**
+```bash
+cd frontend
+npm install
+npm run dev
 ```
+*Frontend mặc định chạy tại `http://localhost:3000`*
 
-*Lệnh này sẽ tạo collection `db_schema` trong Qdrant và gọi API của Vertex AI (Gemini Embedding) để lưu trữ các biểu diễn vector của database.*
+---
 
-## Bước 6: Khởi chạy ứng dụng (Backend & Frontend)
+## ☁️ Hướng dẫn Deployment
 
-Bạn có thể chạy tự động cả Backend và Frontend chỉ với một script duy nhất nếu đang dùng Windows:
+### **Frontend (Vercel)**
+1. Kết nối Repository với Vercel.
+2. Cấu hình Environment Variables:
+   - `NEXT_PUBLIC_API_MODE`: `dotnet`
+   - `NEXT_PUBLIC_DOTNET_API_URL`: Link Backend trên Render (VD: `https://api.onrender.com/api/chat`)
 
-**Dùng Script (Windows PowerShell):**
-```powershell
-./scripts/start-dev.ps1
-```
+### **Backend (Render)**
+1. Tạo **Web Service** mới, chọn deploy từ **Docker**.
+2. Thiết lập **Root Directory** là `backend`.
+3. Thiết lập **Dockerfile Path** là `./Dockerfile`.
+4. Cấu hình Environment Variables (Xem chi tiết trong file `.env.example`).
+5. Thêm Health Check Path: `/api/health`.
 
-**Hoặc chạy thủ công theo từng bước:**
+---
 
-1. **Chạy Backend (.NET Core):**
-   Mở terminal mới và chạy:
-   ```bash
-   cd backend
-   dotnet run
-   ```
-   *Backend sẽ chạy ở địa chỉ `http://localhost:5000`.*
+## 📖 Cấu trúc thư mục
 
-2. **Chạy Frontend (React + Vite):**
-   Mở thêm một terminal khác và chạy:
-   ```bash
-   cd frontend
-   npm install
-   npm run dev
-   ```
-   *Frontend sẽ chạy ở địa chỉ `http://localhost:5173`.*
+- `/frontend`: Mã nguồn Next.js (Components, Hooks, Services).
+- `/backend`: Mã nguồn .NET 8 (Controllers, Services, Models).
+- `Dockerfile`: File cấu hình build image cho Backend.
 
-## Bước 7: Bắt đầu trò chuyện
+---
 
-Sau khi mọi thứ đã được khởi chạy, hãy mở trình duyệt web của bạn và truy cập vào giao diện của ứng dụng:
+## 📝 License
 
-- **Giao diện ChatBot:** [http://localhost:3000](http://localhost:3000) (hoặc theo port hiển thị trên terminal).
-- **Trình quản lý Cơ sở dữ liệu (CloudBeaver):** [http://localhost:8978](http://localhost:8978)
-  - **Host**: `sqlserver-db`
-  - **Database**: `GarmentDB`
-  - **Username**: `sa`
-  - **Password**: Lấy từ giá trị `MSSQL_SA_PASSWORD` trong file `.env`.
-
-- **Quản lý Vector DB (Qdrant Dashboard):** [http://localhost:6333/dashboard](http://localhost:6333/dashboard)
-
-- **Kết nối thông qua chuỗi kết nối (Connection String):**
-  Nếu bạn cần kết nối từ ứng dụng backend hoặc các phần mềm quản trị database khác (như SSMS, DataGrip), bạn có thể dùng chuỗi kết nối sau:
-  ```text
-  Server=localhost,1433;Database=GarmentDB;User Id=sa;Password=YourStrong@Password123;TrustServerCertificate=True;
-  ```
-
-Bây giờ bạn đã có thể bắt đầu gõ câu hỏi trên giao diện ChatBot để AI tìm kiếm dữ liệu và trả lời cho bạn!
+Dự án được phát triển bởi **TienxDun**. Vui lòng liên hệ nếu có bất kỳ thắc mắc nào!
