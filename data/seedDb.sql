@@ -1,4 +1,4 @@
-USE GarmentDB;
+USE db50672;
 GO
 
 SET NOCOUNT ON;

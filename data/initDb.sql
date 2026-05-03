@@ -1,9 +1,5 @@
-IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'GarmentDB')
-BEGIN
-    CREATE DATABASE GarmentDB;
-END
-GO
-USE GarmentDB;
+
+USE db50672;
 GO
 
 -- 1. Bảng Chuyền may
