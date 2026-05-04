@@ -36,16 +36,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="flex flex-col h-full p-6">
-          <div className="flex items-center justify-between mb-10">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-primary/20 flex items-center justify-center border border-primary/30 shadow-[0_0_15px_rgba(var(--primary-rgb),0.1)]">
-                <Clock size={20} weight="bold" className="text-primary" />
-              </div>
-              <h2 className="text-sm font-black text-white uppercase tracking-widest">History</h2>
-            </div>
+          <div className="relative flex items-center justify-center mb-10">
+            <h2 className="text-sm font-black text-white uppercase tracking-widest">History</h2>
             <button 
               onClick={onClose}
-              className="p-2 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-all active:scale-90"
+              className="absolute right-0 p-2 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-all active:scale-90"
             >
               <X size={20} />
             </button>
@@ -66,7 +61,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   className={cn(
                     "group relative flex items-center gap-3 p-3 rounded-xl transition-all duration-300 cursor-pointer border",
                     currentSessionId === session.id 
-                      ? "bg-primary/10 border-primary/30 text-primary" 
+                      ? "bg-primary border-primary/50 text-white shadow-[0_0_20px_rgba(var(--primary-rgb),0.2)]" 
                       : "bg-white/5 border-transparent text-white/60 hover:bg-white/10 hover:border-white/10"
                   )}
                   onClick={() => {

@@ -163,17 +163,17 @@ export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose }) => 
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="relative w-full max-w-xl bg-white rounded-3xl border border-slate-200 shadow-[0_20px_50px_rgba(0,0,0,0.1)] overflow-hidden"
+            className="relative w-full max-w-xl bg-white rounded-2xl sm:rounded-3xl border border-slate-200 shadow-[0_20px_50px_rgba(0,0,0,0.1)] overflow-hidden mx-2 sm:mx-0"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-primary/5">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
                   <UploadSimple size={18} weight="bold" className="text-white" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-bold text-foreground">Import Data</h2>
-                  <p className="text-[10px] text-muted-foreground">PDF, TXT, JSON</p>
+                  <h2 className="text-xs sm:text-sm font-bold text-foreground">Import Data</h2>
+                  <p className="text-[9px] sm:text-[10px] text-muted-foreground">PDF, TXT, JSON</p>
                 </div>
               </div>
               <button
@@ -191,11 +191,11 @@ export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose }) => 
                 onDrop={handleDrop}
                 onDragOver={(e) => e.preventDefault()}
                 onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-primary/15 hover:border-primary/40 rounded-2xl p-8 text-center transition-all hover:bg-primary/3 group"
+                className="border-2 border-dashed border-primary/15 hover:border-primary/40 rounded-xl sm:rounded-2xl p-4 sm:p-8 text-center transition-all hover:bg-primary/3 group"
               >
-                <UploadSimple size={32} weight="duotone" className="mx-auto text-primary/40 group-hover:text-primary/70 transition-colors mb-3" />
-                <p className="text-xs font-semibold text-foreground/70">Kéo thả file vào đây</p>
-                <p className="text-[10px] text-muted-foreground mt-1">hoặc click để chọn file</p>
+                <UploadSimple size={28} weight="duotone" className="mx-auto text-primary/40 group-hover:text-primary/70 transition-colors mb-2 sm:mb-3" />
+                <p className="text-[11px] sm:text-xs font-semibold text-foreground/70">Kéo thả file vào đây</p>
+                <p className="text-[9px] sm:text-[10px] text-muted-foreground mt-1">hoặc click để chọn file</p>
               </div>
               <input
                 ref={fileInputRef}
@@ -302,14 +302,15 @@ export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose }) => 
                 onClick={handleStartProcessing}
                 disabled={pendingCount === 0 || isProcessing}
                 className={cn(
-                  "flex items-center gap-2 px-5 py-2 rounded-xl text-[11px] font-bold transition-all active:scale-95",
+                  "flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 rounded-xl text-[10px] sm:text-[11px] font-bold transition-all active:scale-95",
                   pendingCount > 0 && !isProcessing
                     ? "bg-gradient-to-r from-primary to-accent text-white shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30"
                     : "bg-primary/10 text-primary/40 cursor-not-allowed"
                 )}
               >
                 <Lightning size={14} weight="fill" />
-                Bắt đầu xử lý
+                <span className="hidden sm:inline">Bắt đầu xử lý</span>
+                <span className="sm:hidden">Bắt đầu</span>
               </button>
             </div>
           </motion.div>

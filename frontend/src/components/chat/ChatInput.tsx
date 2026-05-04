@@ -75,9 +75,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({ value, onChange, onSend, i
 
   return (
     <div className="w-full z-50 animate-in fade-in slide-in-from-bottom-6 duration-1000 shrink-0">
-      <div className={`glass-panel rounded-3xl p-1.5 shadow-2xl transition-all duration-500 border ${
+      <div className={`glass-panel rounded-2xl sm:rounded-3xl p-1 sm:p-1.5 shadow-2xl transition-all duration-500 border ${
         isListening 
-          ? "shadow-primary/40 border-primary/50 ring-4 ring-primary/20 bg-primary/5" 
+          ? "shadow-primary/40 border-primary/50 ring-2 sm:ring-4 ring-primary/20 bg-primary/5" 
           : "shadow-primary/10 border-primary/10"
       }`}>
         <div className="relative flex items-center">
@@ -88,8 +88,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({ value, onChange, onSend, i
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={isListening ? "Đang lắng nghe..." : "Hỏi về cơ sở dữ liệu của bạn..."}
-            className={`w-full min-h-[48px] max-h-[200px] py-3 bg-transparent border-none focus-visible:ring-0 focus-visible:outline-none text-base font-medium placeholder:text-muted-foreground/30 resize-none overflow-y-auto outline-none transition-all duration-300 ${
-              isListening ? "pl-8 pr-32" : "pl-6 pr-24"
+            className={`w-full min-h-[40px] sm:min-h-[48px] max-h-[150px] sm:max-h-[200px] py-2 sm:py-3 bg-transparent border-none focus-visible:ring-0 focus-visible:outline-none text-sm sm:text-base font-medium placeholder:text-muted-foreground/30 resize-none overflow-y-auto outline-none transition-all duration-300 ${
+              isListening ? "pl-6 pr-24 sm:pl-8 sm:pr-32" : "pl-3 pr-20 sm:pl-6 sm:pr-24"
             }`}
             rows={1}
             style={{ scrollbarWidth: "none" }}
@@ -138,16 +138,16 @@ export const ChatInput: React.FC<ChatInputProps> = ({ value, onChange, onSend, i
                 onClick={toggleListening}
                 variant="ghost"
                 size="icon"
-                className={`relative w-11 h-11 rounded-full transition-all duration-300 z-10 ${
+                className={`relative w-9 h-9 sm:w-11 sm:h-11 rounded-full transition-all duration-300 z-10 ${
                   isListening 
                     ? "text-white bg-primary shadow-lg shadow-primary/40 scale-105" 
                     : "text-muted-foreground hover:text-primary hover:bg-primary/5"
                 }`}
               >
                 {isListening ? (
-                  <MicrophoneStage size={22} weight="fill" />
+                  <MicrophoneStage size={20} weight="fill" />
                 ) : (
-                  <Microphone size={22} />
+                  <Microphone size={20} />
                 )}
               </Button>
             </div>
@@ -157,12 +157,12 @@ export const ChatInput: React.FC<ChatInputProps> = ({ value, onChange, onSend, i
               onClick={onSend}
               disabled={!value.trim() || isLoading || isListening}
               size="icon"
-              className="w-11 h-11 rounded-full bg-gradient-to-br from-primary via-primary to-primary/80 text-white shadow-lg shadow-primary/30 hover:shadow-primary/50 hover:scale-105 active:scale-95 transition-all duration-300 border border-white/20"
+              className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-gradient-to-br from-primary via-primary to-primary/80 text-white shadow-lg shadow-primary/30 hover:shadow-primary/50 hover:scale-105 active:scale-95 transition-all duration-300 border border-white/20"
             >
               {isLoading ? (
-                <CircleNotch size={22} className="animate-spin" />
+                <CircleNotch size={20} className="animate-spin" />
               ) : (
-                <PaperPlaneRight size={22} weight="bold" />
+                <PaperPlaneRight size={20} weight="bold" />
               )}
             </Button>
           </div>

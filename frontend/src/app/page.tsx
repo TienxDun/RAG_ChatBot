@@ -211,11 +211,11 @@ export default function Home() {
                   <motion.div 
                     initial={{ rotate: 0 }}
                     animate={{ rotate: 12 }}
-                    className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-2xl shadow-primary/20 transition-transform hover:rotate-0 duration-500"
+                    className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-2xl shadow-primary/20 transition-transform hover:rotate-0 duration-500"
                   >
-                    <div className="w-6 h-6 border-4 border-white rounded-full border-t-transparent animate-pulse" />
+                    <div className="w-4 h-4 sm:w-6 sm:h-6 border-4 border-white rounded-full border-t-transparent animate-pulse" />
                   </motion.div>
-                  <h1 className="text-6xl font-heading font-black tracking-tight text-foreground">
+                  <h1 className="text-4xl sm:text-6xl font-heading font-black tracking-tight text-foreground">
                     DO<span className="text-primary">DO</span>
                   </h1>
                 </div>
@@ -272,13 +272,13 @@ export default function Home() {
             >
               <div 
                 ref={scrollRef}
-                className="flex-1 overflow-y-auto scrollbar-custom pb-10"
+                className="flex-1 overflow-y-auto scrollbar-custom pb-32 sm:pb-10"
                 style={{
                   maskImage: 'linear-gradient(to bottom, transparent, black 60px, black calc(100% - 40px), transparent)',
                   WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 60px, black calc(100% - 40px), transparent)'
                 }}
               >
-                <div className="max-w-5xl mx-auto w-full px-4 py-8 space-y-8">
+                <div className="max-w-5xl mx-auto w-full px-4 pt-20 sm:pt-8 pb-8 space-y-8">
                   {messages.map((msg, index) => (
                     <ChatMessage 
                       key={index} 
@@ -292,13 +292,15 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="w-full max-w-5xl mx-auto px-4 pb-8 pt-2">
-                <ChatInput 
-                  value={inputValue} 
-                  onChange={setInputValue} 
-                  onSend={handleSend} 
-                  isLoading={isLoading} 
-                />
+              <div className="w-full max-w-5xl mx-auto px-4 pb-8 pt-2 sm:static fixed bottom-0 left-0 right-0 z-[100] sm:z-10 bg-background sm:bg-transparent border-t border-primary/5 sm:border-none pb-safe">
+                <div className="py-4">
+                  <ChatInput 
+                    value={inputValue} 
+                    onChange={setInputValue} 
+                    onSend={handleSend} 
+                    isLoading={isLoading} 
+                  />
+                </div>
               </div>
             </motion.div>
           )}

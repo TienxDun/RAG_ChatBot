@@ -207,12 +207,9 @@ body::selection {
 .markdown-content ul, .markdown-content ol { margin: 0.75rem 0; padding-left: 1.5rem; }
 .markdown-content li { margin-bottom: 0.25rem; }
 .markdown-content table { 
-  width: 100%; 
+  width: 100%;
+  min-width: 100%;
   border-collapse: collapse; 
-  margin: 1.5rem 0; 
-  border-radius: 0.75rem;
-  overflow: hidden;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
   font-size: 0.95em;
 }
 .markdown-content th { 
@@ -222,17 +219,21 @@ body::selection {
   text-align: left;
   padding: 12px 16px;
   border-bottom: 2px solid color-mix(in srgb, var(--primary) 20%, transparent);
+  white-space: nowrap;
 }
 .markdown-content td { 
   padding: 12px 16px;
   border-bottom: 1px solid var(--border);
   color: var(--foreground);
 }
+.markdown-content tr:nth-child(even) td {
+  background-color: color-mix(in srgb, var(--primary) 2%, transparent);
+}
 .markdown-content tr:last-child td {
   border-bottom: none;
 }
 .markdown-content tr:hover td {
-  background-color: color-mix(in srgb, var(--primary) 2%, transparent);
+  background-color: color-mix(in srgb, var(--primary) 5%, transparent);
 }
 
 /* Global Cursor for Interactive Elements */

@@ -71,6 +71,15 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, isLoading, is
                             {children}
                           </code>
                         );
+                      },
+                      table({ children }) {
+                        return (
+                          <div className="w-full overflow-x-auto scrollbar-custom my-6 rounded-xl border border-primary/10 shadow-sm">
+                            <table className="w-full border-collapse text-sm">
+                              {children}
+                            </table>
+                          </div>
+                        );
                       }
                     }}
                   >
@@ -92,7 +101,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, isLoading, is
               {message.content && (
                 <div className="mt-5 pt-4 border-t border-primary/10 flex items-center gap-3 animate-in fade-in duration-500">
                   <div className="px-2 py-0.5 rounded bg-primary/10 text-[10px] font-bold text-primary uppercase tracking-tighter">AI INSIGHT</div>
-                  <div className="text-[10px] text-muted-foreground/40 font-medium flex-1">Chat can make mistakes. Check important info.</div>
+                  <div className="text-[10px] text-muted-foreground/40 font-medium flex-1 hidden xs:block">Chat can make mistakes. Check important info.</div>
                   <button 
                     onClick={onCopy} 
                     className="text-muted-foreground/40 hover:text-primary transition-colors flex items-center gap-1.5 text-[11px] font-medium"
@@ -112,10 +121,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, isLoading, is
               <button
                 key={i}
                 onClick={() => onSuggestionClick?.(q)}
-                className="px-3 py-1.5 rounded-xl glass-panel border border-primary/5 hover:border-primary/30 hover:bg-primary/10 text-xs font-medium text-muted-foreground hover:text-primary transition-all duration-300 flex items-center gap-2 group/btn"
+                className="px-3 py-1.5 rounded-xl glass-panel border border-primary/5 hover:border-primary/30 hover:bg-primary/10 text-xs font-medium text-muted-foreground hover:text-primary transition-all duration-300 flex items-start gap-2 group/btn text-left"
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-primary/40 group-hover/btn:bg-primary transition-colors" />
-                {q}
+                <span className="w-1.5 h-1.5 mt-1 shrink-0 rounded-full bg-primary/40 group-hover/btn:bg-primary transition-colors" />
+                <span>{q}</span>
               </button>
             ))}
           </div>
