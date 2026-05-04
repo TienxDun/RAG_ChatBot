@@ -7,6 +7,8 @@ import { type Message } from "@/lib/chat-service";
 import { TerminalCodeBlock } from "./TerminalCodeBlock";
 import { RagSteps } from "./RagSteps";
 
+import { motion } from "framer-motion";
+
 interface ChatMessageProps {
   message: Message;
   isLoading?: boolean;
@@ -27,10 +29,18 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, isLoading, is
   }, [message.content]);
 
   return (
-    <div className={cn(
-      "flex w-full animate-in fade-in slide-in-from-bottom-4 duration-500 group",
-      isUser ? "justify-end" : "justify-start"
-    )}>
+    <motion.div 
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ 
+        duration: 0.4,
+        ease: [0.23, 1, 0.32, 1] // Custom cubic-bezier for smooth easing
+      }}
+      className={cn(
+        "flex w-full group",
+        isUser ? "justify-end" : "justify-start"
+      )}
+    >
       <div className={cn(
         "relative flex w-fit max-w-full",
         isUser ? "flex-row-reverse items-start gap-2" : "flex-col"
@@ -116,16 +126,24 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, isLoading, is
         </div>
 
         {!isUser && message.suggestedQuestions && message.suggestedQuestions.length > 0 && (
-          <div className="flex flex-col gap-2 mt-4 pl-1 animate-in fade-in slide-in-from-left-4 duration-700 delay-300 items-start">
+          <div className="flex flex-col gap-2 mt-4 pl-1 items-start">
             {message.suggestedQuestions.map((q, i) => (
-              <button
+              <motion.button
                 key={i}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ 
+                  delay: 0.1 * i + 0.3,
+                  type: "spring",
+                  stiffness: 260,
+                  damping: 20
+                }}
                 onClick={() => onSuggestionClick?.(q)}
                 className="px-3 py-1.5 rounded-xl glass-panel border border-primary/5 hover:border-primary/30 hover:bg-primary/10 text-xs font-medium text-muted-foreground hover:text-primary transition-all duration-300 flex items-start gap-2 group/btn text-left"
               >
                 <span className="w-1.5 h-1.5 mt-1 shrink-0 rounded-full bg-primary/40 group-hover/btn:bg-primary transition-colors" />
                 <span>{q}</span>
-              </button>
+              </motion.button>
             ))}
           </div>
         )}
@@ -151,6 +169,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, isLoading, is
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 };

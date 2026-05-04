@@ -229,8 +229,8 @@ export default function Home() {
                   >
                     <div className="w-4 h-4 sm:w-6 sm:h-6 border-4 border-white rounded-full border-t-transparent animate-pulse" />
                   </motion.div>
-                  <h1 className="text-4xl sm:text-6xl font-heading font-black tracking-tight text-foreground">
-                    DO<span className="text-primary">DO</span>
+                  <h1 className="text-4xl sm:text-6xl font-heading font-black tracking-tight text-foreground uppercase">
+                    SQL <span className="text-primary">AI</span>
                   </h1>
                 </div>
 

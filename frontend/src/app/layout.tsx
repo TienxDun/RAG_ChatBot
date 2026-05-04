@@ -10,7 +10,7 @@ const beVietnamPro = Be_Vietnam_Pro({
 
 const firaCode = Fira_Code({
   variable: "--font-fira-code",
-  subsets: ["latin"],
+  subsets: ["latin", "vietnamese"],
 });
 
 export const metadata: Metadata = {

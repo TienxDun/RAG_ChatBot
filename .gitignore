@@ -5,21 +5,31 @@
 .env.test.local
 .env.production.local
 *.env
+**/.env*
 
 # .NET
 bin/
 obj/
 [Bb]in/
 [Oo]bj/
+backend/bin/
+backend/obj/
+backend/publish/
+backend/temp_debug/
 *.user
 *.userosscache
 *.sln.docstates
+*.exe
+*.dll
+*.pdb
+*.suo
 .vs/
 .vscode/
 *.userprefs
 
 # Node.js
 node_modules/
+**/node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -27,47 +37,37 @@ yarn-error.log*
 
 # Next.js
 .next/
+**/.next/
 out/
 build/
 dist/
+next-env.d.ts
+*.tsbuildinfo
 
 # Logs
 *.log
 logs/
-*.swp
+**/*.log
 
 # OS Files
 .DS_Store
 Thumbs.db
+desktop.ini
 
-# Mobile / Other
-.expo/
-.turbo/
-
-# Databases & Docker Volumes
+# Databases & Data
 qdrant_storage/
-data/
 cloudbeaver_data/
 *.db-shm
 *.db-wal
+# Un-ignore database init scripts if you want to keep them
+# !data/initDb.sql
 
-# IDE - JetBrains
+# IDE - JetBrains & VS Code
 .idea/
-
-# Temp & Backup
-*.bak
-*.tmp
+.vscode/
 *.swp
 *.swo
 *~
-
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-.venv/
-venv/
-ENV/
 
 # Antigravity / AI
 .agent/
@@ -76,6 +76,7 @@ ENV/
 
 # Test Coverage
 coverage/
+/coverage/
 
 
 

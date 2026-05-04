@@ -1,6 +1,7 @@
 import * as React from "react";
 import { List, UploadSimple } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 interface ChatHeaderProps {
   onOpenSidebar: () => void;
@@ -11,7 +12,12 @@ interface ChatHeaderProps {
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({ onOpenSidebar, onOpenUpload, apiMode, isApiConnected }) => {
   return (
-    <header className="fixed top-2 sm:top-6 left-0 right-0 z-50 px-2 sm:px-8 flex justify-between items-center pointer-events-none animate-in fade-in duration-1000">
+    <motion.header 
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.8, ease: "easeOut" }}
+      className="fixed top-2 sm:top-6 left-0 right-0 z-50 px-2 sm:px-8 flex justify-between items-center pointer-events-none"
+    >
       <div className="flex items-center gap-2 sm:gap-4 pointer-events-auto">
         <button 
           onClick={onOpenSidebar}
@@ -71,6 +77,6 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({ onOpenSidebar, onOpenUpl
           </button>
         </div>
       </div>
-    </header>
+    </motion.header>
   );
 };

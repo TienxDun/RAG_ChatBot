@@ -45,12 +45,18 @@ export const RagSteps: React.FC<RagStepsProps> = ({ steps }) => {
           >
             <div className="pt-4 space-y-4">
               {steps.map((step, idx) => (
-                <div key={idx} className="relative pl-6 pb-2 border-l border-primary/20 last:border-l-transparent">
+                <motion.div 
+                  key={idx} 
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.05 * idx, duration: 0.3 }}
+                  className="relative pl-6 pb-2 border-l border-primary/20 last:border-l-transparent"
+                >
                   <div className="absolute left-[-9px] top-0 w-4 h-4 rounded-full bg-background border-2 border-primary flex items-center justify-center text-primary">
                     <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                   </div>
                   
-                  <div className="flex flex-col gap-2 glass-panel border border-primary/5 p-4 rounded-xl">
+                  <div className="flex flex-col gap-2 glass-panel border border-primary/5 p-4 rounded-xl shadow-sm">
                     <div className="flex items-center gap-2 text-xs font-bold text-primary/80 uppercase tracking-wider">
                       {getIcon(step.title)}
                       {step.title}
@@ -88,7 +94,7 @@ export const RagSteps: React.FC<RagStepsProps> = ({ steps }) => {
                       </ReactMarkdown>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
           </motion.div>
