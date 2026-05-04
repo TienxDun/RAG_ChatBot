@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Be_Vietnam_Pro, Fira_Code } from "next/font/google";
+import { Be_Vietnam_Pro, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
 const beVietnamPro = Be_Vietnam_Pro({
@@ -8,8 +8,8 @@ const beVietnamPro = Be_Vietnam_Pro({
   weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
 });
 
-const firaCode = Fira_Code({
-  variable: "--font-fira-code",
+const jetBrainsMono = JetBrains_Mono({
+  variable: "--font-mono",
   subsets: ["latin", "vietnamese"],
 });
 
@@ -29,7 +29,7 @@ export default function RootLayout({
   return (
     <html lang="vi">
       <body
-        className={`${beVietnamPro.variable} ${firaCode.variable} min-h-full flex flex-col font-sans bg-background text-foreground antialiased`}
+        className={`${beVietnamPro.variable} ${jetBrainsMono.variable} min-h-full flex flex-col font-sans bg-background text-foreground antialiased`}
       >
         {children}
       </body>

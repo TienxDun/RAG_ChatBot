@@ -26,8 +26,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({ onOpenSidebar, onOpenUpl
           <List size={22} weight="bold" />
         </button>
         <div className="flex items-center gap-2 sm:gap-3">
-          <h1 className="text-xs sm:text-base font-black tracking-[0.1em] text-foreground uppercase">
-            SQL AI <span className="text-primary/60 hidden sm:inline">Insight</span>
+          <h1 className="text-xs sm:text-base font-black tracking-[0.2em] text-foreground uppercase">
+            DO<span className="text-primary">DO</span>
           </h1>
           <div className="flex items-center gap-1 sm:gap-2">
             <div className="h-3 w-[1px] bg-foreground/10 hidden sm:block" />
