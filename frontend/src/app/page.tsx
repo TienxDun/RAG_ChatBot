@@ -10,6 +10,7 @@ import { ChatInput } from "@/components/chat/ChatInput";
 import StarfieldBackground from "@/components/ui/StarfieldBackground";
 import { UploadModal } from "@/components/UploadModal";
 import { motion, AnimatePresence } from "framer-motion";
+import { ArrowUp } from "@phosphor-icons/react";
 
 export default function Home() {
   const { 
@@ -28,7 +29,20 @@ export default function Home() {
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
   const [isUploadOpen, setIsUploadOpen] = React.useState(false);
   const [isApiConnected, setIsApiConnected] = React.useState<boolean | null>(null);
+  const [showScrollTop, setShowScrollTop] = React.useState(false);
   const scrollRef = React.useRef<HTMLDivElement>(null);
+
+  const handleScroll = () => {
+    if (scrollRef.current) {
+      setShowScrollTop(scrollRef.current.scrollTop > 400);
+    }
+  };
+
+  const scrollToTop = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
 
   // Sync messages when current session changes
   React.useEffect(() => {
@@ -272,6 +286,7 @@ export default function Home() {
             >
               <div 
                 ref={scrollRef}
+                onScroll={handleScroll}
                 className="flex-1 overflow-y-auto scrollbar-custom pb-32 sm:pb-10"
                 style={{
                   maskImage: 'linear-gradient(to bottom, transparent, black 60px, black calc(100% - 40px), transparent)',
@@ -291,6 +306,20 @@ export default function Home() {
                   ))}
                 </div>
               </div>
+
+              <AnimatePresence>
+                {showScrollTop && (
+                  <motion.button
+                    initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.9 }}
+                    onClick={scrollToTop}
+                    className="fixed bottom-28 sm:bottom-32 right-6 w-10 h-10 rounded-full bg-primary/90 text-white shadow-lg shadow-primary/30 flex items-center justify-center z-[110] border border-white/20 backdrop-blur-sm hover:scale-110 active:scale-95 transition-all"
+                  >
+                    <ArrowUp size={20} weight="bold" />
+                  </motion.button>
+                )}
+              </AnimatePresence>
 
               <div className="w-full max-w-5xl mx-auto px-4 sm:static fixed bottom-0 left-0 right-0 z-[100] sm:z-10 bg-gradient-to-t from-background via-background/95 to-transparent sm:bg-none pb-safe pt-8">
                 <div className="pb-4 sm:pb-8 pt-2">
