@@ -41,7 +41,11 @@ public sealed class SqlService
                 results.Add(row);
             }
 
-            return JsonSerializer.Serialize(results, new JsonSerializerOptions { WriteIndented = true });
+            return JsonSerializer.Serialize(results, new JsonSerializerOptions 
+            { 
+                WriteIndented = true,
+                Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+            });
         }
         catch (Exception ex)
         {

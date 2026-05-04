@@ -292,8 +292,8 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="w-full max-w-5xl mx-auto px-4 pb-8 pt-2 sm:static fixed bottom-0 left-0 right-0 z-[100] sm:z-10 bg-background sm:bg-transparent border-t border-primary/5 sm:border-none pb-safe">
-                <div className="py-4">
+              <div className="w-full max-w-5xl mx-auto px-4 sm:static fixed bottom-0 left-0 right-0 z-[100] sm:z-10 bg-gradient-to-t from-background via-background/95 to-transparent sm:bg-none pb-safe pt-8">
+                <div className="pb-4 sm:pb-8 pt-2">
                   <ChatInput 
                     value={inputValue} 
                     onChange={setInputValue} 

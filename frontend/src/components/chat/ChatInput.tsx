@@ -75,7 +75,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ value, onChange, onSend, i
 
   return (
     <div className="w-full z-50 animate-in fade-in slide-in-from-bottom-6 duration-1000 shrink-0">
-      <div className={`glass-panel rounded-2xl sm:rounded-3xl p-1 sm:p-1.5 shadow-2xl transition-all duration-500 border ${
+      <div className={`glass-panel rounded-2xl sm:rounded-3xl p-1 sm:p-1.5 shadow-lg sm:shadow-2xl transition-all duration-500 border ${
         isListening 
           ? "shadow-primary/40 border-primary/50 ring-2 sm:ring-4 ring-primary/20 bg-primary/5" 
           : "shadow-primary/10 border-primary/10"

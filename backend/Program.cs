@@ -68,8 +68,10 @@ app.MapPost("/api/chat", async (ChatRequest request, RagOrchestrator orchestrato
         context.Response.ContentType = "text/event-stream";
         context.Response.Headers.Append("Cache-Control", "no-cache");
         context.Response.Headers.Append("Connection", "keep-alive");
-
-        var serializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        var serializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web)
+        {
+            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        };
 
         // Hàm helper để gửi event
         async Task SendEventAsync(object data)
@@ -133,7 +135,10 @@ app.MapPost("/api/documents/upload", async (HttpContext context, DocumentProcess
         context.Response.Headers.Append("Cache-Control", "no-cache");
         context.Response.Headers.Append("Connection", "keep-alive");
 
-        var serializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        var serializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web)
+        {
+            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        };
         var results = new List<DocumentResult>();
         
         foreach (var file in files)
