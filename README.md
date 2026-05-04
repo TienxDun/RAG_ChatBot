@@ -9,11 +9,11 @@ DODO ChatBot là một ứng dụng **RAG (Retrieval-Augmented Generation)** hi�
 
 ## ✨ Tính năng nổi bật
 
-- **🔍 RAG Search (Retrieval-Augmented Generation):** Tự động tìm kiếm ngữ cảnh từ kho dữ liệu văn bản trước khi trả lời.
-- **📄 Đa dạng nguồn dữ liệu:** Hỗ trợ nạp và bóc tách nội dung từ file **PDF, TXT, và JSON** thông qua Vertex AI.
-- **⚡ Real-time Progress (SSE):** Theo dõi quá trình xử lý (Vectorization, Retrieval, SQL Execution) theo thời gian thực với hiệu ứng mượt mà.
-- **🗄️ SQL Insight:** Khả năng hiểu cấu trúc database, tự sinh câu lệnh SQL và thực thi để lấy dữ liệu thực tế từ hệ thống.
-- **🎨 Giao diện Premium:** Thiết kế theo phong cách Glassmorphism, hỗ trợ hiệu ứng Starfield, Sidebar quản lý lịch sử chat và trải nghiệm người dùng tối ưu.
+- **RAG Search (Retrieval-Augmented Generation):** Tự động tìm kiếm ngữ cảnh từ kho dữ liệu văn bản trước khi trả lời.
+- **Đa dạng nguồn dữ liệu:** Hỗ trợ nạp và bóc tách nội dung từ file **PDF, TXT, và JSON** thông qua Vertex AI.
+- **Real-time Progress (SSE):** Theo dõi quá trình xử lý (Vectorization, Retrieval, SQL Execution) theo thời gian thực với hiệu ứng mượt mà.
+- **SQL Insight:** Khả năng hiểu cấu trúc database, tự sinh câu lệnh SQL và thực thi để lấy dữ liệu thực tế từ hệ thống.
+- **Giao diện Premium:** Thiết kế theo phong cách Glassmorphism, hỗ trợ hiệu ứng Starfield, Sidebar quản lý lịch sử chat và trải nghiệm người dùng tối ưu.
 
 ---
 
