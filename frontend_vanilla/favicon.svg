@@ -1,0 +1,13 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Soft Outer Container -->
+  <rect x="2" y="2" width="28" height="28" rx="8" fill="#FFFFFF" stroke="#7C3AED" stroke-width="2"/>
+  
+  <!-- Sleek "R" Monogram (for RAG) -->
+  <path d="M10 10h5c2.5 0 4 1.5 4 4s-1.5 4-4 4h-1v4H10V10zm4 5h1c.8 0 1.5-.5 1.5-1.5S15.8 12 15 12h-1v3z" fill="#7C3AED"/>
+  
+  <!-- Cyber/AI Accent (Extending the R leg) -->
+  <path d="M14 18l4 6h4.5l-5-6H14z" fill="#06B6D4"/>
+  
+  <!-- Bot/Chat Indicator Dot -->
+  <circle cx="23" cy="9" r="2.5" fill="#06B6D4"/>
+</svg>

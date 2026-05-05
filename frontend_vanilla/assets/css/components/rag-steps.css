@@ -1,0 +1,103 @@
+/* Rag Steps (Accordion & Timeline) */
+.rag-steps {
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.rag-steps__toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: 0.5rem;
+    background: color-mix(in srgb, var(--primary) 5%, transparent);
+    border: 1px solid color-mix(in srgb, var(--primary) 10%, transparent);
+    color: color-mix(in srgb, var(--primary) 70%, transparent);
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.rag-steps__toggle:hover {
+    background: color-mix(in srgb, var(--primary) 10%, transparent);
+    color: var(--primary);
+}
+
+.rag-steps__toggle i {
+    transition: transform 0.3s ease;
+}
+
+.rag-steps__toggle.active i:last-child {
+    transform: rotate(180deg);
+}
+
+.rag-steps__content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    padding-left: 1rem;
+}
+
+.rag-steps__toggle.active + .rag-steps__content {
+    max-height: 2000px;
+    padding-top: 1rem;
+    overflow: visible;
+}
+
+.rag-step {
+    position: relative;
+    padding-left: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-left: 2px solid color-mix(in srgb, var(--primary) 15%, transparent);
+    transition: border-color 0.3s ease;
+}
+
+.rag-step:last-child {
+    border-left-color: transparent;
+}
+
+.rag-step__dot {
+    position: absolute;
+    left: 0;
+    top: 2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--background);
+    border: 3px solid var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: translateX(-50%);
+    z-index: 2;
+    box-shadow: 0 0 0 4px var(--background);
+}
+
+.rag-step__dot::after {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--primary);
+}
+
+.rag-step__panel {
+    background: var(--glass-bg);
+    border: 1px solid color-mix(in srgb, var(--primary) 5%, transparent);
+    padding: 1rem;
+    border-radius: 1rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.rag-step__title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: color-mix(in srgb, var(--primary) 80%, transparent);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+}

@@ -1,0 +1,52 @@
+/* Terminal Code Block */
+.terminal-code {
+    background: #0f172a;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    margin: 1rem 0;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.terminal-code__header {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 0.5rem 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.terminal-code__dots {
+    display: flex;
+    gap: 0.4rem;
+}
+
+.terminal-code__dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.dot--red { background: #ff5f56; }
+.dot--yellow { background: #ffbd2e; }
+.dot--green { background: #27c93f; }
+
+.terminal-code__lang {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.4);
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+}
+
+.terminal-code__body {
+    padding: 1rem;
+    overflow-x: auto;
+}
+
+.terminal-code__body code {
+    color: #e2e8f0;
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}

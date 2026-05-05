@@ -1,0 +1,23 @@
+/* Layout Containers */
+.app-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100%;
+    margin-left: 0;
+    transition: margin-left 0.3s ease;
+    position: relative;
+    z-index: 1;
+}
+
+@media (min-width: 769px) {
+    .app-container {
+        margin-left: 280px;
+        width: calc(100% - 280px);
+    }
+    
+    .app-container.app-container--expanded {
+        margin-left: 0;
+        width: 100%;
+    }
+}

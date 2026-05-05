@@ -1,0 +1,36 @@
+/* Utilities & Responsive Helpers */
+.hidden { display: none !important; }
+
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    z-index: 999;
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .sm-only { display: flex; }
+    #open-sidebar { display: flex; }
+}
+
+@media (min-width: 769px) {
+    .sm-only { display: none; }
+    #open-sidebar { 
+        display: none; 
+    }
+    
+    .app-container--expanded #open-sidebar {
+        display: flex;
+    }
+}
+
+/* Canvas Background Utility */
+#starfield {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.6;
+}

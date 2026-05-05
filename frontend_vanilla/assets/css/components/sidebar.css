@@ -1,0 +1,117 @@
+/* Sidebar */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 280px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (min-width: 769px) {
+    .sidebar {
+        transform: translateX(0);
+        border-right: 1px solid var(--glass-border);
+    }
+
+    .sidebar.sidebar--collapsed {
+        transform: translateX(-100%);
+    }
+}
+
+.sidebar.active {
+    transform: translateX(0);
+}
+
+.sidebar__header {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding: 0.5rem 0;
+    z-index: 10;
+}
+
+.sidebar__theme {
+    opacity: 0.7;
+    border: 1px solid var(--border);
+    background: var(--card);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar__theme:hover {
+    opacity: 1;
+    color: var(--primary);
+    border-color: var(--primary);
+    background: var(--muted);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(124, 58, 237, 0.1);
+}
+
+.sidebar__title-main {
+    font-size: 0.85rem;
+    font-weight: 900;
+    color: var(--foreground);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    opacity: 0.8;
+}
+
+.sidebar__close {
+    opacity: 0.4;
+    transition: all 0.2s ease;
+}
+
+.sidebar__close:hover {
+    opacity: 1;
+    background: var(--glass-border);
+    transform: rotate(90deg);
+}
+
+.sidebar__content {
+    flex: 1;
+    overflow-y: auto;
+    margin: 0 -0.5rem;
+    padding: 0.5rem 0.5rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar__content::-webkit-scrollbar {
+    width: 0;
+}
+
+.sidebar__title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+    letter-spacing: 0.1em;
+    margin-bottom: 1rem;
+}
+
+.sidebar__footer {
+    margin-top: auto;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--glass-border);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.sidebar__footer-actions {
+    width: 100%;
+}
+
+.sidebar__footer-user {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}

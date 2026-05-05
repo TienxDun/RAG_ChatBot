@@ -1,0 +1,80 @@
+/* Suggested Questions & Tags */
+.suggestions-list {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.suggestion-btn {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.75rem;
+    background: var(--glass-bg);
+    border: 1px solid color-mix(in srgb, var(--primary) 5%, transparent);
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: left;
+}
+
+.suggestion-btn::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    margin-top: 0.4rem;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--primary) 40%, transparent);
+    flex-shrink: 0;
+    transition: background 0.3s;
+}
+
+.suggestion-btn:hover {
+    border-color: color-mix(in srgb, var(--primary) 30%, transparent);
+    background: color-mix(in srgb, var(--primary) 5%, transparent);
+    color: var(--primary);
+}
+
+.suggestion-btn:hover::before {
+    background: var(--primary);
+}
+
+.suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.suggestion-tag {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    padding: 0.6rem 1.2rem;
+    border-radius: 100px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.suggestion-tag i {
+    font-size: 1.1rem;
+    color: var(--primary);
+    opacity: 0.8;
+}
+
+.suggestion-tag:hover {
+    background: color-mix(in srgb, var(--primary) 5%, transparent);
+    border-color: var(--primary);
+    color: var(--primary);
+    transform: translateY(-2px);
+}

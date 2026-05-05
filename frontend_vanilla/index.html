@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DODO AI - Intelligent Chatbot</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@100;300;400;500;700;900&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="assets/css/main.css">
+    <link rel="stylesheet" href="assets/css/components.css">
+    <link rel="stylesheet" href="assets/css/animations.css">
+</head>
+<body class="mesh-bg">
+    <canvas id="starfield"></canvas>
+    
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar glass">
+        <div class="sidebar__header">
+            <button id="theme-toggle" class="icon-btn sidebar__theme">
+                <i class="ph ph-moon"></i>
+            </button>
+            <h2 class="sidebar__title-main">HISTORY</h2>
+            <button id="close-sidebar" class="icon-btn sidebar__close">
+                <i class="ph ph-x"></i>
+            </button>
+        </div>
+        
+        <div class="sidebar__content">
+            <div id="chat-history" class="chat-history">
+                <!-- Các mục lịch sử sẽ được render động ở đây -->
+                <div class="empty-state">Chưa có cuộc trò chuyện nào</div>
+            </div>
+        </div>
+        
+        <div class="sidebar__footer">
+            <div class="sidebar__footer-actions">
+                <button id="new-chat" class="btn btn-primary btn-full">
+                    <i class="ph ph-plus"></i>
+                    <span>Chat mới</span>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Overlay for mobile sidebar -->
+    <div id="sidebar-overlay" class="overlay"></div>
+
+    <!-- Main Content -->
+    <main class="app-container">
+        <!-- Header -->
+        <header class="header animate-in fade-in slide-in-from-top-4 duration-1000">
+            <div class="header__left">
+                <button id="open-sidebar" class="icon-btn sm-only">
+                    <i class="ph-bold ph-list"></i>
+                </button>
+                <div class="header__brand">
+                    <h1 class="logo-text">DO<span>DO</span></h1>
+                </div>
+                <div class="header-v-separator"></div>
+                <div class="header__status">
+                    <span class="status-dot online animate-pulse"></span>
+                    <span class="status-text">.NET API</span>
+                </div>
+            </div>
+            
+            <div class="header__right">
+                <div class="header__actions-group glass-panel shadow-sm">
+                    <button id="open-upload" class="header-action-btn" title="Tải lên tài liệu">
+                        <i class="ph-bold ph-upload-simple"></i>
+                    </button>
+                    <div class="header-separator"></div>
+                    <button id="header-new-chat" class="header-action-btn" title="Chat mới">
+                        <i class="ph-bold ph-plus"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Chat Area -->
+        <div id="chat-area" class="chat-area">
+            <!-- Landing View -->
+            <div id="landing-view" class="landing">
+                <div class="landing__content">
+                    <div class="landing__logo animate-float">
+                        <div class="logo-circle"><i class="ph ph-robot"></i></div>
+                    </div>
+                    <h2 class="landing__title">Tôi có thể giúp gì cho bạn hôm nay?</h2>
+                    
+                    <div class="suggestions">
+                        <button class="suggestion-tag" data-value="Doanh thu tháng này là bao nhiêu?">
+                            <i class="ph ph-chart-line"></i> Doanh thu
+                        </button>
+                        <button class="suggestion-tag" data-value="Ai là khách hàng tiềm năng nhất?">
+                            <i class="ph ph-users"></i> Khách hàng
+                        </button>
+                        <button class="suggestion-tag" data-value="Báo cáo sản phẩm sắp hết hàng">
+                            <i class="ph ph-package"></i> Tồn kho
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Messages List -->
+            <div id="messages-list" class="messages-list hidden">
+                <!-- Messages will be injected here -->
+            </div>
+        </div>
+
+        <!-- Scroll Top Button -->
+        <button id="scroll-top" class="scroll-top-btn hidden">
+            <i class="ph ph-arrow-up"></i>
+        </button>
+
+        <!-- Input Section -->
+        <section class="input-section animate-in fade-in slide-in-from-bottom-6 duration-1000">
+            <div class="input-wrapper">
+                <div id="input-container" class="input-container glass-panel shadow-2xl">
+                    <textarea id="chat-input" placeholder="Hỏi về cơ sở dữ liệu của bạn..." rows="1"></textarea>
+                    
+                    <div class="input-actions-wrapper">
+                        <!-- Sound Wave Visualizer -->
+                        <div id="voice-visualizer" class="voice-visualizer hidden">
+                            <div class="wave-bar"></div>
+                            <div class="wave-bar"></div>
+                            <div class="wave-bar"></div>
+                            <div class="wave-bar"></div>
+                        </div>
+
+                        <!-- Mic Button -->
+                        <div class="mic-wrapper">
+                            <div id="mic-ripple" class="mic-ripple hidden"></div>
+                            <button id="mic-btn" class="mic-btn" title="Nói để nhập liệu">
+                                <i class="ph-duotone ph-microphone"></i>
+                            </button>
+                        </div>
+
+                        <!-- Send Button -->
+                        <button id="send-btn" class="send-btn" disabled title="Gửi câu hỏi">
+                            <i class="ph-bold ph-paper-plane-right"></i>
+                        </button>
+                    </div>
+                </div>
+                <p class="input-footer">DODO AI có thể đưa ra câu trả lời không chính xác. Hãy kiểm tra các thông tin quan trọng.</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Upload Modal -->
+    <div id="upload-modal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="modal__header">
+                <div class="modal-title-wrapper">
+                    <div class="modal-icon-box">
+                        <i class="ph-bold ph-upload-simple"></i>
+                    </div>
+                    <div>
+                        <h3>Import Data</h3>
+                        <p>PDF, TXT, JSON</p>
+                    </div>
+                </div>
+                <button id="close-modal" class="btn-remove-file">
+                    <i class="ph-bold ph-x"></i>
+                </button>
+            </div>
+            <div class="modal__body">
+                <div class="upload-dropzone" id="dropzone">
+                    <i class="ph-duotone ph-cloud-arrow-up"></i>
+                    <p class="dropzone-text-primary">Kéo thả file vào đây</p>
+                    <p class="dropzone-text-secondary">hoặc click để chọn file</p>
+                    <input type="file" id="file-input" hidden multiple accept=".pdf,.txt,.json">
+                </div>
+
+                <!-- Selected Files List -->
+                <div id="file-list" class="file-list hidden">
+                    <!-- Dynamic file items -->
+                </div>
+
+                <!-- Processing State -->
+                <div id="upload-progress-container" class="upload-progress hidden">
+                    <div class="progress-info">
+                        <div class="progress-label-group">
+                            <span id="progress-status" class="progress-status">Đang xử lý...</span>
+                            <span id="progress-message" class="progress-message">Vui lòng đợi giây lát</span>
+                        </div>
+                        <span id="progress-percent" class="progress-percent">0%</span>
+                    </div>
+                    <div class="progress-track">
+                        <div id="progress-bar" class="progress-bar"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal__footer">
+                <p id="modal-info-text" class="modal-footer-info">Chưa có file nào được chọn</p>
+                <div class="flex gap-2">
+                    <button class="btn btn-primary" id="start-upload" disabled>
+                        <i class="ph-fill ph-lightning"></i> <span>Bắt đầu xử lý</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Entry Point -->
+    <script type="module" src="assets/js/app.js"></script>
+</body>
+</html>

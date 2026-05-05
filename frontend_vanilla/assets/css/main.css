@@ -1,0 +1,260 @@
+/* main.css - Design Tokens & Global Styles */
+
+:root {
+    /* Colors - Light Mode */
+    --background: #FAF5FF;
+    --foreground: #1E1B4B;
+    --card: #ffffff;
+    --card-foreground: #1E1B4B;
+    --popover: #ffffff;
+    --popover-foreground: #1E1B4B;
+    --primary: #7C3AED;
+    --primary-foreground: #ffffff;
+    --secondary: #A78BFA;
+    --secondary-foreground: #ffffff;
+    --muted: #F3E8FF;
+    --muted-foreground: #6B7280;
+    --accent: #06B6D4;
+    --accent-foreground: #ffffff;
+    --destructive: #ef4444;
+    --border: #E2E8F0;
+    --input: #E2E8F0;
+    --ring: #7C3AED;
+    
+    /* Shapes */
+    --radius: 0.75rem;
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+    
+    /* Typography */
+    --font-sans: 'Be Vietnam Pro', sans-serif;
+    
+    /* Glassmorphism Defaults */
+    --glass-bg: rgba(255, 255, 255, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.2);
+    --glass-blur: 40px;
+}
+
+[data-theme="dark"] {
+    --background: #0F172A;
+    --foreground: #F8FAFC;
+    --card: #1E293B;
+    --card-foreground: #F8FAFC;
+    --popover: #1E293B;
+    --popover-foreground: #F8FAFC;
+    --primary: #8B5CF6;
+    --primary-foreground: #ffffff;
+    --secondary: #A78BFA;
+    --secondary-foreground: #0F172A;
+    --muted: #1E293B;
+    --muted-foreground: #94A3B8;
+    --accent: #06B6D4;
+    --accent-foreground: #0F172A;
+    --destructive: #ef4444;
+    --border: rgba(255, 255, 255, 0.1);
+    --input: rgba(255, 255, 255, 0.1);
+    --ring: #8B5CF6;
+    
+    --glass-bg: rgba(15, 23, 42, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.05);
+}
+
+/* Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    border-color: var(--border);
+}
+
+body {
+    font-family: var(--font-sans);
+    background-color: var(--background);
+    color: var(--foreground);
+    height: 100vh;
+    overflow: hidden;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Mesh Background */
+.mesh-bg {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background-color: var(--background);
+    background-image: 
+        radial-gradient(at 40% 20%, hsla(263, 70%, 94%, 1) 0px, transparent 50%),
+        radial-gradient(at 80% 0%, hsla(189, 70%, 94%, 1) 0px, transparent 50%),
+        radial-gradient(at 0% 50%, hsla(263, 70%, 94%, 1) 0px, transparent 50%);
+}
+
+[data-theme="dark"] .mesh-bg {
+    background-image: 
+        radial-gradient(at 40% 20%, hsla(263, 70%, 15%, 1) 0px, transparent 50%),
+        radial-gradient(at 80% 0%, hsla(189, 70%, 15%, 1) 0px, transparent 50%),
+        radial-gradient(at 0% 50%, hsla(263, 70%, 15%, 1) 0px, transparent 50%);
+}
+
+/* Glass Utility */
+.glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+}
+
+.glass-panel {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Animations */
+.animate-in {
+    animation-duration: 0.5s;
+    animation-fill-mode: both;
+}
+
+.fade-in {
+    animation-name: fadeIn;
+}
+
+.slide-in-from-top-4 {
+    animation-name: slideInTop;
+}
+
+.slide-in-from-bottom-6 {
+    animation-name: slideInBottom;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideInTop {
+    from { transform: translateY(-1rem); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slideInBottom {
+    from { transform: translateY(1.5rem); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.animate-float {
+    animation: float 6s ease-in-out infinite;
+}
+
+/* Scrollbar Customization */
+::-webkit-scrollbar {
+    width: 6px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--primary) 20%, transparent);
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--primary);
+}
+
+/* Markdown Typography */
+.markdown-content {
+    line-height: 1.6;
+    font-size: 0.875rem;
+}
+
+.markdown-content p {
+    margin-bottom: 1rem;
+}
+
+.markdown-content p:last-child {
+    margin-bottom: 0;
+}
+
+.markdown-content strong {
+    font-weight: 700;
+}
+
+.markdown-content ul, .markdown-content ol {
+    margin-bottom: 1rem;
+    padding-left: 1.5rem;
+}
+
+.markdown-content li {
+    margin-bottom: 0.25rem;
+}
+
+.markdown-content pre {
+    background: #1e293b;
+    color: #f8fafc;
+    padding: 1rem;
+    border-radius: 0.75rem;
+    overflow-x: auto;
+    margin: 1rem 0;
+}
+
+.markdown-content code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 0.85em;
+    background: color-mix(in srgb, var(--primary) 10%, transparent);
+    color: var(--primary);
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.25rem;
+}
+
+.markdown-content pre code {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+}
+
+.markdown-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    font-size: 0.875rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.markdown-content th {
+    background: color-mix(in srgb, var(--primary) 8%, transparent);
+    color: var(--primary);
+    font-weight: 700;
+    text-align: left;
+    padding: 0.75rem 1rem;
+    border-bottom: 2px solid color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+.markdown-content td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--foreground);
+}
+
+.markdown-content tr:nth-child(even) td {
+    background-color: color-mix(in srgb, var(--primary) 2%, transparent);
+}
+
+.markdown-content tr:last-child td {
+    border-bottom: none;
+}
+
+.markdown-content tr:hover td {
+    background-color: color-mix(in srgb, var(--primary) 5%, transparent);
+}
