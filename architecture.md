@@ -37,7 +37,8 @@ graph LR
     end
 
     User <-->|Hỏi / Nhận kết quả| UI
-    UI <-->|Real-time Events (SSE)| API
+    UI -->|HTTP POST / REST| API
+    API -->|SSE streaming response| UI
     API -->|Tìm ngữ cảnh| QDR
     API -->|Lấy số liệu| SQL
     API <-->|Sinh Text & Vector| VAI
