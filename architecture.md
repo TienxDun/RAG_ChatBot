@@ -60,7 +60,7 @@ Hệ thống được chia làm hai phần tách biệt (Client - Server) và gi
 - **Công nghệ chính:** C# .NET 8 (Minimal APIs).
 - **Các thành phần cốt lõi (Services):**
   - `RagOrchestrator`: Đạo diễn chính. Lên kịch bản cho luồng xử lý RAG kết hợp SQL Insights.
-  - `VertexAiClient`: Gọi Google Cloud Vertex AI qua RESTful HTTP (mô hình Gemini 1.5 Flash cho Text, `text-embedding-004` cho Vectors).
+  - `VertexAiClient`: Gọi Google Cloud Vertex AI qua RESTful HTTP; model sinh text và embedding được cấu hình qua env (`VERTEX_LLM_MODEL`, `VERTEX_EMBED_MODEL`) thay vì cố định trong mã/tài liệu.
   - `QdrantService`: Giao tiếp với Qdrant Vector DB để lưu trữ và tìm kiếm vector (Cosine Similarity).
   - `SqlService`: Kết nối và thực thi các truy vấn động trên SQL Server.
   - `DocumentProcessor`: Bóc tách văn bản (PDF, txt), chia nhỏ (chunking) và vectorize để đưa vào Qdrant.
