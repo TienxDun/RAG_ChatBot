@@ -136,7 +136,7 @@ sequenceDiagram
     API-->>Admin: Mở kết nối SSE
 
     API->>Proc: Đọc nội dung file
-    Proc->>Proc: Cắt văn bản thành các đoạn nhỏ (Chunks / 1000 ký tự)
+    Proc->>Proc: Tách nội dung theo đoạn; gom chunk tối đa ~2000 ký tự
 
     loop Xử lý từng Chunk
         Proc->>VAI: Lấy Vector cho Chunk i
