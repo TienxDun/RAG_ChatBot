@@ -49,7 +49,7 @@ graph LR
 
 Hệ thống được chia làm hai phần tách biệt (Client - Server) và giao tiếp chủ yếu qua REST API và **Server-Sent Events (SSE)** để cập nhật trạng thái theo thời gian thực (real-time streaming).
 
-### 2.1. Frontend (Next.js 15+)
+### 2.1. Frontend (Next.js App Router)
 - **Nhiệm vụ:** Hiển thị giao diện người dùng, xử lý trạng thái chat, render Markdown có bảng biểu và hiển thị quá trình xử lý AI theo thời gian thực.
 - **Công nghệ chính:** React (Next.js App Router), Tailwind CSS (giao diện dark-mode, glassmorphism), Framer Motion (hiệu ứng mượt mà).
 - **Điểm nhấn kỹ thuật:** Thay vì dùng WebSockets phức tạp, hệ thống dùng **SSE (Server-Sent Events)** thông qua Fetch API thông thường để nhận từng luồng dữ liệu (chunk) từ Backend gửi về, giúp người dùng thấy bot đang "nghĩ" ở bước nào (Vectorization -> Retrieval -> SQL Execution -> Answer).
