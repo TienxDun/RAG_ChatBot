@@ -31,82 +31,25 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, isLoading, is
   const onExportExcel = React.useCallback(async () => {
     if (!message.rawData) return;
     try {
-      const data = JSON.parse(message.rawData);
-      if (!Array.isArray(data) || data.length === 0) return;
-
-      // Dynamic imports to keep bundle size small
-      const ExcelJS = (await import("exceljs")).default;
       const { saveAs } = await import("file-saver");
-
-      const workbook = new ExcelJS.Workbook();
-      const worksheet = workbook.addWorksheet("Data Export");
-
-      const headers = Object.keys(data[0]);
+      const baseUrl = process.env.NEXT_PUBLIC_DOTNET_API_URL || 'http://localhost:5000/api/chat';
+      const exportUrl = baseUrl.endsWith('/chat') ? `${baseUrl}/export-excel` : `${baseUrl}/chat/export-excel`;
       
-      // Add headers
-      const headerRow = worksheet.addRow(headers);
-      
-      // Style headers
-      headerRow.eachCell((cell) => {
-        cell.fill = {
-          type: 'pattern',
-          pattern: 'solid',
-          fgColor: { argb: 'FF9DBAD9' } // Light blue from user image
-        };
-        cell.font = {
-          color: { argb: 'FFFFFFFF' },
-          bold: true,
-          size: 11
-        };
-        cell.alignment = { vertical: 'middle', horizontal: 'center' };
-        cell.border = {
-          top: { style: 'thin', color: { argb: 'FF000000' } },
-          left: { style: 'thin', color: { argb: 'FF000000' } },
-          bottom: { style: 'thin', color: { argb: 'FF000000' } },
-          right: { style: 'thin', color: { argb: 'FF000000' } }
-        };
+      const response = await fetch(exportUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: message.rawData
       });
 
-      headerRow.height = 25;
+      if (!response.ok) {
+        throw new Error("Export failed on server");
+      }
 
-      // Add data rows
-      data.forEach(item => {
-        const row = worksheet.addRow(headers.map(h => item[h]));
-        row.eachCell(cell => {
-          cell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
-          cell.border = {
-            top: { style: 'thin', color: { argb: 'FF000000' } },
-            left: { style: 'thin', color: { argb: 'FF000000' } },
-            bottom: { style: 'thin', color: { argb: 'FF000000' } },
-            right: { style: 'thin', color: { argb: 'FF000000' } }
-          };
-        });
-      });
-
-      // Auto-filter
-      worksheet.autoFilter = {
-        from: { row: 1, column: 1 },
-        to: { row: 1, column: headers.length }
-      };
-
-      // Auto-column width (simple estimation)
-      worksheet.columns.forEach((column, i) => {
-        if (!column) return;
-        let maxLength = headers[i].length;
-        data.forEach(item => {
-          const val = item[headers[i]];
-          const columnLength = val ? val.toString().length : 0;
-          if (columnLength > maxLength) maxLength = columnLength;
-        });
-        column.width = Math.min(Math.max(maxLength + 4, 12), 60);
-      });
-
-      const buffer = await workbook.xlsx.writeBuffer();
-      const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const blob = await response.blob();
       saveAs(blob, `data_export_${new Date().getTime()}.xlsx`);
-
     } catch (e) {
       console.error("Export Excel error:", e);
+      alert("Lỗi: Không thể xuất Excel. Đảm bảo Backend đã được cập nhật và đang chạy.");
     }
   }, [message.rawData]);
 
