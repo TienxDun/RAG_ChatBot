@@ -1,0 +1,133 @@
+[
+  {
+    "table": "ERP_LENHSX",
+    "description": "Bảng dữ liệu chi tiết lệnh sản xuất bao gồm thông số kỹ thuật, kế hoạch, trạng thái và tài chính.",
+    "columns": [
+      { "name": "MaLenh", "description": "ID định danh hệ thống của lệnh sản xuất." },
+      { "name": "TenLenh", "description": "Tên định danh của lệnh (thường chứa mã đơn hàng và phiên bản)." },
+      { "name": "MaHang", "description": "Mã sản phẩm thực tế cần sản xuất." },
+      { "name": "NgayTao", "description": "Ngày hệ thống ghi nhận lệnh sản xuất." },
+      { "name": "TuNgay", "description": "Ngày dự kiến bắt đầu triển khai." },
+      { "name": "DenNgay", "description": "Ngày dự kiến kết thúc sản xuất." },
+      { "name": "NgayXN", "description": "Ngày xác nhận lệnh sản xuất chính thức." },
+      { "name": "MaKhachHang", "description": "Khóa ngoại liên kết với DIC_KHACHHANG.MaKhachHang. Mã đối tác/khách hàng đặt hàng (ví dụ: VKVN-01)." },
+      { "name": "EmployeeID", "description": "ID của nhân viên/quản lý phụ trách lệnh này." },
+      { "name": "SLTong", "description": "Tổng số lượng sản phẩm cần hoàn thành." },
+      { "name": "SLNPL", "description": "Số lượng nguyên phụ liệu liên quan (hiện đang để 0)." },
+      { "name": "VND", "description": "Đơn giá hoặc giá trị bằng tiền Việt Nam Đồng." },
+      { "name": "USD", "description": "Đơn giá hoặc giá trị bằng Đô la Mỹ." },
+      { "name": "IsDD", "description": "Flag đánh dấu (có thể là Đơn hàng Đã Duyệt hoặc Đơn Định kỳ)." },
+      { "name": "TileDG", "description": "Tỉ lệ đóng gói (Dữ liệu mẫu hiện đang trống)." },
+      { "name": "Tile", "description": "Tỉ lệ phần trăm hao hụt hoặc tỉ lệ khác." },
+      { "name": "KHChuan", "description": "Flag xác định kế hoạch chuẩn (0/1)." },
+      { "name": "Status", "description": "Trạng thái hiện tại của lệnh (ví dụ: 3 - Đã hoàn thành/Đã chốt)." },
+      { "name": "MoTa", "description": "Ghi chú hoặc mô tả chi tiết thêm về lệnh." },
+      { "name": "Vendor", "description": "Mã nhà cung cấp vật tư liên quan." },
+      { "name": "ProductTypeID", "description": "Phân loại dòng sản phẩm (ví dụ: CL_1, CL_2)." },
+      { "name": "SeaSon", "description": "Mùa vụ hoặc năm tài chính của lệnh sản xuất (ví dụ: 2025)." },
+      { "name": "IsMaChiTiet", "description": "Flag xác định lệnh này có mã chi tiết hay không." },
+      { "name": "MaLenhSX", "description": "Chuỗi mã gộp phức hợp dùng để truy xuất nhanh thông tin đơn hàng/xưởng." },
+      { "name": "MaDH", "description": "Mã đơn hàng tổng (Join với bảng Orders)." },
+      { "name": "MaDVSX", "description": "Mã đơn vị sản xuất trực tiếp thực hiện lệnh này." },
+      { "name": "BookingMaHang", "description": "Mã giữ chỗ (booking) hàng hóa nếu có." },
+      { "name": "IsDSLT", "description": "Flag đánh dấu danh sách lũy tiến (Dữ liệu mẫu đang trống)." },
+      { "name": "MaGop", "description": "Mã gộp các lệnh nhỏ lại thành một nhóm sản xuất." },
+      { "name": "GiaTong", "description": "Tổng giá trị đơn hàng dựa trên số lượng và đơn giá." },
+      { "name": "GiaDuPhong", "description": "Chi phí dự phòng cho các sai sót hoặc biến động giá." }
+    ]
+  },
+  {
+    "table": "DIC_KHACHHANG",
+    "description": "Bảng danh mục khách hàng, lưu trữ thông tin định danh và tên gọi của các đối tác đặt hàng.",
+    "columns": [
+      { "name": "MaKhachHang", "description": "Mã định danh duy nhất của khách hàng (Primary Key). Dùng để liên kết với cột cùng tên trong các bảng đơn hàng và lệnh sản xuất." },
+      { "name": "KhachHang", "description": "Tên đầy đủ của khách hàng hoặc đơn vị đối tác (ví dụ: TEST DU LIEU)." },
+      { "name": "Mota", "description": "Các ghi chú hoặc mô tả bổ sung liên quan đến khách hàng." }
+    ]
+  },
+  {
+    "table": "SEW_CoefficientStyle",
+    "description": "Bảng ghi nhận tiến độ sản xuất chi tiết, sản lượng và thông tin định danh sản phẩm trên từng chuyền may.",
+    "columns": [
+      { "name": "PID", "description": "ID định danh duy nhất của bản ghi sản xuất (Primary Key)." },
+      { "name": "Linex", "description": "Mã số chuyền may đang thực hiện sản xuất (ví dụ: 101)." },
+      { "name": "PoId", "description": "Khóa ngoại liên kết với ERP_LENHSX.MaLenh. ID của lệnh sản xuất tương ứng." },
+      { "name": "StepId", "description": "Khóa ngoại liên kết với tbl_Steps.Id_cd. Mã định danh công đoạn hoặc bước sản xuất." },
+      { "name": "StypeId", "description": "Mã kiểu dáng hoặc mã hàng chi tiết (ví dụ: SA_893_208_133)." },
+      { "name": "ColorId", "description": "Mã màu sắc của sản phẩm (Dữ liệu mẫu hiện đang trống)." },
+      { "name": "SizeTypeID", "description": "Mã kích thước/size của sản phẩm (Dữ liệu mẫu hiện đang trống)." },
+      { "name": "DateCreate", "description": "Thời điểm ghi nhận sản lượng sản xuất vào hệ thống." },
+      { "name": "TimeLineId", "description": "ID mốc thời gian hoặc khung giờ sản xuất." },
+      { "name": "Quantity", "description": "Số lượng sản phẩm thực tế đã làm được tại công đoạn này." },
+      { "name": "DefectNo", "description": "Số lượng sản phẩm lỗi phát hiện (hiện tại chưa ghi nhận)." },
+      { "name": "FixedNo", "description": "Số lượng sản phẩm đã được sửa lỗi thành công." },
+      { "name": "DepDown", "description": "Mã xưởng hoặc bộ phận nhận hàng sau công đoạn (ví dụ: 101)." }
+    ]
+  },
+  {
+    "table": "SEW_CoefficientSize",
+    "description": "Bảng ghi nhận chi tiết kết quả kiểm tra chất lượng (KCS) theo từng sản phẩm, màu sắc, kích thước và nhân viên kiểm thử.",
+    "columns": [
+      { "name": "Pid", "description": "ID định danh duy nhất của bản ghi kiểm tra." },
+      { "name": "LineX", "description": "Mã chuyền may nơi sản phẩm được kiểm tra (ví dụ: 105)." },
+      { "name": "PoId", "description": "Khóa ngoại liên kết với ERP_LENHSX.MaLenh. ID của lệnh sản xuất tương ứng." },
+      { "name": "StepId", "description": "Khóa ngoại liên kết với tbl_Steps.Id_cd. Mã định danh công đoạn kiểm tra." },
+      { "name": "StyleId", "description": "Mã kiểu dáng sản phẩm (ví dụ: 131000_120_R6H3)." },
+      { "name": "ColorId", "description": "Mã màu sắc cụ thể của sản phẩm (ví dụ: MAU_F120_R6)." },
+      { "name": "SizeTypeId", "description": "Phân loại nhóm kích thước." },
+      { "name": "PO", "description": "Mã đơn hàng chi tiết liên kết (ví dụ: DH_30|5010347___14226)." },
+      { "name": "SizeId", "description": "Kích thước cụ thể của sản phẩm (ví dụ: SIZE_S)." },
+      { "name": "DateCreate", "description": "Ngày giờ thực hiện kiểm tra KCS." },
+      { "name": "TimeLineId", "description": "ID mốc thời gian ghi nhận (ví dụ: Ca làm việc hoặc khung giờ)." },
+      { "name": "Quantity", "description": "Số lượng sản phẩm đạt tiêu chuẩn." },
+      { "name": "SuaDat", "description": "Số lượng sản phẩm sau khi sửa lỗi đã đạt tiêu chuẩn." },
+      { "name": "DefectNo", "description": "Số lượng sản phẩm lỗi (hiện đang trống)." },
+      { "name": "NVKiemKCS", "description": "Tên hoặc bộ phận nhân viên thực hiện kiểm tra (ví dụ: KCS COSMOS)." },
+      { "name": "CheckType", "description": "Loại hình kiểm tra (ví dụ: Kiểm tra định kỳ, kiểm tra cuối chuyền)." }
+    ]
+  },
+  {
+    "table": "tbl_Steps",
+    "description": "Bảng danh mục định nghĩa các công đoạn kỹ thuật trong quy trình sản xuất (ví dụ: Viền, May, Ráp).",
+    "columns": [
+      { "name": "Id_cd", "description": "Khóa chính (Primary Key) của bảng công đoạn. Mã định danh duy nhất (GUID) được tham chiếu bởi cột StepId trong các bảng SEW_CoefficientStyle và SEW_CoefficientSize." },
+      { "name": "cd_name", "description": "Tên đầy đủ của công đoạn kỹ thuật (ví dụ: VIEN DKTT - Front zipper facing)." },
+      { "name": "Id_board", "description": "ID bảng điều khiển hoặc vị trí hiển thị trên Dashboard sản xuất." },
+      { "name": "Descriptions", "description": "Mô tả chi tiết về yêu cầu kỹ thuật của công đoạn (hiện tại đang trống)." },
+      { "name": "StyleID", "description": "Mã kiểu dáng áp dụng công đoạn này (nếu công đoạn là đặc thù cho từng mẫu hàng)." },
+      { "name": "DisplayName", "description": "Tên hiển thị ngắn gọn dùng cho giao diện người dùng hoặc báo cáo nhanh (ví dụ: V.DKTT)." }
+    ]
+  },
+  {
+    "table": "QTY_MAHANG_NGAYKIEM",
+    "description": "Bảng nhật ký kiểm tra chi tiết, ghi nhận kết quả KCS, phân loại sản phẩm lỗi, hàng sửa và xác nhận của các bên liên quan.",
+    "columns": [
+      { "name": "ID", "description": "Mã định danh duy nhất của bản ghi kiểm tra (Primary Key)." },
+      { "name": "NgayKiem", "description": "Thời điểm chính xác thực hiện việc kiểm tra sản phẩm." },
+      { "name": "LineX", "description": "Mã chuyền may thực hiện sản xuất lô hàng này." },
+      { "name": "PlanCode", "description": "Mã kế hoạch sản xuất liên quan." },
+      { "name": "StyleID", "description": "Mã kiểu dáng sản phẩm (ví dụ: 0088_521_04_V0_0)." },
+      { "name": "MaHang", "description": "Tên hoặc mã hàng hóa thực tế." },
+      { "name": "POID", "description": "Mã định danh đơn hàng kết hợp (ví dụ: DH_6|5010420)." },
+      { "name": "PO", "description": "Số đơn hàng (Purchase Order)." },
+      { "name": "DauSizeID / DauSize", "description": "Thông tin về đầu size sản phẩm (Dữ liệu mẫu đang để 0)." },
+      { "name": "ColorID / MaMau", "description": "Mã màu và tên màu sắc chi tiết (ví dụ: MAU_Z9 - BLACK)." },
+      { "name": "SizeID / Size", "description": "Mã kích cỡ và kích cỡ thực tế của sản phẩm (ví dụ: SIZE_85 - 85)." },
+      { "name": "SLKiem", "description": "Số lượng sản phẩm được mang đi kiểm tra." },
+      { "name": "SLKCS", "description": "Số lượng sản phẩm đạt tiêu chuẩn KCS." },
+      { "name": "SpLoi", "description": "Số lượng sản phẩm bị phát hiện lỗi trong quá trình kiểm tra." },
+      { "name": "TH_Ngay", "description": "Chỉ số tổng hợp theo ngày (Dữ liệu mẫu đang để 0)." },
+      { "name": "SuaDat", "description": "Số lượng sản phẩm lỗi đã được sửa chữa và đạt yêu cầu." },
+      { "name": "HangLoai", "description": "Số lượng sản phẩm bị phân loại thành hàng loại (hàng phế phẩm/loại B)." },
+      { "name": "GhiChu", "description": "Các lưu ý đặc biệt trong quá trình kiểm tra." },
+      { "name": "SpLoiQA", "description": "Số lượng sản phẩm lỗi do bộ phận QA ghi nhận." },
+      { "name": "IsQC", "description": "Flag xác nhận đã qua bước kiểm tra chất lượng (0/1)." },
+      { "name": "NVKiem", "description": "Tên nhân viên hoặc đơn vị thực hiện kiểm tra (ví dụ: KCS Cherry)." },
+      { "name": "LanKiem", "description": "Số lần thực hiện kiểm tra đối với lô hàng này." },
+      { "name": "StatusHT", "description": "Trạng thái hoàn thành của bản ghi kiểm tra." },
+      { "name": "SignPTDonVi / SignKT / SignToTruong / SignNVKiem", "description": "Các trường lưu trữ chữ ký số hoặc xác nhận của Phụ trách đơn vị, Kỹ thuật, Tổ trưởng và Nhân viên kiểm tra." },
+      { "name": "Version", "description": "Phiên bản của bản ghi (dùng để quản lý lịch sử chỉnh sửa)." },
+      { "name": "CheckType", "description": "Phân loại kiểu kiểm tra." }
+    ]
+  }
+]
