@@ -68,6 +68,12 @@
     padding: 0;
     box-sizing: border-box;
     border-color: var(--border);
+    transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+                color 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+                border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+                box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                backdrop-filter 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                filter 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 body {
@@ -76,7 +82,6 @@ body {
     color: var(--foreground);
     height: 100vh;
     overflow: hidden;
-    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Mesh Background */
@@ -85,21 +90,42 @@ body {
     inset: 0;
     z-index: -1;
     background-color: var(--background);
+}
+
+.mesh-bg::before,
+.mesh-bg::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transition: opacity 0.8s ease-in-out;
+}
+
+.mesh-bg::before {
     background-image: 
         radial-gradient(at 40% 20%, hsla(263, 70%, 92%, 1) 0px, transparent 50%),
         radial-gradient(at 80% 0%, hsla(189, 70%, 92%, 1) 0px, transparent 50%),
         radial-gradient(at 0% 50%, hsla(240, 70%, 94%, 1) 0px, transparent 50%),
         radial-gradient(at 100% 100%, hsla(280, 70%, 94%, 1) 0px, transparent 50%);
     filter: saturate(1.2);
+    opacity: 1;
 }
 
-[data-theme="dark"] .mesh-bg {
+[data-theme="dark"] .mesh-bg::before {
+    opacity: 0;
+}
+
+.mesh-bg::after {
     background-image: 
         radial-gradient(at 40% 20%, hsla(263, 70%, 12%, 1) 0px, transparent 50%),
         radial-gradient(at 80% 0%, hsla(189, 70%, 12%, 1) 0px, transparent 50%),
         radial-gradient(at 0% 50%, hsla(263, 70%, 10%, 1) 0px, transparent 50%),
         radial-gradient(at 100% 100%, hsla(280, 70%, 10%, 1) 0px, transparent 50%);
     filter: saturate(1.5);
+    opacity: 0;
+}
+
+[data-theme="dark"] .mesh-bg::after {
+    opacity: 1;
 }
 
 /* Glass Utility */
@@ -179,6 +205,8 @@ body {
 .markdown-content {
     line-height: 1.6;
     font-size: 0.875rem;
+    overflow-wrap: anywhere;
+    word-break: break-all;
 }
 
 .markdown-content p {

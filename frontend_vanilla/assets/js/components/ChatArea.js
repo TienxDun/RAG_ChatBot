@@ -18,6 +18,7 @@ export class ChatAreaComponent {
         this.micRipple = document.querySelector(SELECTORS.MIC_RIPPLE);
         this.voiceVisualizer = document.querySelector(SELECTORS.VOICE_VISUALIZER);
         
+        this.inputWrapper = document.querySelector('.input-wrapper');
         this.isLoading = false;
         this.isListening = false;
         this.recognition = null;
@@ -29,6 +30,8 @@ export class ChatAreaComponent {
     init() {
         if (this.chatInput) {
             this.chatInput.addEventListener('input', () => this.handleInput());
+            this.chatInput.addEventListener('focus', () => this.updateInputUI());
+            this.chatInput.addEventListener('blur', () => this.updateInputUI());
             this.chatInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -131,26 +134,45 @@ export class ChatAreaComponent {
     }
 
     handleInput() {
-        this.chatInput.style.height = ''; 
-        const hasValue = this.chatInput.value.trim() !== '';
-        if (hasValue) {
+        if (this.chatInput) {
+            this.chatInput.style.height = 'auto';
             this.chatInput.style.height = this.chatInput.scrollHeight + 'px';
         }
+        
+        this.updateInputUI();
+
+        // Hide suggestions when typing to avoid overlapping
+        const hasValue = this.chatInput.value.trim() !== '';
+        const suggestions = document.querySelector('.suggestions');
+        if (suggestions) {
+            if (hasValue) {
+                suggestions.classList.add('is-hidden');
+            } else {
+                suggestions.classList.remove('is-hidden');
+            }
+        }
+    }
+
+    updateInputUI() {
+        if (!this.chatInput) return;
+        
+        const hasValue = this.chatInput.value.trim().length > 0;
+        const isFocused = document.activeElement === this.chatInput;
+        
         if (this.sendBtn) this.sendBtn.disabled = !hasValue;
+        
+        // Expand width when typing OR focused
+        if (this.inputWrapper) {
+            if (hasValue || isFocused) {
+                this.inputWrapper.classList.add('is-expanded');
+            } else {
+                this.inputWrapper.classList.remove('is-expanded');
+            }
+        }
 
         // Hide mic when typing
         if (this.micBtn) {
             this.micBtn.style.display = hasValue ? 'none' : 'flex';
-        }
-
-        // Hide suggestions when typing to avoid overlapping
-        const suggestions = document.querySelector('.suggestions');
-        if (suggestions) {
-            if (hasValue) {
-                suggestions.classList.add('hidden');
-            } else {
-                suggestions.classList.remove('hidden');
-            }
         }
     }
 

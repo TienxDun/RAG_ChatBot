@@ -21,11 +21,12 @@
 }
 
 .landing__logo {
-    margin-bottom: 10rem; /* Tăng khoảng cách lớn để không bị thanh input đè lên logo */
+    margin-bottom: 4rem; /* Giảm gap so với 10rem cũ */
 }
 
 .suggestions {
-    margin-top: 2rem; /* Giữ khoảng cách với thanh input bên trên */
+    margin-top: 4rem; /* Tạo khoảng trống tương xứng cho thanh input ở giữa */
+    transition: all 0.4s ease;
 }
 
 .landing__logo {

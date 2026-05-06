@@ -182,14 +182,20 @@
     .header__left { gap: 0.75rem; }
     .header__brand { display: none; }
     .header-v-separator { display: none; }
-    .status-text { display: none; }
-    .header__status { 
-        padding: 0;
-        background: none;
-        border: none;
-        box-shadow: none;
+    .status-text { 
+        display: inline-block; 
+        font-size: 0.55rem;
     }
-    .status-dot { width: 8px; height: 8px; }
+    .header__status { 
+        padding: 0.2rem 0.5rem;
+        background: rgba(59, 130, 246, 0.08);
+        border: 1px solid rgba(59, 130, 246, 0.15);
+        border-radius: 100px;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+    .status-dot { width: 6px; height: 6px; }
     .header__actions-group {
         padding: 0.15rem;
         background: var(--glass-bg);
