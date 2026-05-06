@@ -90,7 +90,12 @@ app.MapPost("/api/chat", async (ChatRequest request, RagOrchestrator orchestrato
             }, ct);
 
             // Gửi kết quả cuối cùng
-            await SendEventAsync(new { type = "final", text = response.Text, suggestedQuestions = response.SuggestedQuestions });
+            await SendEventAsync(new { 
+                type = "final", 
+                text = response.Text, 
+                suggestedQuestions = response.SuggestedQuestions,
+                rawData = response.RawData
+            });
         }
         catch (Exception ex)
         {

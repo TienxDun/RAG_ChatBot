@@ -159,7 +159,7 @@ public sealed class RagOrchestrator
             finalText = rawResponse;
         }
 
-        return new ChatResponse(finalText, steps, suggestions);
+        return new ChatResponse(finalText, steps, suggestions, sqlResultJson);
     }
 
     private string CleanSql(string sql)

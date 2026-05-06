@@ -8,13 +8,14 @@ export type Message = {
   content: string;
   steps?: RagStep[];
   suggestedQuestions?: string[];
+  rawData?: string;
 };
 
 export class ChatService {
   private static MODE = process.env.NEXT_PUBLIC_API_MODE || 'dotnet';
   private static DOTNET_URL = process.env.NEXT_PUBLIC_DOTNET_API_URL || 'http://localhost:5000/api/chat';
 
-  static async *sendMessage(userMessage: string, history: Message[]): AsyncGenerator<{ content: string, steps?: RagStep[], suggestedQuestions?: string[] }> {
+  static async *sendMessage(userMessage: string, history: Message[]): AsyncGenerator<{ content: string, steps?: RagStep[], suggestedQuestions?: string[], rawData?: string }> {
     if (userMessage.startsWith('/embed ')) {
       const response = await this.sendToEmbedding(userMessage.replace('/embed ', ''));
       yield { content: response };
@@ -48,7 +49,7 @@ export class ChatService {
     return "";
   }
 
-  private static async *sendToDotnet(message: string): AsyncGenerator<{ content: string, steps?: RagStep[], suggestedQuestions?: string[] }> {
+  private static async *sendToDotnet(message: string): AsyncGenerator<{ content: string, steps?: RagStep[], suggestedQuestions?: string[], rawData?: string }> {
     const response = await fetch(this.DOTNET_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -97,7 +98,8 @@ export class ChatService {
             yield { 
               content: accumulatedText, 
               steps: accumulatedSteps, 
-              suggestedQuestions: data.suggestedQuestions 
+              suggestedQuestions: data.suggestedQuestions,
+              rawData: data.rawData
             };
           } else if (data.type === "error") {
             throw new Error(data.message);

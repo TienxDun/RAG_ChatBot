@@ -116,6 +116,7 @@ export default function Home() {
             lastMsg.content = chunk.content;
             lastMsg.steps = chunk.steps;
             lastMsg.suggestedQuestions = chunk.suggestedQuestions;
+            lastMsg.rawData = chunk.rawData;
           }
           finalMsgs = newMsgs;
           return newMsgs;
