@@ -37,6 +37,9 @@ public sealed class RagOrchestrator
         await onStep(step2);
 
         // 3 & 4. SQL Generation & Execution Loop (Self-Healing)
+        var now = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(7));
+        var currentTimeStr = now.ToString("dd/MM/yyyy HH:mm");
+        
         string generatedSql = string.Empty;
         string sqlResultJson = string.Empty;
         string lastError = string.Empty;
@@ -48,6 +51,8 @@ public sealed class RagOrchestrator
             if (attempt == 1)
             {
                 sqlPrompt = $@"Bạn là một chuyên gia SQL Server cho nhà máy may mặc. 
+                    Thời gian hệ thống hiện tại (UTC+7): {currentTimeStr}
+
                     Dựa trên cấu trúc database sau đây:
                     {schemaInfo}
 
@@ -57,11 +62,14 @@ public sealed class RagOrchestrator
                     - Chỉ trả về mã SQL, không giải thích gì thêm. Không sử dụng dấu ```sql.
                     - Luôn sử dụng tiền tố N cho các chuỗi Tiếng Việt.
                     - Chỉ sử dụng lệnh SELECT.
+                    - Nếu câu hỏi liên quan đến thời gian (hôm nay, hôm qua, tháng này...), hãy sử dụng thời gian hệ thống {currentTimeStr} để tính toán chính xác.
                     - Ưu tiên trả về cả các con số thành phần để có thể giải thích cách tính.";
             }
             else
             {
                 sqlPrompt = $@"Câu lệnh SQL bạn vừa tạo đã gặp lỗi khi thực thi trên SQL Server. 
+                    Thời gian hệ thống hiện tại (UTC+7): {currentTimeStr}
+                    
                     Câu lệnh lỗi:
                     ```sql
                     {generatedSql}
@@ -104,9 +112,8 @@ public sealed class RagOrchestrator
         }
 
         // 5. Generate final natural language answer + suggestions
-        var currentTime = DateTime.Now.ToString("dd/MM/yyyy HH:mm");
         var finalPrompt = $@"Bạn là một trợ lý ảo phân tích dữ liệu sản xuất chuyên nghiệp. 
-            Thời gian hệ thống hiện tại: {currentTime}
+            Thời gian hệ thống hiện tại (UTC+7): {currentTimeStr}
             Câu hỏi của người dùng: ""{userQuery}""
             Dữ liệu thực tế từ hệ thống (JSON):
             {sqlResultJson}

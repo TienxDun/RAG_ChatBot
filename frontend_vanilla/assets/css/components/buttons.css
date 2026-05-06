@@ -1,0 +1,55 @@
+/* Buttons & Common */
+.btn {
+    padding: 0.625rem 1.25rem;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+}
+
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+
+.btn-secondary { background: var(--glass-bg); border: 1px solid var(--glass-border); color: var(--foreground); }
+.btn-secondary:hover { background: var(--muted); }
+
+.btn-full { 
+    width: 100%; 
+    justify-content: center;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    padding: 1rem;
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--primary) 25%, transparent);
+    text-transform: none;
+    font-size: 0.95rem;
+}
+
+.btn-sm { padding: 0.4rem 0.8rem; font-size: 0.75rem; }
+
+.icon-btn {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    color: var(--muted-foreground);
+    cursor: pointer;
+    transition: all 0.3s;
+    pointer-events: auto;
+}
+
+.icon-btn:hover {
+    color: var(--primary);
+    border-color: color-mix(in srgb, var(--primary) 30%, transparent);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
