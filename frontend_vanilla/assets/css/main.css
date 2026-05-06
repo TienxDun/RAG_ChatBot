@@ -291,3 +291,46 @@ body {
 .markdown-content tr:hover td {
     background-color: color-mix(in srgb, var(--primary) 5%, transparent);
 }
+
+/* Premium Copy Feedback Badge */
+.copy-badge {
+    position: fixed;
+    padding: 0.4rem 0.8rem;
+    background: var(--primary);
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    border-radius: 2rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    pointer-events: none;
+    z-index: 1000;
+    box-shadow: 0 10px 25px rgba(124, 58, 237, 0.4);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    animation: badgePop 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes badgePop {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, 5px) scale(0.5);
+    }
+    20% {
+        opacity: 1;
+        transform: translate(-50%, -25px) scale(1.1);
+    }
+    30% {
+        transform: translate(-50%, -20px) scale(1);
+    }
+    80% {
+        opacity: 1;
+        transform: translate(-50%, -30px) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -45px) scale(0.9);
+    }
+}

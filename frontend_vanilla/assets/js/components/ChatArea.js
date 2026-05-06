@@ -225,11 +225,28 @@ export class ChatAreaComponent {
     }
 
     copyMessage(btn) {
-        const content = btn.closest('.message').querySelector('.markdown-content').innerText;
+        const messageContainer = btn.closest('.message') || btn.closest('.message__bubble');
+        const content = messageContainer.querySelector('.markdown-content').innerText;
+        
         navigator.clipboard.writeText(content).then(() => {
-            const originalHtml = btn.innerHTML;
-            btn.innerHTML = '<i class="ph-bold ph-check" style="color: #22c55e"></i> Đã copy';
-            setTimeout(() => btn.innerHTML = originalHtml, 2000);
+            // Hiệu ứng "nhấn" nút
+            btn.style.transform = 'scale(0.85)';
+            setTimeout(() => btn.style.transform = '', 150)
+
+            // Tạo Floating Badge
+            const rect = btn.getBoundingClientRect();
+            const badge = document.createElement('div');
+            badge.className = 'copy-badge';
+            badge.innerHTML = '<i class="ph-fill ph-check-circle"></i> Copied';
+            
+            // Định vị badge ngay trên nút
+            badge.style.left = `${rect.left + rect.width / 2}px`;
+            badge.style.top = `${rect.top}px`;
+            
+            document.body.appendChild(badge);
+            
+            // Tự động xóa badge sau khi animation kết thúc
+            setTimeout(() => badge.remove(), 1200);
         });
     }
 

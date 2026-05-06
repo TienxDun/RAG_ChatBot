@@ -153,17 +153,18 @@
     
     .message__actions {
         position: absolute;
-        bottom: -0.5rem;
-        right: 0.5rem;
+        bottom: -0.8rem; /* Đẩy xuống một chút để không đè lên bubble */
+        left: 0.5rem; /* Mặc định cho AI ở bên trái */
         flex-direction: row;
-        opacity: 1; /* Show by default on mobile */
+        opacity: 1; 
         pointer-events: auto;
         z-index: 5;
+        gap: 0.4rem;
     }
     
     .message--user .message__actions {
-        right: auto;
-        left: 0.5rem;
+        left: auto;
+        right: 0.5rem; /* User ở bên phải */
     }
     
     .action-btn {
