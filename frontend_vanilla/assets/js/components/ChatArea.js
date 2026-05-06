@@ -109,6 +109,11 @@ export class ChatAreaComponent {
         this.micRipple?.classList.remove('hidden');
         this.voiceVisualizer?.classList.remove('hidden');
         this.chatInput.placeholder = 'Đang lắng nghe...';
+        
+        // Ẩn nút gửi khi đang nghe giọng nói
+        if (this.sendBtn) {
+            this.sendBtn.classList.add('hidden');
+        }
     }
 
     stopListeningUI() {
@@ -118,14 +123,35 @@ export class ChatAreaComponent {
         this.micRipple?.classList.add('hidden');
         this.voiceVisualizer?.classList.add('hidden');
         this.chatInput.placeholder = 'Hỏi về cơ sở dữ liệu của bạn...';
+
+        // Hiện lại nút gửi
+        if (this.sendBtn) {
+            this.sendBtn.classList.remove('hidden');
+        }
     }
 
     handleInput() {
         this.chatInput.style.height = ''; 
-        if (this.chatInput.value.trim() !== '') {
+        const hasValue = this.chatInput.value.trim() !== '';
+        if (hasValue) {
             this.chatInput.style.height = this.chatInput.scrollHeight + 'px';
         }
-        if (this.sendBtn) this.sendBtn.disabled = this.chatInput.value.trim() === '';
+        if (this.sendBtn) this.sendBtn.disabled = !hasValue;
+
+        // Hide mic when typing
+        if (this.micBtn) {
+            this.micBtn.style.display = hasValue ? 'none' : 'flex';
+        }
+
+        // Hide suggestions when typing to avoid overlapping
+        const suggestions = document.querySelector('.suggestions');
+        if (suggestions) {
+            if (hasValue) {
+                suggestions.classList.add('hidden');
+            } else {
+                suggestions.classList.remove('hidden');
+            }
+        }
     }
 
     async handleSend() {
@@ -180,7 +206,7 @@ export class ChatAreaComponent {
         const content = btn.closest('.message').querySelector('.markdown-content').innerText;
         navigator.clipboard.writeText(content).then(() => {
             const originalHtml = btn.innerHTML;
-            btn.innerHTML = '<i class="ph ph-check-bold" style="color: #22c55e"></i> Đã copy';
+            btn.innerHTML = '<i class="ph-bold ph-check" style="color: #22c55e"></i> Đã copy';
             setTimeout(() => btn.innerHTML = originalHtml, 2000);
         });
     }

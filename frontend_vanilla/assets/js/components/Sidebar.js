@@ -69,13 +69,13 @@ export class SidebarComponent {
         if (history.length > 0) {
             this.historyContainer.innerHTML = history.map(item => `
                 <div class="history-item animate-fade-in" data-id="${item.id}">
-                    <i class="ph ph-chat-circle"></i>
+                    <i class="ph-duotone ph-chat-circle-dots"></i>
                     <div class="history-info">
                         <div class="history-title">${item.title}</div>
                         <div class="history-date">${item.date}</div>
                     </div>
                     <button class="history-delete" onclick="event.stopPropagation(); deleteHistory(${item.id})">
-                        <i class="ph ph-trash"></i>
+                        <i class="ph-duotone ph-trash"></i>
                     </button>
                 </div>
             `).join('');

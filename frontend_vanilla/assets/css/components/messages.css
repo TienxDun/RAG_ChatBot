@@ -127,3 +127,39 @@
 .footer-copy:hover {
     color: var(--primary);
 }
+
+@media (max-width: 640px) {
+    .messages-list {
+        padding: 4.5rem 0.75rem 9rem; /* Top padding for compact header */
+        gap: 1.25rem;
+    }
+    
+    .message__bubble {
+        max-width: 92%;
+        padding: 1rem;
+        border-radius: 1.1rem;
+        font-size: 0.9375rem; /* Larger text for mobile readability */
+    }
+    
+    .message__actions {
+        position: absolute;
+        bottom: -0.5rem;
+        right: 0.5rem;
+        flex-direction: row;
+        opacity: 1; /* Show by default on mobile */
+        pointer-events: auto;
+        z-index: 5;
+    }
+    
+    .message--user .message__actions {
+        right: auto;
+        left: 0.5rem;
+    }
+    
+    .action-btn {
+        width: 28px;
+        height: 28px;
+        background: var(--glass-bg);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+}

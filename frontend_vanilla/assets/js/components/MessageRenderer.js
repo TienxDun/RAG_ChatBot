@@ -16,7 +16,7 @@ export class MessageRenderer {
                 <div class="rag-step__dot"></div>
                 <div class="rag-step__panel">
                     <div class="rag-step__title">
-                        <i class="ph ph-lightning"></i>
+                        <i class="ph-duotone ph-lightning"></i>
                         ${step.title}
                     </div>
                     <div class="rag-step__content-inner text-sm opacity-80">
@@ -29,9 +29,9 @@ export class MessageRenderer {
         return `
             <div class="rag-steps">
                 <button class="rag-steps__toggle" onclick="this.classList.toggle('active')">
-                    <i class="ph ph-lightning-fill"></i>
+                    <i class="ph-fill ph-lightning"></i>
                     <span>RAG TRACE (${steps.length} steps)</span>
-                    <i class="ph ph-caret-down"></i>
+                    <i class="ph-bold ph-caret-down"></i>
                 </button>
                 <div class="rag-steps__content">
                     ${stepsHtml}
@@ -61,7 +61,7 @@ export class MessageRenderer {
                     <span class="ai-label">AI INSIGHT</span>
                     <div style="flex: 1"></div>
                     <button class="footer-copy" onclick="window.app.chatArea.copyMessage(this)">
-                        <i class="ph ph-copy"></i> Copy
+                        <i class="ph-duotone ph-copy"></i> Copy
                     </button>
                 </div>
             `;
@@ -73,10 +73,10 @@ export class MessageRenderer {
             html += `
                 <div class="message__actions">
                     <button class="action-btn" onclick="window.app.chatArea.editMessage(this)" title="Sửa tin nhắn">
-                        <i class="ph ph-pencil-simple"></i>
+                        <i class="ph-duotone ph-pencil-simple"></i>
                     </button>
                     <button class="action-btn" onclick="window.app.chatArea.copyMessage(this)" title="Copy tin nhắn">
-                        <i class="ph ph-copy"></i>
+                        <i class="ph-duotone ph-copy"></i>
                     </button>
                 </div>
             `;
