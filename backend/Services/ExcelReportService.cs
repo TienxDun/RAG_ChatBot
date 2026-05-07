@@ -31,31 +31,61 @@ public class ExcelReportService
         // Gửi step thông báo bắt đầu xử lý
         await onStep(new RagStep("Excel Template Analysis", "Đang phân tích cấu trúc file template và trích xuất các cột tiêu đề..."));
 
-        // 1. Quét tìm Header trong Excel (Tối ưu: Chỉ quét đến cột cuối cùng có dữ liệu)
+        // 1. Tìm Header Row (Quét 15 dòng đầu để tìm dòng có nhiều cột nhất)
         var columns = new List<string>();
+        int headerRowIndex = 1;
+        int maxHeaderCols = 0;
+
         if (worksheet.Dimension != null)
         {
-            int colCount = worksheet.Dimension.End.Column;
-            for (int col = 1; col <= colCount; col++)
+            int maxColsToScan = Math.Min(worksheet.Dimension.End.Column, 50);
+            int maxRowsToScan = Math.Min(worksheet.Dimension.End.Row, 15); // Tăng lên 15 dòng cho chắc
+
+            for (int r = 1; r <= maxRowsToScan; r++)
             {
-                var headerText = worksheet.Cells[1, col].Text;
-                if (!string.IsNullOrWhiteSpace(headerText)) 
-                    columns.Add(headerText);
-                else if (col > 10 && columns.Count == 0) break; // Safe guard nếu file quá rộng mà không có data
+                var tempColumns = new List<string>();
+                for (int c = 1; c <= maxColsToScan; c++)
+                {
+                    var val = worksheet.Cells[r, c].Text?.Trim();
+                    if (!string.IsNullOrWhiteSpace(val)) 
+                    {
+                        tempColumns.Add(val);
+                    }
+                }
+
+                // Nếu dòng này có nhiều cột hơn dòng trước đó -> Coi là Header
+                if (tempColumns.Count > maxHeaderCols)
+                {
+                    maxHeaderCols = tempColumns.Count;
+                    columns = tempColumns;
+                    headerRowIndex = r;
+                }
             }
+        }
+
+        // Nếu không tìm thấy cột nào, thoát sớm
+        if (columns.Count == 0)
+        {
+            throw new Exception("Không tìm thấy hàng tiêu đề (Header) trong file Excel template.");
         }
 
         var columnsStr = string.Join(", ", columns);
 
         // 2. GỘP CÂU QUERY CỦA USER + YÊU CẦU CỘT EXCEL
         string combinedQuery;
+        var mappingInstructions = $"\n\nYÊU CẦU ĐẶC BIỆT CHO BÁO CÁO EXCEL:\n" +
+                                   $"- Dữ liệu trả về BẮT BUỘC phải có các cột tiêu đề sau: {columnsStr}.\n" +
+                                   $"- Quan trọng: Hãy ánh xạ (map) các tiêu đề này với trường tương ứng trong database (ví dụ: 'TenKhachHang' map với 'KhachHang', 'StepName' map với 'cd_name').\n" +
+                                   $"- Nếu không tìm thấy cột tương ứng, hãy để trống hoặc dùng NULL, đừng cố đoán bừa.\n" +
+                                   $"- BẮT BUỘC sử dụng ALIAS (AS) để tên cột trong kết quả trả về khớp hoàn toàn với tên tiêu đề Excel (ví dụ: SELECT KhachHang AS [TenKhachHang], cd_name AS [StepName] ...).";
+
         if (string.IsNullOrWhiteSpace(additionalQuery))
         {
-            combinedQuery = $"Hãy lấy toàn bộ dữ liệu, chỉ bao gồm các cột sau: {columnsStr}";
+            combinedQuery = $"Hãy lấy toàn bộ dữ liệu cần thiết để điền vào báo cáo theo các cột được yêu cầu." + mappingInstructions;
         }
         else
         {
-            combinedQuery = $"{additionalQuery.Trim()}. Lưu ý BẮT BUỘC chỉ SELECT các cột sau: {columnsStr}";
+            combinedQuery = $"{additionalQuery.Trim()}." + mappingInstructions;
         }
 
         // 3. Chạy toàn bộ luồng RAG (Embeddings -> Qdrant Schema -> Vertex SQL -> Execute)
@@ -68,22 +98,46 @@ public class ExcelReportService
             throw new Exception("AI không thể sinh được SQL hợp lệ: " + rawJson);
         }
 
-        // 5. Sử dụng DataTable từ RagOrchestrator hoặc Convert JSON -> DataTable (fallback)
-        var dataTable = ragResponse.Data ?? ConvertJsonToDataTable(rawJson);
+        // 5. Convert JSON -> DataTable theo đúng thứ tự cột của Template
+        // Chúng ta không dùng trực tiếp ragResponse.Data vì nó có thể sai thứ tự cột so với template
+        var dataTable = ConvertJsonToDataTable(rawJson, columns);
 
-        // Xóa toàn bộ dữ liệu mẫu (dummy data) của template từ dòng 2 trở đi để có 1 file mới hoàn toàn sạch sẽ
-        if (worksheet.Dimension != null && worksheet.Dimension.End.Row >= 2)
+        // 5. Xóa dữ liệu mẫu (dummy data) và điền data mới
+        int dataStartRow = headerRowIndex + 1;
+        if (worksheet.Dimension != null && worksheet.Dimension.End.Row >= dataStartRow)
         {
-            worksheet.DeleteRow(2, worksheet.Dimension.End.Row - 1);
+            // Xóa sạch từ dòng sau Header đến hết sheet
+            worksheet.Cells[dataStartRow, 1, worksheet.Dimension.End.Row, worksheet.Dimension.End.Column].Clear();
         }
 
-        // Đổ dữ liệu mới vào từ dòng A2
-        worksheet.Cells["A2"].LoadFromDataTable(dataTable, PrintHeaders: false);
+        // Đổ dữ liệu mới
+        if (dataTable.Rows.Count > 0)
+        {
+            // Sử dụng LoadFromDataTable để đổ dữ liệu nhanh
+            var dataRange = worksheet.Cells[dataStartRow, 1];
+            dataRange.LoadFromDataTable(dataTable, PrintHeaders: false);
 
-        // 5.5 Thêm Border bao quanh dữ liệu đã điền
+            // Căn lề cho cột số (không ép định dạng .00 để tránh lỗi hiển thị ID)
+            for (int i = 0; i < dataTable.Columns.Count; i++)
+            {
+                var column = dataTable.Columns[i];
+                if (column.ExtendedProperties["IsNumeric"] is bool isNum && isNum)
+                {
+                    var colRange = worksheet.Cells[dataStartRow, i + 1, dataStartRow + dataTable.Rows.Count - 1, i + 1];
+                    colRange.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Right;
+                    // Không set Numberformat.Format ở đây để Excel tự hiển thị tự nhiên
+                }
+            }
+        }
+        else 
+        {
+            await onStep(new RagStep("Excel Export", "⚠️ Không có dữ liệu để điền vào báo cáo."));
+        }
+
+        // 5.5 Thêm Border bao quanh vùng dữ liệu (Header + Data)
         if (worksheet.Dimension != null)
         {
-            var range = worksheet.Cells[1, 1, worksheet.Dimension.End.Row, worksheet.Dimension.End.Column];
+            var range = worksheet.Cells[headerRowIndex, 1, Math.Max(headerRowIndex, worksheet.Dimension.End.Row), columns.Count];
             range.Style.Border.Top.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
             range.Style.Border.Bottom.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
             range.Style.Border.Left.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
@@ -120,28 +174,32 @@ public class ExcelReportService
     }
 
 
-    // Hàm helper nhỏ để biến JSON từ SqlService thành DataTable cho EPPlus
-    private DataTable ConvertJsonToDataTable(string jsonString)
+    // Hàm helper để biến JSON thành DataTable theo đúng cấu trúc cột của Template
+    private DataTable ConvertJsonToDataTable(string jsonString, List<string> templateColumns)
     {
         var dataTable = new DataTable();
+        
+        // 1. Tạo các cột dựa trên template (để đảm bảo đúng thứ tự)
+        foreach (var colName in templateColumns)
+        {
+            var col = dataTable.Columns.Add(colName, typeof(object));
+            col.ExtendedProperties["IsNumeric"] = false; // Mặc định là false
+        }
+
         using var jsonDoc = JsonDocument.Parse(jsonString);
         var root = jsonDoc.RootElement;
 
         if (root.ValueKind == JsonValueKind.Array && root.GetArrayLength() > 0)
         {
             var elements = root.EnumerateArray().ToList();
-            var firstRow = elements[0];
             
-            // BƯỚC 1: Quét trước 50 dòng đầu tiên (để tối ưu tốc độ) để xác định xem cột nào 100% là Số, cột nào là Chữ
-            // Việc này giúp tránh lỗi "thục ra thục vô" (Ví dụ cột Mã SP có mã "1001" bị hiểu thành số lề phải, còn "A001" bị hiểu thành chữ lề trái)
-            var columnTypes = new Dictionary<string, Type>();
+            // 2. Xác định kiểu dữ liệu (Numeric vs String) cho từng cột dựa trên sample data
             var sampleElements = elements.Take(50).ToList();
-
-            foreach (var property in firstRow.EnumerateObject())
+            foreach (DataColumn col in dataTable.Columns)
             {
-                string colName = property.Name;
-                bool allNumbers = true;
+                string colName = col.ColumnName;
                 bool hasData = false;
+                bool allNumbers = true;
 
                 foreach (var el in sampleElements)
                 {
@@ -150,11 +208,10 @@ public class ExcelReportService
                         if (prop.ValueKind == JsonValueKind.Null || prop.ValueKind == JsonValueKind.Undefined)
                             continue;
 
-                        var strVal = prop.ToString();
+                        var strVal = prop.ToString().Trim();
                         if (string.IsNullOrWhiteSpace(strVal)) continue;
 
                         hasData = true;
-                        // Kiểm tra xem nó có THẬT SỰ là số không
                         if (!double.TryParse(strVal, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out _))
                         {
                             allNumbers = false;
@@ -162,55 +219,56 @@ public class ExcelReportService
                         }
                     }
                 }
-
-                // Nếu tất cả các dòng của cột này đều là số -> Cột số. Nếu có lẫn lộn chữ -> Cột chữ.
-                columnTypes[colName] = (hasData && allNumbers) ? typeof(double) : typeof(string);
-                dataTable.Columns.Add(colName, typeof(object)); 
+                col.ExtendedProperties["IsNumeric"] = hasData && allNumbers;
             }
 
-            // BƯỚC 2: Đổ data vào theo đúng type đã thống nhất của cột đó
+            // 3. Đổ dữ liệu vào hàng
             foreach (var element in elements)
             {
                 var row = dataTable.NewRow();
-                foreach (var col in columnTypes)
+                bool hasAnyData = false;
+
+                foreach (DataColumn col in dataTable.Columns)
                 {
-                    string colName = col.Key;
-                    Type colType = col.Value;
+                    string colName = col.ColumnName;
+                    bool isNumeric = (bool)col.ExtendedProperties["IsNumeric"]!;
 
-                    if (!element.TryGetProperty(colName, out var prop) || 
-                        prop.ValueKind == JsonValueKind.Null || 
-                        prop.ValueKind == JsonValueKind.Undefined)
+                    if (element.TryGetProperty(colName, out var prop) && 
+                        prop.ValueKind != JsonValueKind.Null && 
+                        prop.ValueKind != JsonValueKind.Undefined)
                     {
-                        row[colName] = colType == typeof(double) ? 0.0 : "";
-                        continue;
-                    }
-
-                    var strVal = prop.ToString();
-                    if (string.IsNullOrWhiteSpace(strVal))
-                    {
-                        row[colName] = colType == typeof(double) ? 0.0 : ""; // Cột số thì cho bằng 0 thay vì để trống
-                        continue;
-                    }
-
-                    if (colType == typeof(double))
-                    {
-                        if (double.TryParse(strVal, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double parsedDouble))
+                        var strVal = prop.ToString().Trim();
+                        if (!string.IsNullOrWhiteSpace(strVal))
                         {
-                            row[colName] = parsedDouble; // Canh phải thẳng tắp
+                            hasAnyData = true;
+                            if (isNumeric && double.TryParse(strVal, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double val))
+                            {
+                                row[colName] = val;
+                            }
+                            else
+                            {
+                                row[colName] = strVal;
+                            }
                         }
-                        else
+                        else 
                         {
-                            row[colName] = 0.0; // Nếu parse lỗi cũng gán bằng 0
+                            row[colName] = DBNull.Value; // Để trống ô nếu không có dữ liệu
                         }
                     }
                     else
                     {
-                        row[colName] = strVal; // Canh trái thẳng tắp
+                        row[colName] = DBNull.Value; // Để trống ô nếu không có dữ liệu
                     }
                 }
-                dataTable.Rows.Add(row);
+
+                // Chỉ add hàng nếu nó thực sự có dữ liệu (tránh hàng trống do AI sinh bậy)
+                if (hasAnyData)
+                {
+                    dataTable.Rows.Add(row);
+                }
             }
         }
+        
         return dataTable;
     }
 }
