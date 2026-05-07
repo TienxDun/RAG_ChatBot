@@ -9,13 +9,14 @@ export type Message = {
   steps?: RagStep[];
   suggestedQuestions?: string[];
   rawData?: string;
+  excelBase64?: string;
 };
 
 export class ChatService {
   private static MODE = process.env.NEXT_PUBLIC_API_MODE || 'dotnet';
   private static DOTNET_URL = process.env.NEXT_PUBLIC_DOTNET_API_URL || 'http://localhost:5000/api/chat';
 
-  static async *sendMessage(userMessage: string, history: Message[]): AsyncGenerator<{ content: string, steps?: RagStep[], suggestedQuestions?: string[], rawData?: string }> {
+  static async *sendMessage(userMessage: string, history: Message[], file: File | null = null): AsyncGenerator<{ content: string, steps?: RagStep[], suggestedQuestions?: string[], rawData?: string, excelBase64?: string }> {
     if (userMessage.startsWith('/embed ')) {
       const response = await this.sendToEmbedding(userMessage.replace('/embed ', ''));
       yield { content: response };
@@ -23,7 +24,7 @@ export class ChatService {
     }
 
     if (this.MODE === 'dotnet') {
-      yield* this.sendToDotnet(userMessage);
+      yield* this.sendToDotnet(userMessage, file);
     } else {
       yield* this.sendToDirect(userMessage, history);
     }
@@ -49,11 +50,25 @@ export class ChatService {
     return "";
   }
 
-  private static async *sendToDotnet(message: string): AsyncGenerator<{ content: string, steps?: RagStep[], suggestedQuestions?: string[], rawData?: string }> {
+  private static async *sendToDotnet(message: string, file: File | null = null): AsyncGenerator<{ content: string, steps?: RagStep[], suggestedQuestions?: string[], rawData?: string, excelBase64?: string }> {
+    let body: BodyInit;
+    let headers: Record<string, string> = {};
+
+    if (file) {
+      const formData = new FormData();
+      formData.append("message", message);
+      formData.append("file", file);
+      body = formData;
+      // Note: Do NOT set Content-Type header when sending FormData
+    } else {
+      body = JSON.stringify({ message: message });
+      headers["Content-Type"] = "application/json";
+    }
+
     const response = await fetch(this.DOTNET_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: message }),
+      headers: headers,
+      body: body,
     });
 
     if (!response.ok) {
@@ -74,7 +89,7 @@ export class ChatService {
       if (done) break;
 
       buffer += decoder.decode(value, { stream: true });
-      
+
       // Phân tách theo dòng để xử lý từng block 'data: '
       const lines = buffer.split("\n");
       // Dòng cuối cùng có thể chưa hoàn chỉnh, giữ lại trong buffer
@@ -89,7 +104,7 @@ export class ChatService {
 
         try {
           const data = JSON.parse(jsonStr);
-          
+
           if (data.type === "step") {
             accumulatedSteps.push(data.step);
             yield { content: accumulatedText, steps: [...accumulatedSteps] };
@@ -99,7 +114,8 @@ export class ChatService {
               content: accumulatedText, 
               steps: accumulatedSteps, 
               suggestedQuestions: data.suggestedQuestions,
-              rawData: data.rawData
+              rawData: data.rawData,
+              excelBase64: data.excelBase64
             };
           } else if (data.type === "error") {
             throw new Error(data.message);
@@ -142,9 +158,9 @@ export class ChatService {
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-      
+
       buffer += decoder.decode(value, { stream: true });
-      
+
       let startIdx = buffer.indexOf('{');
       while (startIdx !== -1) {
         let stack = 0;
@@ -159,7 +175,7 @@ export class ChatService {
             }
           }
         }
-        
+
         if (endIdx !== -1) {
           const jsonStr = buffer.substring(startIdx, endIdx + 1);
           try {
