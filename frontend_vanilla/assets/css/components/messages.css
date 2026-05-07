@@ -135,6 +135,30 @@
     color: var(--primary);
 }
 
+/* AI Download Footer Button */
+.footer-download {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #107c41; /* Excel Green */
+    text-decoration: none !important;
+    background: color-mix(in srgb, #107c41 10%, transparent);
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.footer-download:hover {
+    background: color-mix(in srgb, #107c41 20%, transparent);
+    transform: translateY(-1px);
+}
+
+.footer-download i {
+    font-size: 0.9rem;
+}
+
 @media (max-width: 640px) {
     .messages-list {
         padding: 4.5rem 0.75rem 9rem; /* Top padding for compact header */

@@ -32,6 +32,7 @@ export const SELECTORS = {
     // Actions
     HEADER_NEW_CHAT: '#header-new-chat',
     NEW_CHAT: '#new-chat',
+    LANDING_SUGGESTIONS: '.suggestions',
     MIC_BTN: '#mic-btn',
     MIC_RIPPLE: '#mic-ripple',
     VOICE_VISUALIZER: '#voice-visualizer',

@@ -1,4 +1,5 @@
 /* MessageRenderer.js - Logic for rendering chat messages */
+import { CONFIG } from '../core/Config.js';
 
 export class MessageRenderer {
     static renderContent(content) {
@@ -129,7 +130,7 @@ export class MessageRenderer {
         return finalHtml;
     }
 
-    static createMessageElement(role, content, steps = [], suggestedQuestions = []) {
+    static createMessageElement(role, content, steps = [], suggestedQuestions = [], downloadUrl = null) {
         const messageEl = document.createElement('div');
         messageEl.className = `message message--${role === 'user' ? 'user' : 'ai'} animate-slide-up`;
         
@@ -150,6 +151,9 @@ export class MessageRenderer {
                 <div class="message__footer">
                     <span class="ai-label">AI INSIGHT</span>
                     <div style="flex: 1"></div>
+                    <div class="download-footer-container">
+                        ${downloadUrl ? this._renderDownloadSection(downloadUrl) : ''}
+                    </div>
                     <button class="footer-copy" data-action="copy-msg">
                         <i class="ph-duotone ph-copy"></i> Copy
                     </button>
@@ -183,16 +187,30 @@ export class MessageRenderer {
         return messageEl;
     }
 
-    static updateMessage(messageEl, content, steps = [], suggestedQuestions = []) {
+    static updateMessage(messageEl, content, steps = [], suggestedQuestions = [], downloadUrl = null) {
         const contentEl = messageEl.querySelector('.markdown-content');
         const stepsContainer = messageEl.querySelector('.rag-steps-container');
+        const downloadContainer = messageEl.querySelector('.download-footer-container');
         
         if (contentEl) contentEl.innerHTML = this.renderContent(content);
         if (stepsContainer && steps.length > 0) stepsContainer.innerHTML = this.renderRagSteps(steps);
+        if (downloadContainer && downloadUrl) downloadContainer.innerHTML = this._renderDownloadSection(downloadUrl);
 
         if (suggestedQuestions?.length > 0) {
             this.renderSuggestions(messageEl, suggestedQuestions);
         }
+    }
+
+    static _renderDownloadSection(url) {
+        if (!url) return '';
+        
+        const absoluteUrl = url.startsWith('http') ? url : `${CONFIG.API_BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+
+        return `
+            <a href="${absoluteUrl}" target="_blank" class="footer-download" title="Tải xuống báo cáo Excel">
+                <i class="ph-duotone ph-file-xls"></i> Excel
+            </a>
+        `;
     }
 
     static renderSuggestions(messageEl, suggestedQuestions) {

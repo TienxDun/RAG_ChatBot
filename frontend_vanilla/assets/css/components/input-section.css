@@ -133,16 +133,16 @@ textarea::placeholder {
 .input-actions-left {
     display: flex;
     align-items: center;
-    padding-bottom: 0.25rem;
     padding-left: 0.25rem;
+    padding-bottom: 0.25rem;
 }
 
 .attach-btn {
     width: 44px;
     height: 44px;
     border-radius: 50%;
+    border: 1px solid var(--border);
     background: transparent;
-    border: 1px solid transparent;
     color: var(--muted-foreground);
     display: flex;
     align-items: center;
@@ -153,8 +153,8 @@ textarea::placeholder {
 
 .attach-btn:hover {
     background: var(--muted);
-    color: var(--primary);
-    border-color: rgba(124, 58, 237, 0.1);
+    border-color: var(--primary);
+    color: var(--foreground);
 }
 
 .attach-btn i {
@@ -261,6 +261,10 @@ textarea::placeholder {
     align-items: center;
     justify-content: center;
     transition: all 0.3s;
+}
+
+.mic-btn i {
+    font-size: 1.25rem;
 }
 
 .mic-btn:hover {

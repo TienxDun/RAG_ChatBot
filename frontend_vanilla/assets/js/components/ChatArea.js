@@ -203,29 +203,34 @@ export class ChatAreaComponent {
     }
 
     renderFilePreview() {
-        if (!this.selectedFile) {
-            this.filePreviewContainer.innerHTML = '';
-            this.filePreviewContainer.classList.add('hidden');
-            return;
+        const container = document.querySelector(SELECTORS.FILE_PREVIEW_CONTAINER);
+        const suggestions = document.querySelector(SELECTORS.LANDING_SUGGESTIONS);
+        if (!container) return;
+
+        if (this.selectedFile) {
+            container.classList.remove('hidden');
+            if (suggestions) suggestions.classList.add('hidden');
+            container.innerHTML = `
+                <div class="file-preview-chip animate-in zoom-in duration-300">
+                    <i class="ph-fill ph-file-xls"></i>
+                    <span class="file-name">${this.selectedFile.name}</span>
+                    <button class="btn-remove-preview" id="remove-file-btn" title="Gỡ bỏ file">
+                        <i class="ph-bold ph-x"></i>
+                    </button>
+                </div>
+            `;
+
+            document.getElementById('remove-file-btn').addEventListener('click', () => {
+                this.selectedFile = null;
+                this.chatFile.value = '';
+                this.renderFilePreview();
+                this.updateInputUI();
+            });
+        } else {
+            container.classList.add('hidden');
+            if (suggestions) suggestions.classList.remove('hidden');
+            container.innerHTML = '';
         }
-
-        this.filePreviewContainer.innerHTML = `
-            <div class="file-preview-chip">
-                <i class="ph-fill ph-file-xls"></i>
-                <span class="file-name">${this.selectedFile.name}</span>
-                <button class="btn-remove-preview" id="remove-file-preview">
-                    <i class="ph-bold ph-x"></i>
-                </button>
-            </div>
-        `;
-        this.filePreviewContainer.classList.remove('hidden');
-
-        document.getElementById('remove-file-preview').addEventListener('click', () => {
-            this.selectedFile = null;
-            this.chatFile.value = '';
-            this.renderFilePreview();
-            this.updateInputUI();
-        });
     }
 
     async handleSend() {
@@ -277,6 +282,7 @@ export class ChatAreaComponent {
         let aiContent = "";
         let aiSteps = [];
         let aiSuggestions = [];
+        let aiDownloadUrl = null;
 
         let body;
         if (file) {
@@ -304,29 +310,34 @@ export class ChatAreaComponent {
             } else if (data.type === 'final') {
                 aiContent = data.text;
                 aiSuggestions = data.suggestedQuestions || [];
+                aiDownloadUrl = data.downloadUrl;
                 this.lastRawData = data.rawData;
             } else if (data.type === 'error') {
                 aiContent = `⚠️ Lỗi: ${data.message}`;
             }
             
-            MessageRenderer.updateMessage(aiMessageEl, aiContent, aiSteps, aiSuggestions);
+            MessageRenderer.updateMessage(aiMessageEl, aiContent, aiSteps, aiSuggestions, aiDownloadUrl);
             this.scrollToBottom();
         });
 
         if (aiContent || aiSteps.length > 0) {
             state.addMessageToHistory(state.currentConversationId, { 
-                role: 'ai', content: aiContent, steps: aiSteps, suggestions: aiSuggestions
+                role: 'ai', 
+                content: aiContent, 
+                steps: aiSteps, 
+                suggestions: aiSuggestions,
+                downloadUrl: aiDownloadUrl
             });
         }
     }
 
-    appendMessage(role, content, steps, suggestions) {
+    appendMessage(role, content, steps, suggestions, downloadUrl) {
         if (this.messagesList.classList.contains('hidden')) {
             this.landingView.classList.add('hidden');
             this.messagesList.classList.remove('hidden');
         }
 
-        const msgEl = MessageRenderer.createMessageElement(role, content, steps, suggestions);
+        const msgEl = MessageRenderer.createMessageElement(role, content, steps, suggestions, downloadUrl);
         this.messagesList.appendChild(msgEl);
         this.scrollToBottom();
 
@@ -347,7 +358,7 @@ export class ChatAreaComponent {
         if (conversation.messages?.length > 0) {
             conversation.messages.forEach(msg => {
                 this.messagesList.appendChild(
-                    MessageRenderer.createMessageElement(msg.role, msg.content, msg.steps, msg.suggestions)
+                    MessageRenderer.createMessageElement(msg.role, msg.content, msg.steps, msg.suggestions, msg.downloadUrl)
                 );
             });
         }
