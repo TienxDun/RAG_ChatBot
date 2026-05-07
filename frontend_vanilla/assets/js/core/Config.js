@@ -36,6 +36,9 @@ export const SELECTORS = {
     MIC_RIPPLE: '#mic-ripple',
     VOICE_VISUALIZER: '#voice-visualizer',
     SEND_BTN: '#send-btn',
+    ATTACH_BTN: '#attach-btn',
+    CHAT_FILE: '#chat-file',
+    FILE_PREVIEW_CONTAINER: '#file-preview-container',
     
     // Modal
     OPEN_UPLOAD: '#open-upload',

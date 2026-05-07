@@ -21,10 +21,14 @@ export class ChatAreaComponent {
         this.micBtn = document.querySelector(SELECTORS.MIC_BTN);
         this.micRipple = document.querySelector(SELECTORS.MIC_RIPPLE);
         this.voiceVisualizer = document.querySelector(SELECTORS.VOICE_VISUALIZER);
+        this.attachBtn = document.querySelector(SELECTORS.ATTACH_BTN);
+        this.chatFile = document.querySelector(SELECTORS.CHAT_FILE);
+        this.filePreviewContainer = document.querySelector(SELECTORS.FILE_PREVIEW_CONTAINER);
         
         this.inputWrapper = document.querySelector('.input-wrapper');
         this.isLoading = false;
         this.isListening = false;
+        this.selectedFile = null;
         this.recognition = null;
         this.lastRawData = null; // Lưu dữ liệu bảng gần nhất để export
         
@@ -50,6 +54,8 @@ export class ChatAreaComponent {
         if (this.headerNewChatBtn) this.headerNewChatBtn.addEventListener('click', () => this.resetChat());
         if (this.exportBtn) this.exportBtn.addEventListener('click', () => this.handleExportExcel());
         if (this.micBtn) this.micBtn.addEventListener('click', () => this.toggleMic());
+        if (this.attachBtn) this.attachBtn.addEventListener('click', () => this.chatFile.click());
+        if (this.chatFile) this.chatFile.addEventListener('change', (e) => this.handleFileSelect(e));
         if (this.chatArea) this.chatArea.addEventListener('scroll', () => this.handleScroll());
 
         if (this.scrollTopBtn) {
@@ -176,8 +182,50 @@ export class ChatAreaComponent {
         }
 
         if (this.micBtn) {
-            this.micBtn.style.display = hasValue ? 'none' : 'flex';
+            this.micBtn.style.display = (hasValue || this.selectedFile) ? 'none' : 'flex';
         }
+    }
+
+    handleFileSelect(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (!file.name.endsWith('.xlsx')) {
+            Toast.error("Chỉ hỗ trợ file Excel (.xlsx)");
+            this.chatFile.value = '';
+            return;
+        }
+
+        this.selectedFile = file;
+        this.renderFilePreview();
+        this.updateInputUI();
+        this.chatInput.focus();
+    }
+
+    renderFilePreview() {
+        if (!this.selectedFile) {
+            this.filePreviewContainer.innerHTML = '';
+            this.filePreviewContainer.classList.add('hidden');
+            return;
+        }
+
+        this.filePreviewContainer.innerHTML = `
+            <div class="file-preview-chip">
+                <i class="ph-fill ph-file-xls"></i>
+                <span class="file-name">${this.selectedFile.name}</span>
+                <button class="btn-remove-preview" id="remove-file-preview">
+                    <i class="ph-bold ph-x"></i>
+                </button>
+            </div>
+        `;
+        this.filePreviewContainer.classList.remove('hidden');
+
+        document.getElementById('remove-file-preview').addEventListener('click', () => {
+            this.selectedFile = null;
+            this.chatFile.value = '';
+            this.renderFilePreview();
+            this.updateInputUI();
+        });
     }
 
     async handleSend() {
@@ -195,7 +243,10 @@ export class ChatAreaComponent {
         this.scrollToBottom();
 
         try {
-            await this._processStreamResponse(text, typingIndicator);
+            await this._processStreamResponse(text, this.selectedFile, typingIndicator);
+            this.selectedFile = null;
+            this.chatFile.value = '';
+            this.renderFilePreview();
         } catch (error) {
             console.error('Chat error:', error);
             if (typingIndicator.parentNode) this.messagesList.removeChild(typingIndicator);
@@ -221,14 +272,23 @@ export class ChatAreaComponent {
         }
     }
 
-    async _processStreamResponse(text, typingIndicator) {
+    async _processStreamResponse(text, file, typingIndicator) {
         let aiMessageEl = null;
         let aiContent = "";
         let aiSteps = [];
         let aiSuggestions = [];
 
+        let body;
+        if (file) {
+            body = new FormData();
+            body.append('message', text);
+            body.append('file', file);
+        } else {
+            body = JSON.stringify({ message: text });
+        }
+
         await ApiClient.fetchStream(ENDPOINTS.CHAT, {
-            body: JSON.stringify({ message: text })
+            body: body
         }, (data) => {
             if (typingIndicator.parentNode) {
                 this.messagesList.removeChild(typingIndicator);

@@ -129,6 +129,85 @@ textarea::placeholder {
     text-overflow: ellipsis;
 }
 
+/* File Attachment Actions */
+.input-actions-left {
+    display: flex;
+    align-items: center;
+    padding-bottom: 0.25rem;
+    padding-left: 0.25rem;
+}
+
+.attach-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--muted-foreground);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.attach-btn:hover {
+    background: var(--muted);
+    color: var(--primary);
+    border-color: rgba(124, 58, 237, 0.1);
+}
+
+.attach-btn i {
+    font-size: 1.25rem;
+}
+
+/* File Preview Area */
+.file-preview-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0 0.5rem;
+    margin-bottom: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.file-preview-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(124, 58, 237, 0.2);
+    border-radius: 1rem;
+    font-size: 0.85rem;
+    color: var(--foreground);
+    animation: slide-in-bottom 0.3s ease-out;
+}
+
+.file-preview-chip i.ph-file-xls {
+    color: #107c41; /* Excel Green */
+    font-size: 1.25rem;
+}
+
+.btn-remove-preview {
+    background: transparent;
+    border: none;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    border-radius: 50%;
+    transition: all 0.2s;
+}
+
+.btn-remove-preview:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
 .input-actions-wrapper {
     display: flex;
     align-items: center;

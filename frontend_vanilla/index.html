@@ -127,7 +127,19 @@
             <!-- Input Section (Moved inside chat-area for better CSS targeting) -->
             <section class="input-section animate-in fade-in slide-in-from-bottom-6 duration-1000">
                 <div class="input-wrapper">
+                    <!-- File Preview Area -->
+                    <div id="file-preview-container" class="file-preview-container hidden">
+                        <!-- Dynamic file preview chip will be injected here -->
+                    </div>
+
                     <div id="input-container" class="input-container glass-panel shadow-2xl">
+                        <div class="input-actions-left">
+                            <button id="attach-btn" class="attach-btn" title="Đính kèm file Excel">
+                                <i class="ph-bold ph-paperclip"></i>
+                            </button>
+                            <input type="file" id="chat-file" hidden accept=".xlsx">
+                        </div>
+
                         <textarea id="chat-input" placeholder="Hỏi về cơ sở dữ liệu của bạn..." rows="1"></textarea>
                         
                         <div class="input-actions-wrapper">
