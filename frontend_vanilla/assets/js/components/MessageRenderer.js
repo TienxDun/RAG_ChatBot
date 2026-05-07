@@ -204,7 +204,12 @@ export class MessageRenderer {
     static _renderDownloadSection(url) {
         if (!url) return '';
         
-        const absoluteUrl = url.startsWith('http') ? url : `${CONFIG.API_BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+        let absoluteUrl = url;
+        if (!url.startsWith('http')) {
+            // Nếu url đã bắt đầu bằng /api, chúng ta cần lấy root domain từ API_BASE_URL
+            const baseUrl = CONFIG.API_BASE_URL.replace(/\/api$/, '');
+            absoluteUrl = `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+        }
 
         return `
             <a href="${absoluteUrl}" target="_blank" class="footer-download" title="Tải xuống báo cáo Excel">

@@ -56,6 +56,28 @@ export class ChatAreaComponent {
         if (this.micBtn) this.micBtn.addEventListener('click', () => this.toggleMic());
         if (this.attachBtn) this.attachBtn.addEventListener('click', () => this.chatFile.click());
         if (this.chatFile) this.chatFile.addEventListener('change', (e) => this.handleFileSelect(e));
+
+        // Drag & Drop events
+        const inputContainer = document.querySelector(SELECTORS.CHAT_CONTAINER || '#input-container');
+        if (inputContainer) {
+            inputContainer.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                inputContainer.classList.add('dragover');
+            });
+
+            inputContainer.addEventListener('dragleave', () => {
+                inputContainer.classList.remove('dragover');
+            });
+
+            inputContainer.addEventListener('drop', (e) => {
+                e.preventDefault();
+                inputContainer.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    this.processFile(files[0]);
+                }
+            });
+        }
         if (this.chatArea) this.chatArea.addEventListener('scroll', () => this.handleScroll());
 
         if (this.scrollTopBtn) {
@@ -188,9 +210,15 @@ export class ChatAreaComponent {
 
     handleFileSelect(e) {
         const file = e.target.files[0];
-        if (!file) return;
+        this.processFile(file);
+    }
 
-        if (!file.name.endsWith('.xlsx')) {
+    processFile(file) {
+        if (!file) return;
+        
+        // Kiểm tra định dạng file (chỉ nhận Excel)
+        const ext = file.name.split('.').pop().toLowerCase();
+        if (ext !== 'xlsx') {
             Toast.error("Chỉ hỗ trợ file Excel (.xlsx)");
             this.chatFile.value = '';
             return;

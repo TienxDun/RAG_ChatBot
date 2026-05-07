@@ -112,7 +112,7 @@ app.MapGet("/api/download/{id}", (string id) => ChatEndpoints.HandleDownloadAsyn
     return operation;
 });
 
-app.MapPost("/api/chat/export-excel", (HttpContext context) => ChatEndpoints.HandleExportExcelAsync(context))
+app.MapPost("/api/chat/export-excel", ChatEndpoints.HandleExportExcelAsync)
     .WithName("ExportExcel")
     .WithOpenApi();
 
