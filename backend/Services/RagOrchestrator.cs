@@ -1,3 +1,4 @@
+using System.Data;
 using System.Text;
 using System.Text.Json;
 using Backend.Models;
@@ -23,6 +24,9 @@ public sealed class RagOrchestrator
     {
         var steps = new List<RagStep>();
 
+        // 0. Khởi tạo
+        await onStep(new RagStep("System Initialization", "Đang khởi tạo luồng xử lý và chuẩn bị kết nối tới AI Engine..."));
+
         // 1. Get Embeddings for the question
         var vector = await _aiClient.GetEmbeddingAsync(userQuery, "RETRIEVAL_QUERY", 3072, ct);
         var step1 = new RagStep("Vectorization", $"Câu hỏi đã được chuyển đổi thành vector 3072 chiều.");
@@ -42,6 +46,7 @@ public sealed class RagOrchestrator
         
         string generatedSql = string.Empty;
         string sqlResultJson = string.Empty;
+        DataTable? sqlResultDataTable = null;
         string lastError = string.Empty;
         int maxAttempts = 3;
 
@@ -94,7 +99,25 @@ public sealed class RagOrchestrator
             
             try 
             {
-                sqlResultJson = await _sqlService.ExecuteQueryAsJsonAsync(generatedSql, ct);
+                sqlResultDataTable = await _sqlService.ExecuteQueryAsDataTableAsync(generatedSql, ct);
+                
+                // Convert DataTable to Json for UI steps and Final Answer generation
+                var results = new List<Dictionary<string, object>>();
+                foreach (DataRow row in sqlResultDataTable.Rows)
+                {
+                    var dict = new Dictionary<string, object>();
+                    foreach (DataColumn col in sqlResultDataTable.Columns)
+                    {
+                        dict[col.ColumnName] = row[col] == DBNull.Value ? null! : row[col];
+                    }
+                    results.Add(dict);
+                }
+                sqlResultJson = JsonSerializer.Serialize(results, new JsonSerializerOptions 
+                { 
+                    WriteIndented = true,
+                    Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+                });
+
                 var stepSuccess = new RagStep($"SQL Generation & Execution (Lần {attempt})", $"Mã SQL chạy thành công:\n\n```sql\n{generatedSql}\n```\n\nKết quả JSON:\n\n```json\n{sqlResultJson}\n```");
                 steps.Add(stepSuccess);
                 await onStep(stepSuccess);
@@ -168,7 +191,7 @@ public sealed class RagOrchestrator
             finalText = rawResponse;
         }
 
-        return new ChatResponse(finalText, steps, suggestions, sqlResultJson);
+        return new ChatResponse(finalText, steps, suggestions, sqlResultJson, sqlResultDataTable);
     }
 
     private string CleanSql(string sql)

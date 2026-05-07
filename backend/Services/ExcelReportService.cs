@@ -28,13 +28,21 @@ public class ExcelReportService
         using var package = new ExcelPackage(excelStream);
         var worksheet = package.Workbook.Worksheets[0];
 
-        // 1. Quét tìm Header trong Excel
+        // Gửi step thông báo bắt đầu xử lý
+        await onStep(new RagStep("Excel Template Analysis", "Đang phân tích cấu trúc file template và trích xuất các cột tiêu đề..."));
+
+        // 1. Quét tìm Header trong Excel (Tối ưu: Chỉ quét đến cột cuối cùng có dữ liệu)
         var columns = new List<string>();
-        int colCount = worksheet.Dimension.Columns;
-        for (int col = 1; col <= colCount; col++)
+        if (worksheet.Dimension != null)
         {
-            var headerText = worksheet.Cells[1, col].Text;
-            if (!string.IsNullOrWhiteSpace(headerText)) columns.Add(headerText);
+            int colCount = worksheet.Dimension.End.Column;
+            for (int col = 1; col <= colCount; col++)
+            {
+                var headerText = worksheet.Cells[1, col].Text;
+                if (!string.IsNullOrWhiteSpace(headerText)) 
+                    columns.Add(headerText);
+                else if (col > 10 && columns.Count == 0) break; // Safe guard nếu file quá rộng mà không có data
+            }
         }
 
         var columnsStr = string.Join(", ", columns);
@@ -60,8 +68,8 @@ public class ExcelReportService
             throw new Exception("AI không thể sinh được SQL hợp lệ: " + rawJson);
         }
 
-        // 5. Convert JSON -> DataTable và đổ vào Excel (giữ nguyên format)
-        var dataTable = ConvertJsonToDataTable(rawJson);
+        // 5. Sử dụng DataTable từ RagOrchestrator hoặc Convert JSON -> DataTable (fallback)
+        var dataTable = ragResponse.Data ?? ConvertJsonToDataTable(rawJson);
 
         // Xóa toàn bộ dữ liệu mẫu (dummy data) của template từ dòng 2 trở đi để có 1 file mới hoàn toàn sạch sẽ
         if (worksheet.Dimension != null && worksheet.Dimension.End.Row >= 2)
