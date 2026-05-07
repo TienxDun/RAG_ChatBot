@@ -6,6 +6,7 @@ import { ChatAreaComponent } from './components/ChatArea.js';
 import { StarfieldComponent } from './components/Starfield.js';
 import { state } from './core/State.js';
 import { ENDPOINTS } from './core/Config.js';
+import { ApiClient } from './core/ApiClient.js';
 
 class App {
     constructor() {
@@ -46,11 +47,15 @@ class App {
             if (key === 'isBackendOnline') updateUI(value);
         });
 
+        let isFirstHealthCheck = true;
+
         // Hàm kiểm tra thực tế
         const check = async () => {
             try {
-                const resp = await fetch(ENDPOINTS.HEALTH);
-                state.isBackendOnline = resp.ok;
+                // Chỉ log lần đầu tiên, các lần sau chạy ngầm (silent)
+                await ApiClient.get(ENDPOINTS.HEALTH, { silent: !isFirstHealthCheck });
+                state.isBackendOnline = true;
+                isFirstHealthCheck = false; 
             } catch (e) {
                 state.isBackendOnline = false;
             }

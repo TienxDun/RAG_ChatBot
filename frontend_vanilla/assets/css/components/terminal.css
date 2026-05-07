@@ -35,6 +35,12 @@
 .dot--yellow { background: #ffbd2e; }
 .dot--green { background: #27c93f; }
 
+.terminal-code__right {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
 .terminal-code__lang {
     font-family: ui-monospace, monospace;
     font-size: 0.65rem;
@@ -42,6 +48,28 @@
     color: rgba(255, 255, 255, 0.4);
     text-transform: uppercase;
     letter-spacing: 0.05em;
+}
+
+.terminal-copy-btn {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    border-radius: 4px;
+}
+
+.terminal-copy-btn:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.terminal-copy-btn i {
+    font-size: 0.9rem;
 }
 
 .terminal-code__body {

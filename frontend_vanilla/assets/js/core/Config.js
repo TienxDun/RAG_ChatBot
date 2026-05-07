@@ -1,17 +1,19 @@
+import { env } from '../env.js';
+
 /* Config.js - Central configuration and constants */
 
 export const CONFIG = {
-    API_BASE_URL: 'http://localhost:5000/api', // Cấu hình gốc cho API
+    API_BASE_URL: env.API_BASE_URL, // Lấy từ biến môi trường
     VALID_FILE_EXTENSIONS: ['.pdf', '.txt', '.json'],
     MAX_FILE_SIZE_MB: 10,
     ANIMATION_SPEED: 200,
 };
 
 export const ENDPOINTS = {
-    CHAT: `${CONFIG.API_BASE_URL}/chat`,
-    UPLOAD: `${CONFIG.API_BASE_URL}/documents/upload`,
-    EXPORT_EXCEL: `${CONFIG.API_BASE_URL}/chat/export-excel`,
-    HEALTH: `${CONFIG.API_BASE_URL}/health`
+    CHAT: '/chat',
+    UPLOAD: '/documents/upload',
+    EXPORT_EXCEL: '/chat/export-excel',
+    HEALTH: '/health'
 };
 
 export const SELECTORS = {

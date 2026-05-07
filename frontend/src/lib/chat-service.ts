@@ -31,7 +31,7 @@ export class ChatService {
   }
 
   private static async sendToEmbedding(text: string): Promise<string> {
-    const response = await fetch('http://localhost:5000/api/embeddings', {
+    const response = await fetch(`${this.DOTNET_URL}/api/embeddings`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text }),

@@ -116,4 +116,73 @@ app.MapPost("/api/chat/export-excel", (HttpContext context) => ChatEndpoints.Han
     .WithName("ExportExcel")
     .WithOpenApi();
 
+app.MapPost("/api/documents/upload", async (HttpContext context, DocumentProcessor processor, CancellationToken ct) =>
+{
+    if (!context.Request.HasFormContentType)
+    {
+        return Results.BadRequest(new { error = "Content-Type must be multipart/form-data" });
+    }
+
+    var form = await context.Request.ReadFormAsync(ct);
+    var files = form.Files;
+
+    if (files.Count == 0)
+    {
+        return Results.BadRequest(new { error = "No files uploaded" });
+    }
+
+    // Thiết lập SSE
+    context.Response.ContentType = "text/event-stream";
+    context.Response.Headers.Append("Cache-Control", "no-cache");
+    context.Response.Headers.Append("Connection", "keep-alive");
+
+    var serializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web)
+    {
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
+
+    async Task SendEventAsync(object data)
+    {
+        var json = JsonSerializer.Serialize(data, serializerOptions);
+        await context.Response.WriteAsync($"data: {json}\n\n", ct);
+        await context.Response.Body.FlushAsync(ct);
+    }
+
+    try
+    {
+        int fileCount = files.Count;
+        int currentFileIndex = 0;
+
+        foreach (var file in files)
+        {
+            currentFileIndex++;
+            var fileName = file.FileName;
+            using var stream = file.OpenReadStream();
+
+            await processor.ProcessFileAsync(stream, fileName, async (percent, message) =>
+            {
+                // Tính toán tổng tiến trình dựa trên số lượng file
+                // Mỗi file chiếm 1/fileCount tổng số phần trăm
+                int totalPercent = (int)(((currentFileIndex - 1) * 100.0 / fileCount) + (percent / (double)fileCount));
+                
+                await SendEventAsync(new { 
+                    type = "progress", 
+                    percent = totalPercent, 
+                    message = $"[File {currentFileIndex}/{fileCount}] {fileName}: {message}" 
+                });
+            }, ct);
+        }
+
+        await SendEventAsync(new { type = "result", status = "success" });
+    }
+    catch (Exception ex)
+    {
+        await SendEventAsync(new { type = "error", message = ex.Message });
+    }
+
+    return Results.Empty;
+})
+.WithName("UploadDocuments")
+.WithOpenApi();
+
 app.Run();

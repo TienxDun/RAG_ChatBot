@@ -1,48 +1,117 @@
-/* ApiClient.js - Centralized API handler with streaming support */
+import { CONFIG } from './Config.js';
+import { env } from '../env.js';
 
+/**
+ * ApiClient.js - Centralized API handler with environment-awareness and clean architecture
+ */
 export class ApiClient {
     /**
-     * Gửi yêu cầu thông thường (JSON)
+     * Helper để xây dựng URL đầy đủ nếu cần
+     * @param {string} endpoint - Path hoặc URL đầy đủ
      */
-    static async post(url, data) {
-        console.group(`🌐 API POST: ${url}`);
-        console.log('📤 Payload:', data);
+    static _resolveUrl(endpoint) {
+        if (endpoint.startsWith('http')) return endpoint;
+        const cleanPath = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+        return `${CONFIG.API_BASE_URL}${cleanPath}`;
+    }
+
+    /**
+     * Helper log theo điều kiện môi trường và tùy chọn silent
+     */
+    static _log(options, ...args) {
+        if (env.DEBUG && !options?.silent) console.log(...args);
+    }
+
+    /**
+     * Helper log group theo điều kiện môi trường và tùy chọn silent
+     */
+    static _group(options, label) {
+        if (env.DEBUG && !options?.silent) console.group(label);
+    }
+
+    /**
+     * Helper kết thúc log group
+     */
+    static _groupEnd(options) {
+        if (env.DEBUG && !options?.silent) console.groupEnd();
+    }
+
+    /**
+     * Xử lý lỗi phản hồi từ Server
+     */
+    static async _handleResponse(response) {
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            const errorMessage = errorData.error || `Lỗi hệ thống (${response.status})`;
+            throw new Error(errorMessage);
+        }
+        return response;
+    }
+
+    /**
+     * Gửi yêu cầu GET thông thường
+     * @param {string} endpoint 
+     * @param {object} options - { silent: boolean }
+     */
+    static async get(endpoint, options = {}) {
+        const url = this._resolveUrl(endpoint);
+        this._group(options, `🌐 API GET: ${url}`);
+
         try {
             const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data),
+                method: 'GET',
             });
 
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-            }
-
+            await this._handleResponse(response);
             const result = await response.json();
-            console.log('📥 Response:', result);
+            this._log(options, '📥 Response:', result);
             return result;
         } catch (error) {
-            console.error('🔴 API Post Error:', error);
+            if (!options.silent) console.error('🔴 API Get Error:', error);
             throw error;
         } finally {
-            console.groupEnd();
+            this._groupEnd(options);
         }
     }
 
     /**
-     * Gửi yêu cầu và nhận dữ liệu stream (Server-Sent Events)
-     * Dùng cho Chat và Upload progress
+     * Gửi yêu cầu POST thông thường (JSON)
+     * @param {string} endpoint 
+     * @param {object} data 
+     * @param {object} options - { silent: boolean }
      */
-    static async fetchStream(url, options, onMessage) {
-        console.group(`📡 API STREAM: ${url}`);
-        console.log('📤 Options:', options);
+    static async post(endpoint, data, options = {}) {
+        const url = this._resolveUrl(endpoint);
+        this._group(options, `🌐 API POST: ${url}`);
+        this._log(options, '📤 Payload:', data);
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+            });
+
+            await this._handleResponse(response);
+            const result = await response.json();
+            this._log(options, '📥 Response:', result);
+            return result;
+        } catch (error) {
+            if (!options.silent) console.error('🔴 API Post Error:', error);
+            throw error;
+        } finally {
+            this._groupEnd(options);
+        }
+    }
+
+    /**
+     * Gửi yêu cầu và nhận dữ liệu stream (SSE)
+     */
+    static async fetchStream(endpoint, options = {}, onMessage) {
+        const url = this._resolveUrl(endpoint);
+        this._group(options, `📡 API STREAM: ${url}`);
         
         const headers = options.headers || {};
-        
-        // Nếu không có headers và body không phải FormData, mới set mặc định là JSON
         if (!options.headers && !(options.body instanceof FormData)) {
             headers['Content-Type'] = 'application/json';
         }
@@ -50,22 +119,19 @@ export class ApiClient {
         try {
             const response = await fetch(url, {
                 method: 'POST',
-                headers: headers,
+                headers,
                 body: options.body,
                 signal: options.signal
             });
 
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-            }
+            await this._handleResponse(response);
 
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
             let lineBuffer = '';
             let currentMessageData = '';
 
-            console.log('⏳ Stream started...');
+            this._log(options, '⏳ Stream started...');
 
             while (true) {
                 const { done, value } = await reader.read();
@@ -73,73 +139,74 @@ export class ApiClient {
 
                 lineBuffer += decoder.decode(value, { stream: true });
                 const lines = lineBuffer.split(/\r?\n/);
-                lineBuffer = lines.pop(); // Giữ lại phần chưa hoàn chỉnh
+                lineBuffer = lines.pop();
 
                 for (const line of lines) {
-                    const trimmedLine = line.trim();
-                    
-                    if (trimmedLine.startsWith('data: ')) {
-                        currentMessageData += trimmedLine.replace('data: ', '');
-                    } else if (trimmedLine === '' && currentMessageData) {
-                        this.parseAndNotify(currentMessageData, onMessage);
-                        currentMessageData = '';
-                    } else if (trimmedLine !== '') {
-                        // Tích lũy các dòng không có prefix (hỗ trợ multi-line JSON)
-                        currentMessageData += trimmedLine;
+                    if (line === '' || line === '\r') {
+                        if (currentMessageData) {
+                            this._parseAndNotify(currentMessageData, onMessage, options);
+                            currentMessageData = '';
+                        }
+                        continue;
+                    }
+
+                    if (line.startsWith('data:')) {
+                        // Bóc tách nội dung: bỏ "data:" và dấu cách đầu tiên nếu có
+                        let content = line.slice(5);
+                        if (content.startsWith(' ')) content = content.slice(1);
+                        currentMessageData += content;
+                    } else if (line.startsWith(':')) {
+                        // Bỏ qua comments
+                        continue;
                     }
                 }
             }
 
-            // Xử lý nốt dữ liệu còn sót lại nếu stream đóng mà không có dòng trống cuối cùng
+            // Xử lý nốt dữ liệu cuối cùng nếu còn
             if (currentMessageData) {
-                this.parseAndNotify(currentMessageData, onMessage);
+                this._parseAndNotify(currentMessageData, onMessage, options);
             }
 
-            console.log('🏁 Stream completed');
+            this._log(options, '🏁 Stream completed');
         } catch (error) {
             if (error.name === 'AbortError') {
-                console.log('⏹️ Stream aborted');
+                this._log(options, '⏹️ Stream aborted');
             } else {
-                console.error('🔴 API Stream Error:', error);
+                if (!options.silent) console.error('🔴 API Stream Error:', error);
                 throw error;
             }
         } finally {
-            console.groupEnd();
+            this._groupEnd(options);
         }
     }
 
     /**
      * Tải file và nhận stream tiến trình
      */
-    static async uploadFiles(url, files, onProgress) {
+    static async uploadFiles(endpoint, files, onProgress) {
         const formData = new FormData();
         files.forEach(file => formData.append('files', file));
 
-        return this.fetchStream(url, {
+        return this.fetchStream(endpoint, {
             body: formData
         }, onProgress);
     }
 
     /**
-     * Helper để parse JSON từ SSE và thông báo cho listener
+     * Helper parse JSON từ SSE
      */
-    static parseAndNotify(jsonString, onMessage) {
+    static _parseAndNotify(jsonString, onMessage, options = {}) {
         try {
             const data = JSON.parse(jsonString);
             
-            // Log chi tiết từng loại event để dễ debug
-            if (data.type === 'step') {
-                console.log(`  ⚡ [Step]: ${data.step?.title || 'Processing...'}`);
-            } else if (data.type === 'progress') {
-                console.log(`  📊 [Progress]: ${data.percent}% - ${data.message}`);
-            } else if (data.type === 'final' || data.type === 'result') {
-                console.log('✅ [Final Received]', data);
+            if (env.DEBUG && !options.silent) {
+                if (data.type === 'step') this._log(options, `  ⚡ [Step]: ${data.step?.title}`);
+                else if (data.type === 'progress') this._log(options, `  📊 [Progress]: ${data.percent}%`);
             }
 
             onMessage(data);
         } catch (e) {
-            console.warn('❌ Failed to parse SSE JSON:', jsonString);
-            console.error(e);
+            if (!options.silent) console.warn('❌ Failed to parse SSE JSON:', jsonString);
         }
     }
 }

@@ -58,6 +58,11 @@ export class ChatAreaComponent {
             });
         }
 
+        // Event Delegation cho tin nhắn
+        if (this.messagesList) {
+            this.messagesList.addEventListener('click', (e) => this.handleMessageAction(e));
+        }
+
         document.querySelectorAll('.suggestion-tag').forEach(tag => {
             tag.addEventListener('click', () => {
                 this.chatInput.value = tag.getAttribute('data-value');
@@ -65,6 +70,22 @@ export class ChatAreaComponent {
                 this.chatInput.focus();
             });
         });
+    }
+
+    handleMessageAction(e) {
+        const btn = e.target.closest('[data-action]');
+        if (!btn) return;
+
+        const action = btn.getAttribute('data-action');
+        const value = btn.getAttribute('data-value');
+
+        switch (action) {
+            case 'copy-msg': this.copyMessage(btn); break;
+            case 'edit-msg': this.editMessage(btn); break;
+            case 'copy-code': this.copyTerminalCode(btn); break;
+            case 'quick-question': this.sendQuickQuestion(value); break;
+            case 'toggle-steps': btn.classList.toggle('active'); break;
+        }
     }
 
     initSpeechRecognition() {
@@ -77,24 +98,20 @@ export class ChatAreaComponent {
 
             this.recognition.onresult = (event) => {
                 const transcript = Array.from(event.results)
-                    .map(result => result[0])
-                    .map(result => result.transcript)
+                    .map(result => result[0].transcript)
                     .join('');
                 
                 this.chatInput.value = transcript;
                 this.handleInput();
             };
 
-            this.recognition.onend = () => {
-                this.stopListeningUI();
-            };
-
+            this.recognition.onend = () => this.stopListeningUI();
             this.recognition.onerror = (event) => {
                 console.error('Speech recognition error', event.error);
                 this.stopListeningUI();
             };
-        } else {
-            if (this.micBtn) this.micBtn.style.display = 'none';
+        } else if (this.micBtn) {
+            this.micBtn.style.display = 'none';
         }
     }
 
@@ -118,11 +135,7 @@ export class ChatAreaComponent {
         this.micRipple?.classList.remove('hidden');
         this.voiceVisualizer?.classList.remove('hidden');
         this.chatInput.placeholder = 'Đang lắng nghe...';
-        
-        // Ẩn nút gửi khi đang nghe giọng nói
-        if (this.sendBtn) {
-            this.sendBtn.classList.add('hidden');
-        }
+        if (this.sendBtn) this.sendBtn.classList.add('hidden');
     }
 
     stopListeningUI() {
@@ -132,11 +145,7 @@ export class ChatAreaComponent {
         this.micRipple?.classList.add('hidden');
         this.voiceVisualizer?.classList.add('hidden');
         this.chatInput.placeholder = 'Hỏi về cơ sở dữ liệu của bạn...';
-
-        // Hiện lại nút gửi
-        if (this.sendBtn) {
-            this.sendBtn.classList.remove('hidden');
-        }
+        if (this.sendBtn) this.sendBtn.classList.remove('hidden');
     }
 
     handleInput() {
@@ -147,15 +156,10 @@ export class ChatAreaComponent {
         
         this.updateInputUI();
 
-        // Hide suggestions when typing to avoid overlapping
         const hasValue = this.chatInput.value.trim() !== '';
         const suggestions = document.querySelector('.suggestions');
         if (suggestions) {
-            if (hasValue) {
-                suggestions.classList.add('is-hidden');
-            } else {
-                suggestions.classList.remove('is-hidden');
-            }
+            suggestions.classList.toggle('is-hidden', hasValue);
         }
     }
 
@@ -167,16 +171,10 @@ export class ChatAreaComponent {
         
         if (this.sendBtn) this.sendBtn.disabled = !hasValue;
         
-        // Expand width when typing OR focused
         if (this.inputWrapper) {
-            if (hasValue || isFocused) {
-                this.inputWrapper.classList.add('is-expanded');
-            } else {
-                this.inputWrapper.classList.remove('is-expanded');
-            }
+            this.inputWrapper.classList.toggle('is-expanded', hasValue || isFocused);
         }
 
-        // Hide mic when typing
         if (this.micBtn) {
             this.micBtn.style.display = hasValue ? 'none' : 'flex';
         }
@@ -186,24 +184,8 @@ export class ChatAreaComponent {
         const text = this.chatInput.value.trim();
         if (!text || this.isLoading) return;
 
-        // Khởi tạo conversation mới nếu chưa có (Phải làm trước khi appendMessage để message được lưu vào history)
-        if (!state.currentConversationId) {
-            const newId = Date.now();
-            state.currentConversationId = newId;
-            const newHistory = [
-                { 
-                    id: newId, 
-                    title: text || "Cuộc trò chuyện mới", 
-                    date: new Date().toLocaleDateString('vi-VN'),
-                    messages: []
-                },
-                ...state.chatHistory
-            ];
-            state.chatHistory = newHistory;
-        }
-
+        this._ensureConversationStarted(text);
         this.appendMessage('user', text);
-
         this.chatInput.value = '';
         this.handleInput();
 
@@ -212,58 +194,69 @@ export class ChatAreaComponent {
         this.messagesList.appendChild(typingIndicator);
         this.scrollToBottom();
 
-        // Chuẩn bị tin nhắn AI trống để update nội dung stream
+        try {
+            await this._processStreamResponse(text, typingIndicator);
+        } catch (error) {
+            console.error('Chat error:', error);
+            if (typingIndicator.parentNode) this.messagesList.removeChild(typingIndicator);
+            this.appendMessage('ai', `⚠️ Không thể kết nối tới máy chủ: ${error.message}`);
+        } finally {
+            this.setLoading(false);
+        }
+    }
+
+    _ensureConversationStarted(title) {
+        if (!state.currentConversationId) {
+            const newId = Date.now();
+            state.currentConversationId = newId;
+            state.chatHistory = [
+                { 
+                    id: newId, 
+                    title: title || "Cuộc trò chuyện mới", 
+                    date: new Date().toLocaleDateString('vi-VN'),
+                    messages: []
+                },
+                ...state.chatHistory
+            ];
+        }
+    }
+
+    async _processStreamResponse(text, typingIndicator) {
         let aiMessageEl = null;
         let aiContent = "";
         let aiSteps = [];
         let aiSuggestions = [];
 
-        try {
-            await ApiClient.fetchStream(ENDPOINTS.CHAT, {
-                body: JSON.stringify({ message: text })
-            }, (data) => {
-                // Xóa typing indicator khi bắt đầu nhận dữ liệu đầu tiên
-                if (typingIndicator.parentNode) {
-                    this.messagesList.removeChild(typingIndicator);
-                }
-
-                // Nếu chưa có tin nhắn AI, tạo mới
-                if (!aiMessageEl) {
-                    aiMessageEl = MessageRenderer.createMessageElement('ai', '');
-                    this.messagesList.appendChild(aiMessageEl);
-                }
-
-                if (data.type === 'step') {
-                    aiSteps.push(data.step);
-                    MessageRenderer.updateMessage(aiMessageEl, aiContent, aiSteps);
-                } else if (data.type === 'final') {
-                    aiContent = data.text;
-                    aiSuggestions = data.suggestedQuestions || [];
-                    this.lastRawData = data.rawData; // Cập nhật dữ liệu để export
-                    MessageRenderer.updateMessage(aiMessageEl, aiContent, aiSteps, aiSuggestions);
-                } else if (data.type === 'error') {
-                    MessageRenderer.updateMessage(aiMessageEl, `⚠️ Lỗi: ${data.message}`, aiSteps);
-                }
-                
-                this.scrollToBottom();
-            });
-        } catch (error) {
-            console.error('Chat error:', error);
+        await ApiClient.fetchStream(ENDPOINTS.CHAT, {
+            body: JSON.stringify({ message: text })
+        }, (data) => {
             if (typingIndicator.parentNode) {
                 this.messagesList.removeChild(typingIndicator);
             }
-            this.appendMessage('ai', `⚠️ Không thể kết nối tới máy chủ: ${error.message}`);
-        } finally {
-            this.setLoading(false);
-            // Lưu tin nhắn AI vào history khi kết thúc stream
-            if (aiContent || aiSteps.length > 0) {
-                state.addMessageToHistory(state.currentConversationId, { 
-                    role: 'ai', 
-                    content: aiContent, 
-                    steps: aiSteps,
-                    suggestions: aiSuggestions
-                });
+
+            if (!aiMessageEl) {
+                aiMessageEl = MessageRenderer.createMessageElement('ai', '');
+                this.messagesList.appendChild(aiMessageEl);
             }
+
+            if (data.type === 'step') {
+                aiSteps.push(data.step);
+            } else if (data.type === 'final') {
+                aiContent = data.text;
+                aiSuggestions = data.suggestedQuestions || [];
+                this.lastRawData = data.rawData;
+            } else if (data.type === 'error') {
+                aiContent = `⚠️ Lỗi: ${data.message}`;
+            }
+            
+            MessageRenderer.updateMessage(aiMessageEl, aiContent, aiSteps, aiSuggestions);
+            this.scrollToBottom();
+        });
+
+        if (aiContent || aiSteps.length > 0) {
+            state.addMessageToHistory(state.currentConversationId, { 
+                role: 'ai', content: aiContent, steps: aiSteps, suggestions: aiSuggestions
+            });
         }
     }
 
@@ -277,7 +270,6 @@ export class ChatAreaComponent {
         this.messagesList.appendChild(msgEl);
         this.scrollToBottom();
 
-        // Lưu tin nhắn của User ngay lập tức (AI lưu ở finally của fetchStream vì là stream)
         if (role === 'user' && state.currentConversationId) {
             state.addMessageToHistory(state.currentConversationId, { role, content, steps, suggestions });
         }
@@ -288,26 +280,20 @@ export class ChatAreaComponent {
         if (!conversation) return;
 
         state.currentConversationId = id;
-        
-        // Clear UI
         this.messagesList.innerHTML = '';
         this.landingView.classList.add('hidden');
         this.messagesList.classList.remove('hidden');
 
-        // Render messages
-        if (conversation.messages && conversation.messages.length > 0) {
+        if (conversation.messages?.length > 0) {
             conversation.messages.forEach(msg => {
-                const msgEl = MessageRenderer.createMessageElement(msg.role, msg.content, msg.steps, msg.suggestions);
-                this.messagesList.appendChild(msgEl);
+                this.messagesList.appendChild(
+                    MessageRenderer.createMessageElement(msg.role, msg.content, msg.steps, msg.suggestions)
+                );
             });
         }
         
         this.scrollToBottom();
-        
-        // Đóng sidebar trên mobile
-        if (window.innerWidth <= 768) {
-            state.isSidebarOpen = false;
-        }
+        if (window.innerWidth <= 768) state.isSidebarOpen = false;
     }
 
     sendQuickQuestion(text) {
@@ -322,35 +308,39 @@ export class ChatAreaComponent {
         this.handleInput();
     }
 
+    _showCopyFeedback(btn, isFooter = false) {
+        const icon = btn.querySelector('i');
+        const originalClass = icon.className;
+        const originalHTML = btn.innerHTML;
+
+        icon.className = 'ph-bold ph-check text-green-500';
+        if (isFooter) btn.innerHTML = '<i class="ph-bold ph-check text-green-500"></i> Copied';
+
+        setTimeout(() => {
+            if (isFooter) btn.innerHTML = originalHTML;
+            else icon.className = originalClass;
+        }, 2000);
+
+        Toast.success("Đã sao chép!");
+    }
+
     copyMessage(btn) {
-        const messageContainer = btn.closest('.message') || btn.closest('.message__bubble');
-        const content = messageContainer.querySelector('.markdown-content').innerText;
+        const container = btn.closest('.message') || btn.closest('.message__bubble');
+        const content = container.querySelector('.markdown-content').innerText;
         
         navigator.clipboard.writeText(content).then(() => {
-            // Hiệu ứng "nhấn" nút
-            btn.style.transform = 'scale(0.85)';
-            setTimeout(() => btn.style.transform = '', 150)
-
-            // Tạo Floating Badge
-            const rect = btn.getBoundingClientRect();
-            const badge = document.createElement('div');
-            badge.className = 'copy-badge';
-            badge.innerHTML = '<i class="ph-fill ph-check-circle"></i> Copied';
-            
-            // Định vị badge ngay trên nút
-            badge.style.left = `${rect.left + rect.width / 2}px`;
-            badge.style.top = `${rect.top}px`;
-            
-            document.body.appendChild(badge);
-            
-            // Tự động xóa badge sau khi animation kết thúc
-            setTimeout(() => badge.remove(), 1200);
+            this._showCopyFeedback(btn, btn.classList.contains('footer-copy'));
         });
     }
 
+    copyTerminalCode(btn) {
+        const text = btn.closest('.terminal-code').querySelector('code').innerText;
+        navigator.clipboard.writeText(text).then(() => this._showCopyFeedback(btn));
+    }
+
     async handleExportExcel() {
-        if (!this.lastRawData || this.lastRawData.length === 0) {
-            Toast.warning("Không có dữ liệu bảng để xuất!");
+        if (!this.lastRawData?.length) {
+            Toast.warning("Không có dữ liệu để xuất!");
             return;
         }
 
@@ -358,23 +348,22 @@ export class ChatAreaComponent {
             this.exportBtn.disabled = true;
             this.exportBtn.innerHTML = '<i class="ph-bold ph-spinner-gap animate-spin"></i>';
 
-            const response = await fetch(ENDPOINTS.EXPORT_EXCEL, {
+            const url = ApiClient._resolveUrl(ENDPOINTS.EXPORT_EXCEL);
+            const response = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(this.lastRawData)
             });
 
-            if (!response.ok) throw new Error("Export failed");
+            if (!response.ok) throw new Error("Xuất file thất bại");
 
             const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
+            const blobUrl = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url;
-            a.download = `data_export_${new Date().getTime()}.xlsx`;
-            document.body.appendChild(a);
+            a.href = blobUrl;
+            a.download = `export_${Date.now()}.xlsx`;
             a.click();
-            window.URL.revokeObjectURL(url);
-            a.remove();
+            window.URL.revokeObjectURL(blobUrl);
         } catch (error) {
             console.error('Export error:', error);
             Toast.error("Lỗi khi xuất file Excel");
@@ -398,8 +387,7 @@ export class ChatAreaComponent {
     }
 
     handleScroll() {
-        if (this.chatArea.scrollTop > 400) this.scrollTopBtn.classList.remove('hidden');
-        else this.scrollTopBtn.classList.add('hidden');
+        this.scrollTopBtn?.classList.toggle('hidden', this.chatArea.scrollTop <= 400);
     }
 
     scrollToBottom() {

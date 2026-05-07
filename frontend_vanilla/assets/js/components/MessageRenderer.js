@@ -11,7 +11,25 @@ export class MessageRenderer {
     }
 
     static renderCodeBlock(content, lang = 'JSON') {
-        return `<div class="terminal-code"><div class="terminal-code__header"><div class="terminal-code__dots"><div class="terminal-code__dot dot--red"></div><div class="terminal-code__dot dot--yellow"></div><div class="terminal-code__dot dot--green"></div></div><div class="terminal-code__lang">${lang}</div></div><div class="terminal-code__body"><pre><code>${content.trim()}</code></pre></div></div>`;
+        return `
+            <div class="terminal-code">
+                <div class="terminal-code__header">
+                    <div class="terminal-code__dots">
+                        <div class="terminal-code__dot dot--red"></div>
+                        <div class="terminal-code__dot dot--yellow"></div>
+                        <div class="terminal-code__dot dot--green"></div>
+                    </div>
+                    <div class="terminal-code__right">
+                        <span class="terminal-code__lang">${lang}</span>
+                        <button class="terminal-copy-btn" title="Copy code" data-action="copy-code">
+                            <i class="ph-bold ph-copy"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="terminal-code__body">
+                    <pre><code>${content.trim()}</code></pre>
+                </div>
+            </div>`;
     }
 
     static renderRagSteps(steps) {
@@ -19,11 +37,16 @@ export class MessageRenderer {
 
         const getStepIcon = (title) => {
             const t = title.toLowerCase();
-            if (t.includes('vector')) return 'ph-file-search';
-            if (t.includes('schema')) return 'ph-database';
-            if (t.includes('sql') || t.includes('execution')) return 'ph-code-block';
-            if (t.includes('healing')) return 'ph-magic-wand';
-            return 'ph-lightning';
+            const iconMap = {
+                'vector': 'ph-file-search',
+                'schema': 'ph-database',
+                'sql': 'ph-code-block',
+                'execution': 'ph-code-block',
+                'healing': 'ph-magic-wand'
+            };
+            
+            const key = Object.keys(iconMap).find(k => t.includes(k));
+            return iconMap[key] || 'ph-lightning';
         };
 
         const stepsHtml = steps.map((step, idx) => `
@@ -41,7 +64,7 @@ export class MessageRenderer {
 
         return `
             <div class="rag-steps">
-                <button class="rag-steps__toggle" onclick="this.classList.toggle('active')">
+                <button class="rag-steps__toggle" data-action="toggle-steps">
                     <i class="ph-fill ph-lightning"></i>
                     <span>RAG TRACE (${steps.length} steps)</span>
                     <i class="ph-bold ph-caret-down"></i>
@@ -59,56 +82,47 @@ export class MessageRenderer {
         const placeholders = [];
         let processedContent = content;
 
-        // 1. Xử lý các khối Markdown code blocks (có dấu ```) trước
-        const markdownRegex = /```(?:json|sql|sqlserver)?\s*([\s\S]*?)```/gi;
-        processedContent = processedContent.replace(markdownRegex, (match, code) => {
-            const lang = code.trim().toUpperCase().startsWith('SELECT') ? 'SQL' : 'JSON';
-            const html = this.renderCodeBlock(code.trim(), lang);
-            const placeholder = `[[TERMINAL_MD_${placeholders.length}]]`;
-            placeholders.push({ id: placeholder, html });
-            return placeholder;
-        });
+        // Tách các trình xử lý Regex để code sạch hơn
+        const extractToPlaceholder = (regex, type, contentProcessor) => {
+            processedContent = processedContent.replace(regex, (match, ...args) => {
+                const code = contentProcessor ? contentProcessor(match, ...args) : match;
+                if (!code) return match;
 
-        // 2. Xử lý các khối JSON thô (không có backticks)
-        const jsonRegex = /((?:\[\s*{[\s\S]*?}\s*\])|(?:{[\s\S]*?}))/g;
-        processedContent = processedContent.replace(jsonRegex, (match) => {
-            if (match.startsWith('[[TERMINAL_')) return match;
-            try {
-                const obj = JSON.parse(match);
-                const html = this.renderCodeBlock(JSON.stringify(obj, null, 2), 'JSON');
-                const placeholder = `[[TERMINAL_JSON_${placeholders.length}]]`;
+                const placeholder = `[[TERMINAL_${type}_${placeholders.length}]]`;
+                const lang = code.trim().toUpperCase().startsWith('SELECT') ? 'SQL' : 'JSON';
+                const html = this.renderCodeBlock(code.trim(), lang);
+                
                 placeholders.push({ id: placeholder, html });
                 return placeholder;
-            } catch (e) {
-                return match;
-            }
+            });
+        };
+
+        // 1. Markdown code blocks
+        extractToPlaceholder(/```(?:json|sql|sqlserver)?\s*([\s\S]*?)```/gi, 'MD', (m, code) => code);
+
+        // 2. Raw JSON
+        extractToPlaceholder(/((?:\[\s*{[\s\S]*?}\s*\])|(?:{[\s\S]*?}))/g, 'JSON', (match) => {
+            if (match.startsWith('[[TERMINAL_')) return null;
+            try {
+                return JSON.stringify(JSON.parse(match), null, 2);
+            } catch (e) { return null; }
         });
 
-        // 3. Xử lý các khối SQL thô (không có backticks)
-        const sqlRegex = /(SELECT\s+[\s\S]*?)(?:$|\n\n|\r\n\r\n|(?=Kết quả JSON:)|(?=```))/gi;
-        processedContent = processedContent.replace(sqlRegex, (match) => {
-            if (match.startsWith('[[TERMINAL_')) return match;
-            const html = this.renderCodeBlock(match.trim(), 'SQL');
-            const placeholder = `[[TERMINAL_SQL_${placeholders.length}]]`;
-            placeholders.push({ id: placeholder, html });
-            return placeholder;
+        // 3. Raw SQL
+        extractToPlaceholder(/(SELECT\s+[\s\S]*?)(?:$|\n\n|\r\n\r\n|(?=Kết quả JSON:)|(?=```))/gi, 'SQL', (match) => {
+            return match.startsWith('[[TERMINAL_') ? null : match;
         });
 
-        // 4. Render Markdown cho phần văn bản còn lại
         let finalHtml = this.renderContent(processedContent);
 
-        // 5. Trả lại các khung Terminal vào vị trí ban đầu
+        // Trả lại terminal vào vị trí ban đầu
         placeholders.forEach(p => {
-            // Thay thế cả trường hợp bị bọc trong thẻ <p> hoặc <strong>
-            const pWrapped = `<p>${p.id}</p>`;
-            const bWrapped = `<strong>${p.id}</strong>`;
-            
-            if (finalHtml.includes(pWrapped)) {
-                finalHtml = finalHtml.split(pWrapped).join(p.html);
-            } else if (finalHtml.includes(bWrapped)) {
-                finalHtml = finalHtml.split(bWrapped).join(p.html);
-            } else {
-                finalHtml = finalHtml.split(p.id).join(p.html);
+            const wrappers = [`<p>${p.id}</p>`, `<strong>${p.id}</strong>`, p.id];
+            for (const w of wrappers) {
+                if (finalHtml.includes(w)) {
+                    finalHtml = finalHtml.split(w).join(p.html);
+                    break;
+                }
             }
         });
 
@@ -119,11 +133,7 @@ export class MessageRenderer {
         const messageEl = document.createElement('div');
         messageEl.className = `message message--${role === 'user' ? 'user' : 'ai'} animate-slide-up`;
         
-        let html = '';
-        
-        if (role === 'ai') {
-            html += `<div class="ai-message-container">`;
-        }
+        let html = role === 'ai' ? `<div class="ai-message-container">` : '';
 
         html += `
             <div class="message__bubble">
@@ -140,7 +150,7 @@ export class MessageRenderer {
                 <div class="message__footer">
                     <span class="ai-label">AI INSIGHT</span>
                     <div style="flex: 1"></div>
-                    <button class="footer-copy" onclick="window.app.chatArea.copyMessage(this)">
+                    <button class="footer-copy" data-action="copy-msg">
                         <i class="ph-duotone ph-copy"></i> Copy
                     </button>
                 </div>
@@ -152,23 +162,21 @@ export class MessageRenderer {
         if (role === 'user') {
             html += `
                 <div class="message__actions">
-                    <button class="action-btn" onclick="window.app.chatArea.editMessage(this)" title="Sửa tin nhắn">
+                    <button class="action-btn" data-action="edit-msg" title="Sửa tin nhắn">
                         <i class="ph-duotone ph-pencil-simple"></i>
                     </button>
-                    <button class="action-btn" onclick="window.app.chatArea.copyMessage(this)" title="Copy tin nhắn">
+                    <button class="action-btn" data-action="copy-msg" title="Copy tin nhắn">
                         <i class="ph-duotone ph-copy"></i>
                     </button>
                 </div>
             `;
         } else {
-            // Placeholder for suggestions
-            html += `<div class="suggestions-list-container"></div>`;
-            html += `</div>`; // Close ai-message-container
+            html += `<div class="suggestions-list-container"></div></div>`;
         }
 
         messageEl.innerHTML = html;
 
-        if (role === 'ai' && suggestedQuestions && suggestedQuestions.length > 0) {
+        if (role === 'ai' && suggestedQuestions?.length > 0) {
             this.renderSuggestions(messageEl, suggestedQuestions);
         }
 
@@ -179,15 +187,10 @@ export class MessageRenderer {
         const contentEl = messageEl.querySelector('.markdown-content');
         const stepsContainer = messageEl.querySelector('.rag-steps-container');
         
-        if (contentEl) {
-            contentEl.innerHTML = this.renderContent(content);
-        }
-        
-        if (stepsContainer && steps.length > 0) {
-            stepsContainer.innerHTML = this.renderRagSteps(steps);
-        }
+        if (contentEl) contentEl.innerHTML = this.renderContent(content);
+        if (stepsContainer && steps.length > 0) stepsContainer.innerHTML = this.renderRagSteps(steps);
 
-        if (suggestedQuestions.length > 0) {
+        if (suggestedQuestions?.length > 0) {
             this.renderSuggestions(messageEl, suggestedQuestions);
         }
     }
@@ -200,7 +203,7 @@ export class MessageRenderer {
         const listDiv = document.createElement('div');
         listDiv.className = 'suggestions-list';
         listDiv.innerHTML = suggestedQuestions.map(q => `
-            <button class="suggestion-btn" onclick="window.app.chatArea.sendQuickQuestion('${q}')">
+            <button class="suggestion-btn" data-action="quick-question" data-value="${q}">
                 ${q}
             </button>
         `).join('');

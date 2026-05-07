@@ -39,14 +39,14 @@ public sealed class DocumentProcessor
     public async Task<DocumentResult> ProcessFileAsync(
         Stream fileStream, 
         string fileName, 
-        Action<int, string> onProgress, 
+        Func<int, string, Task> onProgress, 
         CancellationToken ct)
     {
-        onProgress(5, "Đang khởi tạo...");
+        await onProgress(5, "Đang khởi tạo...");
         var mimeType = ResolveMimeType(fileName);
 
         // Step 1: Extract text via Vertex AI
-        onProgress(10, "AI đang bóc tách nội dung (có thể mất vài giây)...");
+        await onProgress(10, "AI đang bóc tách nội dung (có thể mất vài giây)...");
         string extractedText;
         bool isJson = mimeType == "application/json";
 
@@ -79,7 +79,7 @@ public sealed class DocumentProcessor
         await File.WriteAllTextAsync(debugPath, extractedText, ct);
 
         // Step 2: Chunking
-        onProgress(30, "Đang phân tích cấu trúc đoạn văn...");
+        await onProgress(30, "Đang phân tích cấu trúc đoạn văn...");
         var separator = isJson ? "\n\n\n" : "\n\n";
         var chunks = ChunkBySeparator(extractedText, separator, groupChunks: !isJson);
 
@@ -88,7 +88,7 @@ public sealed class DocumentProcessor
         for (int i = 0; i < chunks.Count; i++)
         {
             int percent = 30 + (int)((i / (float)chunks.Count) * 60);
-            onProgress(percent, $"Đang tạo vector cho đoạn {i + 1}/{chunks.Count}...");
+            await onProgress(percent, $"Đang tạo vector cho đoạn {i + 1}/{chunks.Count}...");
             
             var chunk = chunks[i];
             var vector = await _aiClient.GetEmbeddingAsync(chunk, "RETRIEVAL_DOCUMENT", 3072, ct);
@@ -96,10 +96,10 @@ public sealed class DocumentProcessor
         }
 
         // Step 4: Upsert to Qdrant
-        onProgress(95, "Đang lưu dữ liệu vào Qdrant Cloud...");
+        await onProgress(95, "Đang lưu dữ liệu vào Qdrant Cloud...");
         await _qdrantService.UpsertPointsAsync(points, ct);
 
-        onProgress(100, "Hoàn tất!");
+        await onProgress(100, "Hoàn tất!");
         return new DocumentResult(fileName, chunks.Count, "Success");
     }
 
