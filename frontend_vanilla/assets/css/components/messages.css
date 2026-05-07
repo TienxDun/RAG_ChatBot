@@ -29,6 +29,9 @@
     line-height: 1.6;
     transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    overflow-wrap: anywhere; 
+    word-break: break-all; /* Đảm bảo các chuỗi dính liền như aaaaa... luôn bị ngắt */
+    min-width: 0; /* Cho phép flex item co lại đúng cách */
 }
 
 .message--user .message__bubble {
@@ -50,6 +53,8 @@
     border: 1px solid color-mix(in srgb, var(--primary) 10%, transparent);
     color: var(--foreground);
     border-top-left-radius: 0;
+    max-width: 100%; /* Cho phép dãn tối đa 100% nếu nội dung dài */
+    width: fit-content; /* Co lại vừa khít nếu nội dung ngắn */
 }
 
 .message__bubble:hover {
@@ -126,4 +131,46 @@
 
 .footer-copy:hover {
     color: var(--primary);
+}
+
+@media (max-width: 640px) {
+    .messages-list {
+        padding: 4.5rem 0.75rem 9rem; /* Top padding for compact header */
+        gap: 1.25rem;
+    }
+    
+    .message__bubble {
+        max-width: 92%;
+        padding: 1rem;
+        border-radius: 1.1rem;
+        font-size: 0.9375rem; /* Larger text for mobile readability */
+    }
+
+    .message--ai .message__bubble {
+        max-width: 100%;
+        width: fit-content;
+    }
+    
+    .message__actions {
+        position: absolute;
+        bottom: -0.8rem; /* Đẩy xuống một chút để không đè lên bubble */
+        left: 0.5rem; /* Mặc định cho AI ở bên trái */
+        flex-direction: row;
+        opacity: 1; 
+        pointer-events: auto;
+        z-index: 5;
+        gap: 0.4rem;
+    }
+    
+    .message--user .message__actions {
+        left: auto;
+        right: 0.5rem; /* User ở bên phải */
+    }
+    
+    .action-btn {
+        width: 28px;
+        height: 28px;
+        background: var(--glass-bg);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
 }

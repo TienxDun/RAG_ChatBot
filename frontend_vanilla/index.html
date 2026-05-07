@@ -29,11 +29,11 @@
     <aside id="sidebar" class="sidebar glass">
         <div class="sidebar__header">
             <button id="theme-toggle" class="icon-btn sidebar__theme">
-                <i class="ph ph-moon"></i>
+                <i class="ph-duotone ph-moon-stars"></i>
             </button>
             <h2 class="sidebar__title-main">HISTORY</h2>
             <button id="close-sidebar" class="icon-btn sidebar__close">
-                <i class="ph ph-x"></i>
+                <i class="ph-bold ph-x"></i>
             </button>
         </div>
         
@@ -47,7 +47,7 @@
         <div class="sidebar__footer">
             <div class="sidebar__footer-actions">
                 <button id="new-chat" class="btn btn-primary btn-full">
-                    <i class="ph ph-plus"></i>
+                    <i class="ph-bold ph-plus"></i>
                     <span>Chat mới</span>
                 </button>
             </div>
@@ -94,19 +94,21 @@
             <div id="landing-view" class="landing">
                 <div class="landing__content">
                     <div class="landing__logo animate-float">
-                        <div class="logo-circle"><i class="ph ph-robot"></i></div>
+                        <div class="logo-square-rotated">
+                            <div class="logo-pulse-dot"></div>
+                        </div>
+                        <h1 class="landing__brand-v2">DO<span>DO</span></h1>
                     </div>
-                    <h2 class="landing__title">Tôi có thể giúp gì cho bạn hôm nay?</h2>
                     
                     <div class="suggestions">
                         <button class="suggestion-tag" data-value="Doanh thu tháng này là bao nhiêu?">
-                            <i class="ph ph-chart-line"></i> Doanh thu
+                            Doanh thu
                         </button>
                         <button class="suggestion-tag" data-value="Ai là khách hàng tiềm năng nhất?">
-                            <i class="ph ph-users"></i> Khách hàng
+                            Khách hàng
                         </button>
                         <button class="suggestion-tag" data-value="Báo cáo sản phẩm sắp hết hàng">
-                            <i class="ph ph-package"></i> Tồn kho
+                            Tồn kho
                         </button>
                     </div>
                 </div>
@@ -116,45 +118,48 @@
             <div id="messages-list" class="messages-list hidden">
                 <!-- Messages will be injected here -->
             </div>
+
+            <!-- Input Section (Moved inside chat-area for better CSS targeting) -->
+            <section class="input-section animate-in fade-in slide-in-from-bottom-6 duration-1000">
+                <div class="input-wrapper">
+                    <div id="input-container" class="input-container glass-panel shadow-2xl">
+                        <textarea id="chat-input" placeholder="Hỏi về cơ sở dữ liệu của bạn..." rows="1"></textarea>
+                        
+                        <div class="input-actions-wrapper">
+                            <!-- Right Actions -->
+                            <div class="input-actions-right">
+                                <!-- Sound Wave Visualizer -->
+                                <div id="voice-visualizer" class="voice-visualizer hidden">
+                                    <div class="wave-bar"></div>
+                                    <div class="wave-bar"></div>
+                                    <div class="wave-bar"></div>
+                                    <div class="wave-bar"></div>
+                                </div>
+
+                                <!-- Mic Button -->
+                                <div class="mic-wrapper">
+                                    <div id="mic-ripple" class="mic-ripple hidden"></div>
+                                    <button id="mic-btn" class="mic-btn" title="Nói để nhập liệu">
+                                        <i class="ph-duotone ph-microphone"></i>
+                                    </button>
+                                </div>
+
+                                <!-- Send Button -->
+                                <button id="send-btn" class="send-btn" disabled title="Gửi câu hỏi">
+                                    <i class="ph-bold ph-arrow-up"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="input-footer">DODO AI có thể đưa ra câu trả lời không chính xác. Hãy kiểm tra các thông tin quan trọng.</p>
+                </div>
+            </section>
         </div>
 
         <!-- Scroll Top Button -->
         <button id="scroll-top" class="scroll-top-btn hidden">
-            <i class="ph ph-arrow-up"></i>
+            <i class="ph-bold ph-arrow-up"></i>
         </button>
-
-        <!-- Input Section -->
-        <section class="input-section animate-in fade-in slide-in-from-bottom-6 duration-1000">
-            <div class="input-wrapper">
-                <div id="input-container" class="input-container glass-panel shadow-2xl">
-                    <textarea id="chat-input" placeholder="Hỏi về cơ sở dữ liệu của bạn..." rows="1"></textarea>
-                    
-                    <div class="input-actions-wrapper">
-                        <!-- Sound Wave Visualizer -->
-                        <div id="voice-visualizer" class="voice-visualizer hidden">
-                            <div class="wave-bar"></div>
-                            <div class="wave-bar"></div>
-                            <div class="wave-bar"></div>
-                            <div class="wave-bar"></div>
-                        </div>
-
-                        <!-- Mic Button -->
-                        <div class="mic-wrapper">
-                            <div id="mic-ripple" class="mic-ripple hidden"></div>
-                            <button id="mic-btn" class="mic-btn" title="Nói để nhập liệu">
-                                <i class="ph-duotone ph-microphone"></i>
-                            </button>
-                        </div>
-
-                        <!-- Send Button -->
-                        <button id="send-btn" class="send-btn" disabled title="Gửi câu hỏi">
-                            <i class="ph-bold ph-paper-plane-right"></i>
-                        </button>
-                    </div>
-                </div>
-                <p class="input-footer">DODO AI có thể đưa ra câu trả lời không chính xác. Hãy kiểm tra các thông tin quan trọng.</p>
-            </div>
-        </section>
     </main>
 
     <!-- Upload Modal -->

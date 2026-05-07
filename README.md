@@ -92,7 +92,8 @@ npm run dev
 2. Cấu hình Environment Variables:
    - `NEXT_PUBLIC_API_MODE`: `dotnet`
    - `NEXT_PUBLIC_DOTNET_API_URL`: Link Backend trên Render (VD: `https://api.onrender.com/api/chat`)
-
+3. Cài đặt thư viện FE:
+   `npm install file-saver`
 ### **Backend (Render)**
 1. Tạo **Web Service** mới, chọn deploy từ **Docker**.
 2. Thiết lập **Root Directory** là `backend`.

@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateThemeIcon(theme) {
         const icon = themeToggleBtn.querySelector('i');
-        icon.className = theme === 'dark' ? 'ph ph-sun' : 'ph ph-moon';
+        icon.className = theme === 'dark' ? 'ph-duotone ph-sun-dim' : 'ph-duotone ph-moon-stars';
     }
 
     // --- FileManager Logic (Upload Modal) ---
@@ -75,14 +75,14 @@ document.addEventListener('DOMContentLoaded', () => {
             fileListContainer.innerHTML = selectedFiles.map((file, index) => `
                 <div class="file-item animate-fade-in">
                     <div class="file-info">
-                        <i class="ph ph-file-text"></i>
+                        <i class="ph-duotone ph-file-text"></i>
                         <div class="min-w-0">
                             <div class="file-name">${file.name}</div>
                             <div class="file-size">${(file.size / 1024).toFixed(1)} KB</div>
                         </div>
                     </div>
                     <button class="icon-btn text-red" onclick="removeFile(${index})" ${isUploading ? 'disabled' : ''}>
-                        <i class="ph ph-trash"></i>
+                        <i class="ph-duotone ph-trash"></i>
                     </button>
                 </div>
             `).join('');
@@ -214,13 +214,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (dummyHistory.length > 0) {
             chatHistoryContainer.innerHTML = dummyHistory.map(item => `
                 <div class="history-item animate-fade-in" data-id="${item.id}">
-                    <i class="ph ph-chat-circle"></i>
+                    <i class="ph-duotone ph-chat-circle-dots"></i>
                     <div class="history-info">
                         <div class="history-title">${item.title}</div>
                         <div class="history-date">${item.date}</div>
                     </div>
                     <button class="history-delete" onclick="event.stopPropagation(); deleteHistory(${item.id})">
-                        <i class="ph ph-trash"></i>
+                        <i class="ph-duotone ph-trash"></i>
                     </button>
                 </div>
             `).join('');

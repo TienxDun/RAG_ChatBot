@@ -60,6 +60,7 @@ public sealed class RagOrchestrator
                     
                     Lưu ý quan trọng:
                     - Chỉ trả về mã SQL, không giải thích gì thêm. Không sử dụng dấu ```sql.
+                    - TUYỆT ĐỐI KHÔNG thêm dấu chấm phẩy (;) ở cuối câu lệnh.
                     - Luôn sử dụng tiền tố N cho các chuỗi Tiếng Việt.
                     - Chỉ sử dụng lệnh SELECT.
                     - Nếu câu hỏi liên quan đến thời gian (hôm nay, hôm qua, tháng này...), hãy sử dụng thời gian hệ thống {currentTimeStr} để tính toán chính xác.
@@ -171,7 +172,7 @@ public sealed class RagOrchestrator
 
     private string CleanSql(string sql)
     {
-        // Loại bỏ markdown code blocks nếu AI lỡ tay thêm vào
-        return sql.Replace("```sql", "").Replace("```", "").Trim();
+        // Loại bỏ markdown code blocks nếu AI lỡ tay thêm vào, đồng thời xóa luôn dấu chấm phẩy thừa ở cuối câu
+        return sql.Replace("```sql", "").Replace("```", "").Trim(' ', '\n', '\r', '\t', ';');
     }
 }

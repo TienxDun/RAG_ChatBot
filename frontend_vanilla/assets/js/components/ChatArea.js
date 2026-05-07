@@ -18,6 +18,7 @@ export class ChatAreaComponent {
         this.micRipple = document.querySelector(SELECTORS.MIC_RIPPLE);
         this.voiceVisualizer = document.querySelector(SELECTORS.VOICE_VISUALIZER);
         
+        this.inputWrapper = document.querySelector('.input-wrapper');
         this.isLoading = false;
         this.isListening = false;
         this.recognition = null;
@@ -29,6 +30,8 @@ export class ChatAreaComponent {
     init() {
         if (this.chatInput) {
             this.chatInput.addEventListener('input', () => this.handleInput());
+            this.chatInput.addEventListener('focus', () => this.updateInputUI());
+            this.chatInput.addEventListener('blur', () => this.updateInputUI());
             this.chatInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -109,6 +112,11 @@ export class ChatAreaComponent {
         this.micRipple?.classList.remove('hidden');
         this.voiceVisualizer?.classList.remove('hidden');
         this.chatInput.placeholder = 'Đang lắng nghe...';
+        
+        // Ẩn nút gửi khi đang nghe giọng nói
+        if (this.sendBtn) {
+            this.sendBtn.classList.add('hidden');
+        }
     }
 
     stopListeningUI() {
@@ -118,14 +126,54 @@ export class ChatAreaComponent {
         this.micRipple?.classList.add('hidden');
         this.voiceVisualizer?.classList.add('hidden');
         this.chatInput.placeholder = 'Hỏi về cơ sở dữ liệu của bạn...';
+
+        // Hiện lại nút gửi
+        if (this.sendBtn) {
+            this.sendBtn.classList.remove('hidden');
+        }
     }
 
     handleInput() {
-        this.chatInput.style.height = ''; 
-        if (this.chatInput.value.trim() !== '') {
+        if (this.chatInput) {
+            this.chatInput.style.height = 'auto';
             this.chatInput.style.height = this.chatInput.scrollHeight + 'px';
         }
-        if (this.sendBtn) this.sendBtn.disabled = this.chatInput.value.trim() === '';
+        
+        this.updateInputUI();
+
+        // Hide suggestions when typing to avoid overlapping
+        const hasValue = this.chatInput.value.trim() !== '';
+        const suggestions = document.querySelector('.suggestions');
+        if (suggestions) {
+            if (hasValue) {
+                suggestions.classList.add('is-hidden');
+            } else {
+                suggestions.classList.remove('is-hidden');
+            }
+        }
+    }
+
+    updateInputUI() {
+        if (!this.chatInput) return;
+        
+        const hasValue = this.chatInput.value.trim().length > 0;
+        const isFocused = document.activeElement === this.chatInput;
+        
+        if (this.sendBtn) this.sendBtn.disabled = !hasValue;
+        
+        // Expand width when typing OR focused
+        if (this.inputWrapper) {
+            if (hasValue || isFocused) {
+                this.inputWrapper.classList.add('is-expanded');
+            } else {
+                this.inputWrapper.classList.remove('is-expanded');
+            }
+        }
+
+        // Hide mic when typing
+        if (this.micBtn) {
+            this.micBtn.style.display = hasValue ? 'none' : 'flex';
+        }
     }
 
     async handleSend() {
@@ -177,11 +225,28 @@ export class ChatAreaComponent {
     }
 
     copyMessage(btn) {
-        const content = btn.closest('.message').querySelector('.markdown-content').innerText;
+        const messageContainer = btn.closest('.message') || btn.closest('.message__bubble');
+        const content = messageContainer.querySelector('.markdown-content').innerText;
+        
         navigator.clipboard.writeText(content).then(() => {
-            const originalHtml = btn.innerHTML;
-            btn.innerHTML = '<i class="ph ph-check-bold" style="color: #22c55e"></i> Đã copy';
-            setTimeout(() => btn.innerHTML = originalHtml, 2000);
+            // Hiệu ứng "nhấn" nút
+            btn.style.transform = 'scale(0.85)';
+            setTimeout(() => btn.style.transform = '', 150)
+
+            // Tạo Floating Badge
+            const rect = btn.getBoundingClientRect();
+            const badge = document.createElement('div');
+            badge.className = 'copy-badge';
+            badge.innerHTML = '<i class="ph-fill ph-check-circle"></i> Copied';
+            
+            // Định vị badge ngay trên nút
+            badge.style.left = `${rect.left + rect.width / 2}px`;
+            badge.style.top = `${rect.top}px`;
+            
+            document.body.appendChild(badge);
+            
+            // Tự động xóa badge sau khi animation kết thúc
+            setTimeout(() => badge.remove(), 1200);
         });
     }
 
