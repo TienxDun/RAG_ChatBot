@@ -3,17 +3,20 @@
     background: #0f172a;
     border-radius: 0.75rem;
     overflow: hidden;
-    margin: 1rem 0;
+    margin: 0.75rem 0;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .terminal-code__header {
-    background: rgba(255, 255, 255, 0.05);
-    padding: 0.5rem 1rem;
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
+    padding: 0.4rem 0.85rem;
+    background: rgba(255, 255, 255, 0.05);
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
@@ -33,15 +36,19 @@
 .dot--green { background: #27c93f; }
 
 .terminal-code__lang {
-    font-size: 0.7rem;
+    font-family: ui-monospace, monospace;
+    font-size: 0.65rem;
+    font-weight: 700;
     color: rgba(255, 255, 255, 0.4);
-    font-family: var(--font-mono);
     text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .terminal-code__body {
-    padding: 1rem;
+    padding: 0.75rem 1rem;
     overflow-x: auto;
+    overflow-y: auto;
+    max-height: 450px; /* Giới hạn chiều cao để tránh làm loãng UI */
 }
 
 .terminal-code__body code {

@@ -30,8 +30,11 @@
     transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     overflow-wrap: anywhere; 
-    word-break: break-all; /* Đảm bảo các chuỗi dính liền như aaaaa... luôn bị ngắt */
-    min-width: 0; /* Cho phép flex item co lại đúng cách */
+    word-break: break-all;
+    min-width: 0;
+    overflow: hidden; /* Ngăn chặn nội dung con (RAG panel) tràn ra ngoài bubble */
+    box-sizing: border-box;
+    height: auto; /* Đảm bảo giãn nở đầy đủ theo nội dung con */
 }
 
 .message--user .message__bubble {

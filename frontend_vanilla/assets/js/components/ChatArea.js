@@ -1,6 +1,9 @@
 /* ChatArea.js - Chat area interactions & Messaging */
-import { SELECTORS } from '../core/Config.js';
+import { SELECTORS, ENDPOINTS } from '../core/Config.js';
 import { MessageRenderer } from './MessageRenderer.js';
+import { ApiClient } from '../core/ApiClient.js';
+import { state } from '../core/State.js';
+import { Toast } from './Toast.js';
 
 export class ChatAreaComponent {
     constructor() {
@@ -12,6 +15,7 @@ export class ChatAreaComponent {
         this.sendBtn = document.querySelector(SELECTORS.SEND_BTN);
         this.newChatBtn = document.querySelector(SELECTORS.NEW_CHAT);
         this.headerNewChatBtn = document.querySelector(SELECTORS.HEADER_NEW_CHAT);
+        this.exportBtn = document.getElementById('export-excel');
         
         // Voice elements
         this.micBtn = document.querySelector(SELECTORS.MIC_BTN);
@@ -22,6 +26,7 @@ export class ChatAreaComponent {
         this.isLoading = false;
         this.isListening = false;
         this.recognition = null;
+        this.lastRawData = null; // Lưu dữ liệu bảng gần nhất để export
         
         this.init();
         this.initSpeechRecognition();
@@ -43,6 +48,7 @@ export class ChatAreaComponent {
         if (this.sendBtn) this.sendBtn.addEventListener('click', () => this.handleSend());
         if (this.newChatBtn) this.newChatBtn.addEventListener('click', () => this.resetChat());
         if (this.headerNewChatBtn) this.headerNewChatBtn.addEventListener('click', () => this.resetChat());
+        if (this.exportBtn) this.exportBtn.addEventListener('click', () => this.handleExportExcel());
         if (this.micBtn) this.micBtn.addEventListener('click', () => this.toggleMic());
         if (this.chatArea) this.chatArea.addEventListener('scroll', () => this.handleScroll());
 
@@ -180,7 +186,24 @@ export class ChatAreaComponent {
         const text = this.chatInput.value.trim();
         if (!text || this.isLoading) return;
 
+        // Khởi tạo conversation mới nếu chưa có (Phải làm trước khi appendMessage để message được lưu vào history)
+        if (!state.currentConversationId) {
+            const newId = Date.now();
+            state.currentConversationId = newId;
+            const newHistory = [
+                { 
+                    id: newId, 
+                    title: text || "Cuộc trò chuyện mới", 
+                    date: new Date().toLocaleDateString('vi-VN'),
+                    messages: []
+                },
+                ...state.chatHistory
+            ];
+            state.chatHistory = newHistory;
+        }
+
         this.appendMessage('user', text);
+
         this.chatInput.value = '';
         this.handleInput();
 
@@ -189,16 +212,59 @@ export class ChatAreaComponent {
         this.messagesList.appendChild(typingIndicator);
         this.scrollToBottom();
 
-        // Simulate API (Future: call ApiService)
-        setTimeout(() => {
-            this.messagesList.removeChild(typingIndicator);
-            const mockSteps = [
-                { title: "Vectorization", content: "Đã chuyển đổi sang vector." },
-                { title: "SQL Generation", content: "Đã tạo SQL truy vấn dữ liệu nhà máy." }
-            ];
-            this.appendMessage('ai', `Kết quả phân tích cho: **${text}**...`, mockSteps, ["Chi tiết doanh thu?", "So sánh với tháng trước"]);
+        // Chuẩn bị tin nhắn AI trống để update nội dung stream
+        let aiMessageEl = null;
+        let aiContent = "";
+        let aiSteps = [];
+        let aiSuggestions = [];
+
+        try {
+            await ApiClient.fetchStream(ENDPOINTS.CHAT, {
+                body: JSON.stringify({ message: text })
+            }, (data) => {
+                // Xóa typing indicator khi bắt đầu nhận dữ liệu đầu tiên
+                if (typingIndicator.parentNode) {
+                    this.messagesList.removeChild(typingIndicator);
+                }
+
+                // Nếu chưa có tin nhắn AI, tạo mới
+                if (!aiMessageEl) {
+                    aiMessageEl = MessageRenderer.createMessageElement('ai', '');
+                    this.messagesList.appendChild(aiMessageEl);
+                }
+
+                if (data.type === 'step') {
+                    aiSteps.push(data.step);
+                    MessageRenderer.updateMessage(aiMessageEl, aiContent, aiSteps);
+                } else if (data.type === 'final') {
+                    aiContent = data.text;
+                    aiSuggestions = data.suggestedQuestions || [];
+                    this.lastRawData = data.rawData; // Cập nhật dữ liệu để export
+                    MessageRenderer.updateMessage(aiMessageEl, aiContent, aiSteps, aiSuggestions);
+                } else if (data.type === 'error') {
+                    MessageRenderer.updateMessage(aiMessageEl, `⚠️ Lỗi: ${data.message}`, aiSteps);
+                }
+                
+                this.scrollToBottom();
+            });
+        } catch (error) {
+            console.error('Chat error:', error);
+            if (typingIndicator.parentNode) {
+                this.messagesList.removeChild(typingIndicator);
+            }
+            this.appendMessage('ai', `⚠️ Không thể kết nối tới máy chủ: ${error.message}`);
+        } finally {
             this.setLoading(false);
-        }, 1500);
+            // Lưu tin nhắn AI vào history khi kết thúc stream
+            if (aiContent || aiSteps.length > 0) {
+                state.addMessageToHistory(state.currentConversationId, { 
+                    role: 'ai', 
+                    content: aiContent, 
+                    steps: aiSteps,
+                    suggestions: aiSuggestions
+                });
+            }
+        }
     }
 
     appendMessage(role, content, steps, suggestions) {
@@ -210,6 +276,38 @@ export class ChatAreaComponent {
         const msgEl = MessageRenderer.createMessageElement(role, content, steps, suggestions);
         this.messagesList.appendChild(msgEl);
         this.scrollToBottom();
+
+        // Lưu tin nhắn của User ngay lập tức (AI lưu ở finally của fetchStream vì là stream)
+        if (role === 'user' && state.currentConversationId) {
+            state.addMessageToHistory(state.currentConversationId, { role, content, steps, suggestions });
+        }
+    }
+
+    loadConversation(id) {
+        const conversation = state.chatHistory.find(h => String(h.id) === String(id));
+        if (!conversation) return;
+
+        state.currentConversationId = id;
+        
+        // Clear UI
+        this.messagesList.innerHTML = '';
+        this.landingView.classList.add('hidden');
+        this.messagesList.classList.remove('hidden');
+
+        // Render messages
+        if (conversation.messages && conversation.messages.length > 0) {
+            conversation.messages.forEach(msg => {
+                const msgEl = MessageRenderer.createMessageElement(msg.role, msg.content, msg.steps, msg.suggestions);
+                this.messagesList.appendChild(msgEl);
+            });
+        }
+        
+        this.scrollToBottom();
+        
+        // Đóng sidebar trên mobile
+        if (window.innerWidth <= 768) {
+            state.isSidebarOpen = false;
+        }
     }
 
     sendQuickQuestion(text) {
@@ -250,10 +348,48 @@ export class ChatAreaComponent {
         });
     }
 
+    async handleExportExcel() {
+        if (!this.lastRawData || this.lastRawData.length === 0) {
+            Toast.warning("Không có dữ liệu bảng để xuất!");
+            return;
+        }
+
+        try {
+            this.exportBtn.disabled = true;
+            this.exportBtn.innerHTML = '<i class="ph-bold ph-spinner-gap animate-spin"></i>';
+
+            const response = await fetch(ENDPOINTS.EXPORT_EXCEL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(this.lastRawData)
+            });
+
+            if (!response.ok) throw new Error("Export failed");
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `data_export_${new Date().getTime()}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+        } catch (error) {
+            console.error('Export error:', error);
+            Toast.error("Lỗi khi xuất file Excel");
+        } finally {
+            this.exportBtn.disabled = false;
+            this.exportBtn.innerHTML = '<i class="ph-bold ph-file-xls"></i>';
+        }
+    }
+
     resetChat() {
         this.messagesList.innerHTML = '';
         this.messagesList.classList.add('hidden');
         this.landingView.classList.remove('hidden');
+        this.lastRawData = null;
+        state.currentConversationId = null;
     }
 
     setLoading(val) {

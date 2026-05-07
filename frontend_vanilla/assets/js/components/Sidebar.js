@@ -90,13 +90,14 @@ export class SidebarComponent {
         this.historyContainer.querySelectorAll('.history-item').forEach(el => {
             el.addEventListener('click', () => {
                 const id = el.getAttribute('data-id');
-                const chat = state.chatHistory.find(h => h.id == id);
-                if (chat) alert(`Chuyển sang: ${chat.title}`);
+                if (window.app && window.app.chatArea) {
+                    window.app.chatArea.loadConversation(id);
+                }
             });
         });
     }
 
     handleDelete(id) {
-        state.chatHistory = state.chatHistory.filter(item => item.id !== id);
+        state.chatHistory = state.chatHistory.filter(item => String(item.id) !== String(id));
     }
 }

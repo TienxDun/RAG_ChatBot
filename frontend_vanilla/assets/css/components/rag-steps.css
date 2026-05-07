@@ -40,7 +40,7 @@
 }
 
 .rag-steps__toggle.active + .rag-steps__content {
-    max-height: 2000px;
+    max-height: 10000px; /* Tăng giới hạn để đảm bảo hiển thị đầy đủ RAG steps */
     padding-top: 1rem;
     overflow: visible;
 }
@@ -85,9 +85,27 @@
 .rag-step__panel {
     background: var(--glass-bg);
     border: 1px solid color-mix(in srgb, var(--primary) 5%, transparent);
-    padding: 1rem;
+    padding: 0.85rem;
     border-radius: 1rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden; /* Ngăn chặn nội dung con tràn ra ngoài */
+}
+
+.rag-step__content-inner {
+    word-wrap: break-word;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    font-family: inherit;
+    max-width: 100%;
+}
+
+/* Đảm bảo code block bên trong RAG step cũng không tràn */
+.rag-step__content-inner pre {
+    max-width: 100%;
+    overflow-x: auto;
 }
 
 .rag-step__title {

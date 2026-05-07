@@ -7,15 +7,11 @@ class State {
             isSidebarOpen: localStorage.getItem('sidebar_state') !== null 
                 ? localStorage.getItem('sidebar_state') === 'open' 
                 : window.innerWidth > 768,
-            chatHistory: [
-                { id: 1, title: "hiện tại mấy giờ", date: "5/5/2026" },
-                { id: 2, title: "Tổng số nhân viên", date: "5/5/2026" },
-                { id: 3, title: "Cách sử dụng Qdrant cho người mới", date: "4/23/2026" },
-                { id: 4, title: "tiến độ hoàn thành dự án", date: "4/23/2026" }
-            ],
+            chatHistory: JSON.parse(localStorage.getItem('chat_history')) || [],
             selectedFiles: [],
             isUploading: false,
-            currentConversationId: null
+            currentConversationId: null,
+            isBackendOnline: true
         };
         this._listeners = [];
     }
@@ -37,7 +33,39 @@ class State {
     get chatHistory() { return this._state.chatHistory; }
     set chatHistory(value) {
         this._state.chatHistory = value;
+        localStorage.setItem('chat_history', JSON.stringify(value));
         this._notify('chatHistory', value);
+    }
+
+    get currentConversationId() { return this._state.currentConversationId; }
+    set currentConversationId(value) {
+        this._state.currentConversationId = value;
+        this._notify('currentConversationId', value);
+    }
+
+    addMessageToHistory(id, message) {
+        const history = [...this._state.chatHistory];
+        const index = history.findIndex(h => String(h.id) === String(id));
+        if (index !== -1) {
+            if (!history[index].messages) history[index].messages = [];
+            history[index].messages.push(message);
+            this.chatHistory = history; // Trigger setter to save
+        }
+    }
+
+    updateHistoryItem(id, updateData) {
+        const history = [...this._state.chatHistory];
+        const index = history.findIndex(h => String(h.id) === String(id));
+        if (index !== -1) {
+            history[index] = { ...history[index], ...updateData };
+            this.chatHistory = history;
+        }
+    }
+
+    get isBackendOnline() { return this._state.isBackendOnline; }
+    set isBackendOnline(value) {
+        this._state.isBackendOnline = value;
+        this._notify('isBackendOnline', value);
     }
 
     get selectedFiles() { return this._state.selectedFiles; }

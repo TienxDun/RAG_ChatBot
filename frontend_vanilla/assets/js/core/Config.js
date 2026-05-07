@@ -1,10 +1,17 @@
 /* Config.js - Central configuration and constants */
 
 export const CONFIG = {
-    API_BASE_URL: 'http://localhost:5000/api/chat', // Thay đổi theo endpoint .NET thực tế
+    API_BASE_URL: 'http://localhost:5000/api', // Cấu hình gốc cho API
     VALID_FILE_EXTENSIONS: ['.pdf', '.txt', '.json'],
     MAX_FILE_SIZE_MB: 10,
     ANIMATION_SPEED: 200,
+};
+
+export const ENDPOINTS = {
+    CHAT: `${CONFIG.API_BASE_URL}/chat`,
+    UPLOAD: `${CONFIG.API_BASE_URL}/documents/upload`,
+    EXPORT_EXCEL: `${CONFIG.API_BASE_URL}/chat/export-excel`,
+    HEALTH: `${CONFIG.API_BASE_URL}/health`
 };
 
 export const SELECTORS = {

@@ -1,6 +1,8 @@
 /* Modal.js - File Upload Modal logic */
 import { state } from '../core/State.js';
-import { SELECTORS, CONFIG } from '../core/Config.js';
+import { SELECTORS, CONFIG, ENDPOINTS } from '../core/Config.js';
+import { ApiClient } from '../core/ApiClient.js';
+import { Toast } from './Toast.js';
 
 export class ModalComponent {
     constructor() {
@@ -38,7 +40,10 @@ export class ModalComponent {
         }
 
         if (this.startBtn) {
-            this.startBtn.addEventListener('click', () => this.upload());
+            this.startBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.upload();
+            });
         }
 
         window.removeFile = (index) => this.removeFile(index);
@@ -77,17 +82,25 @@ export class ModalComponent {
         this.progressContainer.classList.remove('hidden');
         this.dropzone.classList.add('hidden');
         
-        // Mô phỏng upload (Sau này sẽ thay bằng Service gọi tới .NET)
-        for (let i = 0; i <= 100; i += 5) {
-            this.updateProgress(i);
-            await new Promise(r => setTimeout(r, 100));
-        }
-
-        setTimeout(() => {
-            alert("Tải lên thành công!");
+        try {
+            await ApiClient.uploadFiles(ENDPOINTS.UPLOAD, state.selectedFiles, (data) => {
+                if (data.type === 'progress') {
+                    this.updateProgress(data.percent, data.message);
+                } else if (data.type === 'result') {
+                    this.updateProgress(100, "Tất cả file đã được xử lý!");
+                    setTimeout(() => {
+                        Toast.success("Tải lên và xử lý thành công!");
+                        state.isUploading = false;
+                        this.hide();
+                    }, 1000);
+                }
+            });
+        } catch (error) {
+            console.error('Upload error:', error);
+            Toast.error(`Lỗi khi tải lên: ${error.message}`);
             state.isUploading = false;
-            this.hide();
-        }, 500);
+            this.resetProgress();
+        }
     }
 
     updateUI() {
@@ -124,23 +137,25 @@ export class ModalComponent {
         this.startBtn.disabled = files.length === 0 || state.isUploading;
     }
 
-    updateProgress(val) {
+    updateProgress(val, message) {
         this.progressBar.style.width = `${val}%`;
         this.progressPercent.innerText = `${val}%`;
         const messageEl = document.getElementById('progress-message');
         
-        if (val < 30) {
-            this.progressStatus.innerText = "Đang tải file...";
-            if (messageEl) messageEl.innerText = "Đang truyền dữ liệu lên server";
-        } else if (val < 70) {
-            this.progressStatus.innerText = "Đang phân tích...";
-            if (messageEl) messageEl.innerText = "Hệ thống đang trích xuất metadata";
-        } else if (val < 100) {
-            this.progressStatus.innerText = "Đang hoàn tất...";
-            if (messageEl) messageEl.innerText = "Đang lưu trữ vào cơ sở dữ liệu vector";
+        if (message) {
+            this.progressStatus.innerText = val === 100 ? "Hoàn tất!" : "Đang xử lý...";
+            if (messageEl) messageEl.innerText = message;
         } else {
-            this.progressStatus.innerText = "Hoàn tất!";
-            if (messageEl) messageEl.innerText = "Tài liệu đã sẵn sàng để truy vấn";
+            // Fallback nếu không có message từ server
+            if (val < 30) {
+                this.progressStatus.innerText = "Đang tải file...";
+            } else if (val < 70) {
+                this.progressStatus.innerText = "Đang phân tích...";
+            } else if (val < 100) {
+                this.progressStatus.innerText = "Đang hoàn tất...";
+            } else {
+                this.progressStatus.innerText = "Hoàn tất!";
+            }
         }
     }
 
