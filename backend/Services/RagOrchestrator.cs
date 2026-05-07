@@ -63,6 +63,7 @@ public sealed class RagOrchestrator
                     - TUYỆT ĐỐI KHÔNG thêm dấu chấm phẩy (;) ở cuối câu lệnh.
                     - Luôn sử dụng tiền tố N cho các chuỗi Tiếng Việt.
                     - Chỉ sử dụng lệnh SELECT.
+                    - KHÔNG tự ý sử dụng TOP để giới hạn số lượng bản ghi (ví dụ TOP 5, TOP 10) trừ khi người dùng yêu cầu cụ thể số lượng. Hãy trả về toàn bộ dữ liệu thỏa mãn điều kiện.
                     - Nếu câu hỏi liên quan đến thời gian (hôm nay, hôm qua, tháng này...), hãy sử dụng thời gian hệ thống {currentTimeStr} để tính toán chính xác.
                     - Ưu tiên trả về cả các con số thành phần để có thể giải thích cách tính.";
             }

@@ -13,14 +13,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowUp } from "@phosphor-icons/react";
 
 export default function Home() {
-  const { 
-    sessions, 
-    currentSession, 
-    currentSessionId, 
-    createNewChat, 
-    saveChat, 
-    deleteSession, 
-    selectSession 
+  const {
+    sessions,
+    currentSession,
+    currentSessionId,
+    createNewChat,
+    saveChat,
+    deleteSession,
+    selectSession
   } = useChatHistory();
 
   const [inputValue, setInputValue] = React.useState("");
@@ -68,16 +68,16 @@ export default function Home() {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_DOTNET_API_URL || 'http://localhost:5000/api/chat';
         const healthUrl = apiUrl.replace('/chat', '/health');
-        
+
         // Use AbortController for timeout
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 3000);
-        
-        const res = await fetch(healthUrl, { 
-          method: 'GET', 
-          signal: controller.signal 
+
+        const res = await fetch(healthUrl, {
+          method: 'GET',
+          signal: controller.signal
         });
-        
+
         clearTimeout(timeoutId);
         setIsApiConnected(res.ok);
       } catch (e) {
@@ -90,13 +90,19 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleSend = async () => {
-    if (!inputValue.trim() || isLoading) return;
+  const handleSend = async (file?: File | null) => {
+    if ((!inputValue.trim() && !file) || isLoading) return;
 
     const userMessage = inputValue.trim();
     setInputValue("");
-    
-    const newMessages: Message[] = [...messages, { role: "user", content: userMessage }];
+
+    // Hiển thị tên file trong tin nhắn người dùng nếu có đính kèm
+    let displayContent = userMessage;
+    if (file) {
+      displayContent += `\n\n[📎 ${file.name}]`;
+    }
+
+    const newMessages: Message[] = [...messages, { role: "user", content: displayContent }];
     setMessages(newMessages);
     setIsLoading(true);
 
@@ -104,11 +110,11 @@ export default function Home() {
       const assistantIdx = newMessages.length;
       const updatedMessagesWithPlaceholder = [...newMessages, { role: "model", content: "" } as Message];
       setMessages(updatedMessagesWithPlaceholder);
-      
+
       let assistantMessage = "";
 
       let finalMsgs: Message[] = [];
-      for await (const chunk of ChatService.sendMessage(userMessage, messages)) {
+      for await (const chunk of ChatService.sendMessage(userMessage, messages, file || null)) {
         setMessages((prev) => {
           const newMsgs = [...prev];
           const lastMsg = newMsgs[newMsgs.length - 1];
@@ -117,17 +123,18 @@ export default function Home() {
             lastMsg.steps = chunk.steps;
             lastMsg.suggestedQuestions = chunk.suggestedQuestions;
             lastMsg.rawData = chunk.rawData;
+            lastMsg.excelBase64 = chunk.excelBase64;
           }
           finalMsgs = newMsgs;
           return newMsgs;
         });
       }
-      
+
       // Save after completion
       if (finalMsgs.length > 0) {
         saveChat(finalMsgs);
       }
-      
+
     } catch (error) {
       console.error("Chat error:", error);
       const errorMsg: Message = { role: "model", content: "Xin lỗi, đã có lỗi xảy ra trong quá trình kết nối." };
@@ -151,7 +158,7 @@ export default function Home() {
       }
     }, 0);
   };
-  
+
   const handleSuggestionClick = (suggestion: string) => {
     setInputValue(suggestion);
     // Focus vào input và gửi sau một nhịp render
@@ -181,8 +188,8 @@ export default function Home() {
       <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-primary/5 rounded-full blur-[140px] pointer-events-none animate-pulse-slow" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-accent/5 rounded-full blur-[140px] pointer-events-none animate-pulse-slow [animation-delay:4s]" />
 
-      <Sidebar 
-        isOpen={isSidebarOpen} 
+      <Sidebar
+        isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         sessions={sessions}
         currentSessionId={currentSessionId}
@@ -190,11 +197,11 @@ export default function Home() {
         onDeleteSession={deleteSession}
         onNewChat={createNewChat}
       />
-      
-      <ChatHeader 
-        onOpenSidebar={() => setIsSidebarOpen(true)} 
+
+      <ChatHeader
+        onOpenSidebar={() => setIsSidebarOpen(true)}
         onOpenUpload={() => setIsUploadOpen(true)}
-        apiMode={process.env.NEXT_PUBLIC_API_MODE || 'dotnet'} 
+        apiMode={process.env.NEXT_PUBLIC_API_MODE || 'dotnet'}
         isApiConnected={isApiConnected}
       />
 
@@ -204,26 +211,26 @@ export default function Home() {
         <AnimatePresence mode="wait">
           {messages.length === 0 ? (
             // Centered Landing Interface (Grok style)
-            <motion.div 
+            <motion.div
               key="landing"
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ 
-                opacity: 0, 
-                y: -40, 
+              exit={{
+                opacity: 0,
+                y: -40,
                 scale: 1.05,
                 filter: "blur(20px)",
               }}
-              transition={{ 
-                duration: 0.8, 
-                ease: [0.4, 0, 0.2, 1] 
+              transition={{
+                duration: 0.8,
+                ease: [0.4, 0, 0.2, 1]
               }}
               className="flex-1 flex flex-col items-center justify-center px-4"
             >
               <div className="w-full max-w-4xl flex flex-col items-center space-y-6">
                 {/* Logo / Branding */}
                 <div className="flex flex-col items-center space-y-2">
-                  <motion.div 
+                  <motion.div
                     initial={{ rotate: 0 }}
                     animate={{ rotate: 12 }}
                     className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-2xl shadow-primary/20 transition-transform hover:rotate-0 duration-500"
@@ -237,11 +244,11 @@ export default function Home() {
 
                 {/* Centered Input Area */}
                 <div className="w-full max-w-4xl">
-                  <ChatInput 
-                    value={inputValue} 
-                    onChange={setInputValue} 
-                    onSend={handleSend} 
-                    isLoading={isLoading} 
+                  <ChatInput
+                    value={inputValue}
+                    onChange={setInputValue}
+                    onSend={handleSend}
+                    isLoading={isLoading}
                   />
                 </div>
 
@@ -252,11 +259,11 @@ export default function Home() {
                     { title: "Khách hàng", value: "Ai là khách hàng tiềm năng nhất?" },
                     { title: "Tồn kho", value: "Báo cáo sản phẩm sắp hết hàng" },
                   ].map((suggestion, i) => (
-                    <motion.button 
+                    <motion.button
                       key={i}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ 
+                      transition={{
                         delay: 0.1 * i + 0.4,
                         duration: 0.5,
                         ease: [0.23, 1, 0.32, 1]
@@ -275,17 +282,17 @@ export default function Home() {
             </motion.div>
           ) : (
             // Normal Chat Interface
-            <motion.div 
+            <motion.div
               key="chat"
               initial={{ opacity: 0, y: 30, scale: 0.99 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ 
-                duration: 0.7, 
+              transition={{
+                duration: 0.7,
                 ease: [0.16, 1, 0.3, 1] // Custom easeOutExpo
               }}
               className="flex-1 flex flex-col overflow-hidden"
             >
-              <div 
+              <div
                 ref={scrollRef}
                 onScroll={handleScroll}
                 className="flex-1 overflow-y-auto scrollbar-custom pb-32 sm:pb-10"
@@ -296,11 +303,11 @@ export default function Home() {
               >
                 <div className="max-w-5xl mx-auto w-full px-4 pt-20 sm:pt-8 pb-8 space-y-8">
                   {messages.map((msg, index) => (
-                    <ChatMessage 
-                      key={index} 
-                      message={msg} 
-                      isLoading={isLoading} 
-                      isLast={index === messages.length - 1} 
+                    <ChatMessage
+                      key={index}
+                      message={msg}
+                      isLoading={isLoading}
+                      isLast={index === messages.length - 1}
                       onEdit={handleEdit}
                       onSuggestionClick={handleSuggestionClick}
                     />
@@ -324,11 +331,11 @@ export default function Home() {
 
               <div className="w-full max-w-5xl mx-auto px-4 sm:static fixed bottom-0 left-0 right-0 z-[100] sm:z-10 bg-gradient-to-t from-background via-background/95 to-transparent sm:bg-none pb-safe pt-8">
                 <div className="pb-4 sm:pb-8 pt-2">
-                  <ChatInput 
-                    value={inputValue} 
-                    onChange={setInputValue} 
-                    onSend={handleSend} 
-                    isLoading={isLoading} 
+                  <ChatInput
+                    value={inputValue}
+                    onChange={setInputValue}
+                    onSend={handleSend}
+                    isLoading={isLoading}
                   />
                 </div>
               </div>

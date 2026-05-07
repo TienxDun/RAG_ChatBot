@@ -71,6 +71,16 @@ public class ExcelReportService
 
         // Đổ dữ liệu mới vào từ dòng A2
         worksheet.Cells["A2"].LoadFromDataTable(dataTable, PrintHeaders: false);
+
+        // 5.5 Thêm Border bao quanh dữ liệu đã điền
+        if (worksheet.Dimension != null)
+        {
+            var range = worksheet.Cells[1, 1, worksheet.Dimension.End.Row, worksheet.Dimension.End.Column];
+            range.Style.Border.Top.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+            range.Style.Border.Bottom.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+            range.Style.Border.Left.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+            range.Style.Border.Right.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+        }
         
         // Tối ưu tốc độ: Chỉ AutoFit 50 dòng đầu tiên thay vì toàn bộ sheet (rất chậm nếu file lớn)
         int rowsToFit = Math.Min(50, worksheet.Dimension?.End.Row ?? 1);

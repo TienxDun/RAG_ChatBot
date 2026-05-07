@@ -1,7 +1,7 @@
 import * as React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Copy, Check, PencilSimple, FileXls } from "@phosphor-icons/react";
+import { Copy, Check, PencilSimple, FileXls, DownloadSimple } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { type Message } from "@/lib/chat-service";
 import { TerminalCodeBlock } from "./TerminalCodeBlock";
@@ -28,30 +28,47 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, isLoading, is
     setTimeout(() => setHasCopied(false), 2000);
   }, [message.content]);
 
-  const onExportExcel = React.useCallback(async () => {
-    if (!message.rawData) return;
+  const onDownloadExcel = React.useCallback(async () => {
     try {
-      const { saveAs } = await import("file-saver");
-      const baseUrl = process.env.NEXT_PUBLIC_DOTNET_API_URL || 'http://localhost:5000/api/chat';
-      const exportUrl = baseUrl.endsWith('/chat') ? `${baseUrl}/export-excel` : `${baseUrl}/chat/export-excel`;
-      
-      const response = await fetch(exportUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: message.rawData
-      });
+      if (message.excelBase64) {
+        // Nhánh 1: Có template đã fill → decode Base64 trực tiếp
+        const byteCharacters = atob(message.excelBase64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+        const link = document.createElement('a');
+        link.href = window.URL.createObjectURL(blob);
+        link.download = `filled_report_${new Date().getTime()}.xlsx`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else if (message.rawData) {
+        // Nhánh 2: Không có template → gọi API export từ data thô
+        const { saveAs } = await import("file-saver");
+        const baseUrl = process.env.NEXT_PUBLIC_DOTNET_API_URL || 'http://localhost:5000/api/chat';
+        const exportUrl = baseUrl.endsWith('/chat') ? `${baseUrl}/export-excel` : `${baseUrl}/chat/export-excel`;
+        
+        const response = await fetch(exportUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: message.rawData
+        });
 
-      if (!response.ok) {
-        throw new Error("Export failed on server");
+        if (!response.ok) {
+          throw new Error("Export failed on server");
+        }
+
+        const blob = await response.blob();
+        saveAs(blob, `data_export_${new Date().getTime()}.xlsx`);
       }
-
-      const blob = await response.blob();
-      saveAs(blob, `data_export_${new Date().getTime()}.xlsx`);
     } catch (e) {
-      console.error("Export Excel error:", e);
-      alert("Lỗi: Không thể xuất Excel. Đảm bảo Backend đã được cập nhật và đang chạy.");
+      console.error("Download Excel error:", e);
+      alert("Lỗi: Không thể tải file Excel.");
     }
-  }, [message.rawData]);
+  }, [message.excelBase64, message.rawData]);
 
   return (
     <motion.div 
@@ -145,14 +162,14 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, isLoading, is
                     {hasCopied ? "Đã copy" : "Copy"}
                   </button>
 
-                  {message.rawData && (
+                  {(message.rawData || message.excelBase64) && (
                     <button 
-                      onClick={onExportExcel} 
-                      className="text-muted-foreground/40 hover:text-primary transition-colors flex items-center gap-1.5 text-[11px] font-medium"
-                      title="Tải kết quả xuống dạng Excel (.xlsx)"
+                      onClick={onDownloadExcel} 
+                      className="text-emerald-500/80 hover:text-emerald-600 transition-colors flex items-center gap-1.5 text-[11px] font-bold bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100 shadow-sm"
+                      title={message.excelBase64 ? "Tải file Excel đã điền dữ liệu" : "Tải kết quả xuống dạng Excel (.xlsx)"}
                     >
-                      <FileXls size={16} weight="fill" className="text-green-600/60" />
-                      Xuất Excel
+                      <DownloadSimple size={16} weight="bold" />
+                      {message.excelBase64 ? "Tải báo cáo" : "Xuất Excel"}
                     </button>
                   )}
                 </div>
