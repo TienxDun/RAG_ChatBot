@@ -59,14 +59,14 @@
       { "name": "DateCreate", "description": "Thời điểm ghi nhận sản lượng sản xuất vào hệ thống." },
       { "name": "TimeLineId", "description": "ID mốc thời gian hoặc khung giờ sản xuất." },
       { "name": "Quantity", "description": "Số lượng sản phẩm thực tế đã làm được tại công đoạn này." },
-      { "name": "DefectNo", "description": "Số lượng sản phẩm lỗi phát hiện (hiện tại chưa ghi nhận)." },
+      { "name": "DefectNo", "description": "Không phải cột số lượng lỗi dùng trong công thức tỉ lệ lỗi dự án. Số lỗi lấy từ QTY_MAHANG_NGAYKIEM.SpLoi; phần đạt ở bảng SEW_CoefficientSize là Quantity." },
       { "name": "FixedNo", "description": "Số lượng sản phẩm đã được sửa lỗi thành công." },
       { "name": "DepDown", "description": "Mã xưởng hoặc bộ phận nhận hàng sau công đoạn (ví dụ: 101)." }
     ]
   },
   {
     "table": "SEW_CoefficientSize",
-    "description": "Bảng ghi nhận chi tiết kết quả kiểm tra chất lượng (KCS) theo từng sản phẩm, màu sắc, kích thước và nhân viên kiểm thử.",
+    "description": "Bảng ghi nhận chi tiết sản lượng KCS theo mẫu/màu/size/chuyền. Công thức tỉ lệ lỗi theo quy ước dự án: TiLeLoi = SUM(SpLoi) / (SUM(SpLoi) + SUM(Quantity)), với SpLoi từ QTY_MAHANG_NGAYKIEM và Quantity từ bảng này; cùng phạm vi chuyền LineX (và tùy nghiệp vụ: lọc theo ngày NgayKiem vs DateCreate).",
     "columns": [
       { "name": "Pid", "description": "ID định danh duy nhất của bản ghi kiểm tra." },
       { "name": "LineX", "description": "Mã chuyền may nơi sản phẩm được kiểm tra (ví dụ: 105)." },
@@ -79,9 +79,9 @@
       { "name": "SizeId", "description": "Kích thước cụ thể của sản phẩm (ví dụ: SIZE_S)." },
       { "name": "DateCreate", "description": "Ngày giờ thực hiện kiểm tra KCS." },
       { "name": "TimeLineId", "description": "ID mốc thời gian ghi nhận (ví dụ: Ca làm việc hoặc khung giờ)." },
-      { "name": "Quantity", "description": "Số lượng sản phẩm đạt tiêu chuẩn." },
+      { "name": "Quantity", "description": "Số lượng sản phẩm đạt tiêu chuẩn. Trong tỉ lệ lỗi dự án: đây là thành phần 'đạt' ở mẫu số — mẫu số = tổng SpLoi (QTY_MAHANG_NGAYKIEM) + tổng Quantity (bảng này), tử số = tổng SpLoi." },
       { "name": "SuaDat", "description": "Số lượng sản phẩm sau khi sửa lỗi đã đạt tiêu chuẩn." },
-      { "name": "DefectNo", "description": "Số lượng sản phẩm lỗi (hiện đang trống)." },
+      { "name": "DefectNo", "description": "Không dùng làm số lượng lỗi trong công thức tỉ lệ lỗi dự án. Số lỗi: QTY_MAHANG_NGAYKIEM.SpLoi; sản phẩm đạt trong mẫu số: Quantity (bảng này)." },
       { "name": "NVKiemKCS", "description": "Tên hoặc bộ phận nhân viên thực hiện kiểm tra (ví dụ: KCS COSMOS)." },
       { "name": "CheckType", "description": "Loại hình kiểm tra (ví dụ: Kiểm tra định kỳ, kiểm tra cuối chuyền)." }
     ]
@@ -100,7 +100,7 @@
   },
   {
     "table": "QTY_MAHANG_NGAYKIEM",
-    "description": "Bảng nhật ký kiểm tra chi tiết, ghi nhận kết quả KCS, phân loại sản phẩm lỗi, hàng sửa và xác nhận của các bên liên quan.",
+    "description": "Bảng nhật ký kiểm tra chi tiết (ngày kiểm, chuyền LineX, mã hàng, PO). Trong tỉ lệ lỗi theo quy ước dự án: tử số và phần 'lỗi' trong mẫu số lấy từ SUM(SpLoi); phần 'đạt' trong mẫu số lấy từ SUM(SEW_CoefficientSize.Quantity) cùng phạm vi chuyền (và tùy kỳ thời gian). Công thức: SUM(SpLoi) / (SUM(SpLoi) + SUM(Quantity từ Size)). SLKiem vẫn là số mang đi kiểm theo dòng bản ghi, dùng cho báo cáo khác hoặc đối soát, không thay thế mẫu số công thức trên trừ khi nghiệp vụ quy định.",
     "columns": [
       { "name": "ID", "description": "Mã định danh duy nhất của bản ghi kiểm tra (Primary Key)." },
       { "name": "NgayKiem", "description": "Thời điểm chính xác thực hiện việc kiểm tra sản phẩm." },
@@ -113,9 +113,9 @@
       { "name": "DauSizeID / DauSize", "description": "Thông tin về đầu size sản phẩm (Dữ liệu mẫu đang để 0)." },
       { "name": "ColorID / MaMau", "description": "Mã màu và tên màu sắc chi tiết (ví dụ: MAU_Z9 - BLACK)." },
       { "name": "SizeID / Size", "description": "Mã kích cỡ và kích cỡ thực tế của sản phẩm (ví dụ: SIZE_85 - 85)." },
-      { "name": "SLKiem", "description": "Số lượng sản phẩm được mang đi kiểm tra." },
+      { "name": "SLKiem", "description": "Số lượng sản phẩm được mang đi kiểm tra (theo từng bản ghi). Không phải mẫu số trong công thức tỉ lệ lỗi dự án (SpLoi + SEW_CoefficientSize.Quantity); giữ vai trò đối soát/báo cáo kiểm tra." },
       { "name": "SLKCS", "description": "Số lượng sản phẩm đạt tiêu chuẩn KCS." },
-      { "name": "SpLoi", "description": "Số lượng sản phẩm bị phát hiện lỗi trong quá trình kiểm tra." },
+      { "name": "SpLoi", "description": "Số lượng sản phẩm bị phát hiện lỗi trong quá trình kiểm tra. Tử số tỉ lệ lỗi dự án; đồng thời là phần lỗi trong mẫu số: SpLoi + SEW_CoefficientSize.Quantity (đã cộng tổng theo phạm vi)." },
       { "name": "TH_Ngay", "description": "Chỉ số tổng hợp theo ngày (Dữ liệu mẫu đang để 0)." },
       { "name": "SuaDat", "description": "Số lượng sản phẩm lỗi đã được sửa chữa và đạt yêu cầu." },
       { "name": "HangLoai", "description": "Số lượng sản phẩm bị phân loại thành hàng loại (hàng phế phẩm/loại B)." },
