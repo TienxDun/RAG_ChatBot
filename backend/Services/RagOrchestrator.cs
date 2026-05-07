@@ -1,3 +1,4 @@
+using System.Data;
 using System.Text;
 using System.Text.Json;
 using Backend.Models;
@@ -23,6 +24,9 @@ public sealed class RagOrchestrator
     {
         var steps = new List<RagStep>();
 
+        // 0. Khởi tạo
+        await onStep(new RagStep("System Initialization", "Đang khởi tạo luồng xử lý và chuẩn bị kết nối tới AI Engine..."));
+
         // 1. Get Embeddings for the question
         var vector = await _aiClient.GetEmbeddingAsync(userQuery, "RETRIEVAL_QUERY", 3072, ct);
         var step1 = new RagStep("Vectorization", $"Câu hỏi đã được chuyển đổi thành vector 3072 chiều.");
@@ -42,6 +46,7 @@ public sealed class RagOrchestrator
         
         string generatedSql = string.Empty;
         string sqlResultJson = string.Empty;
+        DataTable? sqlResultDataTable = null;
         string lastError = string.Empty;
         int maxAttempts = 3;
 
@@ -60,8 +65,10 @@ public sealed class RagOrchestrator
                     
                     Lưu ý quan trọng:
                     - Chỉ trả về mã SQL, không giải thích gì thêm. Không sử dụng dấu ```sql.
+                    - TUYỆT ĐỐI KHÔNG thêm dấu chấm phẩy (;) ở cuối câu lệnh.
                     - Luôn sử dụng tiền tố N cho các chuỗi Tiếng Việt.
                     - Chỉ sử dụng lệnh SELECT.
+                    - KHÔNG tự ý sử dụng TOP để giới hạn số lượng bản ghi (ví dụ TOP 5, TOP 10) trừ khi người dùng yêu cầu cụ thể số lượng. Hãy trả về toàn bộ dữ liệu thỏa mãn điều kiện.
                     - Nếu câu hỏi liên quan đến thời gian (hôm nay, hôm qua, tháng này...), hãy sử dụng thời gian hệ thống {currentTimeStr} để tính toán chính xác.
                     - Ưu tiên trả về cả các con số thành phần để có thể giải thích cách tính.";
             }
@@ -92,7 +99,25 @@ public sealed class RagOrchestrator
             
             try 
             {
-                sqlResultJson = await _sqlService.ExecuteQueryAsJsonAsync(generatedSql, ct);
+                sqlResultDataTable = await _sqlService.ExecuteQueryAsDataTableAsync(generatedSql, ct);
+                
+                // Convert DataTable to Json for UI steps and Final Answer generation
+                var results = new List<Dictionary<string, object>>();
+                foreach (DataRow row in sqlResultDataTable.Rows)
+                {
+                    var dict = new Dictionary<string, object>();
+                    foreach (DataColumn col in sqlResultDataTable.Columns)
+                    {
+                        dict[col.ColumnName] = row[col] == DBNull.Value ? null! : row[col];
+                    }
+                    results.Add(dict);
+                }
+                sqlResultJson = JsonSerializer.Serialize(results, new JsonSerializerOptions 
+                { 
+                    WriteIndented = true,
+                    Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+                });
+
                 var stepSuccess = new RagStep($"SQL Generation & Execution (Lần {attempt})", $"Mã SQL chạy thành công:\n\n```sql\n{generatedSql}\n```\n\nKết quả JSON:\n\n```json\n{sqlResultJson}\n```");
                 steps.Add(stepSuccess);
                 await onStep(stepSuccess);
@@ -166,12 +191,12 @@ public sealed class RagOrchestrator
             finalText = rawResponse;
         }
 
-        return new ChatResponse(finalText, steps, suggestions, sqlResultJson);
+        return new ChatResponse(finalText, steps, suggestions, sqlResultJson, sqlResultDataTable);
     }
 
     private string CleanSql(string sql)
     {
-        // Loại bỏ markdown code blocks nếu AI lỡ tay thêm vào
-        return sql.Replace("```sql", "").Replace("```", "").Trim();
+        // Loại bỏ markdown code blocks nếu AI lỡ tay thêm vào, đồng thời xóa luôn dấu chấm phẩy thừa ở cuối câu
+        return sql.Replace("```sql", "").Replace("```", "").Trim(' ', '\n', '\r', '\t', ';');
     }
 }
