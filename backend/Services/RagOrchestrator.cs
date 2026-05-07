@@ -58,35 +58,36 @@ public sealed class RagOrchestrator
                 sqlPrompt = $@"Bạn là một chuyên gia SQL Server cho nhà máy may mặc. 
                     Thời gian hệ thống hiện tại (UTC+7): {currentTimeStr}
 
-                    Dựa trên cấu trúc database sau đây:
+                     Dựa trên cấu trúc database sau đây:
                     {schemaInfo}
 
                     Hãy viết một câu lệnh SQL duy nhất để trả lời câu hỏi: ""{userQuery}""
                     
-                    Lưu ý quan trọng:
-                    - Chỉ trả về mã SQL, không giải thích gì thêm. Không sử dụng dấu ```sql.
+                    LƯU Ý QUAN TRỌNG (BẮT BUỘC TUÂN THỦ):
+                    - Chỉ sử dụng các bảng và cột CÓ TRONG CẤU TRÚC DATABASE ở trên. 
+                    - Nếu người dùng yêu cầu các cột (ví dụ trong yêu cầu Excel) mà bạn KHÔNG tìm thấy cột tương ứng trong database, hãy sử dụng 'N/A' AS [TênCột] hoặc NULL AS [TênCột]. TUYỆT ĐỐI KHÔNG tự bịa ra tên cột.
+                    - Chỉ trả về mã SQL, không giải thích. Không dùng dấu ```sql.
                     - TUYỆT ĐỐI KHÔNG thêm dấu chấm phẩy (;) ở cuối câu lệnh.
                     - Luôn sử dụng tiền tố N cho các chuỗi Tiếng Việt.
                     - Chỉ sử dụng lệnh SELECT.
-                    - KHÔNG tự ý sử dụng TOP để giới hạn số lượng bản ghi (ví dụ TOP 5, TOP 10) trừ khi người dùng yêu cầu cụ thể số lượng. Hãy trả về toàn bộ dữ liệu thỏa mãn điều kiện.
-                    - Nếu câu hỏi liên quan đến thời gian (hôm nay, hôm qua, tháng này...), hãy sử dụng thời gian hệ thống {currentTimeStr} để tính toán chính xác.
-                    - Ưu tiên trả về cả các con số thành phần để có thể giải thích cách tính.";
+                    - KHÔNG tự ý giới hạn kết quả bằng TOP trừ khi có yêu cầu.
+                    - Nếu có yêu cầu về thời gian, dùng mốc: {currentTimeStr}.";
             }
             else
             {
-                sqlPrompt = $@"Câu lệnh SQL bạn vừa tạo đã gặp lỗi khi thực thi trên SQL Server. 
-                    Thời gian hệ thống hiện tại (UTC+7): {currentTimeStr}
+                sqlPrompt = $@"Câu lệnh SQL bạn vừa tạo đã gặp lỗi: ""{lastError}""
                     
                     Câu lệnh lỗi:
                     ```sql
                     {generatedSql}
                     ```
-                    Thông báo lỗi từ hệ thống:
-                    ""{lastError}""
-
-                    Hãy phân tích lỗi và viết lại câu lệnh SQL CHÍNH XÁC hơn dựa trên cấu trúc database:
+                    
+                    YÊU CẦU:
+                    1. Phân tích lỗi trên (thường là do sai tên cột hoặc bảng).
+                    2. Kiểm tra lại cấu trúc database thật kỹ:
                     {schemaInfo}
-
+                    3. Viết lại câu lệnh SQL CHÍNH XÁC. Nếu không chắc chắn về một cột nào đó, hãy để NULL thay vì đoán bừa.
+                    
                     Lưu ý: Chỉ trả về mã SQL mới, không giải thích.";
                 
                 var healingStep = new RagStep($"Self-Healing (Lần {attempt - 1})", $"AI đang sửa lỗi SQL...\nLỗi vừa gặp: {lastError}");
