@@ -23,6 +23,21 @@ public sealed class SqlService
             ?? throw new InvalidOperationException("MSSQL_CONNECTION_STRING is not set in environment variables or configuration.");
     }
 
+    public async Task<DataTable> ExecuteQueryAsDataTableAsync(string sql, CancellationToken ct)
+    {
+
+        ValidateSqlSecurity(sql);
+        using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync(ct);
+        using var command = new SqlCommand(sql, connection);
+        using var reader = await command.ExecuteReaderAsync(ct);
+        
+        var dataTable = new DataTable();
+        dataTable.Load(reader);
+        return dataTable;
+
+    }
+
     public async Task<string> ExecuteQueryAsJsonAsync(string sql, CancellationToken ct)
     {
         // 1. Kiểm tra an toàn trước khi thực thi

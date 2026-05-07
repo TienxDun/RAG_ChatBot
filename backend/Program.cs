@@ -1,6 +1,8 @@
 using Backend.Models;
 using Backend.Services;
 using System.Text.Json;
+using Microsoft.AspNetCore.Mvc;
+using System.Collections.Concurrent;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,6 +31,7 @@ builder.Services.AddSingleton<SqlService>();
 builder.Services.AddSingleton<QdrantService>();
 builder.Services.AddSingleton<RagOrchestrator>();
 builder.Services.AddScoped<DocumentProcessor>();
+builder.Services.AddScoped<ExcelReportService>();
 
 var allowedOrigins = Environment.GetEnvironmentVariable("ALLOWED_ORIGINS")?.Split(',') ?? new[] { "http://localhost:3000" };
 
@@ -46,6 +49,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+var fileCache = new ConcurrentDictionary<string, byte[]>();
 
 if (app.Environment.IsDevelopment())
 {
@@ -57,9 +61,25 @@ app.UseCors();
 
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
 
-app.MapPost("/api/chat", async (ChatRequest request, RagOrchestrator orchestrator, HttpContext context, CancellationToken ct) =>
+app.MapPost("/api/chat", async (HttpContext context, RagOrchestrator orchestrator, ExcelReportService excelService, CancellationToken ct) =>
     {
-        if (string.IsNullOrWhiteSpace(request.Message))
+        string message = string.Empty;
+        IFormFile? file = null;
+
+        // Hỗ trợ đọc cả JSON (chat bình thường) và Form (khi có upload file Excel)
+        if (context.Request.HasFormContentType)
+        {
+            var form = await context.Request.ReadFormAsync(ct);
+            message = form.TryGetValue("message", out var m) ? m.ToString() : string.Empty;
+            file = form.Files.FirstOrDefault();
+        }
+        else if (context.Request.HasJsonContentType())
+        {
+            var request = await context.Request.ReadFromJsonAsync<ChatRequest>(cancellationToken: ct);
+            message = request?.Message ?? string.Empty;
+        }
+
+        if (string.IsNullOrWhiteSpace(message))
         {
             return Results.BadRequest(new { error = "Message is required." });
         }
@@ -73,7 +93,6 @@ app.MapPost("/api/chat", async (ChatRequest request, RagOrchestrator orchestrato
             Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
         };
 
-        // Hàm helper để gửi event
         async Task SendEventAsync(object data)
         {
             var json = JsonSerializer.Serialize(data, serializerOptions);
@@ -83,19 +102,46 @@ app.MapPost("/api/chat", async (ChatRequest request, RagOrchestrator orchestrato
 
         try 
         {
-            var response = await orchestrator.ProcessQueryAsync(request.Message, async (step) => 
+            if (file != null && file.FileName.EndsWith(".xlsx"))
             {
-                // Gửi từng bước ngay khi hoàn thành
-                await SendEventAsync(new { type = "step", step });
-            }, ct);
+                using var stream = file.OpenReadStream();
+                var result = await excelService.ProcessExcelTemplateAsync(stream, message, async (step) => 
+                {
+                    // Gửi từng bước ngay khi hoàn thành
+                    await SendEventAsync(new { type = "step", step });
+                }, ct);
 
-            // Gửi kết quả cuối cùng
-            await SendEventAsync(new { 
-                type = "final", 
-                text = response.Text, 
-                suggestedQuestions = response.SuggestedQuestions,
-                rawData = response.RawData
-            });
+                // Lưu file vào cache memory để cho phép download
+                var fileId = Guid.NewGuid().ToString() + ".xlsx";
+                var excelBytes = Convert.FromBase64String(result.ExcelBase64);
+                fileCache[fileId] = excelBytes;
+                var downloadUrl = $"/api/download/{fileId}";
+
+                // Gửi kết quả cuối cùng kèm link tải Excel (chuyển downloadUrl xuống cuối cho dễ tìm!)
+                await SendEventAsync(new { 
+                    type = "final", 
+                    text = result.Text, 
+                    suggestedQuestions = result.SuggestedQuestions,
+                    previewData = result.PreviewData,
+                    excelBase64 = result.ExcelBase64,
+                    rawData = result.PreviewData,
+                    downloadUrl = downloadUrl
+                });
+            }
+            else
+            {
+                var response = await orchestrator.ProcessQueryAsync(message, async (step) => 
+                {
+                    await SendEventAsync(new { type = "step", step });
+                }, ct);
+
+                await SendEventAsync(new { 
+                    type = "final", 
+                    text = response.Text, 
+                    suggestedQuestions = response.SuggestedQuestions,
+                    rawData = response.RawData
+                });
+            }
         }
         catch (Exception ex)
         {
@@ -105,7 +151,32 @@ app.MapPost("/api/chat", async (ChatRequest request, RagOrchestrator orchestrato
         return Results.Empty;
     })
     .WithName("Chat")
-    .WithOpenApi();
+    .WithOpenApi(operation =>
+    {
+        operation.RequestBody = new Microsoft.OpenApi.Models.OpenApiRequestBody
+        {
+            Description = "Nhập câu hỏi và file đính kèm (nếu có)",
+            Required = true,
+            Content = new System.Collections.Generic.Dictionary<string, Microsoft.OpenApi.Models.OpenApiMediaType>
+            {
+                ["multipart/form-data"] = new Microsoft.OpenApi.Models.OpenApiMediaType
+                {
+                    Schema = new Microsoft.OpenApi.Models.OpenApiSchema
+                    {
+                        Type = "object",
+                        Properties = new System.Collections.Generic.Dictionary<string, Microsoft.OpenApi.Models.OpenApiSchema>
+                        {
+                            ["message"] = new Microsoft.OpenApi.Models.OpenApiSchema { Type = "string", Description = "Câu truy vấn của bạn" },
+                            ["file"] = new Microsoft.OpenApi.Models.OpenApiSchema { Type = "string", Format = "binary", Description = "File Excel đính kèm (tùy chọn)" }
+                        }
+                    }
+                }
+            }
+        };
+        return operation;
+    });
+
+
 
 app.MapPost("/api/embeddings", async (EmbeddingRequest request, VertexAiClient client, CancellationToken ct) =>
     {
@@ -120,60 +191,20 @@ app.MapPost("/api/embeddings", async (EmbeddingRequest request, VertexAiClient c
     .WithName("Embeddings")
     .WithOpenApi();
 
-app.MapPost("/api/documents/upload", async (HttpContext context, DocumentProcessor processor, CancellationToken ct) =>
+app.MapGet("/api/download/{id}", (string id) => 
+{
+    if (fileCache.TryGetValue(id, out var bytes))
     {
-        if (!context.Request.HasFormContentType)
-        {
-            return Results.BadRequest(new { error = "Request must be multipart/form-data." });
-        }
-
-        var form = await context.Request.ReadFormAsync(ct);
-        var files = form.Files;
-
-        if (files.Count == 0)
-        {
-            return Results.BadRequest(new { error = "No files uploaded." });
-        }
-
-        // Thiết lập Streaming Response (Server-Sent Events)
-        context.Response.ContentType = "text/event-stream";
-        context.Response.Headers.Append("Cache-Control", "no-cache");
-        context.Response.Headers.Append("Connection", "keep-alive");
-
-        var serializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web)
-        {
-            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-        };
-        var results = new List<DocumentResult>();
-        
-        foreach (var file in files)
-        {
-            try
-            {
-                using var stream = file.OpenReadStream();
-                var result = await processor.ProcessFileAsync(stream, file.FileName, async (percent, message) => 
-                {
-                    var progressUpdate = new { fileName = file.FileName, percent, message, type = "progress" };
-                    await context.Response.WriteAsync($"data: {JsonSerializer.Serialize(progressUpdate, serializerOptions)}\n\n", ct);
-                    await context.Response.Body.FlushAsync(ct);
-                }, ct);
-                results.Add(result);
-            }
-            catch (Exception ex)
-            {
-                results.Add(new DocumentResult(file.FileName, 0, $"Error: {ex.Message}"));
-            }
-        }
-
-        // Gửi kết quả cuối cùng
-        var finalResult = new { results, type = "result" };
-        await context.Response.WriteAsync($"data: {JsonSerializer.Serialize(finalResult, serializerOptions)}\n\n", ct);
-        await context.Response.Body.FlushAsync(ct);
-
-        return Results.Empty;
-    })
-    .WithName("UploadDocuments")
-    .WithOpenApi()
-    .DisableAntiforgery();
+        return Results.File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", id);
+    }
+    return Results.NotFound(new { error = "File không tồn tại hoặc đã hết hạn." });
+})
+.WithName("DownloadExcel")
+.WithOpenApi(operation => 
+{
+    operation.Summary = "Tải xuống file Excel";
+    operation.Description = "API này dùng để tải trực tiếp file Excel được sinh ra từ quá trình Chat.";
+    return operation;
+});
 
 app.Run();
