@@ -80,5 +80,3 @@ cloudbeaver_data/
 coverage/
 /coverage/
 
-# frontend_vanilla config
-frontend_vanilla/assets/js/env.js
