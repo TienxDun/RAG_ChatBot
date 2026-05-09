@@ -239,12 +239,28 @@ export class MessageRenderer {
         div.className = 'message message--ai animate-fade-in';
         div.id = 'typing-indicator';
         div.innerHTML = `
-            <div class="message__bubble">
-                <div class="typing">
-                    <span></span><span></span><span></span>
+            <div class="ai-message-container">
+                <div class="message__bubble loading-pulse">
+                    <div class="typing-container">
+                        <div class="typing-dots">
+                            <span></span><span></span><span></span>
+                        </div>
+                        <span class="loading-text">AI đang suy nghĩ...</span>
+                    </div>
                 </div>
             </div>
         `;
         return div;
+    }
+
+    static updateTypingText(indicatorEl, text) {
+        if (!indicatorEl) return;
+        const textEl = indicatorEl.querySelector('.loading-text');
+        if (textEl) {
+            textEl.classList.add('animate-fade-in');
+            textEl.innerText = text;
+            // Xóa class sau khi animation xong để có thể chạy lại
+            setTimeout(() => textEl.classList.remove('animate-fade-in'), 500);
+        }
     }
 }

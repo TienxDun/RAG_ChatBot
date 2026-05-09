@@ -39,26 +39,56 @@
 }
 
 /* Typing Indicator Animation */
-.typing {
+.typing-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 4px 0;
+}
+
+.typing-dots {
     display: flex;
     gap: 4px;
-    padding: 8px 0;
 }
 
-.typing span {
+.typing-dots span {
     width: 6px;
     height: 6px;
-    background: var(--muted-foreground);
+    background: var(--primary);
     border-radius: 50%;
-    animation: bounce 1.4s infinite ease-in-out both;
+    animation: typing-bounce 1.4s infinite ease-in-out both;
 }
 
-.typing span:nth-child(1) { animation-delay: -0.32s; }
-.typing span:nth-child(2) { animation-delay: -0.16s; }
+.typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+.typing-dots span:nth-child(2) { animation-delay: -0.16s; }
 
-@keyframes bounce {
-    0%, 80%, 100% { transform: scale(0); }
-    40% { transform: scale(1.0); }
+@keyframes typing-bounce {
+    0%, 80%, 100% { transform: translateY(0); opacity: 0.3; }
+    40% { transform: translateY(-6px); opacity: 1; }
+}
+
+.loading-text {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--muted-foreground);
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+}
+
+/* Loading Pulse for Bubble */
+.loading-pulse {
+    animation: bubble-pulse 2s infinite ease-in-out;
+}
+
+@keyframes bubble-pulse {
+    0%, 100% { 
+        border-color: color-mix(in srgb, var(--primary) 10%, transparent);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+    50% { 
+        border-color: color-mix(in srgb, var(--primary) 40%, transparent);
+        box-shadow: 0 4px 20px color-mix(in srgb, var(--primary) 15%, transparent);
+    }
 }
 
 /* Skeleton Loading */

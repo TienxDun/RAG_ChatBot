@@ -324,18 +324,26 @@ export class ChatAreaComponent {
         await ApiClient.fetchStream(ENDPOINTS.CHAT, {
             body: body
         }, (data) => {
-            if (typingIndicator.parentNode) {
-                this.messagesList.removeChild(typingIndicator);
+            // Cập nhật text cho typing indicator nếu là bước xử lý
+            if (data.type === 'step') {
+                aiSteps.push(data.step);
+                MessageRenderer.updateTypingText(typingIndicator, `Đang xử lý: ${data.step.title}...`);
             }
 
-            if (!aiMessageEl) {
+            // Chỉ xóa typing indicator khi có nội dung cuối cùng hoặc lỗi
+            if (data.type === 'final' || data.type === 'error') {
+                if (typingIndicator.parentNode) {
+                    this.messagesList.removeChild(typingIndicator);
+                }
+            }
+
+            // Tạo message element cho AI nếu chưa có (để hiển thị RAG steps ngay)
+            if (!aiMessageEl && (data.type === 'step' || data.type === 'final' || data.type === 'error')) {
                 aiMessageEl = MessageRenderer.createMessageElement('ai', '');
                 this.messagesList.appendChild(aiMessageEl);
             }
 
-            if (data.type === 'step') {
-                aiSteps.push(data.step);
-            } else if (data.type === 'final') {
+            if (data.type === 'final') {
                 aiContent = data.text;
                 aiSuggestions = data.suggestedQuestions || [];
                 aiDownloadUrl = data.downloadUrl;
@@ -344,7 +352,9 @@ export class ChatAreaComponent {
                 aiContent = `⚠️ Lỗi: ${data.message}`;
             }
             
-            MessageRenderer.updateMessage(aiMessageEl, aiContent, aiSteps, aiSuggestions, aiDownloadUrl);
+            if (aiMessageEl) {
+                MessageRenderer.updateMessage(aiMessageEl, aiContent, aiSteps, aiSuggestions, aiDownloadUrl);
+            }
             this.scrollToBottom();
         });
 
