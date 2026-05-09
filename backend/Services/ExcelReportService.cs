@@ -14,7 +14,6 @@ public class ExcelReportResult
 
 public class ExcelReportService
 {
-    // Lần này ta gọi thẳng RagOrchestrator, thay vì gọi lắt nhắt từng service
     private readonly RagOrchestrator _ragOrchestrator;
 
     public ExcelReportService(RagOrchestrator ragOrchestrator)
@@ -39,7 +38,7 @@ public class ExcelReportService
         if (worksheet.Dimension != null)
         {
             int maxColsToScan = Math.Min(worksheet.Dimension.End.Column, 50);
-            int maxRowsToScan = Math.Min(worksheet.Dimension.End.Row, 15); // Tăng lên 15 dòng cho chắc
+            int maxRowsToScan = Math.Min(worksheet.Dimension.End.Row, 15); // 15 dòng
 
             for (int r = 1; r <= maxRowsToScan; r++)
             {
@@ -99,25 +98,21 @@ public class ExcelReportService
         }
 
         // 5. Convert JSON -> DataTable theo đúng thứ tự cột của Template
-        // Chúng ta không dùng trực tiếp ragResponse.Data vì nó có thể sai thứ tự cột so với template
         var dataTable = ConvertJsonToDataTable(rawJson, columns);
 
         // 5. Xóa dữ liệu mẫu (dummy data) và điền data mới
         int dataStartRow = headerRowIndex + 1;
         if (worksheet.Dimension != null && worksheet.Dimension.End.Row >= dataStartRow)
         {
-            // Xóa sạch từ dòng sau Header đến hết sheet
             worksheet.Cells[dataStartRow, 1, worksheet.Dimension.End.Row, worksheet.Dimension.End.Column].Clear();
         }
 
         // Đổ dữ liệu mới
         if (dataTable.Rows.Count > 0)
         {
-            // Sử dụng LoadFromDataTable để đổ dữ liệu nhanh
             var dataRange = worksheet.Cells[dataStartRow, 1];
             dataRange.LoadFromDataTable(dataTable, PrintHeaders: false);
 
-            // Căn lề cho cột số (không ép định dạng .00 để tránh lỗi hiển thị ID)
             for (int i = 0; i < dataTable.Columns.Count; i++)
             {
                 var column = dataTable.Columns[i];
@@ -125,7 +120,6 @@ public class ExcelReportService
                 {
                     var colRange = worksheet.Cells[dataStartRow, i + 1, dataStartRow + dataTable.Rows.Count - 1, i + 1];
                     colRange.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Right;
-                    // Không set Numberformat.Format ở đây để Excel tự hiển thị tự nhiên
                 }
             }
         }
@@ -134,7 +128,6 @@ public class ExcelReportService
             await onStep(new RagStep("Excel Export", "⚠️ Không có dữ liệu để điền vào báo cáo."));
         }
 
-        // 5.5 Thêm Border bao quanh vùng dữ liệu (Header + Data)
         if (worksheet.Dimension != null)
         {
             var range = worksheet.Cells[headerRowIndex, 1, Math.Max(headerRowIndex, worksheet.Dimension.End.Row), columns.Count];
@@ -144,7 +137,6 @@ public class ExcelReportService
             range.Style.Border.Right.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
         }
         
-        // Tối ưu tốc độ: Chỉ AutoFit 50 dòng đầu tiên thay vì toàn bộ sheet (rất chậm nếu file lớn)
         int rowsToFit = Math.Min(50, worksheet.Dimension?.End.Row ?? 1);
         int colsToFit = worksheet.Dimension?.End.Column ?? 1;
         worksheet.Cells[1, 1, rowsToFit, colsToFit].AutoFitColumns();
@@ -173,17 +165,14 @@ public class ExcelReportService
         };
     }
 
-
-    // Hàm helper để biến JSON thành DataTable theo đúng cấu trúc cột của Template
     private DataTable ConvertJsonToDataTable(string jsonString, List<string> templateColumns)
     {
         var dataTable = new DataTable();
         
-        // 1. Tạo các cột dựa trên template (để đảm bảo đúng thứ tự)
         foreach (var colName in templateColumns)
         {
             var col = dataTable.Columns.Add(colName, typeof(object));
-            col.ExtendedProperties["IsNumeric"] = false; // Mặc định là false
+            col.ExtendedProperties["IsNumeric"] = false;
         }
 
         using var jsonDoc = JsonDocument.Parse(jsonString);
@@ -192,8 +181,6 @@ public class ExcelReportService
         if (root.ValueKind == JsonValueKind.Array && root.GetArrayLength() > 0)
         {
             var elements = root.EnumerateArray().ToList();
-            
-            // 2. Xác định kiểu dữ liệu (Numeric vs String) cho từng cột dựa trên sample data
             var sampleElements = elements.Take(50).ToList();
             foreach (DataColumn col in dataTable.Columns)
             {
@@ -222,7 +209,6 @@ public class ExcelReportService
                 col.ExtendedProperties["IsNumeric"] = hasData && allNumbers;
             }
 
-            // 3. Đổ dữ liệu vào hàng
             foreach (var element in elements)
             {
                 var row = dataTable.NewRow();
@@ -252,16 +238,15 @@ public class ExcelReportService
                         }
                         else 
                         {
-                            row[colName] = DBNull.Value; // Để trống ô nếu không có dữ liệu
+                            row[colName] = DBNull.Value;
                         }
                     }
                     else
                     {
-                        row[colName] = DBNull.Value; // Để trống ô nếu không có dữ liệu
+                        row[colName] = DBNull.Value;
                     }
                 }
 
-                // Chỉ add hàng nếu nó thực sự có dữ liệu (tránh hàng trống do AI sinh bậy)
                 if (hasAnyData)
                 {
                     dataTable.Rows.Add(row);
@@ -270,5 +255,80 @@ public class ExcelReportService
         }
         
         return dataTable;
+    }
+
+    public byte[] ExportGenericExcel(List<Dictionary<string, object>> data)
+    {
+        using var package = new ExcelPackage();
+        var worksheet = package.Workbook.Worksheets.Add("Data Export");
+
+        if (data == null || data.Count == 0)
+        {
+            return package.GetAsByteArray();
+        }
+
+        var headers = data[0].Keys.ToList();
+
+        for (int i = 0; i < headers.Count; i++)
+        {
+            var cell = worksheet.Cells[1, i + 1];
+            cell.Value = headers[i];
+            cell.Style.Font.Bold = true;
+            cell.Style.Fill.PatternType = OfficeOpenXml.Style.ExcelFillStyle.Solid;
+            cell.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.FromArgb(157, 186, 217));
+            cell.Style.Font.Color.SetColor(System.Drawing.Color.White);
+            cell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+            
+            cell.Style.Border.Top.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+            cell.Style.Border.Bottom.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+            cell.Style.Border.Left.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+            cell.Style.Border.Right.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+        }
+
+        for (int rowIndex = 0; rowIndex < data.Count; rowIndex++)
+        {
+            for (int colIndex = 0; colIndex < headers.Count; colIndex++)
+            {
+                var cell = worksheet.Cells[rowIndex + 2, colIndex + 1];
+                var val = data[rowIndex][headers[colIndex]];
+
+                if (val is JsonElement element)
+                {
+                    switch (element.ValueKind)
+                    {
+                        case JsonValueKind.Number:
+                            if (element.TryGetInt64(out long l)) cell.Value = l;
+                            else cell.Value = element.GetDouble();
+                            break;
+                        case JsonValueKind.True:
+                        case JsonValueKind.False:
+                            cell.Value = element.GetBoolean();
+                            break;
+                        case JsonValueKind.Null:
+                            cell.Value = null;
+                            break;
+                        default:
+                            cell.Value = element.ToString();
+                            break;
+                    }
+                }
+                else
+                {
+                    cell.Value = val;
+                }
+
+                cell.Style.Border.Top.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+                cell.Style.Border.Bottom.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+                cell.Style.Border.Left.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+                cell.Style.Border.Right.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+            }
+        }
+
+        if (headers.Count > 0)
+        {
+            worksheet.Cells[1, 1, data.Count + 1, headers.Count].AutoFitColumns();
+        }
+
+        return package.GetAsByteArray();
     }
 }

@@ -139,6 +139,7 @@ export class ChatAreaComponent {
             case 'copy-code': this.copyTerminalCode(btn); break;
             case 'quick-question': this.sendQuickQuestion(value); break;
             case 'toggle-steps': btn.classList.toggle('active'); break;
+            case 'export-msg-excel': this.handleExportMessageExcel(btn); break;
         }
     }
 
@@ -266,7 +267,7 @@ export class ChatAreaComponent {
             if (suggestions) suggestions.classList.add('hidden');
             container.innerHTML = `
                 <div class="file-preview-chip animate-in zoom-in duration-300">
-                    <i class="ph-fill ph-file-xls"></i>
+                    <i class="ph-fill ph-microsoft-excel-logo"></i>
                     <span class="file-name">${this.selectedFile.name}</span>
                     <button class="btn-remove-preview" id="remove-file-btn" title="Gỡ bỏ file">
                         <i class="ph-bold ph-x"></i>
@@ -292,7 +293,7 @@ export class ChatAreaComponent {
         if (!text || this.isLoading) return;
 
         this._ensureConversationStarted(text);
-        this.appendMessage('user', text);
+        this.appendMessage('user', text, [], [], null, null, this.selectedFile);
         this.chatInput.value = '';
         this.handleInput();
 
@@ -385,7 +386,7 @@ export class ChatAreaComponent {
             }
             
             if (aiMessageEl) {
-                MessageRenderer.updateMessage(aiMessageEl, aiContent, aiSteps, aiSuggestions, aiDownloadUrl);
+                MessageRenderer.updateMessage(aiMessageEl, aiContent, aiSteps, aiSuggestions, aiDownloadUrl, data.rawData);
             }
             this.scrollToBottom();
         });
@@ -396,23 +397,30 @@ export class ChatAreaComponent {
                 content: aiContent, 
                 steps: aiSteps, 
                 suggestions: aiSuggestions,
-                downloadUrl: aiDownloadUrl
+                downloadUrl: aiDownloadUrl,
+                rawData: this.lastRawData
             });
         }
     }
 
-    appendMessage(role, content, steps, suggestions, downloadUrl) {
+    appendMessage(role, content, steps, suggestions, downloadUrl, rawData, userFile) {
         if (this.messagesList.classList.contains('hidden')) {
             this.landingView.classList.add('hidden');
             this.messagesList.classList.remove('hidden');
         }
 
-        const msgEl = MessageRenderer.createMessageElement(role, content, steps, suggestions, downloadUrl);
+        const msgEl = MessageRenderer.createMessageElement(role, content, steps, suggestions, downloadUrl, rawData, userFile);
         this.messagesList.appendChild(msgEl);
         this.scrollToBottom();
 
         if (role === 'user' && state.currentConversationId) {
-            state.addMessageToHistory(state.currentConversationId, { role, content, steps, suggestions });
+            state.addMessageToHistory(state.currentConversationId, { 
+                role, 
+                content, 
+                steps, 
+                suggestions, 
+                userFile: userFile ? (typeof userFile === 'string' ? userFile : userFile.name) : null 
+            });
         }
     }
 
@@ -428,7 +436,7 @@ export class ChatAreaComponent {
         if (conversation.messages?.length > 0) {
             conversation.messages.forEach(msg => {
                 this.messagesList.appendChild(
-                    MessageRenderer.createMessageElement(msg.role, msg.content, msg.steps, msg.suggestions, msg.downloadUrl)
+                    MessageRenderer.createMessageElement(msg.role, msg.content, msg.steps, msg.suggestions, msg.downloadUrl, msg.rawData, msg.userFile)
                 );
             });
         }
@@ -484,16 +492,38 @@ export class ChatAreaComponent {
             Toast.warning("Không có dữ liệu để xuất!");
             return;
         }
+        await this._executeExport(this.lastRawData, this.exportBtn);
+    }
+
+    async handleExportMessageExcel(btn) {
+        const messageEl = btn.closest('.message');
+        const rawDataStr = messageEl?.getAttribute('data-raw');
+        
+        if (!rawDataStr) {
+            Toast.warning("Không tìm thấy dữ liệu để xuất!");
+            return;
+        }
 
         try {
-            this.exportBtn.disabled = true;
-            this.exportBtn.innerHTML = '<i class="ph-bold ph-spinner-gap animate-spin"></i>';
+            const data = JSON.parse(rawDataStr);
+            await this._executeExport(data, btn);
+        } catch (e) {
+            console.error('Failed to parse message rawData', e);
+            Toast.error("Dữ liệu không hợp lệ");
+        }
+    }
+
+    async _executeExport(data, triggerBtn) {
+        try {
+            triggerBtn.disabled = true;
+            const originalHTML = triggerBtn.innerHTML;
+            triggerBtn.innerHTML = '<i class="ph-bold ph-spinner-gap animate-spin"></i>';
 
             const url = ApiClient._resolveUrl(ENDPOINTS.EXPORT_EXCEL);
             const response = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(this.lastRawData)
+                body: JSON.stringify(data)
             });
 
             if (!response.ok) throw new Error("Xuất file thất bại");
@@ -505,12 +535,17 @@ export class ChatAreaComponent {
             a.download = `export_${Date.now()}.xlsx`;
             a.click();
             window.URL.revokeObjectURL(blobUrl);
+            Toast.success("Xuất Excel thành công!");
         } catch (error) {
             console.error('Export error:', error);
             Toast.error("Lỗi khi xuất file Excel");
         } finally {
-            this.exportBtn.disabled = false;
-            this.exportBtn.innerHTML = '<i class="ph-bold ph-file-xls"></i>';
+            triggerBtn.disabled = false;
+            if (triggerBtn === this.exportBtn) {
+                triggerBtn.innerHTML = '<i class="ph-bold ph-microsoft-excel-logo"></i>';
+            } else {
+                triggerBtn.innerHTML = '<i class="ph-duotone ph-microsoft-excel-logo"></i> Xuất Excel';
+            }
         }
     }
 

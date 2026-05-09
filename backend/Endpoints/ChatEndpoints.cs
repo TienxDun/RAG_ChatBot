@@ -122,7 +122,7 @@ public static class ChatEndpoints
         return Results.NotFound(new { error = "File không tồn tại hoặc đã hết hạn." });
     }
 
-    public static async Task<IResult> HandleExportExcelAsync(HttpContext context)
+    public static async Task<IResult> HandleExportExcelAsync(HttpContext context, ExcelReportService excelService)
     {
         try 
         {
@@ -134,56 +134,7 @@ public static class ChatEndpoints
             var data = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(json);
             if (data == null || data.Count == 0) return Results.BadRequest(new { error = "Invalid or empty data" });
 
-            using var workbook = new ClosedXML.Excel.XLWorkbook();
-            var worksheet = workbook.Worksheets.Add("Data Export");
-
-            var headers = data[0].Keys.ToList();
-
-            // Header Row
-            for (int i = 0; i < headers.Count; i++)
-            {
-                var cell = worksheet.Cell(1, i + 1);
-                cell.Value = headers[i];
-                cell.Style.Font.Bold = true;
-                cell.Style.Font.FontColor = ClosedXML.Excel.XLColor.White;
-                cell.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#9DBAD9"); // Màu xanh từ ảnh
-                cell.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Center;
-                cell.Style.Border.OutsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
-                cell.Style.Border.OutsideBorderColor = ClosedXML.Excel.XLColor.Black;
-            }
-
-            // Data Rows
-            for (int rowIndex = 0; rowIndex < data.Count; rowIndex++)
-            {
-                for (int colIndex = 0; colIndex < headers.Count; colIndex++)
-                {
-                    var cell = worksheet.Cell(rowIndex + 2, colIndex + 1);
-                    var val = data[rowIndex][headers[colIndex]];
-                    
-                    // Xử lý kiểu dữ liệu cơ bản
-                    if (val is JsonElement element)
-                    {
-                        if (element.ValueKind == JsonValueKind.Number)
-                            cell.Value = element.GetDouble();
-                        else
-                            cell.Value = element.ToString();
-                    }
-                    else
-                    {
-                        cell.Value = val?.ToString() ?? "";
-                    }
-
-                    cell.Style.Border.OutsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
-                    cell.Style.Border.OutsideBorderColor = ClosedXML.Excel.XLColor.Black;
-                }
-            }
-
-            worksheet.Columns().AdjustToContents();
-            worksheet.RangeUsed()?.SetAutoFilter();
-
-            using var stream = new MemoryStream();
-            workbook.SaveAs(stream);
-            var content = stream.ToArray();
+            var content = excelService.ExportGenericExcel(data);
 
             return Results.File(
                 content, 

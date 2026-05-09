@@ -130,14 +130,32 @@ export class MessageRenderer {
         return finalHtml;
     }
 
-    static createMessageElement(role, content, steps = [], suggestedQuestions = [], downloadUrl = null) {
+    static createMessageElement(role, content, steps = [], suggestedQuestions = [], downloadUrl = null, rawData = null, userFile = null) {
         const messageEl = document.createElement('div');
         messageEl.className = `message message--${role === 'user' ? 'user' : 'ai'} animate-slide-up`;
+        
+        // Lưu rawData vào data attribute để có thể truy xuất khi click export
+        if (rawData) {
+            try {
+                const dataObj = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
+                if (Array.isArray(dataObj) && dataObj.length > 0) {
+                    messageEl.setAttribute('data-raw', JSON.stringify(dataObj));
+                }
+            } catch (e) {
+                console.warn('Failed to parse rawData for export', e);
+            }
+        }
+
+        // Lưu thông tin file vào attribute nếu là tin nhắn user
+        if (role === 'user' && userFile) {
+            messageEl.setAttribute('data-file', typeof userFile === 'string' ? userFile : userFile.name);
+        }
         
         let html = role === 'ai' ? `<div class="ai-message-container">` : '';
 
         html += `
             <div class="message__bubble">
+                ${role === 'user' && (userFile || messageEl.getAttribute('data-file')) ? this._renderFileChip(userFile || messageEl.getAttribute('data-file')) : ''}
                 <div class="markdown-content">
                     ${this.renderContent(content)}
                 </div>
@@ -151,12 +169,13 @@ export class MessageRenderer {
                 <div class="message__footer">
                     <span class="ai-label">AI INSIGHT</span>
                     <div style="flex: 1"></div>
-                    <div class="download-footer-container">
+                    <div class="footer-actions-container">
                         ${downloadUrl ? this._renderDownloadSection(downloadUrl) : ''}
+                        ${this._renderExportSection(messageEl.getAttribute('data-raw'), !!downloadUrl)}
+                        <button class="footer-copy" data-action="copy-msg" title="Sao chép câu trả lời">
+                            <i class="ph-duotone ph-copy"></i> Sao chép
+                        </button>
                     </div>
-                    <button class="footer-copy" data-action="copy-msg">
-                        <i class="ph-duotone ph-copy"></i> Copy
-                    </button>
                 </div>
             `;
         }
@@ -187,18 +206,50 @@ export class MessageRenderer {
         return messageEl;
     }
 
-    static updateMessage(messageEl, content, steps = [], suggestedQuestions = [], downloadUrl = null) {
+    static updateMessage(messageEl, content, steps = [], suggestedQuestions = [], downloadUrl = null, rawData = null, userFile = null) {
         const contentEl = messageEl.querySelector('.markdown-content');
         const stepsContainer = messageEl.querySelector('.rag-steps-container');
-        const downloadContainer = messageEl.querySelector('.download-footer-container');
+        const footerActionsContainer = messageEl.querySelector('.footer-actions-container');
+        const bubbleEl = messageEl.querySelector('.message__bubble');
         
+        if (rawData) {
+            try {
+                const dataObj = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
+                if (Array.isArray(dataObj) && dataObj.length > 0) {
+                    messageEl.setAttribute('data-raw', JSON.stringify(dataObj));
+                }
+            } catch (e) {}
+        }
+
+        if (userFile && bubbleEl && !bubbleEl.querySelector('.message-file-chip')) {
+            const fileName = typeof userFile === 'string' ? userFile : userFile.name;
+            messageEl.setAttribute('data-file', fileName);
+            bubbleEl.insertAdjacentHTML('afterbegin', this._renderFileChip(fileName));
+        }
+
         if (contentEl) contentEl.innerHTML = this.renderContent(content);
         if (stepsContainer && steps.length > 0) stepsContainer.innerHTML = this.renderRagSteps(steps);
-        if (downloadContainer && downloadUrl) downloadContainer.innerHTML = this._renderDownloadSection(downloadUrl);
+        
+        if (footerActionsContainer) {
+            let actionsHtml = '';
+            if (downloadUrl) actionsHtml += this._renderDownloadSection(downloadUrl);
+            actionsHtml += this._renderExportSection(messageEl.getAttribute('data-raw'), !!downloadUrl);
+            footerActionsContainer.innerHTML = actionsHtml;
+        }
 
         if (suggestedQuestions?.length > 0) {
             this.renderSuggestions(messageEl, suggestedQuestions);
         }
+    }
+
+    static _renderFileChip(file) {
+        const name = typeof file === 'string' ? file : file.name;
+        return `
+            <div class="message-file-chip">
+                <i class="ph-fill ph-microsoft-excel-logo"></i>
+                <span class="file-name">${name}</span>
+            </div>
+        `;
     }
 
     static _renderDownloadSection(url) {
@@ -206,15 +257,25 @@ export class MessageRenderer {
         
         let absoluteUrl = url;
         if (!url.startsWith('http')) {
-            // Nếu url đã bắt đầu bằng /api, chúng ta cần lấy root domain từ API_BASE_URL
             const baseUrl = CONFIG.API_BASE_URL.replace(/\/api$/, '');
             absoluteUrl = `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
         }
 
         return `
-            <a href="${absoluteUrl}" target="_blank" class="footer-download" title="Tải xuống báo cáo Excel">
-                <i class="ph-duotone ph-file-xls"></i> Excel
+            <a href="${absoluteUrl}" target="_blank" class="footer-download" title="Tải báo cáo theo mẫu Excel">
+                <i class="ph-duotone ph-microsoft-excel-logo"></i> Mẫu Excel
             </a>
+        `;
+    }
+
+    static _renderExportSection(rawDataStr, hasDownloadUrl = false) {
+        // Nếu đã có link tải theo mẫu (downloadUrl) hoặc không có data raw thì không hiển thị nút xuất generic
+        if (!rawDataStr || hasDownloadUrl) return '';
+        
+        return `
+            <button class="footer-download" data-action="export-msg-excel" title="Xuất dữ liệu này ra file Excel">
+                <i class="ph-duotone ph-microsoft-excel-logo"></i> Xuất Excel
+            </button>
         `;
     }
 
@@ -259,7 +320,6 @@ export class MessageRenderer {
         if (textEl) {
             textEl.classList.add('animate-fade-in');
             textEl.innerText = text;
-            // Xóa class sau khi animation xong để có thể chạy lại
             setTimeout(() => textEl.classList.remove('animate-fade-in'), 500);
         }
     }

@@ -98,6 +98,52 @@
     transform: scale(1.1);
 }
 
+/* File Attachment Chip in Message Bubble */
+.message-file-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 0.8rem;
+    background: rgba(16, 124, 65, 0.08);
+    border-radius: 10px;
+    margin-bottom: 0.75rem;
+    border: 1px solid rgba(16, 124, 65, 0.2);
+    font-size: 0.85rem;
+    font-weight: 600;
+    width: fit-content;
+    color: #107c41; /* Excel Green */
+}
+
+[data-theme="dark"] .message-file-chip {
+    background: rgba(16, 124, 65, 0.15);
+    border-color: rgba(16, 124, 65, 0.4);
+}
+
+.message-file-chip i {
+    font-size: 1.2rem;
+    color: #107c41;
+}
+
+.message--user .message-file-chip {
+    background: rgba(0, 0, 0, 0.05);
+    border-color: rgba(0, 0, 0, 0.1);
+    color: var(--foreground);
+}
+
+[data-theme="dark"] .message--user .message-file-chip {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.message--user .message-file-chip i {
+    color: #107c41;
+}
+
+[data-theme="dark"] .message--user .message-file-chip i {
+    color: #22c55e;
+}
+
 /* AI Message Footer */
 .message__footer {
     margin-top: 1.25rem;
@@ -109,54 +155,93 @@
 }
 
 .ai-label {
-    padding: 0.1rem 0.4rem;
-    border-radius: 4px;
-    background: color-mix(in srgb, var(--primary) 10%, transparent);
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--primary) 12%, transparent);
     color: var(--primary);
     font-size: 0.65rem;
     font-weight: 800;
     text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
 }
 
 .footer-copy {
     display: flex;
     align-items: center;
-    gap: 0.3rem;
-    font-size: 0.7rem;
-    font-weight: 600;
+    gap: 0.4rem;
+    font-size: 0.75rem;
+    font-weight: 700;
     color: var(--muted-foreground);
-    background: none;
-    border: none;
+    background: color-mix(in srgb, var(--muted-foreground) 8%, transparent);
+    padding: 0.35rem 0.75rem;
+    border-radius: 8px;
+    border: 1px solid color-mix(in srgb, var(--muted-foreground) 15%, transparent);
     cursor: pointer;
-    transition: color 0.2s;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .footer-copy:hover {
-    color: var(--primary);
+    background: var(--muted-foreground);
+    color: white;
+    border-color: var(--muted-foreground);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--muted-foreground) 20%, transparent);
 }
 
-/* AI Download Footer Button */
+.footer-copy i {
+    font-size: 1rem;
+    transition: transform 0.25s;
+}
+
+.footer-copy:hover i {
+    transform: scale(1.15);
+}
+
+/* AI Download & Action Buttons in Footer */
+.footer-actions-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 .footer-download {
     display: flex;
     align-items: center;
-    gap: 0.3rem;
-    font-size: 0.7rem;
-    font-weight: 600;
+    gap: 0.4rem;
+    font-size: 0.75rem;
+    font-weight: 700;
     color: #107c41; /* Excel Green */
     text-decoration: none !important;
-    background: color-mix(in srgb, #107c41 10%, transparent);
-    padding: 0.2rem 0.6rem;
-    border-radius: 4px;
-    transition: all 0.2s;
+    background: color-mix(in srgb, #107c41 8%, transparent);
+    padding: 0.35rem 0.75rem;
+    border-radius: 8px;
+    border: 1px solid color-mix(in srgb, #107c41 20%, transparent);
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 4px rgba(16, 124, 65, 0.05);
 }
 
 .footer-download:hover {
-    background: color-mix(in srgb, #107c41 20%, transparent);
-    transform: translateY(-1px);
+    background: #107c41;
+    color: white;
+    border-color: #107c41;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(16, 124, 65, 0.25);
 }
 
 .footer-download i {
-    font-size: 0.9rem;
+    font-size: 1rem;
+    transition: transform 0.25s;
+}
+
+.footer-download:hover i {
+    transform: scale(1.15);
+}
+
+[data-theme="dark"] .footer-download {
+    background: color-mix(in srgb, #107c41 15%, transparent);
+    border-color: color-mix(in srgb, #107c41 30%, transparent);
 }
 
 @media (max-width: 640px) {
@@ -198,5 +283,40 @@
         height: 28px;
         background: var(--glass-bg);
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    /* Mobile Footer Optimization */
+    .message__footer {
+        margin-top: 1rem;
+        padding-top: 0.75rem;
+        gap: 0.4rem;
+        overflow-x: auto; /* Cho phép scroll ngang nếu quá nhiều nút */
+        scrollbar-width: none; /* Ẩn scrollbar trên Firefox */
+    }
+    .message__footer::-webkit-scrollbar { display: none; } /* Ẩn scrollbar trên Chrome/Safari */
+
+    .footer-actions-container {
+        gap: 0.4rem;
+        flex-shrink: 0;
+    }
+
+    .ai-label {
+        padding: 0.2rem 0.4rem;
+        font-size: 0.6rem;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .footer-download, .footer-copy {
+        padding: 0.3rem 0.5rem;
+        font-size: 0.7rem;
+        white-space: nowrap;
+        gap: 0.25rem;
+        border-radius: 6px;
+        flex-shrink: 0;
+    }
+
+    .footer-download i, .footer-copy i {
+        font-size: 0.85rem;
     }
 }

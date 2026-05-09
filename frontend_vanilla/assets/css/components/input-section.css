@@ -231,7 +231,7 @@ textarea::placeholder {
     animation: slide-in-bottom 0.3s ease-out;
 }
 
-.file-preview-chip i.ph-file-xls {
+.file-preview-chip i.ph-microsoft-excel-logo {
     color: #107c41; /* Excel Green */
     font-size: 1.25rem;
 }
