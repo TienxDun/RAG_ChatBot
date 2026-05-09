@@ -71,11 +71,11 @@ public sealed class VertexAiClient
         {jsonContent}
 
         Nhiệm vụ của bạn:
-        1. Phân tích từng đối tượng (table) trong JSON.
-        2. Chuyển đổi mỗi bảng thành một đoạn văn mô tả tiếng Việt mạch lạc và chi tiết.
-        3. Trong mỗi đoạn mô tả, phải nêu rõ: Tên bảng, Chức năng của bảng, và Danh sách các cột kèm ý nghĩa của chúng.
-        4. QUAN TRỌNG: Phân cách mô tả của mỗi bảng bằng chính xác 3 dấu xuống dòng (\n\n\n) để tôi có thể cắt đoạn.
-        5. Không thêm lời dẫn, chỉ trả về các đoạn mô tả.";
+        1. Phân tích TẤT CẢ các đối tượng (table) trong JSON, không được bỏ sót bất kỳ bảng nào.
+        2. Chuyển đổi mỗi bảng thành một đoạn văn mô tả tiếng Việt chi tiết và đầy đủ.
+        3. Trong mỗi đoạn mô tả, phải liệt kê ĐẦY ĐỦ: Tên bảng, Chức năng, và Toàn bộ các cột kèm kiểu dữ liệu/ý nghĩa.
+        4. QUAN TRỌNG: Phân cách mô tả của mỗi bảng bằng chính xác 3 dấu xuống dòng (\n\n\n).
+        5. Giữ nguyên các thuật ngữ kỹ thuật, không tóm tắt làm mất thông tin. Không thêm lời dẫn.";
 
         return await GenerateContentAsync(prompt, ct);
     }
@@ -94,7 +94,7 @@ public sealed class VertexAiClient
         var resolvedTaskType = string.IsNullOrWhiteSpace(taskType) ? "RETRIEVAL_QUERY" : taskType;
         var parameters = new Dictionary<string, object>
         {
-            ["autoTruncate"] = true
+            ["autoTruncate"] = false
         };
 
         if (outputDimensionality.HasValue)
@@ -178,12 +178,12 @@ public sealed class VertexAiClient
                         },
                         new
                         {
-                            text = @"Hãy đọc và bóc tách toàn bộ nội dung văn bản từ tài liệu này.
-                            Yêu cầu:
-                            - Giữ nguyên cấu trúc đoạn văn, tiêu đề, danh sách.
-                            - Phân tách rõ ràng các phần bằng dấu xuống dòng kép.
-                            - Chỉ trả về nội dung text thuần, không thêm bình luận hay giải thích.
-                            - Nếu có bảng biểu, chuyển thành dạng text dễ đọc."
+                            text = @"Hãy đọc và bóc tách ĐẦY ĐỦ toàn bộ nội dung văn bản từ tài liệu này. 
+                            Yêu cầu cực kỳ quan trọng: 
+                            - KHÔNG ĐƯỢC tóm tắt, không được bỏ sót bất kỳ đoạn văn nào.
+                            - Giữ nguyên cấu trúc, tiêu đề, và các giá trị dữ liệu.
+                            - Phân tách các đoạn bằng dấu xuống dòng kép (\n\n).
+                            - Chỉ trả về nội dung văn bản gốc, không thêm lời bình luận."
                         }
                     }
                 }
