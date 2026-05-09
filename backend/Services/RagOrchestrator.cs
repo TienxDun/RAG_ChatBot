@@ -55,23 +55,29 @@ public sealed class RagOrchestrator
             var sqlPrompt = string.Empty;
             if (attempt == 1)
             {
-                sqlPrompt = $@"Bạn là một chuyên gia SQL Server cho nhà máy may mặc. 
-                    Thời gian hệ thống hiện tại (UTC+7): {currentTimeStr}
+                sqlPrompt = $@"Bạn là chuyên gia SQL Server hàng đầu cho ngành may mặc.
+                    Thời gian hệ thống (UTC+7): {currentTimeStr}
 
-                     Dựa trên cấu trúc database sau đây:
+                    DỰA TRÊN CẤU TRÚC DATABASE:
                     {schemaInfo}
 
-                    Hãy viết một câu lệnh SQL duy nhất để trả lời câu hỏi: ""{userQuery}""
-                    
+                    NHIỆM VỤ: Viết câu lệnh SQL duy nhất cho câu hỏi: ""{userQuery}""
+
                     LƯU Ý QUAN TRỌNG (BẮT BUỘC TUÂN THỦ):
-                    - Chỉ sử dụng các bảng và cột CÓ TRONG CẤU TRÚC DATABASE ở trên. 
-                    - Nếu người dùng yêu cầu các cột (ví dụ trong yêu cầu Excel) mà bạn KHÔNG tìm thấy cột tương ứng trong database, hãy sử dụng 'N/A' AS [TênCột] hoặc NULL AS [TênCột]. TUYỆT ĐỐI KHÔNG tự bịa ra tên cột.
-                    - Chỉ trả về mã SQL, không giải thích. Không dùng dấu ```sql.
-                    - TUYỆT ĐỐI KHÔNG thêm dấu chấm phẩy (;) ở cuối câu lệnh.
-                    - Luôn sử dụng tiền tố N cho các chuỗi Tiếng Việt.
-                    - Chỉ sử dụng lệnh SELECT.
-                    - KHÔNG tự ý giới hạn kết quả bằng TOP trừ khi có yêu cầu.
-                    - Nếu có yêu cầu về thời gian, dùng mốc: {currentTimeStr}.";
+
+                    1. ĐỊNH DẠNG OUTPUT:
+                       - CHỈ trả về mã SQL thô. KHÔNG giải thích, KHÔNG markdown, KHÔNG dấu chấm phẩy cuối.
+
+                    2. QUY TẮC ""SỐNG CÒN"" ĐỂ CÓ DỮ LIỆU (KIỂM TRA KỸ TRƯỚC KHI XUẤT):
+                       - 🛡️ Lọc Ngày: Cột ngày thường chứa giờ, nên BẮT BUỘC dùng CAST(Tên_Cột AS DATE) = 'YYYY-MM-DD'. Nếu so sánh trực tiếp sẽ trả về NULL.
+                       - 🛡️ Lọc Chuyền: Cột LineX là kiểu INT. KHÔNG được dùng nháy đơn (viết LineX = 101, KHÔNG viết LineX = '101').
+                       - 🛡️ Công thức Tỉ lệ: Phải đọc kỹ nội dung 'description' của từng bảng/cột để lấy đúng cột Tử số và Mẫu số tham gia tính toán. 
+                       - 🛡️ Quy tắc JOIN: Để tránh sai số tổng (data duplication), phải tính SUM riêng biệt từng bảng trong subquery/CTE rồi mới JOIN lại với nhau (theo quy tắc JOIN/CROSS JOIN ghi trong description).
+
+                    3. RÀNG BUỘC HỆ THỐNG:
+                       - LUÔN thêm tiền tố N trước các chuỗi giá trị Tiếng Việt. Dùng mốc {currentTimeStr} cho các câu hỏi về thời gian.
+                       - ĐƯỢC PHÉP dùng CTE (WITH), DECLARE, #Temp. TUYỆT ĐỐI CẤM các lệnh thay đổi dữ liệu (UPDATE, DELETE, DROP...).
+                       - Ưu tiên xuất ra cả các giá trị thành phần (ví dụ: Tổng lỗi, Tổng đạt) kèm kết quả cuối để đối soát.";
             }
             else
             {

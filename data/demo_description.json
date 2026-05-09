@@ -149,129 +149,129 @@
   },
   {
     "table": "SEW_CoefficientStyle",
-    "description": "Bảng ghi nhận tiến độ sản xuất chi tiết, sản lượng và thông tin định danh sản phẩm trên từng chuyền may.",
+    "description": "Bảng theo dõi tiến độ sản xuất tại từng công đoạn. KHÔNG dùng cho tỉ lệ lỗi.",
     "columns": [
       {
         "name": "PID",
-        "description": "ID định danh duy nhất của bản ghi sản xuất (Primary Key)."
+        "description": "ID bản ghi sản xuất."
       },
       {
         "name": "Linex",
-        "description": "Mã số chuyền may đang thực hiện sản xuất (ví dụ: 101)."
+        "description": "Mã chuyền (chữ x thường). KHÔNG dùng cho tỉ lệ lỗi."
       },
       {
         "name": "PoId",
-        "description": "Khóa ngoại liên kết với ERP_LENHSX.MaLenh. ID của lệnh sản xuất tương ứng."
+        "description": "FK liên kết ERP_LENHSX.MaLenh."
       },
       {
         "name": "StepId",
-        "description": "Khóa ngoại liên kết với tbl_Steps.Id_cd. Mã định danh công đoạn hoặc bước sản xuất."
+        "description": "FK liên kết tbl_Steps.Id_cd."
       },
       {
         "name": "StypeId",
-        "description": "Mã kiểu dáng hoặc mã hàng chi tiết (ví dụ: SA_893_208_133)."
+        "description": "Mã kiểu dáng chi tiết."
       },
       {
         "name": "ColorId",
-        "description": "Mã màu sắc của sản phẩm (Dữ liệu mẫu hiện đang trống)."
+        "description": "Mã màu sản phẩm."
       },
       {
         "name": "SizeTypeID",
-        "description": "Mã kích thước/size của sản phẩm (Dữ liệu mẫu hiện đang trống)."
+        "description": "Mã size sản phẩm."
       },
       {
         "name": "DateCreate",
-        "description": "Thời điểm ghi nhận sản lượng sản xuất vào hệ thống."
+        "description": "Thời điểm ghi nhận sản lượng."
       },
       {
         "name": "TimeLineId",
-        "description": "ID mốc thời gian hoặc khung giờ sản xuất."
+        "description": "ID khung giờ sản xuất."
       },
       {
         "name": "Quantity",
-        "description": "Số lượng sản phẩm thực tế đã làm được tại công đoạn này."
+        "description": "Sản lượng làm ra tại công đoạn. KHÔNG dùng cho tỉ lệ lỗi (cột tỉ lệ lỗi là Quantity của SEW_CoefficientSize)."
       },
       {
         "name": "DefectNo",
-        "description": "Không phải cột số lượng lỗi dùng trong công thức tỉ lệ lỗi dự án. Số lỗi lấy từ QTY_MAHANG_NGAYKIEM.SpLoi; phần đạt ở bảng SEW_CoefficientSize là Quantity."
+        "description": "Số lỗi nội bộ. KHÔNG dùng cho tỉ lệ lỗi (số lỗi chính thức là SpLoi của QTY_MAHANG_NGAYKIEM)."
       },
       {
         "name": "FixedNo",
-        "description": "Số lượng sản phẩm đã được sửa lỗi thành công."
+        "description": "Số lượng đã sửa lỗi tại công đoạn."
       },
       {
         "name": "DepDown",
-        "description": "Mã xưởng hoặc bộ phận nhận hàng sau công đoạn (ví dụ: 101)."
+        "description": "Mã bộ phận nhận hàng tiếp theo."
       }
     ]
   },
   {
     "table": "SEW_CoefficientSize",
-    "description": "Bảng ghi nhận chi tiết sản lượng KCS theo mẫu/màu/size/chuyền. Công thức tỉ lệ lỗi theo quy ước dự án: TiLeLoi = SUM(SpLoi) / (SUM(SpLoi) + SUM(Quantity)), với SpLoi từ QTY_MAHANG_NGAYKIEM và Quantity từ bảng này; cùng phạm vi chuyền LineX (và tùy nghiệp vụ: lọc theo ngày NgayKiem vs DateCreate).",
+    "description": "Công thức TyLeLoi = SUM(ISNULL(SpLoi,0)) / (SUM(ISNULL(SpLoi,0)) + SUM(ISNULL(Quantity,0)) + SUM(ISNULL(SuaDat,0))). Bảng này cung cấp Quantity và SuaDat. BẮT BUỘC dùng CAST(DateCreate AS DATE) = 'YYYY-MM-DD' khi lọc ngày. Để tránh sai số, hãy tính SUM riêng biệt ở subquery cho từng bảng rồi mới JOIN lại (dùng CROSS JOIN nếu tính tổng toàn bộ, JOIN theo LineX nếu tính theo từng chuyền).",
     "columns": [
       {
         "name": "Pid",
-        "description": "ID định danh duy nhất của bản ghi kiểm tra."
+        "description": "ID bản ghi kiểm tra."
       },
       {
         "name": "LineX",
-        "description": "Mã chuyền may nơi sản phẩm được kiểm tra (ví dụ: 105)."
+        "description": "Mã chuyền (kiểu INT, ví dụ 105). Dùng WHERE LineX = 105 không có nháy. Cột lọc chính theo chuyền."
       },
       {
         "name": "PoId",
-        "description": "Khóa ngoại liên kết với ERP_LENHSX.MaLenh. ID của lệnh sản xuất tương ứng."
+        "description": "FK liên kết ERP_LENHSX.MaLenh."
       },
       {
         "name": "StepId",
-        "description": "Khóa ngoại liên kết với tbl_Steps.Id_cd. Mã định danh công đoạn kiểm tra."
+        "description": "FK liên kết tbl_Steps.Id_cd."
       },
       {
         "name": "StyleId",
-        "description": "Mã kiểu dáng sản phẩm (ví dụ: 131000_120_R6H3)."
+        "description": "Mã kiểu dáng."
       },
       {
         "name": "ColorId",
-        "description": "Mã màu sắc cụ thể của sản phẩm (ví dụ: MAU_F120_R6)."
+        "description": "Mã màu."
       },
       {
         "name": "SizeTypeId",
-        "description": "Phân loại nhóm kích thước."
+        "description": "Nhóm kích thước."
       },
       {
         "name": "PO",
-        "description": "Mã đơn hàng chi tiết liên kết (ví dụ: DH_30|5010347___14226)."
+        "description": "Mã đơn hàng chi tiết."
       },
       {
         "name": "SizeId",
-        "description": "Kích thước cụ thể của sản phẩm (ví dụ: SIZE_S)."
+        "description": "Kích thước cụ thể."
       },
       {
         "name": "DateCreate",
-        "description": "Ngày giờ thực hiện kiểm tra KCS."
+        "description": "BẮT BUỘC dùng CAST(DateCreate AS DATE) = 'YYYY-MM-DD' khi lọc theo ngày, vì cột chứa cả giờ phút giây"
       },
       {
         "name": "TimeLineId",
-        "description": "ID mốc thời gian ghi nhận (ví dụ: Ca làm việc hoặc khung giờ)."
+        "description": "Mốc thời gian ghi nhận."
       },
       {
         "name": "Quantity",
-        "description": "Số lượng sản phẩm đạt tiêu chuẩn. Trong tỉ lệ lỗi dự án: đây là thành phần 'đạt' ở mẫu số — mẫu số = tổng SpLoi (QTY_MAHANG_NGAYKIEM) + tổng Quantity (bảng này), tử số = tổng SpLoi."
+        "description": "Số sản phẩm đạt KCS. Sử dụng SUM(ISNULL(Quantity, 0)) khi tính toán."
       },
       {
         "name": "SuaDat",
-        "description": "Số lượng sản phẩm sau khi sửa lỗi đã đạt tiêu chuẩn."
+        "description": "Sản lượng đạt sau sửa lỗi. BẮT BUỘC cộng chung với Quantity để tạo thành mẫu số. Sử dụng SUM(ISNULL(SuaDat, 0)) khi tính toán."
       },
       {
         "name": "DefectNo",
-        "description": "Không dùng làm số lượng lỗi trong công thức tỉ lệ lỗi dự án. Số lỗi: QTY_MAHANG_NGAYKIEM.SpLoi; sản phẩm đạt trong mẫu số: Quantity (bảng này)."
+        "description": "KHÔNG dùng làm số lỗi. Số lỗi lấy từ SpLoi của QTY_MAHANG_NGAYKIEM."
       },
       {
         "name": "NVKiemKCS",
-        "description": "Tên hoặc bộ phận nhân viên thực hiện kiểm tra (ví dụ: KCS COSMOS)."
+        "description": "Nhân viên kiểm KCS."
       },
       {
         "name": "CheckType",
-        "description": "Loại hình kiểm tra (ví dụ: Kiểm tra định kỳ, kiểm tra cuối chuyền)."
+        "description": "Loại kiểm tra."
       }
     ]
   },
@@ -307,35 +307,35 @@
   },
   {
     "table": "QTY_MAHANG_NGAYKIEM",
-    "description": "Bảng nhật ký kiểm tra chi tiết (ngày kiểm, chuyền LineX, mã hàng, PO). Trong tỉ lệ lỗi theo quy ước dự án: tử số và phần 'lỗi' trong mẫu số lấy từ SUM(SpLoi); phần 'đạt' trong mẫu số lấy từ SUM(SEW_CoefficientSize.Quantity) cùng phạm vi chuyền (và tùy kỳ thời gian). Công thức: SUM(SpLoi) / (SUM(SpLoi) + SUM(Quantity từ Size)). SLKiem vẫn là số mang đi kiểm theo dòng bản ghi, dùng cho báo cáo khác hoặc đối soát, không thay thế mẫu số công thức trên trừ khi nghiệp vụ quy định.",
+    "description": "Công thức TyLeLoi = SUM(ISNULL(SpLoi,0)) / (SUM(ISNULL(SpLoi,0)) + SUM(ISNULL(Quantity,0)) + SUM(ISNULL(SuaDat,0))). Bảng này cung cấp SpLoi (tử số). BẮT BUỘC dùng CAST(NgayKiem AS DATE) = 'YYYY-MM-DD' khi lọc ngày. Để tránh sai số, hãy tính SUM riêng biệt ở subquery cho từng bảng rồi mới JOIN lại (dùng CROSS JOIN nếu tính tổng toàn bộ, JOIN theo LineX nếu tính theo từng chuyền).",
     "columns": [
       {
         "name": "ID",
-        "description": "Mã định danh duy nhất của bản ghi kiểm tra (Primary Key)."
+        "description": "Mã bản ghi kiểm tra."
       },
       {
         "name": "NgayKiem",
-        "description": "Thời điểm chính xác thực hiện việc kiểm tra sản phẩm."
+        "description": "BẮT BUỘC dùng CAST(NgayKiem AS DATE) = 'YYYY-MM-DD' khi lọc theo ngày, vì cột chứa cả giờ phút giây"
       },
       {
         "name": "LineX",
-        "description": "Mã chuyền may thực hiện sản xuất lô hàng này."
+        "description": "Mã chuyền (kiểu INT, ví dụ 105). Dùng WHERE LineX = 105 không có nháy. Cột lọc chính theo chuyền."
       },
       {
         "name": "PlanCode",
-        "description": "Mã kế hoạch sản xuất liên quan."
+        "description": "Mã kế hoạch sản xuất."
       },
       {
         "name": "StyleID",
-        "description": "Mã kiểu dáng sản phẩm (ví dụ: 0088_521_04_V0_0)."
+        "description": "Mã kiểu dáng."
       },
       {
         "name": "MaHang",
-        "description": "Tên hoặc mã hàng hóa thực tế."
+        "description": "Tên/mã hàng hóa."
       },
       {
         "name": "POID",
-        "description": "Mã định danh đơn hàng kết hợp (ví dụ: DH_6|5010420)."
+        "description": "Mã đơn hàng kết hợp. FK liên kết với ERP_LENHSX.MaLenh."
       },
       {
         "name": "PO",
@@ -343,75 +343,71 @@
       },
       {
         "name": "DauSizeID / DauSize",
-        "description": "Thông tin về đầu size sản phẩm (Dữ liệu mẫu đang để 0)."
+        "description": "Thông tin đầu size."
       },
       {
         "name": "ColorID / MaMau",
-        "description": "Mã màu và tên màu sắc chi tiết (ví dụ: MAU_Z9 - BLACK)."
+        "description": "Mã màu và tên màu."
       },
       {
         "name": "SizeID / Size",
-        "description": "Mã kích cỡ và kích cỡ thực tế của sản phẩm (ví dụ: SIZE_85 - 85)."
-      },
-      {
-        "name": "SLKiem",
-        "description": "Số lượng sản phẩm được mang đi kiểm tra (theo từng bản ghi). Không phải mẫu số trong công thức tỉ lệ lỗi dự án (SpLoi + SEW_CoefficientSize.Quantity); giữ vai trò đối soát/báo cáo kiểm tra."
+        "description": "Mã và kích cỡ thực tế."
       },
       {
         "name": "SLKCS",
-        "description": "Số lượng sản phẩm đạt tiêu chuẩn KCS."
+        "description": "Số lượng đối soát KCS. KHÔNG dùng làm mẫu số tỉ lệ lỗi (mẫu số phải lấy từ SEW_CoefficientSize.Quantity)."
       },
       {
         "name": "SpLoi",
-        "description": "Số lượng sản phẩm bị phát hiện lỗi trong quá trình kiểm tra. Tử số tỉ lệ lỗi dự án; đồng thời là phần lỗi trong mẫu số: SpLoi + SEW_CoefficientSize.Quantity (đã cộng tổng theo phạm vi)."
+        "description": "Số sản phẩm lỗi (tử số). Sử dụng SUM(ISNULL(SpLoi, 0)) khi tính toán."
       },
       {
         "name": "TH_Ngay",
-        "description": "Chỉ số tổng hợp theo ngày (Dữ liệu mẫu đang để 0)."
+        "description": "Chỉ số tổng hợp theo ngày."
       },
       {
         "name": "SuaDat",
-        "description": "Số lượng sản phẩm lỗi đã được sửa chữa và đạt yêu cầu."
+        "description": "Số lượng lỗi đã sửa đạt. KHÔNG dùng trong công thức tỉ lệ lỗi."
       },
       {
         "name": "HangLoai",
-        "description": "Số lượng sản phẩm bị phân loại thành hàng loại (hàng phế phẩm/loại B)."
+        "description": "Số sản phẩm hàng loại B."
       },
       {
         "name": "GhiChu",
-        "description": "Các lưu ý đặc biệt trong quá trình kiểm tra."
+        "description": "Ghi chú kiểm tra."
       },
       {
         "name": "SpLoiQA",
-        "description": "Số lượng sản phẩm lỗi do bộ phận QA ghi nhận."
+        "description": "Số lỗi do QA ghi nhận."
       },
       {
         "name": "IsQC",
-        "description": "Flag xác nhận đã qua bước kiểm tra chất lượng (0/1)."
+        "description": "Flag đã qua kiểm tra chất lượng (0/1)."
       },
       {
         "name": "NVKiem",
-        "description": "Tên nhân viên hoặc đơn vị thực hiện kiểm tra (ví dụ: KCS Cherry)."
+        "description": "Nhân viên kiểm tra."
       },
       {
         "name": "LanKiem",
-        "description": "Số lần thực hiện kiểm tra đối với lô hàng này."
+        "description": "Số lần kiểm tra."
       },
       {
         "name": "StatusHT",
-        "description": "Trạng thái hoàn thành của bản ghi kiểm tra."
+        "description": "Trạng thái hoàn thành."
       },
       {
         "name": "SignPTDonVi / SignKT / SignToTruong / SignNVKiem",
-        "description": "Các trường lưu trữ chữ ký số hoặc xác nhận của Phụ trách đơn vị, Kỹ thuật, Tổ trưởng và Nhân viên kiểm tra."
+        "description": "Các trường ký xác nhận."
       },
       {
         "name": "Version",
-        "description": "Phiên bản của bản ghi (dùng để quản lý lịch sử chỉnh sửa)."
+        "description": "Phiên bản bản ghi."
       },
       {
         "name": "CheckType",
-        "description": "Phân loại kiểu kiểm tra."
+        "description": "Phân loại kiểm tra."
       }
     ]
   }

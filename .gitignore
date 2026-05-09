@@ -6,6 +6,8 @@
 .env.production.local
 *.env
 **/.env*
+env.js
+**/env.js
 
 # .NET
 bin/
