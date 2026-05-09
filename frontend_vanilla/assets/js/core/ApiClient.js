@@ -183,9 +183,13 @@ export class ApiClient {
     /**
      * Tải file và nhận stream tiến trình
      */
-    static async uploadFiles(endpoint, files, onProgress) {
+    static async uploadFiles(endpoint, files, collectionName, onProgress) {
         const formData = new FormData();
         files.forEach(file => formData.append('files', file));
+        
+        if (collectionName) {
+            formData.append('collectionName', collectionName);
+        }
 
         return this.fetchStream(endpoint, {
             body: formData

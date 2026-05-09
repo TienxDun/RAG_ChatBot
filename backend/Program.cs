@@ -61,6 +61,12 @@ app.UseCors();
 
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
 
+app.MapGet("/api/documents/collections", async (QdrantService qdrant) => 
+{
+    var collections = await qdrant.GetCollectionsAsync();
+    return Results.Ok(collections);
+});
+
 app.MapPost("/api/chat", (HttpContext context, RagOrchestrator orchestrator, ExcelReportService excelService, CancellationToken ct) => ChatEndpoints.HandleChatAsync(context, orchestrator, excelService, ct))
     .WithName("Chat")
     .WithOpenApi(operation =>
@@ -125,6 +131,7 @@ app.MapPost("/api/documents/upload", async (HttpContext context, DocumentProcess
 
     var form = await context.Request.ReadFormAsync(ct);
     var files = form.Files;
+    var collectionName = form.ContainsKey("collectionName") ? form["collectionName"].ToString() : null;
 
     if (files.Count == 0)
     {
@@ -159,7 +166,7 @@ app.MapPost("/api/documents/upload", async (HttpContext context, DocumentProcess
             var fileName = file.FileName;
             using var stream = file.OpenReadStream();
 
-            await processor.ProcessFileAsync(stream, fileName, async (percent, message) =>
+            await processor.ProcessFileAsync(stream, fileName, collectionName, async (percent, message) =>
             {
                 // Tính toán tổng tiến trình dựa trên số lượng file
                 // Mỗi file chiếm 1/fileCount tổng số phần trăm

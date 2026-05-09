@@ -39,6 +39,7 @@ public sealed class DocumentProcessor
     public async Task<DocumentResult> ProcessFileAsync(
         Stream fileStream, 
         string fileName, 
+        string? collectionName,
         Func<int, string, Task> onProgress, 
         CancellationToken ct)
     {
@@ -97,7 +98,7 @@ public sealed class DocumentProcessor
 
         // Step 4: Upsert to Qdrant
         await onProgress(95, "Đang lưu dữ liệu vào Qdrant Cloud...");
-        await _qdrantService.UpsertPointsAsync(points, ct);
+        await _qdrantService.UpsertPointsAsync(points, collectionName, ct);
 
         await onProgress(100, "Hoàn tất!");
         return new DocumentResult(fileName, chunks.Count, "Success");

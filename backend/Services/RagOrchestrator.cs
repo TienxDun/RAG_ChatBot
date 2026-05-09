@@ -20,7 +20,7 @@ public sealed class RagOrchestrator
         _options = options;
     }
 
-    public async Task<ChatResponse> ProcessQueryAsync(string userQuery, Func<RagStep, Task> onStep, CancellationToken ct)
+    public async Task<ChatResponse> ProcessQueryAsync(string userQuery, string? collectionName, Func<RagStep, Task> onStep, CancellationToken ct)
     {
         var steps = new List<RagStep>();
 
@@ -34,7 +34,7 @@ public sealed class RagOrchestrator
         await onStep(step1);
 
         // 2. Search Qdrant for relevant schema context
-        var schemaContexts = await _qdrantService.SearchSchemaAsync(vector, limit: _options.TopK);
+        var schemaContexts = await _qdrantService.SearchSchemaAsync(vector, limit: _options.TopK, collectionName: collectionName);
         var schemaInfo = string.Join("\n\n", schemaContexts);
         var step2 = new RagStep("Schema Retrieval", $"Tìm thấy {schemaContexts.Count} thông tin cấu trúc database liên quan nhất:\n\n{schemaInfo}");
         steps.Add(step2);

@@ -26,6 +26,7 @@ export class ChatAreaComponent {
         this.filePreviewContainer = document.querySelector(SELECTORS.FILE_PREVIEW_CONTAINER);
         
         this.inputWrapper = document.querySelector('.input-wrapper');
+        this.collectionSelect = document.getElementById('chat-collection-select');
         this.isLoading = false;
         this.isListening = false;
         this.selectedFile = null;
@@ -34,6 +35,7 @@ export class ChatAreaComponent {
         
         this.init();
         this.initSpeechRecognition();
+        this.loadCollections();
     }
 
     init() {
@@ -98,6 +100,30 @@ export class ChatAreaComponent {
                 this.chatInput.focus();
             });
         });
+    }
+
+    async loadCollections() {
+        if (!this.collectionSelect) return;
+        try {
+            const collections = await ApiClient.get(ENDPOINTS.COLLECTIONS);
+            if (Array.isArray(collections)) {
+                // Giữ lại option mặc định đầu tiên
+                const defaultOption = this.collectionSelect.options[0];
+                this.collectionSelect.innerHTML = '';
+                this.collectionSelect.appendChild(defaultOption);
+
+                collections.forEach(col => {
+                    if (col !== 'db_schema') { // Tránh trùng với mặc định nếu đã có
+                        const option = document.createElement('option');
+                        option.value = col;
+                        option.textContent = col;
+                        this.collectionSelect.appendChild(option);
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Failed to load collections:', error);
+        }
     }
 
     handleMessageAction(e) {
@@ -312,30 +338,44 @@ export class ChatAreaComponent {
         let aiSuggestions = [];
         let aiDownloadUrl = null;
 
+        const collectionName = this.collectionSelect ? this.collectionSelect.value : null;
+
         let body;
         if (file) {
             body = new FormData();
             body.append('message', text);
             body.append('file', file);
+            if (collectionName) body.append('collectionName', collectionName);
         } else {
-            body = JSON.stringify({ message: text });
+            body = JSON.stringify({ 
+                message: text,
+                collectionName: collectionName 
+            });
         }
 
         await ApiClient.fetchStream(ENDPOINTS.CHAT, {
             body: body
         }, (data) => {
-            if (typingIndicator.parentNode) {
-                this.messagesList.removeChild(typingIndicator);
+            // Cập nhật text cho typing indicator nếu là bước xử lý
+            if (data.type === 'step') {
+                aiSteps.push(data.step);
+                MessageRenderer.updateTypingText(typingIndicator, `Đang xử lý: ${data.step.title}...`);
             }
 
-            if (!aiMessageEl) {
+            // Chỉ xóa typing indicator khi có nội dung cuối cùng hoặc lỗi
+            if (data.type === 'final' || data.type === 'error') {
+                if (typingIndicator.parentNode) {
+                    this.messagesList.removeChild(typingIndicator);
+                }
+            }
+
+            // Tạo message element cho AI nếu chưa có (để hiển thị RAG steps ngay)
+            if (!aiMessageEl && (data.type === 'step' || data.type === 'final' || data.type === 'error')) {
                 aiMessageEl = MessageRenderer.createMessageElement('ai', '');
                 this.messagesList.appendChild(aiMessageEl);
             }
 
-            if (data.type === 'step') {
-                aiSteps.push(data.step);
-            } else if (data.type === 'final') {
+            if (data.type === 'final') {
                 aiContent = data.text;
                 aiSuggestions = data.suggestedQuestions || [];
                 aiDownloadUrl = data.downloadUrl;
@@ -344,7 +384,9 @@ export class ChatAreaComponent {
                 aiContent = `⚠️ Lỗi: ${data.message}`;
             }
             
-            MessageRenderer.updateMessage(aiMessageEl, aiContent, aiSteps, aiSuggestions, aiDownloadUrl);
+            if (aiMessageEl) {
+                MessageRenderer.updateMessage(aiMessageEl, aiContent, aiSteps, aiSuggestions, aiDownloadUrl);
+            }
             this.scrollToBottom();
         });
 
