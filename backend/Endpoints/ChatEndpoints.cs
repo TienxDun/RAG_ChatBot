@@ -96,12 +96,21 @@ public static class ChatEndpoints
                 });
             }
         }
+        catch (OperationCanceledException)
+        {
+            // Kết nối bị ngắt bởi người dùng hoặc hệ thống shutdown - không cần xử lý thêm
+            Console.WriteLine("⚠️ Chat request was cancelled/connection closed.");
+        }
         catch (Exception ex)
         {
-            await SendEventAsync(new { type = "error", message = ex.Message });
+            try 
+            {
+                await SendEventAsync(new { type = "error", message = ex.Message });
+            }
+            catch { /* Bỏ qua nếu không thể gửi lỗi về client khi kết nối đã đứt */ }
         }
 
-        return Results.Ok();
+        return Results.Empty;
     }
 
     public static IResult HandleDownloadAsync(string id)

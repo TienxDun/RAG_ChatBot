@@ -187,7 +187,7 @@ app.MapPost("/api/documents/upload", async (HttpContext context, DocumentProcess
         await SendEventAsync(new { type = "error", message = ex.Message });
     }
 
-    return Results.Ok();
+    return Results.Empty;
 })
 .WithName("UploadDocuments")
 .WithOpenApi();
