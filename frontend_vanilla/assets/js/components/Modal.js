@@ -13,6 +13,7 @@ export class ModalComponent {
         
         this.dropzone = document.querySelector(SELECTORS.DROPZONE);
         this.fileInput = document.querySelector(SELECTORS.FILE_INPUT);
+        this.collectionInput = document.getElementById('collection-name-input');
         this.fileList = document.querySelector(SELECTORS.FILE_LIST);
         this.infoText = document.querySelector(SELECTORS.MODAL_INFO_TEXT);
         
@@ -81,9 +82,12 @@ export class ModalComponent {
         state.isUploading = true;
         this.progressContainer.classList.remove('hidden');
         this.dropzone.classList.add('hidden');
+        if (this.collectionInput) this.collectionInput.closest('.modal-input-group').classList.add('hidden');
         
+        const collectionName = this.collectionInput ? this.collectionInput.value.trim() : '';
+
         try {
-            await ApiClient.uploadFiles(ENDPOINTS.UPLOAD, state.selectedFiles, (data) => {
+            await ApiClient.uploadFiles(ENDPOINTS.UPLOAD, state.selectedFiles, collectionName, (data) => {
                 if (data.type === 'progress') {
                     this.updateProgress(data.percent, data.message);
                 } else if (data.type === 'result') {
@@ -91,6 +95,9 @@ export class ModalComponent {
                     setTimeout(() => {
                         Toast.success("Tải lên và xử lý thành công!");
                         state.isUploading = false;
+                        if (window.app && window.app.chatArea) {
+                            window.app.chatArea.loadCollections();
+                        }
                         this.hide();
                     }, 1000);
                 }
@@ -162,6 +169,10 @@ export class ModalComponent {
     resetProgress() {
         this.progressContainer.classList.add('hidden');
         this.dropzone.classList.remove('hidden');
+        if (this.collectionInput) {
+            this.collectionInput.closest('.modal-input-group').classList.remove('hidden');
+            this.collectionInput.value = '';
+        }
         this.progressBar.style.width = '0%';
     }
 }

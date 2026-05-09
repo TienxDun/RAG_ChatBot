@@ -6,7 +6,7 @@ namespace Backend.Services;
 public sealed class QdrantService
 {
     private readonly QdrantClient _client;
-    private const string CollectionName = "db_schema";
+    private const string DefaultCollectionName = "db_schema";
 
     public QdrantService()
     {
@@ -19,10 +19,18 @@ public sealed class QdrantService
         _client = new QdrantClient(host, port: 6334, https: useHttps, apiKey: apiKey);
     }
 
-    public async Task<List<string>> SearchSchemaAsync(IReadOnlyList<float> vector, int limit = 3)
+    public async Task<List<string>> GetCollectionsAsync()
     {
+        var collections = await _client.ListCollectionsAsync();
+        return collections.ToList();
+    }
+
+    public async Task<List<string>> SearchSchemaAsync(IReadOnlyList<float> vector, int limit = 3, string? collectionName = null)
+    {
+        var targetCollection = string.IsNullOrWhiteSpace(collectionName) ? DefaultCollectionName : collectionName;
+        
         var searchResult = await _client.SearchAsync(
-            CollectionName,
+            targetCollection,
             vector: vector.ToArray(),
             limit: (uint)limit
         );
@@ -32,16 +40,19 @@ public sealed class QdrantService
 
     public async Task UpsertPointsAsync(
         List<(IReadOnlyList<float> Vector, string Text, string FileName, int Index)> points,
+        string? collectionName,
         CancellationToken ct)
     {
         if (points.Count == 0) return;
 
+        var targetCollection = string.IsNullOrWhiteSpace(collectionName) ? DefaultCollectionName : collectionName;
+
         var collections = await _client.ListCollectionsAsync(cancellationToken: ct);
-        if (!collections.Contains(CollectionName))
+        if (!collections.Contains(targetCollection))
         {
             var vectorSize = (ulong)points.First().Vector.Count;
             await _client.CreateCollectionAsync(
-                CollectionName,
+                targetCollection,
                 new VectorParams { Size = vectorSize, Distance = Distance.Cosine },
                 cancellationToken: ct
             );
@@ -66,7 +77,7 @@ public sealed class QdrantService
             };
         }).ToList();
 
-        await _client.UpsertAsync(CollectionName, pointStructs, cancellationToken: ct);
+        await _client.UpsertAsync(targetCollection, pointStructs, cancellationToken: ct);
     }
 
     private static ulong CreateNumericId(string fileName, int index)

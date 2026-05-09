@@ -14,6 +14,7 @@ public static class ChatEndpoints
     public static async Task<IResult> HandleChatAsync(HttpContext context, RagOrchestrator orchestrator, ExcelReportService excelService, CancellationToken ct)
     {
         string message = string.Empty;
+        string? collectionName = null;
         IFormFile? file = null;
 
         // Hỗ trợ đọc cả JSON (chat bình thường) và Form (khi có upload file Excel)
@@ -21,12 +22,14 @@ public static class ChatEndpoints
         {
             var form = await context.Request.ReadFormAsync(ct);
             message = form.TryGetValue("message", out var m) ? m.ToString() : string.Empty;
+            collectionName = form.TryGetValue("collectionName", out var c) ? c.ToString() : null;
             file = form.Files.FirstOrDefault();
         }
         else if (context.Request.HasJsonContentType())
         {
-            var request = await context.Request.ReadFromJsonAsync<ChatRequest>(cancellationToken: ct);
-            message = request?.Message ?? string.Empty;
+            var json = await context.Request.ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
+            message = json.TryGetProperty("message", out var m) ? m.GetString() ?? "" : "";
+            collectionName = json.TryGetProperty("collectionName", out var c) ? c.GetString() : null;
         }
 
         if (string.IsNullOrWhiteSpace(message))
@@ -80,7 +83,7 @@ public static class ChatEndpoints
             }
             else
             {
-                var response = await orchestrator.ProcessQueryAsync(message, async (step) => 
+                var response = await orchestrator.ProcessQueryAsync(message, collectionName, async (step) => 
                 {
                     await SendEventAsync(new { type = "step", step });
                 }, ct);

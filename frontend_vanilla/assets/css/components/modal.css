@@ -77,6 +77,60 @@
     gap: 1.5rem;
 }
 
+/* Collection Input Styles */
+.modal-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.modal-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--foreground);
+    display: block;
+}
+
+.input-with-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-with-icon i {
+    position: absolute;
+    left: 1rem;
+    font-size: 1.2rem;
+    color: var(--primary);
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.modal-text-input {
+    width: 100%;
+    padding: 0.75rem 1rem 0.75rem 2.75rem;
+    border-radius: 1rem;
+    border: 1.5px solid var(--border);
+    background: var(--background);
+    color: var(--foreground);
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modal-text-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 10%, transparent);
+    background: var(--card);
+}
+
+.modal-help-text {
+    font-size: 0.65rem;
+    color: var(--muted-foreground);
+    font-style: italic;
+}
+
 .upload-dropzone {
     border: 2px dashed color-mix(in srgb, var(--primary) 15%, transparent);
     border-radius: 1.5rem;

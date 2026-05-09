@@ -123,6 +123,14 @@
             <!-- Input Section (Moved inside chat-area for better CSS targeting) -->
             <section class="input-section animate-in fade-in slide-in-from-bottom-6 duration-1000">
                 <div class="input-wrapper">
+                    <!-- Collection Selector -->
+                    <div class="collection-selector-group animate-in fade-in">
+                        <i class="ph-duotone ph-database"></i>
+                        <select id="chat-collection-select" class="chat-collection-select">
+                            <option value="">Default Collection (db_schema)</option>
+                        </select>
+                    </div>
+
                     <!-- File Preview Area -->
                     <div id="file-preview-container" class="file-preview-container hidden">
                         <!-- Dynamic file preview chip will be injected here -->
@@ -198,6 +206,16 @@
                     <p class="dropzone-text-primary">Kéo thả file vào đây</p>
                     <p class="dropzone-text-secondary">hoặc click để chọn file</p>
                     <input type="file" id="file-input" hidden multiple accept=".pdf,.txt,.json">
+                </div>
+
+                <!-- Collection Name Input -->
+                <div class="modal-input-group">
+                    <label for="collection-name-input" class="modal-label">Collection Name (Optional)</label>
+                    <div class="input-with-icon">
+                        <i class="ph-duotone ph-database"></i>
+                        <input type="text" id="collection-name-input" placeholder="Mặc định: db_schema" class="modal-text-input">
+                    </div>
+                    <p class="modal-help-text">Để trống nếu bạn muốn dùng collection mặc định.</p>
                 </div>
 
                 <!-- Selected Files List -->

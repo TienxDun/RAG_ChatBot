@@ -89,7 +89,7 @@ public class ExcelReportService
         }
 
         // 3. Chạy toàn bộ luồng RAG (Embeddings -> Qdrant Schema -> Vertex SQL -> Execute)
-        var ragResponse = await _ragOrchestrator.ProcessQueryAsync(combinedQuery, onStep, ct);
+        var ragResponse = await _ragOrchestrator.ProcessQueryAsync(combinedQuery, null, onStep, ct);
 
         // 4. Lấy kết quả Json
         var rawJson = ragResponse.RawData;

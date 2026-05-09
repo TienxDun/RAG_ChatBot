@@ -13,7 +13,8 @@ export const ENDPOINTS = {
     CHAT: '/chat',
     UPLOAD: '/documents/upload',
     EXPORT_EXCEL: '/chat/export-excel',
-    HEALTH: '/health'
+    HEALTH: '/health',
+    COLLECTIONS: '/documents/collections'
 };
 
 export const SELECTORS = {
