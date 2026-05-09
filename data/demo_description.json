@@ -149,7 +149,7 @@
   },
   {
     "table": "SEW_CoefficientStyle",
-    "description": "Bảng theo dõi tiến độ sản xuất tại từng công đoạn. KHÔNG dùng cho tỉ lệ lỗi.",
+    "description": "Nguồn dữ liệu tính Năng suất (Sản lượng làm ra). MẪU CHUẨN: SELECT SUM(Quantity) AS TongSanLuong, SUM(DefectNo) AS TongLoi, CAST(DateCreate AS DATE) AS Ngay FROM SEW_CoefficientStyle JOIN tbl_Steps ON StepId = Id_cd WHERE ... GROUP BY CAST(DateCreate AS DATE).",
     "columns": [
       {
         "name": "PID",
@@ -157,7 +157,7 @@
       },
       {
         "name": "Linex",
-        "description": "Mã chuyền (chữ x thường). KHÔNG dùng cho tỉ lệ lỗi."
+        "description": "Mã chuyền (kiểu INT, chữ x thường). Dùng WHERE Linex = 105 không có nháy đơn. KHÔNG dùng cho tỉ lệ lỗi."
       },
       {
         "name": "PoId",
@@ -169,7 +169,7 @@
       },
       {
         "name": "StypeId",
-        "description": "Mã kiểu dáng chi tiết."
+        "description": "Mã kiểu dáng hoặc Tên mã hàng (nếu có). Dùng để phân loại sản lượng."
       },
       {
         "name": "ColorId",
@@ -181,7 +181,7 @@
       },
       {
         "name": "DateCreate",
-        "description": "Thời điểm ghi nhận sản lượng."
+        "description": "Thời điểm ghi nhận sản lượng. BẮT BUỘC dùng CAST(DateCreate AS DATE) = 'YYYY-MM-DD' khi lọc theo ngày."
       },
       {
         "name": "TimeLineId",
@@ -189,11 +189,11 @@
       },
       {
         "name": "Quantity",
-        "description": "Sản lượng làm ra tại công đoạn. KHÔNG dùng cho tỉ lệ lỗi (cột tỉ lệ lỗi là Quantity của SEW_CoefficientSize)."
+        "description": "Sản lượng làm ra tại công đoạn (Tổng sản lượng)."
       },
       {
         "name": "DefectNo",
-        "description": "Số lỗi nội bộ. KHÔNG dùng cho tỉ lệ lỗi (số lỗi chính thức là SpLoi của QTY_MAHANG_NGAYKIEM)."
+        "description": "Số lỗi ghi nhận tại khâu (Dùng cho báo cáo NĂNG SUẤT). CẤM dùng cột này để tính 'Tỉ lệ lỗi %'. Tỉ lệ lỗi % phải lấy từ bảng QTY_MAHANG_NGAYKIEM."
       },
       {
         "name": "FixedNo",
@@ -207,7 +207,7 @@
   },
   {
     "table": "SEW_CoefficientSize",
-    "description": "Công thức TyLeLoi = SUM(ISNULL(SpLoi,0)) / (SUM(ISNULL(SpLoi,0)) + SUM(ISNULL(Quantity,0)) + SUM(ISNULL(SuaDat,0))). Bảng này cung cấp Quantity và SuaDat. BẮT BUỘC dùng CAST(DateCreate AS DATE) = 'YYYY-MM-DD' khi lọc ngày. Để tránh sai số, hãy tính SUM riêng biệt ở subquery cho từng bảng rồi mới JOIN lại (dùng CROSS JOIN nếu tính tổng toàn bộ, JOIN theo LineX nếu tính theo từng chuyền).",
+    "description": "Bảng cung cấp sản lượng đạt (làm Mẫu số). CÔNG THỨC CHUẨN: % = (Tổng Lỗi) / (Tổng Lỗi + Tổng Đạt) * 100. Trong đó Tổng Đạt = SUM(Quantity + SuaDat) từ bảng này. BẮT BUỘC cộng cả Tổng Lỗi (từ bảng QTY) vào mẫu số.",
     "columns": [
       {
         "name": "Pid",
@@ -255,11 +255,11 @@
       },
       {
         "name": "Quantity",
-        "description": "Số sản phẩm đạt KCS. Sử dụng SUM(ISNULL(Quantity, 0)) khi tính toán."
+        "description": "!!! QUAN TRỌNG !!! Đây chỉ là 1 nửa của sản lượng đạt. Bạn BẮT BUỘC phải viết: SUM(ISNULL(Quantity, 0) + ISNULL(SuaDat, 0)) để có Tổng_Đạt đúng. Nếu thiếu + SuaDat là sai nghiệp vụ hoàn toàn."
       },
       {
         "name": "SuaDat",
-        "description": "Sản lượng đạt sau sửa lỗi. BẮT BUỘC cộng chung với Quantity để tạo thành mẫu số. Sử dụng SUM(ISNULL(SuaDat, 0)) khi tính toán."
+        "description": "!!! QUAN TRỌNG !!! Đây là 1 nửa của sản lượng đạt. Bạn BẮT BUỘC phải viết: SUM(ISNULL(Quantity, 0) + ISNULL(SuaDat, 0)) để có Tổng_Đạt đúng. Nếu thiếu Quantity là sai nghiệp vụ hoàn toàn."
       },
       {
         "name": "DefectNo",
@@ -277,7 +277,7 @@
   },
   {
     "table": "tbl_Steps",
-    "description": "Bảng danh mục định nghĩa các công đoạn kỹ thuật trong quy trình sản xuất (ví dụ: Viền, May, Ráp).",
+    "description": "Bảng danh mục định nghĩa các bước công đoạn (Ví dụ: MAY TP, KCS, RA CHUYỀN, UI, DONG GOI...). Cột cd_name chứa tên công đoạn. Dùng để JOIN với bảng SEW_CoefficientStyle khi người dùng cần xem năng suất của một khâu cụ thể.",
     "columns": [
       {
         "name": "Id_cd",
@@ -285,7 +285,7 @@
       },
       {
         "name": "cd_name",
-        "description": "Tên đầy đủ của công đoạn kỹ thuật (ví dụ: VIEN DKTT - Front zipper facing)."
+        "description": "Tên đầy đủ của công đoạn kỹ thuật (ví dụ: VIEN DKTT - Front zipper facing, RA CHUYỀN). QUY TẮC LỌC DỮ LIỆU: Khi người dùng nhắc đến một công đoạn bất kỳ (ví dụ: may, viền, cắt, ra chuyền...), BẮT BUỘC trích xuất từ khóa đó và sử dụng toán tử LIKE với tiền tố N: cd_name LIKE N'%<Từ_khóa>%'. TUYỆT ĐỐI KHÔNG dùng toán tử '=' so sánh tuyệt đối để tránh việc truy vấn trả về rỗng do sai khác chuỗi phụ."
       },
       {
         "name": "Id_board",
@@ -307,7 +307,7 @@
   },
   {
     "table": "QTY_MAHANG_NGAYKIEM",
-    "description": "Công thức TyLeLoi = SUM(ISNULL(SpLoi,0)) / (SUM(ISNULL(SpLoi,0)) + SUM(ISNULL(Quantity,0)) + SUM(ISNULL(SuaDat,0))). Bảng này cung cấp SpLoi (tử số). BẮT BUỘC dùng CAST(NgayKiem AS DATE) = 'YYYY-MM-DD' khi lọc ngày. Để tránh sai số, hãy tính SUM riêng biệt ở subquery cho từng bảng rồi mới JOIN lại (dùng CROSS JOIN nếu tính tổng toàn bộ, JOIN theo LineX nếu tính theo từng chuyền).",
+    "description": "Bảng cung cấp số liệu sản phẩm lỗi (SpLoi). CÔNG THỨC CHUẨN: % = (Tổng Lỗi) / (Tổng Lỗi + Tổng Đạt) * 100. Trong đó Tổng Lỗi là SUM(SpLoi) của bảng này, Tổng Đạt lấy từ SEW_CoefficientSize. BẮT BUỘC cộng cả Tổng Lỗi vào mẫu số.",
     "columns": [
       {
         "name": "ID",
@@ -355,7 +355,7 @@
       },
       {
         "name": "SLKCS",
-        "description": "Số lượng đối soát KCS. KHÔNG dùng làm mẫu số tỉ lệ lỗi (mẫu số phải lấy từ SEW_CoefficientSize.Quantity)."
+        "description": "Số lượng đối soát KCS tại khâu kiểm. Chỉ dùng để báo cáo kiểm tra nhanh. KHÔNG dùng làm mẫu số cho tỉ lệ lỗi chính thức (mẫu số chuẩn phải lấy từ bảng sản lượng SEW_CoefficientSize.Quantity)."
       },
       {
         "name": "SpLoi",
@@ -367,7 +367,7 @@
       },
       {
         "name": "SuaDat",
-        "description": "Số lượng lỗi đã sửa đạt. KHÔNG dùng trong công thức tỉ lệ lỗi."
+        "description": "Số lượng lỗi đã sửa đạt tại khâu kiểm. KHÔNG dùng trong công thức tỉ lệ lỗi tổng thể (SuaDat chuẩn dùng cho mẫu số phải lấy từ bảng SEW_CoefficientSize)."
       },
       {
         "name": "HangLoai",

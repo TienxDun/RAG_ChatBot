@@ -68,11 +68,13 @@ public sealed class RagOrchestrator
                     1. ĐỊNH DẠNG OUTPUT:
                        - CHỈ trả về mã SQL thô. KHÔNG giải thích, KHÔNG markdown, KHÔNG dấu chấm phẩy cuối.
 
-                    2. QUY TẮC ""SỐNG CÒN"" ĐỂ CÓ DỮ LIỆU (KIỂM TRA KỸ TRƯỚC KHI XUẤT):
+                    2. QUY TẮC XỬ LÝ DỮ LIỆU (ÁP DỤNG THEO NGỮ CẢNH):
                        - 🛡️ Lọc Ngày: Cột ngày thường chứa giờ, nên BẮT BUỘC dùng CAST(Tên_Cột AS DATE) = 'YYYY-MM-DD'. Nếu so sánh trực tiếp sẽ trả về NULL.
                        - 🛡️ Lọc Chuyền: Cột LineX là kiểu INT. KHÔNG được dùng nháy đơn (viết LineX = 101, KHÔNG viết LineX = '101').
-                       - 🛡️ Công thức Tỉ lệ: Phải đọc kỹ nội dung 'description' của từng bảng/cột để lấy đúng cột Tử số và Mẫu số tham gia tính toán. 
-                       - 🛡️ Quy tắc JOIN: Để tránh sai số tổng (data duplication), phải tính SUM riêng biệt từng bảng trong subquery/CTE rồi mới JOIN lại với nhau (theo quy tắc JOIN/CROSS JOIN ghi trong description).
+                       - 🛡️ Phân luồng dữ liệu: 
+                         1. NĂNG SUẤT: Dùng SEW_CoefficientStyle + tbl_Steps. Lọc mã hàng tại S.StypeId. Công thức: SUM(Quantity), SUM(DefectNo).
+                         2. TỈ LỆ LỖI %: Dùng QTY_MAHANG_NGAYKIEM (Lỗi) + SEW_CoefficientSize (Đạt). Lọc mã hàng tại cột MaHang hoặc StyleId. BẮT BUỘC dùng công thức % = Lỗi / (Lỗi + Đạt).
+                       - 🛡️ Quy tắc ""Chống nhầm lẫn"": TUYỆT ĐỐI KHÔNG tính 'Tỉ lệ lỗi %' bằng bảng SEW_CoefficientStyle. Bảng đó chỉ dùng cho Năng suất.
 
                     3. RÀNG BUỘC HỆ THỐNG:
                        - LUÔN thêm tiền tố N trước các chuỗi giá trị Tiếng Việt. Dùng mốc {currentTimeStr} cho các câu hỏi về thời gian.
