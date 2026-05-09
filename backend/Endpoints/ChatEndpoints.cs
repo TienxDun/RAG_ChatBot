@@ -101,7 +101,7 @@ public static class ChatEndpoints
             await SendEventAsync(new { type = "error", message = ex.Message });
         }
 
-        return Results.Empty;
+        return Results.Ok();
     }
 
     public static IResult HandleDownloadAsync(string id)
