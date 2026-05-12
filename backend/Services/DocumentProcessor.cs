@@ -89,8 +89,12 @@ public sealed class DocumentProcessor
         var points = new List<(IReadOnlyList<float> Vector, string Text, string FileName, int Index)>();
         for (int i = 0; i < chunks.Count; i++)
         {
-            int percent = 30 + (int)((i / (float)chunks.Count) * 60);
-            await onProgress(percent, $"Đang tạo vector cho đoạn {i + 1}/{chunks.Count}...");
+            var debugDir = Path.Combine(Directory.GetCurrentDirectory(), ".temp_debug");
+            if (!Directory.Exists(debugDir)) Directory.CreateDirectory(debugDir);
+
+            // Thêm timestamp để phân biệt các lần bóc tách
+            var safeFileName = string.Concat(fileName.Split(Path.GetInvalidFileNameChars()));
+            var debugPath = Path.Combine(debugDir, $"debug_{DateTime.Now:yyyyMMdd_HHmmss}_{safeFileName}.txt");
             
             var chunk = chunks[i];
             var vector = await _aiClient.GetEmbeddingAsync(chunk, "RETRIEVAL_DOCUMENT", 3072, ct);
