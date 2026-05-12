@@ -74,7 +74,7 @@ public sealed class DocumentProcessor
         }
 
         // Debug: Lưu vào thư mục riêng để tránh dotnet-watch restart
-        var debugDir = Path.Combine(Directory.GetCurrentDirectory(), "temp_debug");
+        var debugDir = Path.Combine(Directory.GetCurrentDirectory(), ".temp_debug");
         if (!Directory.Exists(debugDir)) Directory.CreateDirectory(debugDir);
         
         var debugPath = Path.Combine(debugDir, $"debug_{fileName}.txt");
