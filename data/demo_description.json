@@ -5,126 +5,157 @@
     "columns": [
       {
         "name": "MaLenh",
+        "data_type": "nvarchar",
         "description": "ID định danh hệ thống của lệnh sản xuất."
       },
       {
         "name": "TenLenh",
+        "data_type": "nvarchar",
         "description": "Tên định danh của lệnh (thường chứa mã đơn hàng và phiên bản)."
       },
       {
         "name": "MaHang",
+        "data_type": "nvarchar",
         "description": "Mã sản phẩm thực tế cần sản xuất."
       },
       {
         "name": "NgayTao",
+        "data_type": "datetime",
         "description": "Ngày hệ thống ghi nhận lệnh sản xuất."
       },
       {
         "name": "TuNgay",
+        "data_type": "datetime",
         "description": "Ngày dự kiến bắt đầu triển khai."
       },
       {
         "name": "DenNgay",
+        "data_type": "datetime",
         "description": "Ngày dự kiến kết thúc sản xuất."
       },
       {
         "name": "NgayXN",
+        "data_type": "datetime",
         "description": "Ngày xác nhận lệnh sản xuất chính thức."
       },
       {
         "name": "MaKhachHang",
+        "data_type": "nvarchar",
         "description": "Khóa ngoại liên kết với DIC_KHACHHANG.MaKhachHang. Mã đối tác/khách hàng đặt hàng (ví dụ: VKVN-01)."
       },
       {
         "name": "EmployeeID",
+        "data_type": "nvarchar",
         "description": "ID của nhân viên/quản lý phụ trách lệnh này."
       },
       {
         "name": "SLTong",
+        "data_type": "int",
         "description": "Tổng số lượng sản phẩm cần hoàn thành. Dùng làm thừa số trong công thức tính doanh thu: SUM(SLTong * VND) cho doanh thu VNĐ, hoặc SUM(SLTong * USD) cho doanh thu USD."
       },
       {
         "name": "SLNPL",
+        "data_type": "decimal",
         "description": "Số lượng nguyên phụ liệu liên quan (hiện đang để 0)."
       },
       {
         "name": "VND",
+        "data_type": "decimal",
         "description": "Đơn giá sản phẩm bằng tiền Việt Nam Đồng. CÔNG THỨC TÍNH DOANH THU VNĐ CHUẨN: SUM(SLTong * VND). BẮT BUỘC dùng cột này kết hợp với SLTong để tính doanh thu VNĐ, KHÔNG dùng cột GiaTong."
       },
       {
         "name": "USD",
+        "data_type": "decimal",
         "description": "Đơn giá sản phẩm bằng Đô la Mỹ. CÔNG THỨC TÍNH DOANH THU USD CHUẨN: SUM(SLTong * USD). BẮT BUỘC dùng cột này kết hợp với SLTong để tính doanh thu USD."
       },
       {
         "name": "IsDD",
+        "data_type": "int",
         "description": "Flag đánh dấu (có thể là Đơn hàng Đã Duyệt hoặc Đơn Định kỳ)."
       },
       {
         "name": "TileDG",
+        "data_type": "nvarchar",
         "description": "Tỉ lệ đóng gói (Dữ liệu mẫu hiện đang trống)."
       },
       {
         "name": "Tile",
+        "data_type": "nvarchar",
         "description": "Tỉ lệ phần trăm hao hụt hoặc tỉ lệ khác."
       },
       {
         "name": "KHChuan",
+        "data_type": "int",
         "description": "Flag xác định kế hoạch chuẩn (0/1)."
       },
       {
         "name": "Status",
+        "data_type": "int",
         "description": "Trạng thái hiện tại của lệnh (ví dụ: 3 - Đã hoàn thành/Đã chốt)."
       },
       {
         "name": "MoTa",
+        "data_type": "nvarchar",
         "description": "Ghi chú hoặc mô tả chi tiết thêm về lệnh."
       },
       {
         "name": "Vendor",
+        "data_type": "nvarchar",
         "description": "Mã nhà cung cấp vật tư liên quan."
       },
       {
         "name": "ProductTypeID",
+        "data_type": "nvarchar",
         "description": "Phân loại dòng sản phẩm (ví dụ: CL_1, CL_2)."
       },
       {
         "name": "SeaSon",
+        "data_type": "nvarchar",
         "description": "Mùa vụ hoặc năm tài chính của lệnh sản xuất (ví dụ: 2025)."
       },
       {
         "name": "IsMaChiTiet",
+        "data_type": "bit",
         "description": "Flag xác định lệnh này có mã chi tiết hay không."
       },
       {
         "name": "MaLenhSX",
+        "data_type": "nvarchar",
         "description": "Chuỗi mã gộp phức hợp dùng để truy xuất nhanh thông tin đơn hàng/xưởng."
       },
       {
         "name": "MaDH",
+        "data_type": "nvarchar",
         "description": "Mã đơn hàng tổng (Join với bảng Orders)."
       },
       {
         "name": "MaDVSX",
+        "data_type": "nvarchar",
         "description": "Mã đơn vị sản xuất trực tiếp thực hiện lệnh này."
       },
       {
         "name": "BookingMaHang",
+        "data_type": "nvarchar",
         "description": "Mã giữ chỗ (booking) hàng hóa nếu có."
       },
       {
         "name": "IsDSLT",
+        "data_type": "bit",
         "description": "Flag đánh dấu danh sách lũy tiến (Dữ liệu mẫu đang trống)."
       },
       {
         "name": "MaGop",
+        "data_type": "nvarchar",
         "description": "Mã gộp các lệnh nhỏ lại thành một nhóm sản xuất."
       },
       {
         "name": "GiaTong",
+        "data_type": "decimal",
         "description": "Tổng giá trị đơn hàng được hệ thống tính sẵn. TUYỆT ĐỐI KHÔNG dùng cột này để tính doanh thu. Doanh thu phải tính bằng công thức: SUM(SLTong * VND) cho VNĐ hoặc SUM(SLTong * USD) cho USD."
       },
       {
         "name": "GiaDuPhong",
+        "data_type": "decimal",
         "description": "Chi phí dự phòng cho các sai sót hoặc biến động giá."
       }
     ]
@@ -135,14 +166,17 @@
     "columns": [
       {
         "name": "MaKhachHang",
+        "data_type": "varchar",
         "description": "Mã định danh duy nhất của khách hàng (Primary Key). Dùng để liên kết với cột cùng tên trong các bảng đơn hàng và lệnh sản xuất."
       },
       {
         "name": "KhachHang",
+        "data_type": "nvarchar",
         "description": "Tên đầy đủ của khách hàng hoặc đơn vị đối tác (ví dụ: TEST DU LIEU)."
       },
       {
         "name": "Mota",
+        "data_type": "nvarchar",
         "description": "Các ghi chú hoặc mô tả bổ sung liên quan đến khách hàng."
       }
     ]
@@ -153,54 +187,67 @@
     "columns": [
       {
         "name": "PID",
+        "data_type": "bigint",
         "description": "ID bản ghi sản xuất."
       },
       {
         "name": "Linex",
+        "data_type": "int",
         "description": "Mã chuyền (kiểu INT, chữ x thường). Dùng WHERE Linex = 105 không có nháy đơn. KHÔNG dùng cho tỉ lệ lỗi."
       },
       {
         "name": "PoId",
+        "data_type": "varchar",
         "description": "FK liên kết ERP_LENHSX.MaLenh."
       },
       {
         "name": "StepId",
+        "data_type": "uniqueidentifier",
         "description": "FK liên kết tbl_Steps.Id_cd."
       },
       {
         "name": "StypeId",
+        "data_type": "varchar",
         "description": "Mã kiểu dáng hoặc Tên mã hàng (nếu có). Dùng để phân loại sản lượng."
       },
       {
         "name": "ColorId",
+        "data_type": "varchar",
         "description": "Mã màu sản phẩm."
       },
       {
         "name": "SizeTypeID",
+        "data_type": "varchar",
         "description": "Mã size sản phẩm."
       },
       {
         "name": "DateCreate",
+        "data_type": "datetime",
         "description": "Thời điểm ghi nhận sản lượng. BẮT BUỘC dùng CAST(DateCreate AS DATE) = 'YYYY-MM-DD' khi lọc theo ngày."
       },
       {
         "name": "TimeLineId",
+        "data_type": "int",
         "description": "ID khung giờ sản xuất."
       },
       {
         "name": "Quantity",
+        "data_type": "int",
         "description": "Sản lượng làm ra tại công đoạn (Tổng sản lượng)."
       },
       {
         "name": "DefectNo",
+        "data_type": "int",
         "description": "Số lỗi ghi nhận tại khâu (Dùng cho báo cáo NĂNG SUẤT). CẤM dùng cột này để tính 'Tỉ lệ lỗi %'. Tỉ lệ lỗi % phải lấy từ bảng QTY_MAHANG_NGAYKIEM."
       },
       {
         "name": "FixedNo",
+        "data_type": "int",
         "description": "Số lượng đã sửa lỗi tại công đoạn."
       },
       {
         "name": "DepDown",
+        "data_type": "varchar",
         "description": "Mã bộ phận nhận hàng tiếp theo."
       }
     ]
@@ -211,66 +258,82 @@
     "columns": [
       {
         "name": "Pid",
+        "data_type": "bigint",
         "description": "ID bản ghi kiểm tra."
       },
       {
         "name": "LineX",
+        "data_type": "varchar",
         "description": "Mã chuyền (kiểu INT, ví dụ 105). Dùng WHERE LineX = 105 không có nháy. Cột lọc chính theo chuyền."
       },
       {
         "name": "PoId",
+        "data_type": "varchar",
         "description": "FK liên kết ERP_LENHSX.MaLenh."
       },
       {
         "name": "StepId",
+        "data_type": "uniqueidentifier",
         "description": "FK liên kết tbl_Steps.Id_cd."
       },
       {
         "name": "StyleId",
+        "data_type": "varchar",
         "description": "Mã kiểu dáng."
       },
       {
         "name": "ColorId",
+        "data_type": "nvarchar",
         "description": "Mã màu."
       },
       {
         "name": "SizeTypeId",
+        "data_type": "varchar",
         "description": "Nhóm kích thước."
       },
       {
         "name": "PO",
+        "data_type": "varchar",
         "description": "Mã đơn hàng chi tiết."
       },
       {
         "name": "SizeId",
+        "data_type": "nvarchar",
         "description": "Kích thước cụ thể."
       },
       {
         "name": "DateCreate",
+        "data_type": "datetime",
         "description": "BẮT BUỘC dùng CAST(DateCreate AS DATE) = 'YYYY-MM-DD' khi lọc theo ngày, vì cột chứa cả giờ phút giây"
       },
       {
         "name": "TimeLineId",
+        "data_type": "int",
         "description": "Mốc thời gian ghi nhận."
       },
       {
         "name": "Quantity",
+        "data_type": "int",
         "description": "!!! QUAN TRỌNG !!! Đây chỉ là 1 nửa của sản lượng đạt. Bạn BẮT BUỘC phải viết: SUM(ISNULL(Quantity, 0) + ISNULL(SuaDat, 0)) để có Tổng_Đạt đúng. Nếu thiếu + SuaDat là sai nghiệp vụ hoàn toàn."
       },
       {
         "name": "SuaDat",
+        "data_type": "int",
         "description": "!!! QUAN TRỌNG !!! Đây là 1 nửa của sản lượng đạt. Bạn BẮT BUỘC phải viết: SUM(ISNULL(Quantity, 0) + ISNULL(SuaDat, 0)) để có Tổng_Đạt đúng. Nếu thiếu Quantity là sai nghiệp vụ hoàn toàn."
       },
       {
         "name": "DefectNo",
+        "data_type": "int",
         "description": "KHÔNG dùng làm số lỗi. Số lỗi lấy từ SpLoi của QTY_MAHANG_NGAYKIEM."
       },
       {
         "name": "NVKiemKCS",
+        "data_type": "nvarchar",
         "description": "Nhân viên kiểm KCS."
       },
       {
         "name": "CheckType",
+        "data_type": "int",
         "description": "Loại kiểm tra."
       }
     ]
@@ -281,26 +344,32 @@
     "columns": [
       {
         "name": "Id_cd",
+        "data_type": "uniqueidentifier",
         "description": "Khóa chính (Primary Key) của bảng công đoạn. Mã định danh duy nhất (GUID) được tham chiếu bởi cột StepId trong các bảng SEW_CoefficientStyle và SEW_CoefficientSize."
       },
       {
         "name": "cd_name",
+        "data_type": "nvarchar",
         "description": "Tên đầy đủ của công đoạn kỹ thuật (ví dụ: VIEN DKTT - Front zipper facing, RA CHUYỀN). QUY TẮC LỌC DỮ LIỆU: Khi người dùng nhắc đến một công đoạn bất kỳ (ví dụ: may, viền, cắt, ra chuyền...), BẮT BUỘC trích xuất từ khóa đó và sử dụng toán tử LIKE với tiền tố N: cd_name LIKE N'%<Từ_khóa>%'. TUYỆT ĐỐI KHÔNG dùng toán tử '=' so sánh tuyệt đối để tránh việc truy vấn trả về rỗng do sai khác chuỗi phụ."
       },
       {
         "name": "Id_board",
+        "data_type": "int",
         "description": "ID bảng điều khiển hoặc vị trí hiển thị trên Dashboard sản xuất."
       },
       {
         "name": "Descriptions",
+        "data_type": "nvarchar",
         "description": "Mô tả chi tiết về yêu cầu kỹ thuật của công đoạn (hiện tại đang trống)."
       },
       {
         "name": "StyleID",
+        "data_type": "uniqueidentifier",
         "description": "Mã kiểu dáng áp dụng công đoạn này (nếu công đoạn là đặc thù cho từng mẫu hàng)."
       },
       {
         "name": "DisplayName",
+        "data_type": "nvarchar",
         "description": "Tên hiển thị ngắn gọn dùng cho giao diện người dùng hoặc báo cáo nhanh (ví dụ: V.DKTT)."
       }
     ]
@@ -311,14 +380,17 @@
     "columns": [
       {
         "name": "ID",
+        "data_type": "bigint",
         "description": "Mã bản ghi kiểm tra."
       },
       {
         "name": "NgayKiem",
+        "data_type": "datetime",
         "description": "BẮT BUỘC dùng CAST(NgayKiem AS DATE) = 'YYYY-MM-DD' khi lọc theo ngày, vì cột chứa cả giờ phút giây"
       },
       {
         "name": "LineX",
+        "data_type": "varchar",
         "description": "Mã chuyền (kiểu INT, ví dụ 105). Dùng WHERE LineX = 105 không có nháy. Cột lọc chính theo chuyền."
       },
       {
@@ -327,10 +399,12 @@
       },
       {
         "name": "StyleID",
+        "data_type": "varchar",
         "description": "Mã kiểu dáng."
       },
       {
         "name": "MaHang",
+        "data_type": "nvarchar",
         "description": "Tên/mã hàng hóa."
       },
       {
@@ -339,74 +413,97 @@
       },
       {
         "name": "PO",
+        "data_type": "nvarchar",
         "description": "Số đơn hàng (Purchase Order)."
       },
       {
         "name": "DauSizeID / DauSize",
+        "data_type": "nvarchar",
         "description": "Thông tin đầu size."
       },
       {
         "name": "ColorID / MaMau",
+        "data_type": "nvarchar",
         "description": "Mã màu và tên màu."
       },
       {
         "name": "SizeID / Size",
+        "data_type": "nvarchar",
         "description": "Mã và kích cỡ thực tế."
       },
       {
+        "name": "SLKiem",
+        "data_type": "int",
+        "description": "Số lượng kiểm tra."
+      },
+      {
         "name": "SLKCS",
+        "data_type": "int",
         "description": "Số lượng đối soát KCS tại khâu kiểm. Chỉ dùng để báo cáo kiểm tra nhanh. KHÔNG dùng làm mẫu số cho tỉ lệ lỗi chính thức (mẫu số chuẩn phải lấy từ bảng sản lượng SEW_CoefficientSize.Quantity)."
       },
       {
         "name": "SpLoi",
+        "data_type": "int",
         "description": "Số sản phẩm lỗi (tử số). Sử dụng SUM(ISNULL(SpLoi, 0)) khi tính toán."
       },
       {
         "name": "TH_Ngay",
+        "data_type": "int",
         "description": "Chỉ số tổng hợp theo ngày."
       },
       {
         "name": "SuaDat",
+        "data_type": "int",
         "description": "Số lượng lỗi đã sửa đạt tại khâu kiểm. KHÔNG dùng trong công thức tỉ lệ lỗi tổng thể (SuaDat chuẩn dùng cho mẫu số phải lấy từ bảng SEW_CoefficientSize)."
       },
       {
         "name": "HangLoai",
+        "data_type": "int",
         "description": "Số sản phẩm hàng loại B."
       },
       {
         "name": "GhiChu",
+        "data_type": "nvarchar",
         "description": "Ghi chú kiểm tra."
       },
       {
         "name": "SpLoiQA",
+        "data_type": "int",
         "description": "Số lỗi do QA ghi nhận."
       },
       {
         "name": "IsQC",
+        "data_type": "int",
         "description": "Flag đã qua kiểm tra chất lượng (0/1)."
       },
       {
         "name": "NVKiem",
+        "data_type": "nvarchar",
         "description": "Nhân viên kiểm tra."
       },
       {
         "name": "LanKiem",
+        "data_type": "int",
         "description": "Số lần kiểm tra."
       },
       {
         "name": "StatusHT",
+        "data_type": "int",
         "description": "Trạng thái hoàn thành."
       },
       {
         "name": "SignPTDonVi / SignKT / SignToTruong / SignNVKiem",
+        "data_type": "nvarchar",
         "description": "Các trường ký xác nhận."
       },
       {
         "name": "Version",
+        "data_type": "int",
         "description": "Phiên bản bản ghi."
       },
       {
         "name": "CheckType",
+        "data_type": "int",
         "description": "Phân loại kiểm tra."
       }
     ]
