@@ -38,7 +38,6 @@
     position: relative;
 }
 
-.input-wrapper:hover,
 .input-wrapper:focus-within,
 .input-wrapper.is-expanded {
     max-width: 900px;
@@ -97,6 +96,12 @@
     gap: 0.5rem;
     transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 10px 40px rgba(124, 58, 237, 0.1);
+    cursor: text; /* Đảm bảo hiện trỏ chuột dạng nhập liệu khi di chuyển vào vùng này */
+}
+
+.input-container:hover {
+    background: var(--card); /* Đổi sang nền đặc hơn một chút khi hover để tăng tương phản cho trỏ chuột */
+    border-color: var(--primary);
 }
 
 @media (min-width: 640px) {
@@ -186,7 +191,8 @@ textarea {
     max-height: 200px;
     color: var(--foreground);
     line-height: 1.5;
-    overflow-y: hidden; /* Quan trọng để tính năng auto-resize hoạt động không bị hiện scrollbar */
+    overflow-y: hidden; 
+    caret-color: var(--primary); /* Ép vạch nhấp nháy có màu tím để không bị trùng màu nền trắng/glass */
 }
 
 textarea::placeholder {

@@ -116,16 +116,18 @@ export class MessageRenderer {
 
         let finalHtml = this.renderContent(processedContent);
 
-        // Trả lại terminal vào vị trí ban đầu
-        placeholders.forEach(p => {
+        // Trả lại terminal vào vị trí ban đầu (xử lý ngược để giải quyết placeholder lồng nhau)
+        for (let i = placeholders.length - 1; i >= 0; i--) {
+            const p = placeholders[i];
             const wrappers = [`<p>${p.id}</p>`, `<strong>${p.id}</strong>`, p.id];
             for (const w of wrappers) {
                 if (finalHtml.includes(w)) {
+                    // Thay thế tất cả các lần xuất hiện của wrapper này bằng p.html
                     finalHtml = finalHtml.split(w).join(p.html);
                     break;
                 }
             }
-        });
+        }
 
         return finalHtml;
     }

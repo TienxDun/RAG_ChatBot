@@ -110,9 +110,44 @@ public sealed class DocumentProcessor
 
                     foreach (var prop in item.EnumerateObject())
                     {
-                        var value = prop.Value.ToString();
-                        metadata[prop.Name] = value;
-                        sb.AppendLine($"{prop.Name}: {value}");
+                        string displayValue;
+                        if (prop.Value.ValueKind == JsonValueKind.Array)
+                        {
+                            var list = new List<string>();
+                            foreach (var element in prop.Value.EnumerateArray())
+                            {
+                                if (element.ValueKind == JsonValueKind.Object)
+                                {
+                                    // Ưu tiên format cho danh sách các cột (name + description)
+                                    if (element.TryGetProperty("name", out var nameProp))
+                                    {
+                                        var name = nameProp.GetString();
+                                        var desc = element.TryGetProperty("description", out var descProp) ? descProp.GetString() : "";
+                                        list.Add(string.IsNullOrWhiteSpace(desc) ? name! : $"{name}: {desc}");
+                                    }
+                                    else
+                                    {
+                                        list.Add(element.ToString());
+                                    }
+                                }
+                                else
+                                {
+                                    list.Add(element.ToString());
+                                }
+                            }
+                            displayValue = list.Count > 0 ? "\n  - " + string.Join("\n  - ", list) : "[]";
+                        }
+                        else if (prop.Value.ValueKind == JsonValueKind.Object)
+                        {
+                            displayValue = "\n" + JsonSerializer.Serialize(prop.Value, new JsonSerializerOptions { WriteIndented = true });
+                        }
+                        else
+                        {
+                            displayValue = prop.Value.ToString();
+                        }
+
+                        metadata[prop.Name] = prop.Value.ToString();
+                        sb.AppendLine($"{prop.Name}: {displayValue}");
                     }
 
                     var descriptiveText = sb.ToString().Trim();
