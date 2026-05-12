@@ -1,7 +1,7 @@
 [
   {
     "table": "ERP_LENHSX",
-    "description": "Bảng dữ liệu chi tiết lệnh sản xuất bao gồm thông số kỹ thuật, kế hoạch, trạng thái và tài chính.",
+    "description": "Bảng dữ liệu chi tiết lệnh sản xuất bao gồm thông số kỹ thuật, kế hoạch, trạng thái và tài chính. CÔNG THỨC TÍNH DOANH THU CHUẨN: SELECT SUM(SLTong * VND) AS DoanhThu_VND FROM ERP_LENHSX WHERE Status = 3. TUYỆT ĐỐI KHÔNG dùng cột GiaTong để tính doanh thu.",
     "columns": [
       {
         "name": "MaLenh",
@@ -41,7 +41,7 @@
       },
       {
         "name": "SLTong",
-        "description": "Tổng số lượng sản phẩm cần hoàn thành."
+        "description": "Tổng số lượng sản phẩm cần hoàn thành. Dùng làm thừa số trong công thức tính doanh thu: SUM(SLTong * VND) cho doanh thu VNĐ, hoặc SUM(SLTong * USD) cho doanh thu USD."
       },
       {
         "name": "SLNPL",
@@ -49,11 +49,11 @@
       },
       {
         "name": "VND",
-        "description": "Đơn giá hoặc giá trị bằng tiền Việt Nam Đồng."
+        "description": "Đơn giá sản phẩm bằng tiền Việt Nam Đồng. CÔNG THỨC TÍNH DOANH THU VNĐ CHUẨN: SUM(SLTong * VND). BẮT BUỘC dùng cột này kết hợp với SLTong để tính doanh thu VNĐ, KHÔNG dùng cột GiaTong."
       },
       {
         "name": "USD",
-        "description": "Đơn giá hoặc giá trị bằng Đô la Mỹ."
+        "description": "Đơn giá sản phẩm bằng Đô la Mỹ. CÔNG THỨC TÍNH DOANH THU USD CHUẨN: SUM(SLTong * USD). BẮT BUỘC dùng cột này kết hợp với SLTong để tính doanh thu USD."
       },
       {
         "name": "IsDD",
@@ -121,7 +121,7 @@
       },
       {
         "name": "GiaTong",
-        "description": "Tổng giá trị đơn hàng dựa trên số lượng và đơn giá."
+        "description": "Tổng giá trị đơn hàng được hệ thống tính sẵn. TUYỆT ĐỐI KHÔNG dùng cột này để tính doanh thu. Doanh thu phải tính bằng công thức: SUM(SLTong * VND) cho VNĐ hoặc SUM(SLTong * USD) cho USD."
       },
       {
         "name": "GiaDuPhong",
