@@ -1,4 +1,4 @@
-/* MessageRenderer.js - Logic for rendering chat messages */
+// MessageRenderer.js - Logic for rendering chat messages
 import { CONFIG } from '../core/Config.js';
 
 export class MessageRenderer {

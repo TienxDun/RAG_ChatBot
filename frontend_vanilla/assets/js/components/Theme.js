@@ -1,4 +1,4 @@
-/* Theme.js - Theme switching logic */
+// Theme.js - Dark/Light Theme management logic
 import { state } from '../core/State.js';
 import { SELECTORS } from '../core/Config.js';
 

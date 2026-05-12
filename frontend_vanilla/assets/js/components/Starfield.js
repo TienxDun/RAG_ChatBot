@@ -1,4 +1,4 @@
-/* Starfield.js - Background animation logic */
+// Starfield.js - Background animation logic
 import { state } from '../core/State.js';
 
 export class StarfieldComponent {

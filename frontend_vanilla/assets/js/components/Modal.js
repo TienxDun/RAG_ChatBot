@@ -1,4 +1,4 @@
-/* Modal.js - File Upload Modal logic */
+// Modal.js - File Upload Modal logic
 import { state } from '../core/State.js';
 import { SELECTORS, CONFIG, ENDPOINTS } from '../core/Config.js';
 import { ApiClient } from '../core/ApiClient.js';

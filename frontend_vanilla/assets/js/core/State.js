@@ -1,4 +1,4 @@
-/* State.js - Simple State Management */
+// State.js - Simple State Management
 
 class State {
     constructor() {

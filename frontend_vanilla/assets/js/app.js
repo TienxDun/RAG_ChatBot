@@ -1,4 +1,4 @@
-/* app.js - Main Application Entry Point */
+// app.js - Main Application Entry Point
 import { ThemeComponent } from './components/Theme.js';
 import { SidebarComponent } from './components/Sidebar.js';
 import { ModalComponent } from './components/Modal.js';

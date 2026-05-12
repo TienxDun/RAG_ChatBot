@@ -1,4 +1,4 @@
-/* Toast.js - Logic for displaying UI notifications */
+// Toast.js - Toast notification system logic
 
 export class Toast {
     static container = null;
@@ -11,10 +11,7 @@ export class Toast {
         document.body.appendChild(this.container);
     }
 
-    /**
-     * Show a toast notification
-     * @param {Object} options - { title, message, type: 'success'|'error'|'info'|'warning', duration: 3000 }
-     */
+    // @param {Object} options - { title, message, type: 'success'|'error'|'info'|'warning', duration: 3000 }
     static show({ title, message, type = 'info', duration = 3000 }) {
         this.init();
 

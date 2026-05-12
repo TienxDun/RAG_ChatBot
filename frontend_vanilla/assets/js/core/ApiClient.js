@@ -1,44 +1,32 @@
 import { CONFIG } from './Config.js';
 import { env } from '../env.js';
 
-/**
- * ApiClient.js - Centralized API handler with environment-awareness and clean architecture
- */
+// ApiClient.js - Centralized API handler with environment-awareness and clean architecture
 export class ApiClient {
-    /**
-     * Helper để xây dựng URL đầy đủ nếu cần
-     * @param {string} endpoint - Path hoặc URL đầy đủ
-     */
+    // Helper để xây dựng URL đầy đủ nếu cần
+    // @param {string} endpoint - Path hoặc URL đầy đủ
     static _resolveUrl(endpoint) {
         if (endpoint.startsWith('http')) return endpoint;
         const cleanPath = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
         return `${CONFIG.API_BASE_URL}${cleanPath}`;
     }
 
-    /**
-     * Helper log theo điều kiện môi trường và tùy chọn silent
-     */
+    // Helper log theo điều kiện môi trường và tùy chọn silent
     static _log(options, ...args) {
         if (env.DEBUG && !options?.silent) console.log(...args);
     }
 
-    /**
-     * Helper log group theo điều kiện môi trường và tùy chọn silent
-     */
+    // Helper log group theo điều kiện môi trường và tùy chọn silent
     static _group(options, label) {
         if (env.DEBUG && !options?.silent) console.group(label);
     }
 
-    /**
-     * Helper kết thúc log group
-     */
+    // Helper kết thúc log group
     static _groupEnd(options) {
         if (env.DEBUG && !options?.silent) console.groupEnd();
     }
 
-    /**
-     * Xử lý lỗi phản hồi từ Server
-     */
+    // Xử lý lỗi phản hồi từ Server
     static async _handleResponse(response) {
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
@@ -48,11 +36,9 @@ export class ApiClient {
         return response;
     }
 
-    /**
-     * Gửi yêu cầu GET thông thường
-     * @param {string} endpoint 
-     * @param {object} options - { silent: boolean }
-     */
+    // Gửi yêu cầu GET thông thường
+    // @param {string} endpoint 
+    // @param {object} options - { silent: boolean }
     static async get(endpoint, options = {}) {
         const url = this._resolveUrl(endpoint);
         this._group(options, `🌐 API GET: ${url}`);
@@ -74,12 +60,10 @@ export class ApiClient {
         }
     }
 
-    /**
-     * Gửi yêu cầu POST thông thường (JSON)
-     * @param {string} endpoint 
-     * @param {object} data 
-     * @param {object} options - { silent: boolean }
-     */
+    // Gửi yêu cầu POST thông thường (JSON)
+    // @param {string} endpoint 
+    // @param {object} data 
+    // @param {object} options - { silent: boolean }
     static async post(endpoint, data, options = {}) {
         const url = this._resolveUrl(endpoint);
         this._group(options, `🌐 API POST: ${url}`);
@@ -104,9 +88,7 @@ export class ApiClient {
         }
     }
 
-    /**
-     * Gửi yêu cầu và nhận dữ liệu stream (SSE)
-     */
+    // Gửi yêu cầu và nhận dữ liệu stream (SSE)
     static async fetchStream(endpoint, options = {}, onMessage) {
         const url = this._resolveUrl(endpoint);
         this._group(options, `📡 API STREAM: ${url}`);
@@ -180,9 +162,7 @@ export class ApiClient {
         }
     }
 
-    /**
-     * Tải file và nhận stream tiến trình
-     */
+    // Tải file và nhận stream tiến trình
     static async uploadFiles(endpoint, files, collectionName, onProgress) {
         const formData = new FormData();
         files.forEach(file => formData.append('files', file));
@@ -196,9 +176,7 @@ export class ApiClient {
         }, onProgress);
     }
 
-    /**
-     * Helper parse JSON từ SSE
-     */
+    // Helper parse JSON từ SSE
     static _parseAndNotify(jsonString, onMessage, options = {}) {
         try {
             const data = JSON.parse(jsonString);

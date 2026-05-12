@@ -1,4 +1,4 @@
-/* ChatArea.js - Chat area interactions & Messaging */
+// ChatArea.js - Chat area interactions & Messaging
 import { SELECTORS, ENDPOINTS } from '../core/Config.js';
 import { MessageRenderer } from './MessageRenderer.js';
 import { ApiClient } from '../core/ApiClient.js';

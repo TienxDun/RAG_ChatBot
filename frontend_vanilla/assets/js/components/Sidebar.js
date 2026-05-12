@@ -1,4 +1,4 @@
-/* Sidebar.js - Sidebar & History logic */
+// Sidebar.js - Sidebar & History management
 import { state } from '../core/State.js';
 import { SELECTORS } from '../core/Config.js';
 

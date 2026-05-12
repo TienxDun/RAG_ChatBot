@@ -1,6 +1,6 @@
 import { env } from '../env.js';
 
-/* Config.js - Central configuration and constants */
+// Config.js - Central configuration and constants
 
 export const CONFIG = {
     API_BASE_URL: env.API_BASE_URL, // Lấy từ biến môi trường
