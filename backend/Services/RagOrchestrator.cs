@@ -153,21 +153,18 @@ public sealed class RagOrchestrator
             {sqlResultJson}
 
             NHIỆM VỤ:
-            1. Trình bày câu trả lời cực kỳ CHUYÊN NGHIỆP, DỄ THEO DÕI theo cấu trúc Markdown sau:
-               - ## 📊 KẾT QUẢ PHÂN TÍCH
-                 > [Câu trả lời trực tiếp, súc tích. **BẮT BUỘC nêu rõ mốc thời gian** liên quan. In đậm các con số quan trọng].
+            1. Trình bày câu trả lời cực kỳ CHUYÊN NGHIỆP và ĐẸP MẮT theo định dạng Markdown:
+               - ### 💠 Tổng quan kết quả
+                 [Câu trả lời trực tiếp. **BẮT BUỘC nêu rõ mốc thời gian, ngày tháng năm** liên quan đến dữ liệu này dựa trên thời gian hệ thống hoặc dữ liệu truy vấn được. In đậm các con số quan trọng]. Ngắt dòng hợp lý.
 
-               - ### 💠 Chi tiết số liệu
-                 [Sử dụng bảng Markdown (| Cột 1 | Cột 2 |) nếu có danh sách dữ liệu. Nếu chỉ có 1 vài chỉ số, dùng danh sách bullet points có Emoji].
-                 *Lưu ý: Format số có dấu phẩy ngăn cách hàng nghìn (ví dụ: 1,250,000)*.
+               - ### 📋 Bảng dữ liệu chi tiết
+                 [Nếu có danh sách dữ liệu, BẮT BUỘC sử dụng bảng Markdown với các cột rõ ràng. Nếu chỉ có 1 con số, hãy trình bày dạng danh sách bullet points].
+                 Lưu ý: Format số có dấu phẩy ngăn cách hàng nghìn (ví dụ: 67,800).
 
-               - ### 💡 Nhận xét & Phân tích
-                 [Đưa ra 2-3 nhận xét hoặc giải thích ngắn gọn về logic tính toán/nguồn gốc của dữ liệu này].
+               - ### ⚡ Phân tích logic
+                 [Giải thích ngắn gọn logic hoặc công thức tính toán].
 
-               - ### 📄 Nguồn tham khảo
-                 [Liệt kê tên các bảng hoặc file tài liệu liên quan được sử dụng để trả lời].
-
-            2. Đề xuất 3 câu hỏi tiếp theo (đa dạng, thực tế, gợi ý người dùng khai thác sâu hơn dữ liệu).
+            2. Đề xuất 3 câu hỏi tiếp theo (đa dạng, thực tế).
 
             YÊU CẦU ĐỊNH DẠNG: Trả về JSON duy nhất:
             {{
@@ -176,9 +173,9 @@ public sealed class RagOrchestrator
             }}
 
             LƯU Ý QUAN TRỌNG:
-            - Nếu dữ liệu JSON có thông báo [ERROR], hãy trả lời: ""⚠️ **Rất tiếc, hệ thống gặp khó khăn khi kết nối với cơ sở dữ liệu.** Vui lòng thử lại sau giây lát hoặc diễn đạt lại câu hỏi rõ ràng hơn.""
+            - Nếu dữ liệu JSON có thông báo [ERROR], hãy trả lời: ""Rất tiếc, hệ thống gặp khó khăn khi truy vấn dữ liệu này. Vui lòng thử lại hoặc diễn đạt câu hỏi theo cách khác.""
             - Luôn sử dụng \n cho các lần xuống dòng trong JSON string.
-            - Không viết quá dài dòng, ưu tiên sự rõ ràng và tính thẩm mỹ của Markdown.";
+            - Không sử dụng quá nhiều chữ, tập trung vào số liệu và bảng.";
 
         var rawResponse = await _aiClient.GenerateContentAsync(finalPrompt, ct);
         

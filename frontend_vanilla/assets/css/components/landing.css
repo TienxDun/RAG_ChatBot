@@ -1,14 +1,7 @@
 /* Landing View */
 .landing {
     flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem;
-    text-align: center;
-    min-height: 100%;
-    position: relative;
+    display: none; /* Ẩn landing-view vì toàn bộ nội dung đã nằm trong input-section */
 }
 
 .landing__content {
@@ -21,12 +14,7 @@
 }
 
 .landing__logo {
-    margin-bottom: 4rem; /* Giảm gap so với 10rem cũ */
-}
-
-.suggestions {
-    margin-top: 4rem; /* Tạo khoảng trống tương xứng cho thanh input ở giữa */
-    transition: all 0.4s ease;
+    margin-bottom: 2rem;
 }
 
 .landing__logo {

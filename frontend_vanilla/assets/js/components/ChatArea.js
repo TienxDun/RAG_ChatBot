@@ -205,8 +205,16 @@ export class ChatAreaComponent {
 
     handleInput() {
         if (this.chatInput) {
-            this.chatInput.style.height = 'auto';
-            this.chatInput.style.height = this.chatInput.scrollHeight + 'px';
+            // Đặt về 0 để ép trình duyệt tính toán lại chiều cao thực tế của nội dung (scrollHeight)
+            this.chatInput.style.height = '0px';
+            const scrollHeight = this.chatInput.scrollHeight;
+            
+            // Nếu có nội dung, dãn theo scrollHeight, nếu không thì để mặc định (sẽ do padding CSS quyết định)
+            if (this.chatInput.value.trim() === '') {
+                this.chatInput.style.height = 'auto';
+            } else {
+                this.chatInput.style.height = scrollHeight + 'px';
+            }
         }
         
         this.updateInputUI();
@@ -296,6 +304,7 @@ export class ChatAreaComponent {
         this.appendMessage('user', text, [], [], null, null, this.selectedFile);
         this.chatInput.value = '';
         this.handleInput();
+        this.chatArea.classList.remove('is-landing'); // Thoát trạng thái landing khi gửi tin nhắn
 
         this.setLoading(true);
         const typingIndicator = MessageRenderer.createTypingIndicator();
@@ -407,6 +416,7 @@ export class ChatAreaComponent {
         if (this.messagesList.classList.contains('hidden')) {
             this.landingView.classList.add('hidden');
             this.messagesList.classList.remove('hidden');
+            this.chatArea.classList.remove('is-landing'); // Thoát trạng thái landing
         }
 
         const msgEl = MessageRenderer.createMessageElement(role, content, steps, suggestions, downloadUrl, rawData, userFile);
@@ -432,6 +442,7 @@ export class ChatAreaComponent {
         this.messagesList.innerHTML = '';
         this.landingView.classList.add('hidden');
         this.messagesList.classList.remove('hidden');
+        this.chatArea.classList.remove('is-landing'); // Thoát trạng thái landing
 
         if (conversation.messages?.length > 0) {
             conversation.messages.forEach(msg => {
@@ -553,6 +564,7 @@ export class ChatAreaComponent {
         this.messagesList.innerHTML = '';
         this.messagesList.classList.add('hidden');
         this.landingView.classList.remove('hidden');
+        this.chatArea.classList.add('is-landing'); // Quay lại trạng thái landing
         this.lastRawData = null;
         state.currentConversationId = null;
     }

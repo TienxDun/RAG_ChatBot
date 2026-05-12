@@ -29,13 +29,19 @@
 
 .input-wrapper {
     width: 100%;
-    max-width: 840px;
+    max-width: 800px;
     margin: 0 auto;
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    transition: max-width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
+}
+
+.input-wrapper:hover,
+.input-wrapper:focus-within,
+.input-wrapper.is-expanded {
+    max-width: 900px;
 }
 
 /* Collection Selector Styles */
@@ -77,11 +83,10 @@
     padding: 8px;
 }
 
-.input-wrapper.is-expanded {
-    max-width: 900px; /* Khớp với độ rộng khung chat messages-list */
-}
+/* Xóa bỏ rule cũ gây xung đột */
 
 .input-container {
+    width: 100%;
     background: var(--glass-bg);
     backdrop-filter: blur(20px);
     border: 1px solid rgba(124, 58, 237, 0.1);
@@ -118,35 +123,51 @@
     box-shadow: 0 0 25px rgba(139, 92, 246, 0.3), 0 10px 40px rgba(0, 0, 0, 0.5);
 }
 
-/* Kỹ thuật đẩy thanh input lên giữa CHÍNH XÁC khi ở trang chủ */
-.messages-list.hidden ~ .input-section {
-    position: absolute;
-    top: 50%;
-    left: 0 !important;
-    right: 0 !important;
+/* Trạng thái Landing (Trang chủ) */
+.chat-area.is-landing .input-section {
+    position: relative;
     bottom: auto;
-    transform: translateY(-50%); 
+    left: auto;
+    right: auto;
     background: transparent;
-    z-index: 100;
-    width: 100% !important;
+    padding: 0;
+    width: 100%;
     display: flex;
     justify-content: center;
-    pointer-events: none; /* Tránh cản trở click vào vùng landing */
+    z-index: 100;
 }
 
-.messages-list.hidden ~ .input-section .input-wrapper {
-    pointer-events: auto; /* Cho phép tương tác với input */
-}
-
-.messages-list.hidden ~ .input-section .input-wrapper {
-    max-width: 800px;
+.chat-area.is-landing .input-wrapper {
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center; 
     width: 100%;
     padding: 0 1.5rem;
-    transition: max-width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.messages-list.hidden ~ .input-section .input-wrapper.is-expanded {
-    max-width: 880px; /* Dãn rộng trên homepage khi focus */
+.chat-area.is-landing .landing__logo {
+    margin-bottom: 3rem;
+}
+
+.chat-area.is-landing .collection-selector-group {
+    align-self: flex-start;
+    margin-bottom: 0.5rem;
+}
+
+.chat-area.is-landing .suggestions {
+    margin-top: 2rem;
+}
+
+.chat-area.is-landing .input-footer {
+    display: none;
+}
+
+/* Ẩn logo và suggestions khi KHÔNG ở landing */
+.chat-area:not(.is-landing) .landing__logo,
+.chat-area:not(.is-landing) .suggestions {
+    display: none;
 }
 
 .messages-list.hidden ~ .input-section .input-footer {
@@ -165,6 +186,7 @@ textarea {
     max-height: 200px;
     color: var(--foreground);
     line-height: 1.5;
+    overflow-y: hidden; /* Quan trọng để tính năng auto-resize hoạt động không bị hiện scrollbar */
 }
 
 textarea::placeholder {

@@ -90,30 +90,9 @@
         </header>
 
         <!-- Chat Area -->
-        <div id="chat-area" class="chat-area">
-            <!-- Landing View -->
-            <div id="landing-view" class="landing">
-                <div class="landing__content">
-                    <div class="landing__logo animate-float">
-                        <div class="logo-square-rotated">
-                            <div class="logo-pulse-dot"></div>
-                        </div>
-                        <h1 class="landing__brand-v2">DO<span>DO</span></h1>
-                    </div>
-                    
-                    <div class="suggestions">
-                        <button class="suggestion-tag" data-value="Doanh thu tháng này là bao nhiêu?">
-                            Doanh thu
-                        </button>
-                        <button class="suggestion-tag" data-value="Ai là khách hàng tiềm năng nhất?">
-                            Khách hàng
-                        </button>
-                        <button class="suggestion-tag" data-value="Báo cáo sản phẩm sắp hết hàng">
-                            Tồn kho
-                        </button>
-                    </div>
-                </div>
-            </div>
+        <div id="chat-area" class="chat-area is-landing">
+            <!-- Landing View (Empty, logo moved to input-section) -->
+            <div id="landing-view" class="landing"></div>
 
             <!-- Messages List -->
             <div id="messages-list" class="messages-list hidden">
@@ -123,6 +102,14 @@
             <!-- Input Section (Moved inside chat-area for better CSS targeting) -->
             <section class="input-section animate-in fade-in slide-in-from-bottom-6 duration-1000">
                 <div class="input-wrapper">
+                    <!-- Logo moved inside for unified spacing -->
+                    <div class="landing__logo animate-float home-only">
+                        <div class="logo-square-rotated">
+                            <div class="logo-pulse-dot"></div>
+                        </div>
+                        <h1 class="landing__brand-v2">DO<span>DO</span></h1>
+                    </div>
+
                     <!-- Collection Selector -->
                     <div class="collection-selector-group animate-in fade-in">
                         <i class="ph-duotone ph-database"></i>
@@ -172,6 +159,20 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Suggestions moved here -->
+                    <div class="suggestions">
+                        <button class="suggestion-tag" data-value="Doanh thu thực tế trong năm 2025 là bao nhiêu?">
+                            Doanh thu 2025
+                        </button>
+                        <button class="suggestion-tag" data-value="Thống kê năng suất sản lượng của các chuyền trong hôm nay">
+                            Năng suất xưởng
+                        </button>
+                        <button class="suggestion-tag" data-value="Tính tỉ lệ lỗi % dựa trên sản lượng đạt và số lỗi ghi nhận">
+                            Tỉ lệ lỗi %
+                        </button>
+                    </div>
+
                     <p class="input-footer">DODO AI có thể đưa ra câu trả lời không chính xác. Hãy kiểm tra các thông tin quan trọng.</p>
                 </div>
             </section>
