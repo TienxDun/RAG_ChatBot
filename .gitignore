@@ -18,6 +18,7 @@ backend/bin/
 backend/obj/
 backend/publish/
 backend/temp_debug/
+backend/.temp_debug/
 *.user
 *.userosscache
 *.sln.docstates

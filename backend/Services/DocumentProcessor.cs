@@ -78,7 +78,7 @@ public sealed class DocumentProcessor
         // Step 1.5: Debug - Lưu kết quả bóc tách ra file để kiểm tra
         try
         {
-            var debugDir = Path.Combine(Directory.GetCurrentDirectory(), "temp_debug");
+            var debugDir = Path.Combine(Directory.GetCurrentDirectory(), ".temp_debug");
             if (!Directory.Exists(debugDir)) Directory.CreateDirectory(debugDir);
 
             // Thêm timestamp để phân biệt các lần bóc tách
