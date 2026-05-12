@@ -73,7 +73,7 @@ public sealed class VertexAiClient
         Nhiệm vụ của bạn:
         1. Phân tích TẤT CẢ các đối tượng (table) trong JSON, không được bỏ sót bất kỳ bảng nào.
         2. Chuyển đổi mỗi bảng thành một đoạn văn mô tả tiếng Việt chi tiết và đầy đủ.
-        3. Trong mỗi đoạn mô tả, phải liệt kê ĐẦY ĐỦ: Tên bảng, Chức năng, và Toàn bộ các cột kèm kiểu dữ liệu/ý nghĩa.
+        3. Trong mỗi đoạn mô tả, phải liệt kê ĐẦY ĐỦ: Tên bảng, Chức năng, và một bảng Markdown liệt kê toàn bộ các cột kèm kiểu dữ liệu/ý nghĩa.
         4. QUAN TRỌNG: Phân cách mô tả của mỗi bảng bằng chính xác 3 dấu xuống dòng (\n\n\n).
         5. Giữ nguyên các thuật ngữ kỹ thuật, không tóm tắt làm mất thông tin. Không thêm lời dẫn.";
 
@@ -178,11 +178,12 @@ public sealed class VertexAiClient
                         },
                         new
                         {
-                            text = @"Hãy đọc và bóc tách ĐẦY ĐỦ toàn bộ nội dung văn bản từ tài liệu này. 
+                            text = @"Hãy đọc và bóc tách ĐẦY ĐỦ toàn bộ nội dung văn bản từ tài liệu này sang định dạng Markdown. 
                             Yêu cầu cực kỳ quan trọng: 
                             - KHÔNG ĐƯỢC tóm tắt, không được bỏ sót bất kỳ đoạn văn nào.
-                            - Giữ nguyên cấu trúc, tiêu đề, và các giá trị dữ liệu.
-                            - Phân tách các đoạn bằng dấu xuống dòng kép (\n\n).
+                            - Giữ nguyên cấu trúc phân cấp (Tiêu đề #, ##, ###).
+                            - ĐẶC BIỆT: Nếu có bảng biểu, hãy chuyển đổi chính xác sang định dạng Markdown Table (ví dụ: | Header | Header |). Không được bỏ sót bất kỳ ô dữ liệu nào.
+                            - Phân tách các đoạn văn hoặc các phần bằng chính xác 2 dấu xuống dòng (\n\n).
                             - Chỉ trả về nội dung văn bản gốc, không thêm lời bình luận."
                         }
                     }
