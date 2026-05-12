@@ -39,7 +39,7 @@ public sealed class QdrantService
     }
 
     public async Task UpsertPointsAsync(
-        List<(IReadOnlyList<float> Vector, string Text, string FileName, int Index)> points,
+        List<QdrantPoint> points,
         string? collectionName,
         CancellationToken ct)
     {
@@ -60,10 +60,9 @@ public sealed class QdrantService
 
         var pointStructs = points.Select(p => 
         {
-            // Tạo ID số cố định dựa trên tên file và index
             var numericId = CreateNumericId(p.FileName, p.Index);
             
-            return new PointStruct
+            var point = new PointStruct
             {
                 Id = new PointId { Num = numericId },
                 Vectors = p.Vector.ToArray(),
@@ -75,10 +74,24 @@ public sealed class QdrantService
                     ["indexed_at"] = DateTime.UtcNow.ToString("o")
                 }
             };
+
+            // Add additional metadata fields if any
+            if (p.Metadata != null)
+            {
+                foreach (var meta in p.Metadata)
+                {
+                    point.Payload[meta.Key] = meta.Value;
+                }
+            }
+
+            return point;
         }).ToList();
 
         await _client.UpsertAsync(targetCollection, pointStructs, cancellationToken: ct);
     }
+
+    public record QdrantPoint(IReadOnlyList<float> Vector, string Text, string FileName, int Index, Dictionary<string, string>? Metadata = null);
+
 
     private static ulong CreateNumericId(string fileName, int index)
     {

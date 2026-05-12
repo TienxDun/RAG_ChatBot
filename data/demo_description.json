@@ -323,7 +323,7 @@
       },
       {
         "name": "PlanCode",
-        "description": "Mã kế hoạch sản xuất."
+        "description": "Mã kế hoạch sản xuất. FK liên kết với ERP_LENHSX.MaLenh."
       },
       {
         "name": "StyleID",
@@ -335,7 +335,7 @@
       },
       {
         "name": "POID",
-        "description": "Mã đơn hàng kết hợp. FK liên kết với ERP_LENHSX.MaLenh."
+        "description": "Mã đơn hàng kết hợp."
       },
       {
         "name": "PO",
