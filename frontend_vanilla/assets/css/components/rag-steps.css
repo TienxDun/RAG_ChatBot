@@ -159,6 +159,13 @@
     vertical-align: top;
 }
 
+/* Ép tên cột và kiểu dữ liệu hiển thị trên 1 dòng */
+.rag-step__content-inner td:first-child,
+.rag-step__content-inner td:nth-child(2) {
+    white-space: nowrap;
+    font-weight: 500;
+}
+
 /* Alternating row colors for readability */
 .rag-step__content-inner tr:nth-child(even) {
     background: color-mix(in srgb, var(--primary) 3%, transparent);

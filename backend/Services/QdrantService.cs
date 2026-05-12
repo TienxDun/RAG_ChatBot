@@ -57,6 +57,26 @@ public sealed class QdrantService
                 cancellationToken: ct
             );
         }
+        else
+        {
+            var fileName = points.First().FileName;
+            await _client.DeleteAsync(targetCollection, 
+                filter: new Qdrant.Client.Grpc.Filter
+                {
+                    Must = 
+                    { 
+                        new Qdrant.Client.Grpc.Condition 
+                        { 
+                            Field = new Qdrant.Client.Grpc.FieldCondition 
+                            { 
+                                Key = "source_file", 
+                                Match = new Qdrant.Client.Grpc.Match { Keyword = fileName } 
+                            } 
+                        } 
+                    }
+                },
+                cancellationToken: ct);
+        }
 
         var pointStructs = points.Select(p => 
         {
