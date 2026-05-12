@@ -35,8 +35,18 @@ public sealed class RagOrchestrator
 
         // 2. Search Qdrant for relevant schema context
         var schemaContexts = await _qdrantService.SearchSchemaAsync(vector, limit: _options.TopK, collectionName: collectionName);
-        var schemaInfo = string.Join("\n\n", schemaContexts);
-        var step2 = new RagStep("Schema Retrieval", $"Tìm thấy {schemaContexts.Count} thông tin cấu trúc database liên quan nhất:\n\n{schemaInfo}");
+        
+        // Format kết quả retrieval với phân cách và đánh số rõ ràng
+        var schemaInfoBuilder = new StringBuilder();
+        for (int i = 0; i < schemaContexts.Count; i++)
+        {
+            if (i > 0) schemaInfoBuilder.AppendLine("\n---\n");
+            schemaInfoBuilder.AppendLine($"**[{i + 1}/{schemaContexts.Count}]**");
+            schemaInfoBuilder.AppendLine(schemaContexts[i]);
+        }
+        var schemaInfo = schemaInfoBuilder.ToString();
+        
+        var step2 = new RagStep("Schema Retrieval", $"Tìm thấy {schemaContexts.Count} cấu trúc database liên quan nhất:\n\n{schemaInfo}");
         steps.Add(step2);
         await onStep(step2);
 

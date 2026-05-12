@@ -119,3 +119,82 @@
     letter-spacing: 0.05em;
     margin-bottom: 0.5rem;
 }
+
+/* Schema Table Styling inside RAG Steps */
+.rag-step__content-inner .table-wrapper {
+    overflow-x: auto;
+    max-width: 100%;
+    margin: 0.5rem 0;
+    scrollbar-width: thin;
+}
+
+.rag-step__content-inner table {
+    width: 100%;
+    font-size: 0.75rem;
+    border-collapse: collapse;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.rag-step__content-inner th,
+.rag-step__content-inner td {
+    padding: 5px 8px;
+    border: 1px solid color-mix(in srgb, var(--primary) 10%, transparent);
+    text-align: left;
+    line-height: 1.4;
+}
+
+.rag-step__content-inner th {
+    background: color-mix(in srgb, var(--primary) 8%, transparent);
+    font-weight: 700;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: color-mix(in srgb, var(--primary) 90%, var(--foreground));
+    white-space: nowrap;
+}
+
+.rag-step__content-inner td {
+    color: var(--foreground);
+    vertical-align: top;
+}
+
+/* Alternating row colors for readability */
+.rag-step__content-inner tr:nth-child(even) {
+    background: color-mix(in srgb, var(--primary) 3%, transparent);
+}
+
+.rag-step__content-inner tr:hover {
+    background: color-mix(in srgb, var(--primary) 6%, transparent);
+}
+
+/* Separator between retrieval results */
+.rag-step__content-inner hr {
+    border: none;
+    border-top: 1px dashed color-mix(in srgb, var(--primary) 20%, transparent);
+    margin: 12px 0;
+}
+
+/* Headers inside RAG content */
+.rag-step__content-inner h2 {
+    font-size: 0.85rem;
+    font-weight: 700;
+    margin: 0.5rem 0 0.3rem;
+    color: var(--foreground);
+}
+
+.rag-step__content-inner h3 {
+    font-size: 0.78rem;
+    font-weight: 600;
+    margin: 0.4rem 0 0.25rem;
+    color: color-mix(in srgb, var(--foreground) 85%, transparent);
+}
+
+.rag-step__content-inner strong {
+    color: var(--primary);
+    font-weight: 700;
+}
+
+.rag-step__content-inner p {
+    margin: 0.25rem 0;
+}

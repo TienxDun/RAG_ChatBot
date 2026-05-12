@@ -376,7 +376,7 @@
   },
   {
     "table": "QTY_MAHANG_NGAYKIEM",
-    "description": "Bảng cung cấp số liệu sản phẩm lỗi (SpLoi). CÔNG THỨC CHUẨN: % = (Tổng Lỗi) / (Tổng Lỗi + Tổng Đạt) * 100. Trong đó Tổng Lỗi là SUM(SpLoi) của bảng này, Tổng Đạt lấy từ SEW_CoefficientSize. BẮT BUỘC cộng cả Tổng Lỗi vào mẫu số.",
+    "description": "Bảng cung cấp số liệu sản phẩm lỗi (SpLoi). CÔNG THỨC TỶ LỆ % LỖI CHUẨN: %Lỗi = ((Tổng Lỗi) / (Tổng Lỗi + Tổng Đạt)) * 100. Trong đó Tổng Lỗi là SUM(SpLoi) của bảng này, Tổng Đạt lấy từ SEW_CoefficientSize. BẮT BUỘC cộng cả Tổng Lỗi vào mẫu số.",
     "columns": [
       {
         "name": "ID",

@@ -40,10 +40,12 @@ export class MessageRenderer {
             const t = title.toLowerCase();
             const iconMap = {
                 'vector': 'ph-file-search',
+                'retrieval': 'ph-magnifying-glass',
                 'schema': 'ph-database',
                 'sql': 'ph-code-block',
                 'execution': 'ph-code-block',
-                'healing': 'ph-magic-wand'
+                'healing': 'ph-magic-wand',
+                'system': 'ph-gear'
             };
             
             const key = Object.keys(iconMap).find(k => t.includes(k));
@@ -101,9 +103,11 @@ export class MessageRenderer {
         // 1. Markdown code blocks
         extractToPlaceholder(/```(?:json|sql|sqlserver)?\s*([\s\S]*?)```/gi, 'MD', (m, code) => code);
 
-        // 2. Raw JSON
+        // 2. Raw JSON (skip nếu content giống Markdown table chứa ký tự |)
         extractToPlaceholder(/((?:\[\s*{[\s\S]*?}\s*\])|(?:{[\s\S]*?}))/g, 'JSON', (match) => {
             if (match.startsWith('[[TERMINAL_')) return null;
+            // Bỏ qua nếu là fragment của Markdown table
+            if (/^\|.*\|$/m.test(match)) return null;
             try {
                 return JSON.stringify(JSON.parse(match), null, 2);
             } catch (e) { return null; }

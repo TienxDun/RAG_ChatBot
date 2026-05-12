@@ -97,7 +97,6 @@ public sealed class DocumentProcessor
 
         if (isJson)
         {
-            // Xử lý JSON theo hướng có cấu trúc để tương đồng với file gốc
             using var jsonDoc = JsonDocument.Parse(extractedText);
             if (jsonDoc.RootElement.ValueKind == JsonValueKind.Array)
             {
@@ -108,46 +107,91 @@ public sealed class DocumentProcessor
                     var metadata = new Dictionary<string, string>();
                     var sb = new StringBuilder();
 
-                    foreach (var prop in item.EnumerateObject())
+                    // Nhận diện cấu trúc database schema: có key "table" + "columns"
+                    JsonElement columnsProp = default;
+                    bool isDbSchema = item.TryGetProperty("table", out var tableProp) 
+                                      && item.TryGetProperty("columns", out columnsProp) 
+                                      && columnsProp.ValueKind == JsonValueKind.Array;
+
+                    if (isDbSchema)
                     {
-                        string displayValue;
-                        if (prop.Value.ValueKind == JsonValueKind.Array)
+                        // Format Markdown chuyên biệt cho database schema
+                        var tableName = tableProp.GetString() ?? "Unknown";
+                        var tableDesc = item.TryGetProperty("description", out var descProp) 
+                            ? descProp.GetString() ?? "" : "";
+                        
+                        sb.AppendLine($"## Bảng: {tableName}");
+                        sb.AppendLine();
+                        sb.AppendLine($"**Mô tả:** {tableDesc}");
+                        sb.AppendLine();
+
+                        var columns = columnsProp.EnumerateArray().ToList();
+                        sb.AppendLine($"### Danh sách cột ({columns.Count} cột):");
+                        sb.AppendLine();
+                        sb.AppendLine("| Tên cột | Kiểu dữ liệu | Mô tả |");
+                        sb.AppendLine("|---------|---------------|-------|");
+
+                        foreach (var col in columns)
                         {
-                            var list = new List<string>();
-                            foreach (var element in prop.Value.EnumerateArray())
+                            var colName = col.TryGetProperty("name", out var cn) ? cn.GetString() ?? "" : "";
+                            var colType = col.TryGetProperty("data_type", out var ct2) ? ct2.GetString() ?? "" : "";
+                            var colDesc = col.TryGetProperty("description", out var cd) ? cd.GetString() ?? "" : "";
+                            
+                            // Escape ký tự pipe trong description để không phá Markdown table
+                            colDesc = colDesc.Replace("|", "\\|");
+                            
+                            sb.AppendLine($"| {colName} | {colType} | {colDesc} |");
+                        }
+
+                        // Lưu metadata đầy đủ
+                        metadata["table"] = tableName;
+                        metadata["description"] = tableDesc;
+                        metadata["columns"] = columnsProp.ToString();
+                        metadata["column_count"] = columns.Count.ToString();
+                    }
+                    else
+                    {
+                        // Format phẳng cho JSON object không phải schema (backward compatible)
+                        foreach (var prop in item.EnumerateObject())
+                        {
+                            string displayValue;
+                            if (prop.Value.ValueKind == JsonValueKind.Array)
                             {
-                                if (element.ValueKind == JsonValueKind.Object)
+                                var list = new List<string>();
+                                foreach (var element in prop.Value.EnumerateArray())
                                 {
-                                    // Ưu tiên format cho danh sách các cột (name + description)
-                                    if (element.TryGetProperty("name", out var nameProp))
+                                    if (element.ValueKind == JsonValueKind.Object)
                                     {
-                                        var name = nameProp.GetString();
-                                        var desc = element.TryGetProperty("description", out var descProp) ? descProp.GetString() : "";
-                                        list.Add(string.IsNullOrWhiteSpace(desc) ? name! : $"{name}: {desc}");
+                                        if (element.TryGetProperty("name", out var nameProp2))
+                                        {
+                                            var name = nameProp2.GetString();
+                                            var desc = element.TryGetProperty("description", out var descProp2) ? descProp2.GetString() : "";
+                                            list.Add(string.IsNullOrWhiteSpace(desc) ? name! : $"{name}: {desc}");
+                                        }
+                                        else
+                                        {
+                                            list.Add(element.ToString());
+                                        }
                                     }
                                     else
                                     {
                                         list.Add(element.ToString());
                                     }
                                 }
-                                else
-                                {
-                                    list.Add(element.ToString());
-                                }
+                                displayValue = list.Count > 0 ? "\n  - " + string.Join("\n  - ", list) : "[]";
                             }
-                            displayValue = list.Count > 0 ? "\n  - " + string.Join("\n  - ", list) : "[]";
-                        }
-                        else if (prop.Value.ValueKind == JsonValueKind.Object)
-                        {
-                            displayValue = "\n" + JsonSerializer.Serialize(prop.Value, new JsonSerializerOptions { WriteIndented = true });
-                        }
-                        else
-                        {
-                            displayValue = prop.Value.ToString();
-                        }
+                            else if (prop.Value.ValueKind == JsonValueKind.Object)
+                            {
+                                displayValue = "\n" + JsonSerializer.Serialize(prop.Value, new JsonSerializerOptions { WriteIndented = true });
+                            }
+                            else
+                            {
+                                displayValue = prop.Value.ToString();
+                            }
 
-                        metadata[prop.Name] = prop.Value.ToString();
-                        sb.AppendLine($"{prop.Name}: {displayValue}");
+                            metadata[prop.Name] = prop.Value.ToString();
+                            sb.AppendLine($"{prop.Name}: {displayValue}");
+                        }
                     }
 
                     var descriptiveText = sb.ToString().Trim();
