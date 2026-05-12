@@ -37,8 +37,8 @@ public sealed record VertexAiOptions(
         {
             // Default template if not provided
             apiUrlTemplate = expressMode
-                ? "https://aiplatform.googleapis.com/v1beta/publishers/google/models/{modelId}:{action}"
-                : "https://{region}-aiplatform.googleapis.com/v1beta/projects/{projectId}/locations/{region}/publishers/google/models/{modelId}:{action}";
+                ? "https://aiplatform.googleapis.com/v1/publishers/google/models/{modelId}:{action}"
+                : "https://{region}-aiplatform.googleapis.com/v1/projects/{projectId}/locations/{region}/publishers/google/models/{modelId}:{action}";
         }
 
         if (missing.Count > 0)
