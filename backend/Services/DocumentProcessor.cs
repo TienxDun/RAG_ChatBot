@@ -1,5 +1,4 @@
 using System.Text;
-using System.Text.Json;
 using Backend.Models;
 
 namespace Backend.Services;
@@ -60,10 +59,9 @@ public sealed class DocumentProcessor
         }
         else if (isJson)
         {
-            // Đối với JSON, chúng ta đọc raw để giữ cấu trúc gốc
             using var reader = new StreamReader(fileStream);
-            extractedText = await reader.ReadToEndAsync(ct);
-            // Không cần qua AI Client Transform ở đây nữa vì chúng ta sẽ xử lý structured bên dưới
+            var rawJson = await reader.ReadToEndAsync(ct);
+            extractedText = await _aiClient.TransformJsonToDescriptionsAsync(rawJson, ct);
         }
         else
         {
@@ -75,8 +73,21 @@ public sealed class DocumentProcessor
             return new DocumentResult(fileName, 0, "No text content extracted.");
         }
 
-        // Step 1.5: Debug - Lưu kết quả bóc tách ra file để kiểm tra
-        try
+        // Debug: Lưu vào thư mục riêng để tránh dotnet-watch restart
+        var debugDir = Path.Combine(Directory.GetCurrentDirectory(), ".temp_debug");
+        if (!Directory.Exists(debugDir)) Directory.CreateDirectory(debugDir);
+        
+        var debugPath = Path.Combine(debugDir, $"debug_{fileName}.txt");
+        await File.WriteAllTextAsync(debugPath, extractedText, ct);
+
+        // Step 2: Chunking
+        await onProgress(30, "Đang phân tích cấu trúc đoạn văn...");
+        var separator = isJson ? "\n\n\n" : "\n\n";
+        var chunks = ChunkBySeparator(extractedText, separator);
+
+        // Step 3: Embed each chunk
+        var points = new List<(IReadOnlyList<float> Vector, string Text, string FileName, int Index)>();
+        for (int i = 0; i < chunks.Count; i++)
         {
             var debugDir = Path.Combine(Directory.GetCurrentDirectory(), ".temp_debug");
             if (!Directory.Exists(debugDir)) Directory.CreateDirectory(debugDir);
@@ -85,68 +96,17 @@ public sealed class DocumentProcessor
             var safeFileName = string.Concat(fileName.Split(Path.GetInvalidFileNameChars()));
             var debugPath = Path.Combine(debugDir, $"debug_{DateTime.Now:yyyyMMdd_HHmmss}_{safeFileName}.txt");
             
-            await File.WriteAllTextAsync(debugPath, extractedText, ct);
-        }
-        catch
-        {
-            // Không chặn tiến trình chính nếu lưu debug lỗi
-        }
-
-        // Step 3: Embed each chunk/object
-        var points = new List<QdrantService.QdrantPoint>();
-
-        if (isJson)
-        {
-            // Xử lý JSON theo hướng có cấu trúc để tương đồng với file gốc
-            using var jsonDoc = JsonDocument.Parse(extractedText);
-            if (jsonDoc.RootElement.ValueKind == JsonValueKind.Array)
-            {
-                var items = jsonDoc.RootElement.EnumerateArray().ToList();
-                for (int i = 0; i < items.Count; i++)
-                {
-                    var item = items[i];
-                    var metadata = new Dictionary<string, string>();
-                    var sb = new StringBuilder();
-
-                    foreach (var prop in item.EnumerateObject())
-                    {
-                        var value = prop.Value.ToString();
-                        metadata[prop.Name] = value;
-                        sb.AppendLine($"{prop.Name}: {value}");
-                    }
-
-                    var descriptiveText = sb.ToString().Trim();
-                    var vector = await _aiClient.GetEmbeddingAsync(descriptiveText, "RETRIEVAL_DOCUMENT", 3072, ct);
-                    
-                    points.Add(new QdrantService.QdrantPoint(vector, descriptiveText, fileName, i, metadata));
-                    
-                    int percent = 30 + (int)((i / (float)items.Count) * 60);
-                    await onProgress(percent, $"Đang xử lý mục JSON {i + 1}/{items.Count}...");
-                }
-            }
-        }
-        else
-        {
-            // Xử lý tài liệu văn bản thông thường (PDF, TXT)
-            var chunks = ChunkBySeparator(extractedText, isJson ? "\n\n\n" : "\n\n");
-            for (int i = 0; i < chunks.Count; i++)
-            {
-                int percent = 30 + (int)((i / (float)chunks.Count) * 60);
-                await onProgress(percent, $"Đang tạo vector cho đoạn {i + 1}/{chunks.Count}...");
-                
-                var chunk = chunks[i];
-                var vector = await _aiClient.GetEmbeddingAsync(chunk, "RETRIEVAL_DOCUMENT", 3072, ct);
-                points.Add(new QdrantService.QdrantPoint(vector, chunk, fileName, i));
-            }
+            var chunk = chunks[i];
+            var vector = await _aiClient.GetEmbeddingAsync(chunk, "RETRIEVAL_DOCUMENT", 3072, ct);
+            points.Add((vector, chunk, fileName, i));
         }
 
         // Step 4: Upsert to Qdrant
-        await onProgress(95, "Đang lưu dữ liệu cấu trúc vào Qdrant Cloud...");
+        await onProgress(95, "Đang lưu dữ liệu vào Qdrant Cloud...");
         await _qdrantService.UpsertPointsAsync(points, collectionName, ct);
 
-
         await onProgress(100, "Hoàn tất!");
-        return new DocumentResult(fileName, points.Count, "Success");
+        return new DocumentResult(fileName, chunks.Count, "Success");
     }
 
     private static List<string> ChunkBySeparator(string text, string separator, int maxChunkLength = 1500, int overlap = 200)
