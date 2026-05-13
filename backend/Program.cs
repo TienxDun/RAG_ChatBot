@@ -39,6 +39,8 @@ builder.Services.AddSingleton<QdrantService>();
 builder.Services.AddSingleton<RagOrchestrator>();
 builder.Services.AddScoped<DocumentProcessor>();
 builder.Services.AddScoped<ExcelReportService>();
+builder.Services.AddSingleton<TemplateCacheService>();
+
 
 var allowedOrigins = Environment.GetEnvironmentVariable("ALLOWED_ORIGINS")?.Split(',') ?? new[] { "http://localhost:3000" };
 
@@ -202,6 +204,11 @@ app.MapPost("/api/documents/upload", async (HttpContext context, DocumentProcess
 .WithName("UploadDocuments")
 .WithOpenApi();
 
+// Template Cache API
+TemplateCacheEndpoints.MapRoutes(app);
+
+
+app.Run();
 
 // Warm-up Vertex AI Client in background to prevent 11s delay on first request
 _ = Task.Run(async () =>

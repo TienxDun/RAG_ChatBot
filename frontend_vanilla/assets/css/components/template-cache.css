@@ -1,0 +1,200 @@
+/* template-cache.css - Styling for Excel Template Cache popup */
+
+.template-cache-popup {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    width: 300px;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 18px;
+    padding: 12px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    transform-origin: bottom left;
+    color: #1a1a1a;
+    margin-bottom: 15px; /* Tạo khoảng cách hiển thị */
+}
+
+/* Tạo "cầu nối" vô hình giữa nút và popup để không bị mất hover khi di chuyển chuột qua khoảng trống */
+.template-cache-popup::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    height: 15px; /* Bằng với margin-bottom */
+    background: transparent;
+}
+
+[data-theme="dark"] .template-cache-popup {
+    background: rgba(30, 30, 30, 0.8);
+    border-color: rgba(255, 255, 255, 0.05);
+    color: #e0e0e0;
+}
+
+.input-actions-left {
+    position: relative; /* Đảm bảo popup căn theo nút này */
+}
+
+/* Hiển thị khi hover vào nút đính kèm */
+.input-actions-left:hover .template-cache-popup {
+    display: flex;
+    animation: slideUpFade 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.template-cache-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 8px 8px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    margin-bottom: 4px;
+}
+
+[data-theme="dark"] .template-cache-header {
+    border-bottom-color: rgba(255, 255, 255, 0.05);
+}
+
+.template-cache-header h4 {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+[data-theme="dark"] .template-cache-header h4 {
+    color: #aaa;
+}
+
+.template-list {
+    max-height: 200px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding-right: 4px;
+}
+
+/* Tùy chỉnh scrollbar cho list */
+.template-list::-webkit-scrollbar {
+    width: 4px;
+}
+.template-list::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+}
+
+.template-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 10px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid transparent;
+}
+
+.template-item:hover {
+    background: rgba(0, 0, 0, 0.03);
+    border-color: rgba(0, 0, 0, 0.05);
+    transform: translateX(4px);
+}
+
+[data-theme="dark"] .template-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.05);
+}
+
+.template-item i {
+    font-size: 1.4rem;
+    color: #1d6f42; /* Excel Green */
+    filter: drop-shadow(0 2px 4px rgba(29, 111, 66, 0.2));
+}
+
+.template-item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.template-item-name {
+    font-size: 0.85rem;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+    margin-bottom: 2px;
+}
+
+.template-item-meta {
+    font-size: 0.7rem;
+    color: #888;
+}
+
+.template-empty {
+    padding: 30px 20px;
+    text-align: center;
+    color: #999;
+    font-size: 0.85rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.template-empty i {
+    font-size: 2rem;
+    opacity: 0.3;
+}
+
+/* Nút xóa template */
+.btn-remove-template {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    color: #888;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    opacity: 0;
+}
+
+.template-item:hover .btn-remove-template {
+    opacity: 1;
+}
+
+.btn-remove-template:hover {
+    background: rgba(255, 0, 0, 0.1);
+    color: #ff4d4d;
+    transform: scale(1.1);
+}
+
+[data-theme="dark"] .btn-remove-template:hover {
+    background: rgba(255, 80, 80, 0.2);
+}
+
+@keyframes slideUpFade {
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
