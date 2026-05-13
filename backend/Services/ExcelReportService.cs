@@ -91,19 +91,19 @@ public class ExcelReportService
         var ragResponse = await _ragOrchestrator.ProcessQueryAsync(combinedQuery, null, onStep, ct);
 
         // 4. Lấy kết quả
-        DataTable finalDataTable;
+        DataTable dataTable;
         if (ragResponse.RawDataTable != null && ragResponse.RawDataTable.Rows.Count > 0)
         {
             // Nếu có DataTable gốc, chúng ta cần tạo một bản sao có các cột đúng thứ tự như Template
-            finalDataTable = new DataTable();
+            dataTable = new DataTable();
             foreach (var colName in columns)
             {
-                finalDataTable.Columns.Add(colName, typeof(object));
+                dataTable.Columns.Add(colName, typeof(object));
             }
 
             foreach (DataRow sourceRow in ragResponse.RawDataTable.Rows)
             {
-                var newRow = finalDataTable.NewRow();
+                var newRow = dataTable.NewRow();
                 foreach (var colName in columns)
                 {
                     // Tìm cột tương ứng trong data gốc (AI đã được dặn dùng AS để khớp tên)
@@ -116,7 +116,7 @@ public class ExcelReportService
                         newRow[colName] = DBNull.Value;
                     }
                 }
-                finalDataTable.Rows.Add(newRow);
+                dataTable.Rows.Add(newRow);
             }
         }
         else 
@@ -127,12 +127,8 @@ public class ExcelReportService
             {
                 throw new Exception("AI không thể sinh được dữ liệu hợp lệ.");
             }
-            finalDataTable = ConvertJsonToDataTable(rawJson, columns);
+            dataTable = ConvertJsonToDataTable(rawJson, columns);
         }
-
-        var dataTable = finalDataTable; // Sử dụng bảng đã được chuẩn hóa
-
-        // 5. Xóa dữ liệu mẫu (dummy data) và điền data mới
 
         // 5. Xóa dữ liệu mẫu (dummy data) và điền data mới
         int dataStartRow = headerRowIndex + 1;

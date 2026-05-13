@@ -53,17 +53,12 @@ public sealed class DocumentProcessor
         string extractedText;
         bool isJson = mimeType == "application/json";
 
-        if (mimeType == "text/plain")
+        if (mimeType == "text/plain" || isJson)
         {
+            // Đối với văn bản thuần hoặc JSON, đọc raw để giữ nguyên cấu trúc gốc
             using var reader = new StreamReader(fileStream);
             extractedText = await reader.ReadToEndAsync(ct);
-        }
-        else if (isJson)
-        {
-            // Đối với JSON, chúng ta đọc raw để giữ cấu trúc gốc
-            using var reader = new StreamReader(fileStream);
-            extractedText = await reader.ReadToEndAsync(ct);
-            // Không cần qua AI Client Transform ở đây nữa vì chúng ta sẽ xử lý structured bên dưới
+            // Với JSON, không cần qua AI Client Transform ở đây vì sẽ xử lý structured bên dưới
         }
         else
         {
