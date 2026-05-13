@@ -432,6 +432,9 @@ export class ChatAreaComponent {
                     // Cập nhật lại thời gian ngay sau khi render lại message
                     const timerEl = (aiMessageEl || typingIndicator).querySelector('.loading-timer');
                     if (timerEl) timerEl.innerText = `(${seconds}s)`;
+
+                    // Tự động cuộn xuống để theo dõi các step mới
+                    this.scrollToBottom();
                 },
                 onMessageElementCreated: () => {
                     if (typingIndicator.parentNode) messagesList.removeChild(typingIndicator);
@@ -450,9 +453,16 @@ export class ChatAreaComponent {
                 onFinal: (data) => {
                     if (aiMessageEl) {
                         MessageRenderer.updateMessage(aiMessageEl, data.text, aiSteps, data.suggestedQuestions, data.downloadUrl, data.rawData);
-                        // Thêm thời gian tổng kết vào cuối nội dung hoặc footer nếu cần
-                        const footer = aiMessageEl.querySelector('.ai-label');
-                        if (footer) footer.innerText = `AI INSIGHT (${seconds}s)`;
+                        // Cập nhật thời gian tổng kết
+                        const timerEl = aiMessageEl.querySelector('.loading-timer');
+                        if (timerEl) {
+                            timerEl.innerText = `(${seconds}s)`;
+                            timerEl.classList.remove('opacity-50');
+                            timerEl.classList.add('font-bold');
+                        } else {
+                            const aiLabel = aiMessageEl.querySelector('.ai-label');
+                            if (aiLabel) aiLabel.insertAdjacentHTML('afterend', `<span class="loading-timer ml-1 text-xs font-bold">(${seconds}s)</span>`);
+                        }
                     }
                     this.uiState.lastRawData = data.rawData;
                 },

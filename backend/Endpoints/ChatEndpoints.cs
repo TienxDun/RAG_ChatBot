@@ -11,6 +11,11 @@ public static class ChatEndpoints
     // Lưu trữ file Excel tạm thời trong bộ nhớ (Cache)
     private static readonly ConcurrentDictionary<string, byte[]> _fileCache = new();
 
+    private static readonly JsonSerializerOptions _serializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web)
+    {
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
+
     public static async Task<IResult> HandleChatAsync(HttpContext context, RagOrchestrator orchestrator, ExcelReportService excelService, CancellationToken ct)
     {
         string message = string.Empty;
@@ -41,14 +46,10 @@ public static class ChatEndpoints
         context.Response.ContentType = "text/event-stream";
         context.Response.Headers.Append("Cache-Control", "no-cache");
         context.Response.Headers.Append("Connection", "keep-alive");
-        var serializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web)
-        {
-            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-        };
 
         async Task SendEventAsync(object data)
         {
-            var json = JsonSerializer.Serialize(data, serializerOptions);
+            var json = JsonSerializer.Serialize(data, _serializerOptions);
             await context.Response.WriteAsync($"data: {json}\n\n", ct);
             await context.Response.Body.FlushAsync(ct);
         }

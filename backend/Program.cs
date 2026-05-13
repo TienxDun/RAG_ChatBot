@@ -4,8 +4,10 @@ using Backend.Endpoints;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Concurrent;
+using System.Net;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddSingleton<WarmupStatus>();
 
 // Load .env file from root directory
 var rootDir = builder.Environment.ContentRootPath;
@@ -27,7 +29,11 @@ if (File.Exists(envPath))
 var options = VertexAiOptions.FromEnvironment();
 
 builder.Services.AddSingleton(options);
-builder.Services.AddHttpClient<VertexAiClient>();
+builder.Services.AddHttpClient<VertexAiClient>(client => 
+{
+    client.DefaultRequestVersion = HttpVersion.Version20;
+    client.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
+});
 builder.Services.AddSingleton<SqlService>();
 builder.Services.AddSingleton<QdrantService>();
 builder.Services.AddSingleton<RagOrchestrator>();
@@ -61,7 +67,11 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors();
 
-app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
+app.MapGet("/api/health", (WarmupStatus status) => Results.Ok(new { 
+    status = "ok", 
+    isWarmedUp = status.IsCompleted,
+    message = status.IsCompleted ? "Vertex AI is ready" : "Vertex AI is warming up..."
+}));
 
 app.MapGet("/api/documents/collections", async (QdrantService qdrant) => 
 {
@@ -199,3 +209,29 @@ TemplateCacheEndpoints.MapRoutes(app);
 
 
 app.Run();
+
+// Warm-up Vertex AI Client in background to prevent 11s delay on first request
+_ = Task.Run(async () =>
+{
+    var status = app.Services.GetRequiredService<WarmupStatus>();
+    try
+    {
+        await Task.Delay(1500); // Đợi server khởi động ổn định
+        using var scope = app.Services.CreateScope();
+        var client = scope.ServiceProvider.GetRequiredService<VertexAiClient>();
+        await client.GetEmbeddingAsync("warmup", "RETRIEVAL_QUERY", 768, CancellationToken.None);
+        status.IsCompleted = true;
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"⚠️ [Warm-up] Vertex AI Warm-up failed: {ex.Message}");
+    }
+});
+
+
+app.Run();
+
+public class WarmupStatus
+{
+    public bool IsCompleted { get; set; }
+}
