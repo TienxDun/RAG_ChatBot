@@ -9,6 +9,8 @@ import { FileHandler } from '../services/FileHandler.js';
 import { ExportService } from '../services/ExportService.js';
 import { ChatService } from '../services/ChatService.js';
 import { InteractionService } from '../services/InteractionService.js';
+import { TemplateCacheService } from '../services/TemplateCacheService.js';
+
 
 export class ChatAreaComponent {
     constructor() {
@@ -88,6 +90,7 @@ export class ChatAreaComponent {
         }
 
         this._bindSuggestionTags();
+        this._initTemplateCacheUI();
     }
 
     _initDragAndDrop(container) {
@@ -282,6 +285,103 @@ export class ChatAreaComponent {
         });
     }
 
+    _initTemplateCacheUI() {
+        const leftActions = this.elements.inputContainer.querySelector('.input-actions-left');
+        if (!leftActions) return;
+
+        this.templatePopup = document.createElement('div');
+        this.templatePopup.className = 'template-cache-popup';
+        this.templatePopup.innerHTML = `
+            <div class="template-cache-header">
+                <h4><i class="ph-bold ph-clock-counter-clockwise"></i> TEMPLATES CACHED</h4>
+            </div>
+            <div id="template-cache-list" class="template-list">
+                <div class="template-empty">
+                    <i class="ph-duotone ph-spinner animate-spin"></i>
+                    <span>Đang tải...</span>
+                </div>
+            </div>
+        `;
+        leftActions.appendChild(this.templatePopup);
+
+        leftActions.addEventListener('mouseenter', () => this._refreshTemplateList());
+    }
+
+    async _refreshTemplateList() {
+        const listContainer = document.getElementById('template-cache-list');
+        if (!listContainer) return;
+
+        try {
+            const templates = await TemplateCacheService.getAll();
+            if (!templates || templates.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="template-empty">
+                        <i class="ph-duotone ph-folder-open"></i>
+                        <span>Chưa có template nào được lưu.</span>
+                    </div>
+                `;
+                return;
+            }
+
+            listContainer.innerHTML = templates.map(t => `
+                <div class="template-item" data-id="${t.id}" data-name="${t.fileName}">
+                    <i class="ph-fill ph-microsoft-excel-logo"></i>
+                    <div class="template-item-info">
+                        <span class="template-item-name" title="${t.fileName}">${t.fileName}</span>
+                        <span class="template-item-meta">${(t.fileSize / 1024).toFixed(1)} KB • ${new Date(t.cachedAt).toLocaleTimeString()}</span>
+                    </div>
+                    <button class="btn-remove-template" data-id="${t.id}" title="Xóa khỏi cache">
+                        <i class="ph-bold ph-x"></i>
+                    </button>
+                </div>
+            `).join('');
+
+            listContainer.querySelectorAll('.template-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this._selectTemplateFromCache(item.getAttribute('data-id'), item.getAttribute('data-name'));
+                });
+            });
+
+            // Gắn sự kiện cho nút xóa
+            listContainer.querySelectorAll('.btn-remove-template').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation(); // Ngăn sự kiện chọn template
+                    const id = btn.getAttribute('data-id');
+                    if (await TemplateCacheService.removeTemplate(id)) {
+                        this._refreshTemplateList();
+                    } else {
+                        Toast.error("Không thể xóa template.");
+                    }
+                });
+            });
+        } catch (error) {
+            listContainer.innerHTML = '<div class="template-empty">Lỗi khi tải danh sách.</div>';
+        }
+    }
+
+    async _selectTemplateFromCache(id, fileName) {
+        try {
+            Toast.info(`Đang lấy file: ${fileName}...`);
+            const blob = await TemplateCacheService.downloadTemplate(id);
+            if (!blob) {
+                Toast.error("Không thể tải file từ bộ nhớ đệm.");
+                return;
+            }
+
+            const file = new File([blob], fileName, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            
+            this.uiState.selectedFile = file;
+            this._renderFilePreview();
+            this._updateInputUI();
+            
+            Toast.success(`Đã chọn: ${fileName}`);
+        } catch (error) {
+            console.error('Failed to select template from cache', error);
+            Toast.error("Đã xảy ra lỗi.");
+        }
+    }
+
     async handleSend() {
         const { chatInput, chatArea, messagesList, chatFile, collectionSelect } = this.elements;
         const text = chatInput.value.trim();
@@ -291,7 +391,11 @@ export class ChatAreaComponent {
         this.appendMessage('user', text, [], [], null, null, this.uiState.selectedFile);
         
         const currentFile = this.uiState.selectedFile;
+        // 🆕 Cache template trống song song (fire-and-forget)
+        if (currentFile) TemplateCacheService.cacheTemplate(currentFile);
+
         chatInput.value = '';
+
         this._handleInputAutoResize();
         chatArea.classList.remove('is-landing');
 
