@@ -34,6 +34,14 @@ public sealed class VertexAiClient
                         new { text = message }
                     }
                 }
+            },
+            generationConfig = new
+            {
+                temperature = 0.0,
+                topP = 0.95,
+                topK = 40,
+                maxOutputTokens = 8192,
+                responseMimeType = "text/plain"
             }
         };
 
@@ -188,6 +196,14 @@ public sealed class VertexAiClient
                         }
                     }
                 }
+            },
+            generationConfig = new
+            {
+                temperature = 0.0,
+                topP = 0.95,
+                topK = 40,
+                maxOutputTokens = 8192,
+                responseMimeType = "text/plain"
             }
         };
 
