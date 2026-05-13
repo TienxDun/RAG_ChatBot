@@ -136,7 +136,7 @@ export class MessageRenderer {
         return finalHtml;
     }
 
-    static createMessageElement(role, content, steps = [], suggestedQuestions = [], downloadUrl = null, rawData = null, userFile = null) {
+    static createMessageElement(role, content, steps = [], suggestedQuestions = [], downloadUrl = null, rawData = null, userFile = null, loadingStatus = null) {
         const messageEl = document.createElement('div');
         messageEl.className = `message message--${role === 'user' ? 'user' : 'ai'} animate-slide-up`;
         
@@ -144,11 +144,11 @@ export class MessageRenderer {
         if (rawData) {
             try {
                 const dataObj = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
-                if (Array.isArray(dataObj) && dataObj.length > 0) {
+                if (Array.isArray(dataObj)) {
                     messageEl.setAttribute('data-raw', JSON.stringify(dataObj));
                 }
             } catch (e) {
-                console.warn('Failed to parse rawData for export', e);
+                console.warn('Failed to parse rawData in createMessageElement', e);
             }
         }
 
@@ -163,7 +163,13 @@ export class MessageRenderer {
             <div class="message__bubble">
                 ${role === 'user' && (userFile || messageEl.getAttribute('data-file')) ? this._renderFileChip(userFile || messageEl.getAttribute('data-file')) : ''}
                 <div class="markdown-content">
-                    ${this.renderContent(content)}
+                    ${content ? this.renderContent(content) : `
+                        <div class="typing-container typing-container--small">
+                            <div class="typing-dots"><span></span><span></span><span></span></div>
+                            <span class="loading-text text-xs opacity-70">${loadingStatus || 'AI đang xử lý...'}</span>
+                            <span class="loading-timer text-xs opacity-50 ml-2">(0s)</span>
+                        </div>
+                    `}
                 </div>
                 <div class="rag-steps-container">
                     ${steps.length > 0 ? this.renderRagSteps(steps) : ''}
@@ -176,11 +182,9 @@ export class MessageRenderer {
                     <span class="ai-label">AI INSIGHT</span>
                     <div style="flex: 1"></div>
                     <div class="footer-actions-container">
+                        ${content ? this._renderCopyButton() : ''}
                         ${downloadUrl ? this._renderDownloadSection(downloadUrl) : ''}
-                        ${this._renderExportSection(messageEl.getAttribute('data-raw'), !!downloadUrl)}
-                        <button class="footer-copy" data-action="copy-msg" title="Sao chép câu trả lời">
-                            <i class="ph-duotone ph-copy"></i> Sao chép
-                        </button>
+                        ${this._renderExportSection(messageEl.getAttribute('data-raw'))}
                     </div>
                 </div>
             `;
@@ -212,19 +216,22 @@ export class MessageRenderer {
         return messageEl;
     }
 
-    static updateMessage(messageEl, content, steps = [], suggestedQuestions = [], downloadUrl = null, rawData = null, userFile = null) {
+    static updateMessage(messageEl, content, steps = [], suggestedQuestions = [], downloadUrl = null, rawData = null, userFile = null, loadingStatus = null) {
         const contentEl = messageEl.querySelector('.markdown-content');
         const stepsContainer = messageEl.querySelector('.rag-steps-container');
         const footerActionsContainer = messageEl.querySelector('.footer-actions-container');
         const bubbleEl = messageEl.querySelector('.message__bubble');
         
         if (rawData) {
+            console.log("MessageRenderer: Received rawData for Excel export", rawData);
             try {
                 const dataObj = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
-                if (Array.isArray(dataObj) && dataObj.length > 0) {
+                if (Array.isArray(dataObj)) {
                     messageEl.setAttribute('data-raw', JSON.stringify(dataObj));
                 }
-            } catch (e) {}
+            } catch (e) {
+                console.error("MessageRenderer: Failed to parse rawData", e);
+            }
         }
 
         if (userFile && bubbleEl && !bubbleEl.querySelector('.message-file-chip')) {
@@ -233,13 +240,29 @@ export class MessageRenderer {
             bubbleEl.insertAdjacentHTML('afterbegin', this._renderFileChip(fileName));
         }
 
-        if (contentEl) contentEl.innerHTML = this.renderContent(content);
+        if (contentEl) {
+            contentEl.innerHTML = content ? this.renderContent(content) : `
+                <div class="typing-container typing-container--small">
+                    <div class="typing-dots"><span></span><span></span><span></span></div>
+                    <span class="loading-text text-xs opacity-70">${loadingStatus || 'AI đang xử lý...'}</span>
+                    <span class="loading-timer text-xs opacity-50 ml-2">(0s)</span>
+                </div>
+            `;
+        }
         if (stepsContainer && steps.length > 0) stepsContainer.innerHTML = this.renderRagSteps(steps);
         
         if (footerActionsContainer) {
             let actionsHtml = '';
+            // Nút Sao chép (Chỉ hiển thị khi đã có nội dung)
+            if (content) actionsHtml += this._renderCopyButton();
+            
+            // Nút tải theo mẫu từ Backend (nếu có)
             if (downloadUrl) actionsHtml += this._renderDownloadSection(downloadUrl);
-            actionsHtml += this._renderExportSection(messageEl.getAttribute('data-raw'), !!downloadUrl);
+            
+            // Nút xuất dữ liệu thô ra Excel (nếu có dữ liệu raw)
+            const rawDataAttr = messageEl.getAttribute('data-raw');
+            if (rawDataAttr) actionsHtml += this._renderExportSection(rawDataAttr);
+            
             footerActionsContainer.innerHTML = actionsHtml;
         }
 
@@ -274,13 +297,20 @@ export class MessageRenderer {
         `;
     }
 
-    static _renderExportSection(rawDataStr, hasDownloadUrl = false) {
-        // Nếu đã có link tải theo mẫu (downloadUrl) hoặc không có data raw thì không hiển thị nút xuất generic
-        if (!rawDataStr || hasDownloadUrl) return '';
+    static _renderExportSection(rawDataStr) {
+        if (!rawDataStr) return '';
         
         return `
             <button class="footer-download" data-action="export-msg-excel" title="Xuất dữ liệu này ra file Excel">
                 <i class="ph-duotone ph-microsoft-excel-logo"></i> Xuất Excel
+            </button>
+        `;
+    }
+
+    static _renderCopyButton() {
+        return `
+            <button class="footer-copy" data-action="copy-msg" title="Sao chép nội dung">
+                <i class="ph ph-copy"></i> Sao chép
             </button>
         `;
     }
@@ -313,6 +343,7 @@ export class MessageRenderer {
                             <span></span><span></span><span></span>
                         </div>
                         <span class="loading-text">AI đang suy nghĩ...</span>
+                        <span class="loading-timer opacity-50 text-sm ml-2">(0s)</span>
                     </div>
                 </div>
             </div>

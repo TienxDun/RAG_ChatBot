@@ -9,5 +9,5 @@ public sealed record ChatResponse(
     List<RagStep>? Steps = null,
     List<string>? SuggestedQuestions = null,
     string? RawData = null,
-    DataTable? Data = null
+    DataTable? RawDataTable = null
 );

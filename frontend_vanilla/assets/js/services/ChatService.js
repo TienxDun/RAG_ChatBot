@@ -1,0 +1,92 @@
+/**
+ * ChatService.js - Handles streaming chat logic and history persistence
+ */
+import { ApiClient } from '../core/ApiClient.js';
+import { ENDPOINTS } from '../core/Config.js';
+import { state } from '../core/State.js';
+
+export class ChatService {
+    static async sendMessage(text, file, collectionName, callbacks = {}) {
+        const { onStep, onFinal, onError, onMessageElementCreated } = callbacks;
+        const body = this._prepareBody(text, file, collectionName);
+        
+        let aiContent = "";
+        let aiSteps = [];
+        let aiSuggestions = [];
+        let aiDownloadUrl = null;
+        let lastRawData = null;
+
+        try {
+            let elementCreated = false;
+            await ApiClient.fetchStream(ENDPOINTS.CHAT, { body }, (data) => {
+                if (data.type === 'step') {
+                    aiSteps.push(data.step);
+                    if (onStep) onStep(data.step);
+                }
+
+                if (['step', 'final', 'error'].includes(data.type) && onMessageElementCreated && !elementCreated) {
+                    onMessageElementCreated();
+                    elementCreated = true;
+                }
+
+                if (data.type === 'final') {
+                    aiContent = data.text;
+                    aiSuggestions = data.suggestedQuestions || [];
+                    aiDownloadUrl = data.downloadUrl;
+                    lastRawData = data.rawData;
+                    if (onFinal) onFinal(data);
+                } else if (data.type === 'error') {
+                    aiContent = `⚠️ Lỗi: ${data.message}`;
+                    if (onError) onError(data.message);
+                }
+            });
+
+            this._saveToHistory(aiContent, aiSteps, aiSuggestions, aiDownloadUrl, lastRawData);
+            return { aiContent, aiSteps, aiSuggestions, aiDownloadUrl, lastRawData };
+        } catch (error) {
+            console.error('ChatService error:', error);
+            if (onError) onError(error.message);
+            throw error;
+        }
+    }
+
+    static _prepareBody(text, file, collectionName) {
+        if (!file) {
+            return JSON.stringify({ message: text, collectionName });
+        }
+        const formData = new FormData();
+        formData.append('message', text);
+        formData.append('file', file);
+        if (collectionName) formData.append('collectionName', collectionName);
+        return formData;
+    }
+
+    static _saveToHistory(content, steps, suggestions, downloadUrl, rawData) {
+        if (!content && steps.length === 0) return;
+        
+        state.addMessageToHistory(state.currentConversationId, { 
+            role: 'ai', 
+            content, 
+            steps, 
+            suggestions, 
+            downloadUrl,
+            rawData
+        });
+    }
+
+    static ensureConversationStarted(title) {
+        if (!state.currentConversationId) {
+            const newId = Date.now();
+            state.currentConversationId = newId;
+            state.chatHistory = [
+                { 
+                    id: newId, 
+                    title: title || "Cuộc trò chuyện mới", 
+                    date: new Date().toLocaleDateString('vi-VN'),
+                    messages: []
+                },
+                ...state.chatHistory
+            ];
+        }
+    }
+}

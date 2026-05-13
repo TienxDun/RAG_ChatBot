@@ -4,46 +4,60 @@ import { MessageRenderer } from './MessageRenderer.js';
 import { ApiClient } from '../core/ApiClient.js';
 import { state } from '../core/State.js';
 import { Toast } from './Toast.js';
+import { SpeechService } from '../services/SpeechService.js';
+import { FileHandler } from '../services/FileHandler.js';
+import { ExportService } from '../services/ExportService.js';
+import { ChatService } from '../services/ChatService.js';
+import { InteractionService } from '../services/InteractionService.js';
 
 export class ChatAreaComponent {
     constructor() {
-        this.chatInput = document.querySelector(SELECTORS.CHAT_INPUT);
-        this.chatArea = document.querySelector(SELECTORS.CHAT_AREA);
-        this.messagesList = document.getElementById('messages-list');
-        this.landingView = document.getElementById('landing-view');
-        this.scrollTopBtn = document.querySelector(SELECTORS.SCROLL_TOP);
-        this.sendBtn = document.querySelector(SELECTORS.SEND_BTN);
-        this.newChatBtn = document.querySelector(SELECTORS.NEW_CHAT);
-        this.headerNewChatBtn = document.querySelector(SELECTORS.HEADER_NEW_CHAT);
-        this.exportBtn = document.getElementById('export-excel');
-        
-        // Voice elements
-        this.micBtn = document.querySelector(SELECTORS.MIC_BTN);
-        this.micRipple = document.querySelector(SELECTORS.MIC_RIPPLE);
-        this.voiceVisualizer = document.querySelector(SELECTORS.VOICE_VISUALIZER);
-        this.attachBtn = document.querySelector(SELECTORS.ATTACH_BTN);
-        this.chatFile = document.querySelector(SELECTORS.CHAT_FILE);
-        this.filePreviewContainer = document.querySelector(SELECTORS.FILE_PREVIEW_CONTAINER);
-        
-        this.inputWrapper = document.querySelector('.input-wrapper');
-        this.collectionSelect = document.getElementById('chat-collection-select');
-        this.isLoading = false;
-        this.isListening = false;
-        this.selectedFile = null;
-        this.recognition = null;
-        this.lastRawData = null; // Lưu dữ liệu bảng gần nhất để export
-        
-        this.init();
-        this.initSpeechRecognition();
-        this.loadCollections();
+        // 1. Cache DOM Elements
+        this.elements = {
+            chatInput: document.querySelector(SELECTORS.CHAT_INPUT),
+            chatArea: document.querySelector(SELECTORS.CHAT_AREA),
+            messagesList: document.getElementById('messages-list'),
+            landingView: document.getElementById('landing-view'),
+            scrollTopBtn: document.querySelector(SELECTORS.SCROLL_TOP),
+            sendBtn: document.querySelector(SELECTORS.SEND_BTN),
+            newChatBtn: document.querySelector(SELECTORS.NEW_CHAT),
+            headerNewChatBtn: document.querySelector(SELECTORS.HEADER_NEW_CHAT),
+            exportBtn: document.getElementById('export-excel'),
+            
+            // Voice & Attachments
+            micBtn: document.querySelector(SELECTORS.MIC_BTN),
+            micRipple: document.querySelector(SELECTORS.MIC_RIPPLE),
+            voiceVisualizer: document.querySelector(SELECTORS.VOICE_VISUALIZER),
+            attachBtn: document.querySelector(SELECTORS.ATTACH_BTN),
+            chatFile: document.querySelector(SELECTORS.CHAT_FILE),
+            filePreviewContainer: document.querySelector(SELECTORS.FILE_PREVIEW_CONTAINER),
+            
+            inputWrapper: document.querySelector('.input-wrapper'),
+            collectionSelect: document.getElementById('chat-collection-select'),
+            inputContainer: document.querySelector(SELECTORS.CHAT_CONTAINER || '#input-container')
+        };
+
+        // 2. Initialize UI State
+        this.uiState = {
+            isLoading: false,
+            selectedFile: null,
+            lastRawData: null
+        };
+
+        this.speechService = null;
+        this._init();
+        this._initSpeechService();
+        this._loadCollections();
     }
 
-    init() {
-        if (this.chatInput) {
-            this.chatInput.addEventListener('input', () => this.handleInput());
-            this.chatInput.addEventListener('focus', () => this.updateInputUI());
-            this.chatInput.addEventListener('blur', () => this.updateInputUI());
-            this.chatInput.addEventListener('keydown', (e) => {
+    _init() {
+        const { chatInput, sendBtn, newChatBtn, headerNewChatBtn, exportBtn, micBtn, attachBtn, chatFile, chatArea, scrollTopBtn, messagesList, inputContainer } = this.elements;
+
+        if (chatInput) {
+            chatInput.addEventListener('input', () => this._handleInputAutoResize());
+            chatInput.addEventListener('focus', () => this._updateInputUI());
+            chatInput.addEventListener('blur', () => this._updateInputUI());
+            chatInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     this.handleSend();
@@ -51,82 +65,89 @@ export class ChatAreaComponent {
             });
         }
 
-        if (this.sendBtn) this.sendBtn.addEventListener('click', () => this.handleSend());
-        if (this.newChatBtn) this.newChatBtn.addEventListener('click', () => this.resetChat());
-        if (this.headerNewChatBtn) this.headerNewChatBtn.addEventListener('click', () => this.resetChat());
-        if (this.exportBtn) this.exportBtn.addEventListener('click', () => this.handleExportExcel());
-        if (this.micBtn) this.micBtn.addEventListener('click', () => this.toggleMic());
-        if (this.attachBtn) this.attachBtn.addEventListener('click', () => this.chatFile.click());
-        if (this.chatFile) this.chatFile.addEventListener('change', (e) => this.handleFileSelect(e));
+        if (sendBtn) sendBtn.addEventListener('click', () => this.handleSend());
+        if (newChatBtn) newChatBtn.addEventListener('click', () => this.resetChat());
+        if (headerNewChatBtn) headerNewChatBtn.addEventListener('click', () => this.resetChat());
+        if (exportBtn) exportBtn.addEventListener('click', () => this.handleExportExcel());
+        if (micBtn) micBtn.addEventListener('click', () => this._toggleMic());
+        if (attachBtn) attachBtn.addEventListener('click', () => chatFile.click());
+        if (chatFile) chatFile.addEventListener('change', (e) => this._handleFileSelect(e));
 
-        // Drag & Drop events
-        const inputContainer = document.querySelector(SELECTORS.CHAT_CONTAINER || '#input-container');
-        if (inputContainer) {
-            inputContainer.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                inputContainer.classList.add('dragover');
-            });
+        this._initDragAndDrop(inputContainer);
 
-            inputContainer.addEventListener('dragleave', () => {
-                inputContainer.classList.remove('dragover');
-            });
+        if (chatArea) chatArea.addEventListener('scroll', () => this._handleScroll());
 
-            inputContainer.addEventListener('drop', (e) => {
-                e.preventDefault();
-                inputContainer.classList.remove('dragover');
-                const files = e.dataTransfer.files;
-                if (files.length > 0) {
-                    this.processFile(files[0]);
-                }
-            });
-        }
-        if (this.chatArea) this.chatArea.addEventListener('scroll', () => this.handleScroll());
-
-        if (this.scrollTopBtn) {
-            this.scrollTopBtn.addEventListener('click', () => {
-                this.chatArea.scrollTo({ top: 0, behavior: 'smooth' });
+        if (scrollTopBtn) {
+            scrollTopBtn.addEventListener('click', () => {
+                chatArea.scrollTo({ top: 0, behavior: 'smooth' });
             });
         }
 
-        // Event Delegation cho tin nhắn
-        if (this.messagesList) {
-            this.messagesList.addEventListener('click', (e) => this.handleMessageAction(e));
+        if (messagesList) {
+            messagesList.addEventListener('click', (e) => this._handleMessageAction(e));
         }
 
+        this._bindSuggestionTags();
+    }
+
+    _initDragAndDrop(container) {
+        if (!container) return;
+
+        container.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            container.classList.add('dragover');
+        });
+
+        container.addEventListener('dragleave', () => {
+            container.classList.remove('dragover');
+        });
+
+        container.addEventListener('drop', (e) => {
+            e.preventDefault();
+            container.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                this._processFile(files[0]);
+            }
+        });
+    }
+
+    _bindSuggestionTags() {
         document.querySelectorAll('.suggestion-tag').forEach(tag => {
             tag.addEventListener('click', () => {
-                this.chatInput.value = tag.getAttribute('data-value');
-                this.handleInput();
-                this.chatInput.focus();
+                this.elements.chatInput.value = tag.getAttribute('data-value');
+                this._handleInputAutoResize();
+                this.elements.chatInput.focus();
             });
         });
     }
 
-    async loadCollections() {
-        if (!this.collectionSelect) return;
+    async _loadCollections() {
+        const { collectionSelect } = this.elements;
+        if (!collectionSelect) return;
+
         try {
             const collections = await ApiClient.get(ENDPOINTS.COLLECTIONS);
-            if (Array.isArray(collections)) {
-                // Giữ lại option mặc định đầu tiên
-                const defaultOption = this.collectionSelect.options[0];
-                this.collectionSelect.innerHTML = '';
-                this.collectionSelect.appendChild(defaultOption);
+            if (!Array.isArray(collections)) return;
 
-                collections.forEach(col => {
-                    if (col !== 'db_schema') { // Tránh trùng với mặc định nếu đã có
-                        const option = document.createElement('option');
-                        option.value = col;
-                        option.textContent = col;
-                        this.collectionSelect.appendChild(option);
-                    }
-                });
-            }
+            const defaultOption = collectionSelect.options[0];
+            collectionSelect.innerHTML = '';
+            collectionSelect.appendChild(defaultOption);
+
+            collections.forEach(col => {
+                if (col !== 'db_schema') {
+                    const option = document.createElement('option');
+                    option.value = col;
+                    option.textContent = col;
+                    collectionSelect.appendChild(option);
+                }
+            });
         } catch (error) {
             console.error('Failed to load collections:', error);
         }
     }
 
-    handleMessageAction(e) {
+    _handleMessageAction(e) {
         const btn = e.target.closest('[data-action]');
         if (!btn) return;
 
@@ -134,293 +155,237 @@ export class ChatAreaComponent {
         const value = btn.getAttribute('data-value');
 
         switch (action) {
-            case 'copy-msg': this.copyMessage(btn); break;
-            case 'edit-msg': this.editMessage(btn); break;
-            case 'copy-code': this.copyTerminalCode(btn); break;
-            case 'quick-question': this.sendQuickQuestion(value); break;
+            case 'copy-msg': this._copyMessage(btn); break;
+            case 'edit-msg': this._editMessage(btn); break;
+            case 'copy-code': this._copyTerminalCode(btn); break;
+            case 'quick-question': this._sendQuickQuestion(value); break;
             case 'toggle-steps': btn.classList.toggle('active'); break;
-            case 'export-msg-excel': this.handleExportMessageExcel(btn); break;
+            case 'export-msg-excel': this._handleExportMessageExcel(btn); break;
         }
     }
 
-    initSpeechRecognition() {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (SpeechRecognition) {
-            this.recognition = new SpeechRecognition();
-            this.recognition.continuous = false;
-            this.recognition.interimResults = true;
-            this.recognition.lang = 'vi-VN';
+    _initSpeechService() {
+        this.speechService = new SpeechService({
+            onResult: (transcript) => {
+                this.elements.chatInput.value = transcript;
+                this._handleInputAutoResize();
+            },
+            onEnd: () => this._stopListeningUI(),
+            onError: () => this._stopListeningUI()
+        });
 
-            this.recognition.onresult = (event) => {
-                const transcript = Array.from(event.results)
-                    .map(result => result[0].transcript)
-                    .join('');
-                
-                this.chatInput.value = transcript;
-                this.handleInput();
-            };
-
-            this.recognition.onend = () => this.stopListeningUI();
-            this.recognition.onerror = (event) => {
-                console.error('Speech recognition error', event.error);
-                this.stopListeningUI();
-            };
-        } else if (this.micBtn) {
-            this.micBtn.style.display = 'none';
+        if (!this.speechService.isSupported() && this.elements.micBtn) {
+            this.elements.micBtn.style.display = 'none';
         }
     }
 
-    toggleMic() {
-        if (this.isListening) {
-            this.recognition?.stop();
+    _toggleMic() {
+        if (this.speechService?.isListening) {
+            this.speechService.stop();
         } else {
-            try {
-                this.recognition?.start();
-                this.startListeningUI();
-            } catch (err) {
-                console.error('Start listening error:', err);
-            }
+            this.speechService?.start();
+            this._startListeningUI();
         }
     }
 
-    startListeningUI() {
-        this.isListening = true;
-        this.micBtn?.classList.add('active');
-        this.micBtn?.querySelector('i').classList.replace('ph-microphone', 'ph-microphone-stage');
-        this.micRipple?.classList.remove('hidden');
-        this.voiceVisualizer?.classList.remove('hidden');
-        this.chatInput.placeholder = 'Đang lắng nghe...';
-        if (this.sendBtn) this.sendBtn.classList.add('hidden');
+    _startListeningUI() {
+        const { micBtn, micRipple, voiceVisualizer, chatInput, sendBtn } = this.elements;
+        micBtn?.classList.add('active');
+        micBtn?.querySelector('i').classList.replace('ph-microphone', 'ph-microphone-stage');
+        micRipple?.classList.remove('hidden');
+        voiceVisualizer?.classList.remove('hidden');
+        if (chatInput) chatInput.placeholder = 'Đang lắng nghe...';
+        if (sendBtn) sendBtn.classList.add('hidden');
     }
 
-    stopListeningUI() {
-        this.isListening = false;
-        this.micBtn?.classList.remove('active');
-        this.micBtn?.querySelector('i').classList.replace('ph-microphone-stage', 'ph-microphone');
-        this.micRipple?.classList.add('hidden');
-        this.voiceVisualizer?.classList.add('hidden');
-        this.chatInput.placeholder = 'Hỏi về cơ sở dữ liệu của bạn...';
-        if (this.sendBtn) this.sendBtn.classList.remove('hidden');
+    _stopListeningUI() {
+        const { micBtn, micRipple, voiceVisualizer, chatInput, sendBtn } = this.elements;
+        micBtn?.classList.remove('active');
+        micBtn?.querySelector('i').classList.replace('ph-microphone-stage', 'ph-microphone');
+        micRipple?.classList.add('hidden');
+        voiceVisualizer?.classList.add('hidden');
+        if (chatInput) chatInput.placeholder = 'Hỏi về cơ sở dữ liệu của bạn...';
+        if (sendBtn) sendBtn.classList.remove('hidden');
     }
 
-    handleInput() {
-        if (this.chatInput) {
-            // Đặt về 0 để ép trình duyệt tính toán lại chiều cao thực tế của nội dung (scrollHeight)
-            this.chatInput.style.height = '0px';
-            const scrollHeight = this.chatInput.scrollHeight;
-            
-            // Nếu có nội dung, dãn theo scrollHeight, nếu không thì để mặc định (sẽ do padding CSS quyết định)
-            if (this.chatInput.value.trim() === '') {
-                this.chatInput.style.height = 'auto';
-            } else {
-                this.chatInput.style.height = scrollHeight + 'px';
-            }
+    _handleInputAutoResize() {
+        const { chatInput } = this.elements;
+        if (!chatInput) return;
+
+        chatInput.style.height = '0px';
+        const scrollHeight = chatInput.scrollHeight;
+        
+        if (chatInput.value.trim() === '') {
+            chatInput.style.height = 'auto';
+        } else {
+            chatInput.style.height = scrollHeight + 'px';
         }
         
-        this.updateInputUI();
+        this._updateInputUI();
 
-        const hasValue = this.chatInput.value.trim() !== '';
         const suggestions = document.querySelector('.suggestions');
         if (suggestions) {
-            suggestions.classList.toggle('is-hidden', hasValue);
+            suggestions.classList.toggle('is-hidden', chatInput.value.trim() !== '');
         }
     }
 
-    updateInputUI() {
-        if (!this.chatInput) return;
+    _updateInputUI() {
+        const { chatInput, sendBtn, inputWrapper, micBtn } = this.elements;
+        if (!chatInput) return;
         
-        const hasValue = this.chatInput.value.trim().length > 0;
-        const isFocused = document.activeElement === this.chatInput;
+        const hasValue = chatInput.value.trim().length > 0;
+        const isFocused = document.activeElement === chatInput;
         
-        if (this.sendBtn) this.sendBtn.disabled = !hasValue;
+        if (sendBtn) sendBtn.disabled = !hasValue;
         
-        if (this.inputWrapper) {
-            this.inputWrapper.classList.toggle('is-expanded', hasValue || isFocused);
+        if (inputWrapper) {
+            inputWrapper.classList.toggle('is-expanded', hasValue || isFocused);
         }
 
-        if (this.micBtn) {
-            this.micBtn.style.display = (hasValue || this.selectedFile) ? 'none' : 'flex';
+        if (micBtn) {
+            micBtn.style.display = (hasValue || this.uiState.selectedFile) ? 'none' : 'flex';
         }
     }
 
-    handleFileSelect(e) {
-        const file = e.target.files[0];
-        this.processFile(file);
+    _handleFileSelect(e) {
+        this._processFile(e.target.files[0]);
     }
 
-    processFile(file) {
-        if (!file) return;
-        
-        // Kiểm tra định dạng file (chỉ nhận Excel)
-        const ext = file.name.split('.').pop().toLowerCase();
-        if (ext !== 'xlsx') {
-            Toast.error("Chỉ hỗ trợ file Excel (.xlsx)");
-            this.chatFile.value = '';
+    _processFile(file) {
+        if (FileHandler.validateExcel(file)) {
+            this.uiState.selectedFile = file;
+            this._renderFilePreview();
+            this._updateInputUI();
+            this.elements.chatInput.focus();
+        } else {
+            this.elements.chatFile.value = '';
+        }
+    }
+
+    _renderFilePreview() {
+        const { filePreviewContainer: container, chatFile } = this.elements;
+        if (!this.uiState.selectedFile) {
+            FileHandler.clearPreview(container, {
+                showSuggestions: () => document.querySelector(SELECTORS.LANDING_SUGGESTIONS)?.classList.remove('hidden')
+            });
             return;
         }
 
-        this.selectedFile = file;
-        this.renderFilePreview();
-        this.updateInputUI();
-        this.chatInput.focus();
-    }
-
-    renderFilePreview() {
-        const container = document.querySelector(SELECTORS.FILE_PREVIEW_CONTAINER);
-        const suggestions = document.querySelector(SELECTORS.LANDING_SUGGESTIONS);
-        if (!container) return;
-
-        if (this.selectedFile) {
-            container.classList.remove('hidden');
-            if (suggestions) suggestions.classList.add('hidden');
-            container.innerHTML = `
-                <div class="file-preview-chip animate-in zoom-in duration-300">
-                    <i class="ph-fill ph-microsoft-excel-logo"></i>
-                    <span class="file-name">${this.selectedFile.name}</span>
-                    <button class="btn-remove-preview" id="remove-file-btn" title="Gỡ bỏ file">
-                        <i class="ph-bold ph-x"></i>
-                    </button>
-                </div>
-            `;
-
-            document.getElementById('remove-file-btn').addEventListener('click', () => {
-                this.selectedFile = null;
-                this.chatFile.value = '';
-                this.renderFilePreview();
-                this.updateInputUI();
-            });
-        } else {
-            container.classList.add('hidden');
-            if (suggestions) suggestions.classList.remove('hidden');
-            container.innerHTML = '';
-        }
+        FileHandler.renderPreview(container, this.uiState.selectedFile, {
+            hideSuggestions: () => document.querySelector(SELECTORS.LANDING_SUGGESTIONS)?.classList.add('hidden'),
+            onRemove: () => {
+                this.uiState.selectedFile = null;
+                chatFile.value = '';
+                this._renderFilePreview();
+                this._updateInputUI();
+            }
+        });
     }
 
     async handleSend() {
-        const text = this.chatInput.value.trim();
-        if (!text || this.isLoading) return;
+        const { chatInput, chatArea, messagesList, chatFile, collectionSelect } = this.elements;
+        const text = chatInput.value.trim();
+        if (!text || this.uiState.isLoading) return;
 
-        this._ensureConversationStarted(text);
-        this.appendMessage('user', text, [], [], null, null, this.selectedFile);
-        this.chatInput.value = '';
-        this.handleInput();
-        this.chatArea.classList.remove('is-landing'); // Thoát trạng thái landing khi gửi tin nhắn
+        ChatService.ensureConversationStarted(text);
+        this.appendMessage('user', text, [], [], null, null, this.uiState.selectedFile);
+        
+        const currentFile = this.uiState.selectedFile;
+        chatInput.value = '';
+        this._handleInputAutoResize();
+        chatArea.classList.remove('is-landing');
 
-        this.setLoading(true);
+        this._setLoading(true);
         const typingIndicator = MessageRenderer.createTypingIndicator();
-        this.messagesList.appendChild(typingIndicator);
+        messagesList.appendChild(typingIndicator);
         this.scrollToBottom();
 
+        // Bắt đầu đếm thời gian
+        let seconds = 0;
+        const timerInterval = setInterval(() => {
+            seconds++;
+            const timerEls = document.querySelectorAll('.loading-timer');
+            timerEls.forEach(el => {
+                el.innerText = `(${seconds}s)`;
+            });
+        }, 1000);
+
         try {
-            await this._processStreamResponse(text, this.selectedFile, typingIndicator);
-            this.selectedFile = null;
-            this.chatFile.value = '';
-            this.renderFilePreview();
+            const collectionName = collectionSelect ? collectionSelect.value : null;
+            let aiMessageEl = null;
+            let aiSteps = [];
+
+            await ChatService.sendMessage(text, currentFile, collectionName, {
+                onStep: (step) => {
+                    aiSteps.push(step);
+                    const status = `Đang xử lý: ${step.title}...`;
+                    if (aiMessageEl) {
+                        MessageRenderer.updateMessage(aiMessageEl, "", aiSteps, [], null, null, null, status);
+                    } else {
+                        MessageRenderer.updateTypingText(typingIndicator, status);
+                    }
+                    
+                    // Cập nhật lại thời gian ngay sau khi render lại message
+                    const timerEl = (aiMessageEl || typingIndicator).querySelector('.loading-timer');
+                    if (timerEl) timerEl.innerText = `(${seconds}s)`;
+                },
+                onMessageElementCreated: () => {
+                    if (typingIndicator.parentNode) messagesList.removeChild(typingIndicator);
+                    if (!aiMessageEl) {
+                        const lastStep = aiSteps[aiSteps.length - 1];
+                        const status = lastStep ? `Đang xử lý: ${lastStep.title}...` : 'AI đang suy nghĩ...';
+                        aiMessageEl = MessageRenderer.createMessageElement('ai', '', aiSteps, [], null, null, null, status);
+                        messagesList.appendChild(aiMessageEl);
+                        
+                        const timerEl = aiMessageEl.querySelector('.loading-timer');
+                        if (timerEl) timerEl.innerText = `(${seconds}s)`;
+                        
+                        this.scrollToBottom();
+                    }
+                },
+                onFinal: (data) => {
+                    if (aiMessageEl) {
+                        MessageRenderer.updateMessage(aiMessageEl, data.text, aiSteps, data.suggestedQuestions, data.downloadUrl, data.rawData);
+                        // Thêm thời gian tổng kết vào cuối nội dung hoặc footer nếu cần
+                        const footer = aiMessageEl.querySelector('.ai-label');
+                        if (footer) footer.innerText = `AI INSIGHT (${seconds}s)`;
+                    }
+                    this.uiState.lastRawData = data.rawData;
+                },
+                onError: (msg) => {
+                    if (typingIndicator.parentNode) messagesList.removeChild(typingIndicator);
+                    this.appendMessage('ai', `⚠️ Lỗi: ${msg}`);
+                }
+            });
+
+            this.uiState.selectedFile = null;
+            chatFile.value = '';
+            this._renderFilePreview();
         } catch (error) {
             console.error('Chat error:', error);
-            if (typingIndicator.parentNode) this.messagesList.removeChild(typingIndicator);
-            this.appendMessage('ai', `⚠️ Không thể kết nối tới máy chủ: ${error.message}`);
         } finally {
-            this.setLoading(false);
+            clearInterval(timerInterval);
+            this._setLoading(false);
+            this.scrollToBottom();
         }
     }
 
     _ensureConversationStarted(title) {
-        if (!state.currentConversationId) {
-            const newId = Date.now();
-            state.currentConversationId = newId;
-            state.chatHistory = [
-                { 
-                    id: newId, 
-                    title: title || "Cuộc trò chuyện mới", 
-                    date: new Date().toLocaleDateString('vi-VN'),
-                    messages: []
-                },
-                ...state.chatHistory
-            ];
-        }
+        ChatService.ensureConversationStarted(title);
     }
 
-    async _processStreamResponse(text, file, typingIndicator) {
-        let aiMessageEl = null;
-        let aiContent = "";
-        let aiSteps = [];
-        let aiSuggestions = [];
-        let aiDownloadUrl = null;
-
-        const collectionName = this.collectionSelect ? this.collectionSelect.value : null;
-
-        let body;
-        if (file) {
-            body = new FormData();
-            body.append('message', text);
-            body.append('file', file);
-            if (collectionName) body.append('collectionName', collectionName);
-        } else {
-            body = JSON.stringify({ 
-                message: text,
-                collectionName: collectionName 
-            });
-        }
-
-        await ApiClient.fetchStream(ENDPOINTS.CHAT, {
-            body: body
-        }, (data) => {
-            // Cập nhật text cho typing indicator nếu là bước xử lý
-            if (data.type === 'step') {
-                aiSteps.push(data.step);
-                MessageRenderer.updateTypingText(typingIndicator, `Đang xử lý: ${data.step.title}...`);
-            }
-
-            // Chỉ xóa typing indicator khi có nội dung cuối cùng hoặc lỗi
-            if (data.type === 'final' || data.type === 'error') {
-                if (typingIndicator.parentNode) {
-                    this.messagesList.removeChild(typingIndicator);
-                }
-            }
-
-            // Tạo message element cho AI nếu chưa có (để hiển thị RAG steps ngay)
-            if (!aiMessageEl && (data.type === 'step' || data.type === 'final' || data.type === 'error')) {
-                aiMessageEl = MessageRenderer.createMessageElement('ai', '');
-                this.messagesList.appendChild(aiMessageEl);
-            }
-
-            if (data.type === 'final') {
-                aiContent = data.text;
-                aiSuggestions = data.suggestedQuestions || [];
-                aiDownloadUrl = data.downloadUrl;
-                this.lastRawData = data.rawData;
-            } else if (data.type === 'error') {
-                aiContent = `⚠️ Lỗi: ${data.message}`;
-            }
-            
-            if (aiMessageEl) {
-                MessageRenderer.updateMessage(aiMessageEl, aiContent, aiSteps, aiSuggestions, aiDownloadUrl, data.rawData);
-            }
-            this.scrollToBottom();
-        });
-
-        if (aiContent || aiSteps.length > 0) {
-            state.addMessageToHistory(state.currentConversationId, { 
-                role: 'ai', 
-                content: aiContent, 
-                steps: aiSteps, 
-                suggestions: aiSuggestions,
-                downloadUrl: aiDownloadUrl,
-                rawData: this.lastRawData
-            });
-        }
-    }
 
     appendMessage(role, content, steps, suggestions, downloadUrl, rawData, userFile) {
-        if (this.messagesList.classList.contains('hidden')) {
-            this.landingView.classList.add('hidden');
-            this.messagesList.classList.remove('hidden');
-            this.chatArea.classList.remove('is-landing'); // Thoát trạng thái landing
+        const { messagesList, landingView, chatArea } = this.elements;
+
+        if (messagesList.classList.contains('hidden')) {
+            landingView.classList.add('hidden');
+            messagesList.classList.remove('hidden');
+            chatArea.classList.remove('is-landing');
         }
 
         const msgEl = MessageRenderer.createMessageElement(role, content, steps, suggestions, downloadUrl, rawData, userFile);
-        this.messagesList.appendChild(msgEl);
+        messagesList.appendChild(msgEl);
         this.scrollToBottom();
 
         if (role === 'user' && state.currentConversationId) {
@@ -435,18 +400,19 @@ export class ChatAreaComponent {
     }
 
     loadConversation(id) {
+        const { messagesList, landingView, chatArea } = this.elements;
         const conversation = state.chatHistory.find(h => String(h.id) === String(id));
         if (!conversation) return;
 
         state.currentConversationId = id;
-        this.messagesList.innerHTML = '';
-        this.landingView.classList.add('hidden');
-        this.messagesList.classList.remove('hidden');
-        this.chatArea.classList.remove('is-landing'); // Thoát trạng thái landing
+        messagesList.innerHTML = '';
+        landingView.classList.add('hidden');
+        messagesList.classList.remove('hidden');
+        chatArea.classList.remove('is-landing');
 
         if (conversation.messages?.length > 0) {
             conversation.messages.forEach(msg => {
-                this.messagesList.appendChild(
+                messagesList.appendChild(
                     MessageRenderer.createMessageElement(msg.role, msg.content, msg.steps, msg.suggestions, msg.downloadUrl, msg.rawData, msg.userFile)
                 );
             });
@@ -456,57 +422,35 @@ export class ChatAreaComponent {
         if (window.innerWidth <= 768) state.isSidebarOpen = false;
     }
 
-    sendQuickQuestion(text) {
-        this.chatInput.value = text;
+    _sendQuickQuestion(text) {
+        this.elements.chatInput.value = text;
         this.handleSend();
     }
 
-    editMessage(btn) {
-        const content = btn.closest('.message').querySelector('.markdown-content').innerText;
-        this.chatInput.value = content;
-        this.chatInput.focus();
-        this.handleInput();
+    _editMessage(btn) {
+        const content = InteractionService.getMessageContent(btn);
+        this.elements.chatInput.value = content;
+        this.elements.chatInput.focus();
+        this._handleInputAutoResize();
     }
 
-    _showCopyFeedback(btn, isFooter = false) {
-        const icon = btn.querySelector('i');
-        const originalClass = icon.className;
-        const originalHTML = btn.innerHTML;
-
-        icon.className = 'ph-bold ph-check text-green-500';
-        if (isFooter) btn.innerHTML = '<i class="ph-bold ph-check text-green-500"></i> Copied';
-
-        setTimeout(() => {
-            if (isFooter) btn.innerHTML = originalHTML;
-            else icon.className = originalClass;
-        }, 2000);
-
-        Toast.success("Đã sao chép!");
+    _copyMessage(btn) {
+        const content = InteractionService.getMessageContent(btn);
+        InteractionService.copyToClipboard(content, btn, btn.classList.contains('footer-copy'));
     }
 
-    copyMessage(btn) {
-        const container = btn.closest('.message') || btn.closest('.message__bubble');
-        const content = container.querySelector('.markdown-content').innerText;
-        
-        navigator.clipboard.writeText(content).then(() => {
-            this._showCopyFeedback(btn, btn.classList.contains('footer-copy'));
-        });
-    }
-
-    copyTerminalCode(btn) {
-        const text = btn.closest('.terminal-code').querySelector('code').innerText;
-        navigator.clipboard.writeText(text).then(() => this._showCopyFeedback(btn));
+    _copyTerminalCode(btn) {
+        const text = InteractionService.getTerminalCode(btn);
+        InteractionService.copyToClipboard(text, btn);
     }
 
     async handleExportExcel() {
-        if (!this.lastRawData?.length) {
-            Toast.warning("Không có dữ liệu để xuất!");
-            return;
-        }
-        await this._executeExport(this.lastRawData, this.exportBtn);
+        await ExportService.exportToExcel(this.uiState.lastRawData, this.elements.exportBtn, {
+            defaultLabel: '<i class="ph-bold ph-microsoft-excel-logo"></i>'
+        });
     }
 
-    async handleExportMessageExcel(btn) {
+    async _handleExportMessageExcel(btn) {
         const messageEl = btn.closest('.message');
         const rawDataStr = messageEl?.getAttribute('data-raw');
         
@@ -517,68 +461,37 @@ export class ChatAreaComponent {
 
         try {
             const data = JSON.parse(rawDataStr);
-            await this._executeExport(data, btn);
+            await ExportService.exportToExcel(data, btn, {
+                defaultLabel: '<i class="ph-duotone ph-microsoft-excel-logo"></i> Xuất Excel'
+            });
         } catch (e) {
             console.error('Failed to parse message rawData', e);
             Toast.error("Dữ liệu không hợp lệ");
         }
     }
 
-    async _executeExport(data, triggerBtn) {
-        try {
-            triggerBtn.disabled = true;
-            const originalHTML = triggerBtn.innerHTML;
-            triggerBtn.innerHTML = '<i class="ph-bold ph-spinner-gap animate-spin"></i>';
-
-            const url = ApiClient._resolveUrl(ENDPOINTS.EXPORT_EXCEL);
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-
-            if (!response.ok) throw new Error("Xuất file thất bại");
-
-            const blob = await response.blob();
-            const blobUrl = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = blobUrl;
-            a.download = `export_${Date.now()}.xlsx`;
-            a.click();
-            window.URL.revokeObjectURL(blobUrl);
-            Toast.success("Xuất Excel thành công!");
-        } catch (error) {
-            console.error('Export error:', error);
-            Toast.error("Lỗi khi xuất file Excel");
-        } finally {
-            triggerBtn.disabled = false;
-            if (triggerBtn === this.exportBtn) {
-                triggerBtn.innerHTML = '<i class="ph-bold ph-microsoft-excel-logo"></i>';
-            } else {
-                triggerBtn.innerHTML = '<i class="ph-duotone ph-microsoft-excel-logo"></i> Xuất Excel';
-            }
-        }
-    }
-
     resetChat() {
-        this.messagesList.innerHTML = '';
-        this.messagesList.classList.add('hidden');
-        this.landingView.classList.remove('hidden');
-        this.chatArea.classList.add('is-landing'); // Quay lại trạng thái landing
-        this.lastRawData = null;
+        const { messagesList, landingView, chatArea } = this.elements;
+        messagesList.innerHTML = '';
+        messagesList.classList.add('hidden');
+        landingView.classList.remove('hidden');
+        chatArea.classList.add('is-landing');
+        this.uiState.lastRawData = null;
         state.currentConversationId = null;
     }
 
-    setLoading(val) {
-        this.isLoading = val;
-        if (this.sendBtn) this.sendBtn.disabled = val;
+    _setLoading(val) {
+        this.uiState.isLoading = val;
+        if (this.elements.sendBtn) this.elements.sendBtn.disabled = val;
     }
 
-    handleScroll() {
-        this.scrollTopBtn?.classList.toggle('hidden', this.chatArea.scrollTop <= 400);
+    _handleScroll() {
+        const { scrollTopBtn, chatArea } = this.elements;
+        scrollTopBtn?.classList.toggle('hidden', chatArea.scrollTop <= 400);
     }
 
     scrollToBottom() {
-        this.chatArea.scrollTo({ top: this.chatArea.scrollHeight, behavior: 'smooth' });
+        const { chatArea } = this.elements;
+        chatArea.scrollTo({ top: chatArea.scrollHeight, behavior: 'smooth' });
     }
 }

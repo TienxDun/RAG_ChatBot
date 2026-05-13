@@ -90,15 +90,49 @@ public class ExcelReportService
         // 3. Chạy toàn bộ luồng RAG (Embeddings -> Qdrant Schema -> Vertex SQL -> Execute)
         var ragResponse = await _ragOrchestrator.ProcessQueryAsync(combinedQuery, null, onStep, ct);
 
-        // 4. Lấy kết quả Json
-        var rawJson = ragResponse.RawData;
-        if (string.IsNullOrWhiteSpace(rawJson) || rawJson.Contains("[ERROR]"))
+        // 4. Lấy kết quả
+        DataTable finalDataTable;
+        if (ragResponse.RawDataTable != null && ragResponse.RawDataTable.Rows.Count > 0)
         {
-            throw new Exception("AI không thể sinh được SQL hợp lệ: " + rawJson);
+            // Nếu có DataTable gốc, chúng ta cần tạo một bản sao có các cột đúng thứ tự như Template
+            finalDataTable = new DataTable();
+            foreach (var colName in columns)
+            {
+                finalDataTable.Columns.Add(colName, typeof(object));
+            }
+
+            foreach (DataRow sourceRow in ragResponse.RawDataTable.Rows)
+            {
+                var newRow = finalDataTable.NewRow();
+                foreach (var colName in columns)
+                {
+                    // Tìm cột tương ứng trong data gốc (AI đã được dặn dùng AS để khớp tên)
+                    if (ragResponse.RawDataTable.Columns.Contains(colName))
+                    {
+                        newRow[colName] = sourceRow[colName];
+                    }
+                    else 
+                    {
+                        newRow[colName] = DBNull.Value;
+                    }
+                }
+                finalDataTable.Rows.Add(newRow);
+            }
+        }
+        else 
+        {
+            // Fallback về JSON nếu không có DataTable
+            var rawJson = ragResponse.RawData;
+            if (string.IsNullOrWhiteSpace(rawJson) || rawJson.Contains("[ERROR]"))
+            {
+                throw new Exception("AI không thể sinh được dữ liệu hợp lệ.");
+            }
+            finalDataTable = ConvertJsonToDataTable(rawJson, columns);
         }
 
-        // 5. Convert JSON -> DataTable theo đúng thứ tự cột của Template
-        var dataTable = ConvertJsonToDataTable(rawJson, columns);
+        var dataTable = finalDataTable; // Sử dụng bảng đã được chuẩn hóa
+
+        // 5. Xóa dữ liệu mẫu (dummy data) và điền data mới
 
         // 5. Xóa dữ liệu mẫu (dummy data) và điền data mới
         int dataStartRow = headerRowIndex + 1;

@@ -49,177 +49,186 @@ public sealed class RagOrchestrator
         }
         var schemaInfo = schemaInfoBuilder.ToString();
         
-        var step2 = new RagStep("Schema Retrieval", $"Tìm thấy {schemaContexts.Count} cấu trúc database liên quan nhất:\n\n{schemaInfo}");
+        var step2 = new RagStep("Schema Retrieval", $"Tìm thấy {schemaContexts.Count} cấu trúc database liên quan.");
         steps.Add(step2);
         await onStep(step2);
 
-        // 3 & 4. SQL Generation & Execution Loop (Self-Healing)
         var now = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(7));
         var currentTimeStr = now.ToString("dd/MM/yyyy HH:mm");
+
+        // 3. Planning Phase: AI decides the steps
+        await onStep(new RagStep("Execution Planning", "AI đang lập kế hoạch truy vấn dữ liệu theo từng bước..."));
+        var planningPrompt = $@"Bạn là chuyên gia lập kế hoạch truy vấn SQL.
+            Dựa trên CẤU TRÚC DATABASE:
+            {schemaInfo}
+
+            CÂU HỎI: ""{userQuery}""
+
+            NHIỆM VỤ: Chia nhỏ câu hỏi trên thành các bước truy vấn SQL logic (tối đa 3 bước). 
+            Mỗi bước phải là một nhiệm vụ ĐƠN LẺ và CỤ THỂ. Không được gộp nhiều nhiệm vụ vào một bước.
+            Ví dụ:
+            Bước 1: Truy vấn bảng A để tìm ID.
+            Bước 2: Dùng ID đó truy vấn bảng B để lấy số liệu.
+
+            YÊU CẦU ĐỊNH DẠNG: Trả về JSON duy nhất:
+            {{
+                ""steps"": [""mô tả bước 1"", ""mô tả bước 2""]
+            }}";
+
+        var planResponse = await _aiClient.GenerateContentAsync(planningPrompt, ct);
+        var planJson = planResponse.Replace("```json", "").Replace("```", "").Trim();
+        var stepsToExecute = new List<string> { userQuery }; // Default if plan fails
+        try {
+            var planObj = JsonSerializer.Deserialize<JsonElement>(planJson);
+            stepsToExecute = planObj.GetProperty("steps").EnumerateArray().Select(x => x.GetString()!).ToList();
+        } catch { /* Fallback to single step if JSON is invalid */ }
+
+        // 4. Execution Phase: Loop through planned steps
+        var workingContext = new StringBuilder();
+        workingContext.AppendLine("KẾT QUẢ CÁC BƯỚC TRƯỚC ĐÓ:");
         
-        string generatedSql = string.Empty;
-        string sqlResultJson = string.Empty;
-        DataTable? sqlResultDataTable = null;
-        string lastError = string.Empty;
-        int maxAttempts = 3;
+        string lastStepJson = string.Empty;
+        DataTable? lastDataTable = null;
 
-        for (int attempt = 1; attempt <= maxAttempts; attempt++)
+        for (int i = 0; i < stepsToExecute.Count; i++)
         {
-            var sqlPrompt = string.Empty;
-            if (attempt == 1)
+            var currentStepDesc = stepsToExecute[i];
+            var stepTitle = $"Step {i + 1}/{stepsToExecute.Count}";
+            await onStep(new RagStep(stepTitle, $"Đang thực hiện: {currentStepDesc}"));
+
+            string generatedSql = string.Empty;
+            string lastError = string.Empty;
+            int stepMaxAttempts = 2; // 2 attempts per step
+
+            for (int attempt = 1; attempt <= stepMaxAttempts; attempt++)
             {
-                sqlPrompt = $@"Bạn là chuyên gia SQL Server hàng đầu cho ngành may mặc.
-                    Thời gian hệ thống (UTC+7): {currentTimeStr}
+                var sqlPrompt = $@"Bạn là chuyên gia SQL Server.
+                    Cấu trúc database: {schemaInfo}
+                    {workingContext}
 
-                    DỰA TRÊN CẤU TRÚC DATABASE:
-                    {schemaInfo}
+                    NHIỆM VỤ HIỆN TẠI: {currentStepDesc}
+                    CÂU HỎI GỐC CỦA NGƯỜI DÙNG: ""{userQuery}""
 
-                    NHIỆM VỤ: Viết câu lệnh SQL duy nhất cho câu hỏi: ""{userQuery}""
+                    YÊU CẦU NGHIÊM NGẶT:
+                    1. 🎯 CHỈ thực hiện nhiệm vụ trong 'NHIỆM VỤ HIỆN TẠI'. TUYỆT ĐỐI KHÔNG viết SQL để trả lời toàn bộ câu hỏi gốc nếu nhiệm vụ hiện tại chỉ là một phần.
+                    2. 🔗 Sử dụng giá trị thực tế từ 'KẾT QUẢ CÁC BƯỚC TRƯỚC ĐÓ' để điền vào điều kiện WHERE (ví dụ: WHERE Id_cd = 123).
+                    3. Trả về mã SQL thô, không markdown, không giải thích.
+                    {(string.IsNullOrEmpty(lastError) ? "" : $"\nLỖI LẦN TRƯỚC: {lastError}\nSửa lại SQL dựa trên lỗi này.")}";
 
-                    LƯU Ý QUAN TRỌNG (BẮT BUỘC TUÂN THỦ):
+                generatedSql = await _aiClient.GenerateContentAsync(sqlPrompt, ct);
+                generatedSql = CleanSql(generatedSql);
 
-                    1. ĐỊNH DẠNG OUTPUT:
-                       - CHỈ trả về mã SQL thô. KHÔNG giải thích, KHÔNG markdown, KHÔNG dấu chấm phẩy cuối.
-
-                    2. QUY TẮC XỬ LÝ DỮ LIỆU (ÁP DỤNG THEO NGỮ CẢNH):
-                       - 🛡️ Lọc Ngày: Cột ngày thường chứa giờ, nên BẮT BUỘC dùng CAST(Tên_Cột AS DATE) = 'YYYY-MM-DD'. Nếu so sánh trực tiếp sẽ trả về NULL.
-                       - 🛡️ Lọc Chuyền: Cột LineX là kiểu INT. KHÔNG được dùng nháy đơn (viết LineX = 101, KHÔNG viết LineX = '101').
-                       - 🛡️ Phân luồng dữ liệu: 
-                         1. NĂNG SUẤT: Dùng SEW_CoefficientStyle + tbl_Steps. Lọc mã hàng tại S.StypeId. Công thức: SUM(Quantity), SUM(DefectNo).
-                         2. TỈ LỆ LỖI %: Dùng QTY_MAHANG_NGAYKIEM (Lỗi) + SEW_CoefficientSize (Đạt). Lọc mã hàng tại cột MaHang hoặc StyleId. BẮT BUỘC dùng công thức % = Lỗi / (Lỗi + Đạt).
-                       - 🛡️ Quy tắc ""Chống nhầm lẫn"": TUYỆT ĐỐI KHÔNG tính 'Tỉ lệ lỗi %' bằng bảng SEW_CoefficientStyle. Bảng đó chỉ dùng cho Năng suất.
-
-                    3. RÀNG BUỘC HỆ THỐNG:
-                       - LUÔN thêm tiền tố N trước các chuỗi giá trị Tiếng Việt. Dùng mốc {currentTimeStr} cho các câu hỏi về thời gian.
-                       - ĐƯỢC PHÉP dùng CTE (WITH), DECLARE, #Temp. TUYỆT ĐỐI CẤM các lệnh thay đổi dữ liệu (UPDATE, DELETE, DROP...).
-                       - 🛡️ TIÊU ĐỀ CỘT: BẮT BUỘC sử dụng ALIAS (AS) Tiếng Việt có dấu cho các cột kết quả (ví dụ: SELECT MaHang AS [Mã Hàng], SUM(Qty) AS [Số Lượng]...) để báo cáo chuyên nghiệp.
-                       - Ưu tiên xuất ra cả các giá trị thành phần (ví dụ: [Tổng lỗi], [Tổng đạt]) kèm kết quả cuối để đối soát.";
-            }
-            else
-            {
-                sqlPrompt = $@"Câu lệnh SQL bạn vừa tạo đã gặp lỗi: ""{lastError}""
-                    
-                    Câu lệnh lỗi:
-                    ```sql
-                    {generatedSql}
-                    ```
-                    
-                    YÊU CẦU:
-                    1. Phân tích lỗi trên (thường là do sai tên cột hoặc bảng).
-                    2. Kiểm tra lại cấu trúc database thật kỹ:
-                    {schemaInfo}
-                    3. Viết lại câu lệnh SQL CHÍNH XÁC. Nếu không chắc chắn về một cột nào đó, hãy để NULL thay vì đoán bừa.
-                    
-                    Lưu ý: Chỉ trả về mã SQL mới, không giải thích.";
-                
-                var healingStep = new RagStep($"Self-Healing (Lần {attempt - 1})", $"AI đang sửa lỗi SQL...\nLỗi vừa gặp: {lastError}");
-                steps.Add(healingStep);
-                await onStep(healingStep);
-            }
-
-            generatedSql = await _aiClient.GenerateContentAsync(sqlPrompt, ct);
-            generatedSql = CleanSql(generatedSql);
-            
-            try 
-            {
-                sqlResultDataTable = await _sqlService.ExecuteQueryAsDataTableAsync(generatedSql, ct);
-                
-                // Convert DataTable to Json for UI steps and Final Answer generation
-                var results = new List<Dictionary<string, object>>();
-                foreach (DataRow row in sqlResultDataTable.Rows)
+                try 
                 {
-                    var dict = new Dictionary<string, object>();
-                    foreach (DataColumn col in sqlResultDataTable.Columns)
+                    var dt = await _sqlService.ExecuteQueryAsDataTableAsync(generatedSql, ct);
+                    lastDataTable = dt;
+
+                    var rows = new List<Dictionary<string, object>>();
+                    foreach (DataRow row in dt.Rows)
                     {
-                        dict[col.ColumnName] = row[col] == DBNull.Value ? null! : row[col];
+                        var dict = new Dictionary<string, object>();
+                        foreach (DataColumn col in dt.Columns) dict[col.ColumnName] = row[col] == DBNull.Value ? null! : row[col];
+                        rows.Add(dict);
                     }
-                    results.Add(dict);
-                }
-                sqlResultJson = JsonSerializer.Serialize(results, new JsonSerializerOptions 
-                { 
-                    WriteIndented = true,
-                    Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-                });
+                    var stepJson = JsonSerializer.Serialize(rows, new JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
+                    
+                    lastStepJson = stepJson; // Lưu lại JSON sạch của bước này
+                    workingContext.AppendLine($"\n--- [Kết quả {stepTitle}: {currentStepDesc}] ---\n{stepJson}");
 
-                var stepSuccess = new RagStep($"SQL Generation & Execution (Lần {attempt})", $"Mã SQL chạy thành công:\n\n```sql\n{generatedSql}\n```\n\nKết quả JSON:\n\n```json\n{sqlResultJson}\n```");
-                steps.Add(stepSuccess);
-                await onStep(stepSuccess);
-                break; // Thành công thì thoát vòng lặp
-            }
-            catch (Exception ex)
-            {
-                lastError = ex.Message;
-                if (attempt == maxAttempts)
+                    var stepLog = new RagStep(stepTitle, $"Hoàn thành: {currentStepDesc}\n\n```sql\n{generatedSql}\n```\n\nKết quả:\n```json\n{stepJson}\n```");
+                    steps.Add(stepLog);
+                    await onStep(stepLog);
+                    break; 
+                }
+                catch (Exception ex)
                 {
-                    var finalFailStep = new RagStep("SQL Final Failure", $"Đã thử {maxAttempts} lần nhưng vẫn gặp lỗi: {lastError}");
-                    steps.Add(finalFailStep);
-                    await onStep(finalFailStep);
-                    sqlResultJson = $"[ERROR] Đã thử {maxAttempts} lần nhưng không thể tạo truy vấn SQL chính xác. Lỗi cuối cùng: {lastError}";
+                    lastError = ex.Message;
+                    if (attempt == stepMaxAttempts)
+                    {
+                        var failLog = new RagStep(stepTitle, $"Thất bại sau {stepMaxAttempts} lần thử: {lastError}");
+                        steps.Add(failLog);
+                        await onStep(failLog);
+                    }
                 }
             }
         }
 
-        // 5. Generate final natural language answer + suggestions
-        var finalPrompt = $@"Bạn là một trợ lý ảo phân tích dữ liệu sản xuất chuyên nghiệp. 
-            Thời gian hệ thống hiện tại (UTC+7): {currentTimeStr}
-            Câu hỏi của người dùng: ""{userQuery}""
-            Dữ liệu thực tế từ hệ thống (JSON):
-            {sqlResultJson}
+        // 5. Final Generation
+        var finalPrompt = $@"Bạn là trợ lý phân tích dữ liệu chuyên nghiệp.
+            Thời gian hệ thống (UTC+7): {currentTimeStr}
+            Câu hỏi: ""{userQuery}""
+            
+            DỮ LIỆU TỔNG HỢP TỪ CÁC BƯỚC TRUY VẤN:
+            {workingContext}
 
-            NHIỆM VỤ:
-            1. Trình bày câu trả lời cực kỳ CHUYÊN NGHIỆP và ĐẸP MẮT theo định dạng Markdown:
-               - ### 💠 Tổng quan kết quả
-                 [Câu trả lời trực tiếp. **BẮT BUỘC nêu rõ mốc thời gian, ngày tháng năm** liên quan đến dữ liệu này dựa trên thời gian hệ thống hoặc dữ liệu truy vấn được. In đậm các con số quan trọng]. Ngắt dòng hợp lý.
+            NHIỆM VỤ: Trình bày câu trả lời cực kỳ CHUYÊN NGHIỆP và ĐẸP MẮT theo định dạng Markdown với cấu trúc sau:
 
-               - ### 📋 Bảng dữ liệu chi tiết
-                 [Nếu có danh sách dữ liệu, BẮT BUỘC sử dụng bảng Markdown. **QUAN TRỌNG: Phải sử dụng chính xác tên các Keys từ dữ liệu JSON làm tiêu đề cột cho bảng này**].
-                 Lưu ý: Format số có dấu phẩy ngăn cách hàng nghìn (ví dụ: 67,800).
+            ### 💠 Tổng quan kết quả
+            - [Câu trả lời trực tiếp. **BẮT BUỘC nêu rõ mốc thời gian, ngày tháng năm** liên quan đến dữ liệu này dựa trên thời gian hệ thống hoặc dữ liệu truy vấn được]. 
+            - In đậm các con số quan trọng. Ngắt dòng hợp lý để dễ đọc.
 
-               - ### ⚡ Phân tích logic
-                 [Giải thích ngắn gọn logic hoặc công thức tính toán].
+            ### 📋 Bảng dữ liệu chi tiết
+            - [Nếu có danh sách dữ liệu, BẮT BUỘC sử dụng bảng Markdown với các cột tiêu đề tiếng Việt].
+            - [Nếu chỉ có 1 vài con số, hãy trình bày dạng danh sách bullet points thay vì bảng].
+            - QUAN TRỌNG: Format số có dấu phẩy ngăn cách hàng nghìn (ví dụ: 67,800).
 
-            2. Đề xuất 3 câu hỏi tiếp theo (đa dạng, thực tế).
+            ### ⚡ Phân tích logic
+            - [Giải thích ngắn gọn logic hoặc công thức tính toán đã sử dụng để đưa ra kết quả].
 
-            YÊU CẦU ĐỊNH DẠNG: Trả về JSON duy nhất:
+            YÊU CẦU CHO EXPORT EXCEL:
+            - Trường hợp A (Bảng tóm tắt/KPI/Ít dữ liệu): Hãy tạo mảng 'excelData' chứa nội dung của bảng trên UI.
+            - Trường hợp B (Danh sách dữ liệu rất dài): Hãy trả về 'columnMapping' để ánh xạ tên cột thô sang tiếng Việt.
+
+            Trả về JSON:
             {{
-                ""answer"": ""nội dung markdown ở đây"",
-                ""suggestions"": [""câu hỏi 1"", ""câu hỏi 2"", ""câu hỏi 3""]
-            }}
-
-            LƯU Ý QUAN TRỌNG:
-            - Nếu dữ liệu JSON có thông báo [ERROR], hãy trả lời: ""Rất tiếc, hệ thống gặp khó khăn khi truy vấn dữ liệu này. Vui lòng thử lại hoặc diễn đạt câu hỏi theo cách khác.""
-            - Luôn sử dụng \n cho các lần xuống dòng trong JSON string.
-            - Không sử dụng quá nhiều chữ, tập trung vào số liệu và bảng.";
+                ""answer"": ""markdown content"",
+                ""suggestions"": [""q1"", ""q2"", ""q3""],
+                ""excelData"": [ {{ ""Chỉ số"": ""Tổng lỗi"", ""Giá trị"": 10 }}, ... ],
+                ""columnMapping"": {{ ""raw_col"": ""Tiêu đề tiếng Việt"" }}
+            }}";
 
         var rawResponse = await _aiClient.GenerateContentAsync(finalPrompt, ct);
-        
         string finalText = rawResponse;
         List<string> suggestions = new();
+        string rawDataForExport = lastStepJson; 
 
-        try 
-        {
-            // Làm sạch chuỗi JSON nếu AI thêm markdown block
+        try {
             var jsonString = rawResponse.Replace("```json", "").Replace("```", "").Trim();
             var result = JsonSerializer.Deserialize<JsonElement>(jsonString);
             
             finalText = result.GetProperty("answer").GetString() ?? rawResponse;
-            suggestions = result.GetProperty("suggestions").EnumerateArray()
-                                .Select(x => x.GetString() ?? "")
-                                .Where(x => !string.IsNullOrEmpty(x))
-                                .ToList();
-        }
-        catch
-        {
-            // Fallback nếu JSON parse lỗi
-            finalText = rawResponse;
-        }
+            
+            if (result.TryGetProperty("suggestions", out var sugProp)) {
+                suggestions = sugProp.EnumerateArray().Select(x => x.GetString() ?? "").Where(x => !string.IsNullOrEmpty(x)).ToList();
+            }
 
-        return new ChatResponse(finalText, steps, suggestions, sqlResultJson, sqlResultDataTable);
+            // ƯU TIÊN 1: Nếu AI cung cấp excelData (thường cho bảng tóm tắt/KPI)
+            if (result.TryGetProperty("excelData", out var excelProp) && excelProp.ValueKind == JsonValueKind.Array && excelProp.GetArrayLength() > 0) {
+                rawDataForExport = JsonSerializer.Serialize(excelProp, new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
+            }
+            // ƯU TIÊN 2: Nếu AI cung cấp columnMapping (cho danh sách dài)
+            else if (result.TryGetProperty("columnMapping", out var mappingProp) && lastDataTable != null) {
+                var mapping = JsonSerializer.Deserialize<Dictionary<string, string>>(mappingProp.GetRawText());
+                if (mapping != null && mapping.Count > 0) {
+                    var friendlyRows = new List<Dictionary<string, object>>();
+                    foreach (DataRow row in lastDataTable.Rows) {
+                        var friendlyRow = new Dictionary<string, object>();
+                        foreach (DataColumn col in lastDataTable.Columns) {
+                            string friendlyHeader = mapping.ContainsKey(col.ColumnName) ? mapping[col.ColumnName] : col.ColumnName;
+                            friendlyRow[friendlyHeader] = row[col] == DBNull.Value ? null! : row[col];
+                        }
+                        friendlyRows.Add(friendlyRow);
+                    }
+                    rawDataForExport = JsonSerializer.Serialize(friendlyRows, new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
+                }
+            }
+        } catch { finalText = rawResponse; }
+
+        return new ChatResponse(finalText, steps, suggestions, rawDataForExport, lastDataTable);
     }
 
     private string CleanSql(string sql)
     {
-        // Loại bỏ markdown code blocks nếu AI lỡ tay thêm vào, đồng thời xóa luôn dấu chấm phẩy thừa ở cuối câu
         return sql.Replace("```sql", "").Replace("```", "").Trim(' ', '\n', '\r', '\t', ';');
     }
 }
