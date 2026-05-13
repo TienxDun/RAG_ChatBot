@@ -9,6 +9,11 @@ public sealed class VertexAiClient
     private readonly HttpClient _httpClient;
     private readonly VertexAiOptions _options;
 
+    private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web)
+    {
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
+
     public VertexAiClient(HttpClient httpClient, VertexAiOptions options)
     {
         _httpClient = httpClient;
@@ -47,7 +52,7 @@ public sealed class VertexAiClient
 
         using var request = new HttpRequestMessage(HttpMethod.Post, url)
         {
-            Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json")
+            Content = new StringContent(JsonSerializer.Serialize(payload, _jsonOptions), Encoding.UTF8, "application/json")
         };
 
         using var response = await _httpClient.SendAsync(request, ct);
@@ -125,7 +130,7 @@ public sealed class VertexAiClient
 
         using var request = new HttpRequestMessage(HttpMethod.Post, url)
         {
-            Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json")
+            Content = new StringContent(JsonSerializer.Serialize(payload, _jsonOptions), Encoding.UTF8, "application/json")
         };
 
         using var response = await _httpClient.SendAsync(request, ct);
@@ -209,7 +214,7 @@ public sealed class VertexAiClient
 
         using var request = new HttpRequestMessage(HttpMethod.Post, url)
         {
-            Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json")
+            Content = new StringContent(JsonSerializer.Serialize(payload, _jsonOptions), Encoding.UTF8, "application/json")
         };
 
         using var response = await _httpClient.SendAsync(request, ct);

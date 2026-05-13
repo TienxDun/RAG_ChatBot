@@ -33,7 +33,7 @@ export class MessageRenderer {
             </div>`;
     }
 
-    static renderRagSteps(steps) {
+    static renderRagSteps(steps, isStreaming = false) {
         if (!steps || steps.length === 0) return '';
 
         const getStepIcon = (title) => {
@@ -66,8 +66,8 @@ export class MessageRenderer {
         `).join('');
 
         return `
-            <div class="rag-steps">
-                <button class="rag-steps__toggle" data-action="toggle-steps">
+            <div class="rag-steps ${isStreaming ? 'rag-steps--streaming' : ''}">
+                <button class="rag-steps__toggle ${isStreaming ? 'active' : ''}" data-action="toggle-steps">
                     <i class="ph-fill ph-lightning"></i>
                     <span>RAG TRACE (${steps.length} steps)</span>
                     <i class="ph-bold ph-caret-down"></i>
@@ -163,16 +163,15 @@ export class MessageRenderer {
             <div class="message__bubble">
                 ${role === 'user' && (userFile || messageEl.getAttribute('data-file')) ? this._renderFileChip(userFile || messageEl.getAttribute('data-file')) : ''}
                 <div class="markdown-content">
-                    ${content ? this.renderContent(content) : `
+                    ${content ? this.renderContent(content) : (steps.length > 0 ? '' : `
                         <div class="typing-container typing-container--small">
                             <div class="typing-dots"><span></span><span></span><span></span></div>
-                            <span class="loading-text text-xs opacity-70">${loadingStatus || 'AI đang xử lý...'}</span>
-                            <span class="loading-timer text-xs opacity-50 ml-2">(0s)</span>
+                            <span class="loading-text text-xs opacity-70">${loadingStatus || 'AI đang suy nghĩ...'}</span>
                         </div>
-                    `}
+                    `)}
                 </div>
                 <div class="rag-steps-container">
-                    ${steps.length > 0 ? this.renderRagSteps(steps) : ''}
+                    ${steps.length > 0 ? this.renderRagSteps(steps, !content) : ''}
                 </div>
         `;
 
@@ -180,6 +179,7 @@ export class MessageRenderer {
             html += `
                 <div class="message__footer">
                     <span class="ai-label">AI INSIGHT</span>
+                    ${!content ? '<span class="loading-timer ml-1 text-xs opacity-50">(0s)</span>' : ''}
                     <div style="flex: 1"></div>
                     <div class="footer-actions-container">
                         ${content ? this._renderCopyButton() : ''}
@@ -241,16 +241,31 @@ export class MessageRenderer {
         }
 
         if (contentEl) {
-            contentEl.innerHTML = content ? this.renderContent(content) : `
-                <div class="typing-container typing-container--small">
-                    <div class="typing-dots"><span></span><span></span><span></span></div>
-                    <span class="loading-text text-xs opacity-70">${loadingStatus || 'AI đang xử lý...'}</span>
-                    <span class="loading-timer text-xs opacity-50 ml-2">(0s)</span>
-                </div>
-            `;
+            if (content) {
+                contentEl.innerHTML = this.renderContent(content);
+            } else if (steps.length > 0) {
+                // Nếu đang loading nhưng đã có steps, ẩn typing indicator để show steps rõ hơn
+                contentEl.innerHTML = ''; 
+            } else {
+                contentEl.innerHTML = `
+                    <div class="typing-container typing-container--small">
+                        <div class="typing-dots"><span></span><span></span><span></span></div>
+                        <span class="loading-text text-xs opacity-70">${loadingStatus || 'AI đang suy nghĩ...'}</span>
+                    </div>
+                `;
+            }
         }
-        if (stepsContainer && steps.length > 0) stepsContainer.innerHTML = this.renderRagSteps(steps);
+        if (stepsContainer && steps.length > 0) stepsContainer.innerHTML = this.renderRagSteps(steps, !content);
         
+        const footerEl = messageEl.querySelector('.message__footer');
+        if (footerEl && !content) {
+            if (!footerEl.querySelector('.loading-timer')) {
+                const aiLabel = footerEl.querySelector('.ai-label');
+                if (aiLabel) {
+                    aiLabel.insertAdjacentHTML('afterend', '<span class="loading-timer ml-1 text-xs opacity-50">(0s)</span>');
+                }
+            }
+        }
         if (footerActionsContainer) {
             let actionsHtml = '';
             // Nút Sao chép (Chỉ hiển thị khi đã có nội dung)
