@@ -89,7 +89,8 @@ public sealed class RagOrchestrator
                     3. RÀNG BUỘC HỆ THỐNG:
                        - LUÔN thêm tiền tố N trước các chuỗi giá trị Tiếng Việt. Dùng mốc {currentTimeStr} cho các câu hỏi về thời gian.
                        - ĐƯỢC PHÉP dùng CTE (WITH), DECLARE, #Temp. TUYỆT ĐỐI CẤM các lệnh thay đổi dữ liệu (UPDATE, DELETE, DROP...).
-                       - Ưu tiên xuất ra cả các giá trị thành phần (ví dụ: Tổng lỗi, Tổng đạt) kèm kết quả cuối để đối soát.";
+                       - 🛡️ TIÊU ĐỀ CỘT: BẮT BUỘC sử dụng ALIAS (AS) Tiếng Việt có dấu cho các cột kết quả (ví dụ: SELECT MaHang AS [Mã Hàng], SUM(Qty) AS [Số Lượng]...) để báo cáo chuyên nghiệp.
+                       - Ưu tiên xuất ra cả các giá trị thành phần (ví dụ: [Tổng lỗi], [Tổng đạt]) kèm kết quả cuối để đối soát.";
             }
             else
             {
@@ -168,7 +169,7 @@ public sealed class RagOrchestrator
                  [Câu trả lời trực tiếp. **BẮT BUỘC nêu rõ mốc thời gian, ngày tháng năm** liên quan đến dữ liệu này dựa trên thời gian hệ thống hoặc dữ liệu truy vấn được. In đậm các con số quan trọng]. Ngắt dòng hợp lý.
 
                - ### 📋 Bảng dữ liệu chi tiết
-                 [Nếu có danh sách dữ liệu, BẮT BUỘC sử dụng bảng Markdown với các cột rõ ràng. Nếu chỉ có 1 con số, hãy trình bày dạng danh sách bullet points].
+                 [Nếu có danh sách dữ liệu, BẮT BUỘC sử dụng bảng Markdown. **QUAN TRỌNG: Phải sử dụng chính xác tên các Keys từ dữ liệu JSON làm tiêu đề cột cho bảng này**].
                  Lưu ý: Format số có dấu phẩy ngăn cách hàng nghìn (ví dụ: 67,800).
 
                - ### ⚡ Phân tích logic

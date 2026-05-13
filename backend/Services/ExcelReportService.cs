@@ -307,6 +307,18 @@ public class ExcelReportService
                         case JsonValueKind.Null:
                             cell.Value = null;
                             break;
+                        case JsonValueKind.String:
+                            var str = element.GetString() ?? "";
+                            // Thử parse số để định dạng đúng trong Excel nếu chuỗi chỉ chứa số
+                            if (double.TryParse(str, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double dbl))
+                            {
+                                cell.Value = dbl;
+                            }
+                            else
+                            {
+                                cell.Value = str;
+                            }
+                            break;
                         default:
                             cell.Value = element.ToString();
                             break;
@@ -315,6 +327,13 @@ public class ExcelReportService
                 else
                 {
                     cell.Value = val;
+                }
+
+                // Căn lề phải và format dấu phẩy cho các cột số cho chuyên nghiệp
+                if (cell.Value is double || cell.Value is float || cell.Value is decimal || cell.Value is long || cell.Value is int)
+                {
+                    cell.Style.Numberformat.Format = "#,##0";
+                    cell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Right;
                 }
 
                 cell.Style.Border.Top.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
