@@ -303,13 +303,26 @@ export class ChatAreaComponent {
             </div>
         `;
         leftActions.appendChild(this.templatePopup);
+        
+        // 1. Tải danh sách lần đầu ngay khi khởi tạo
+        this._refreshTemplateList(true);
 
+        // 2. Dự phòng: Khi hover, chỉ fetch lại nếu dữ liệu đã quá cũ (30 giây)
         leftActions.addEventListener('mouseenter', () => this._refreshTemplateList());
     }
 
-    async _refreshTemplateList() {
+    async _refreshTemplateList(force = false) {
         const listContainer = document.getElementById('template-cache-list');
         if (!listContainer) return;
+
+        // Cơ chế cooldown: Mặc định 30 giây cho việc hover tự động
+        const now = Date.now();
+        const cooldown = force ? 0 : 30000; 
+        
+        if (now - (this._lastTemplateFetch || 0) < cooldown) {
+            return;
+        }
+        this._lastTemplateFetch = now;
 
         try {
             const templates = await TemplateCacheService.getAll();
@@ -349,7 +362,7 @@ export class ChatAreaComponent {
                     e.stopPropagation(); // Ngăn sự kiện chọn template
                     const id = btn.getAttribute('data-id');
                     if (await TemplateCacheService.removeTemplate(id)) {
-                        this._refreshTemplateList();
+                        this._refreshTemplateList(true);
                     } else {
                         Toast.error("Không thể xóa template.");
                     }
@@ -391,8 +404,12 @@ export class ChatAreaComponent {
         this.appendMessage('user', text, [], [], null, null, this.uiState.selectedFile);
         
         const currentFile = this.uiState.selectedFile;
-        // 🆕 Cache template trống song song (fire-and-forget)
-        if (currentFile) TemplateCacheService.cacheTemplate(currentFile);
+        // 🆕 Cache template trống song song và cập nhật danh sách ngầm
+        if (currentFile) {
+            TemplateCacheService.cacheTemplate(currentFile).then(() => {
+                this._refreshTemplateList(true); // Cập nhật danh sách ngay sau khi lưu thành công
+            });
+        }
 
         chatInput.value = '';
 
