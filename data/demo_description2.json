@@ -254,7 +254,7 @@
   },
   {
     "table": "SEW_CoefficientSize",
-    "description": "Bảng cung cấp sản lượng đạt (làm Mẫu số). CÔNG THỨC CHUẨN: % = (Tổng Lỗi) / (Tổng Lỗi + Tổng Đạt) * 100. Trong đó Tổng Đạt = SUM(Quantity + SuaDat) từ bảng này. BẮT BUỘC cộng cả Tổng Lỗi (từ bảng QTY) vào mẫu số.",
+    "description": "Bảng cung cấp sản lượng đạt (mẫu số). Tổng đạt = SUM(ISNULL(Quantity,0) + ISNULL(SuaDat,0)). CÔNG THỨC tỉ lệ lỗi: % = TongLoi / NULLIF(TongLoi + TongDat, 0) * 100. !!! TRÁNH NHÂN ĐÔI (DOUBLE COUNT): TUYỆT ĐỐI KHÔNG FROM QTY_MAHANG_NGAYKIEM JOIN SEW_CoefficientSize rồi SUM(SpLoi) hoặc SUM(Quantity) — mỗi dòng QTY có thể khớp nhiều dòng SEW (hoặc ngược lại) nên SUM bị phình gấp nhiều lần. Cách đúng: (1) Subquery chỉ QTY: GROUP BY LineX (và StyleID/MaHang/Ngay nếu có) → TongLoi. (2) Subquery chỉ SEW: GROUP BY LineX (và StyleId/cùng khoảng ngày DateCreate nếu QTY lọc theo ngày) → TongDat. (3) JOIN hai subquery đã gộp trên LineX. So sánh nhiều chuyền (101 vs 102): lặp cùng pattern, mỗi chuyền một hàng trong subquery, không join hai bảng gốc trước khi aggregate.",
     "columns": [
       {
         "name": "Pid",
@@ -314,12 +314,12 @@
       {
         "name": "Quantity",
         "data_type": "int",
-        "description": "!!! QUAN TRỌNG !!! Đây chỉ là 1 nửa của sản lượng đạt. Bạn BẮT BUỘC phải viết: SUM(ISNULL(Quantity, 0) + ISNULL(SuaDat, 0)) để có Tổng_Đạt đúng. Nếu thiếu + SuaDat là sai nghiệp vụ hoàn toàn."
+        "description": "!!! QUAN TRỌNG !!! Đây chỉ là 1 nửa của sản lượng đạt. BẮT BUỘC: SUM(ISNULL(Quantity, 0) + ISNULL(SuaDat, 0)) trong subquery chỉ từ SEW_CoefficientSize (chưa join QTY); join QTY trước khi SUM sẽ nhân đôi Quantity."
       },
       {
         "name": "SuaDat",
         "data_type": "int",
-        "description": "!!! QUAN TRỌNG !!! Đây là 1 nửa của sản lượng đạt. Bạn BẮT BUỘC phải viết: SUM(ISNULL(Quantity, 0) + ISNULL(SuaDat, 0)) để có Tổng_Đạt đúng. Nếu thiếu Quantity là sai nghiệp vụ hoàn toàn."
+        "description": "!!! QUAN TRỌNG !!! 1 nửa sản lượng đạt; luôn cộng với Quantity trong cùng một SUM như trên cột Quantity. Không join QTY trước khi SUM."
       },
       {
         "name": "DefectNo",
@@ -376,7 +376,7 @@
   },
   {
     "table": "QTY_MAHANG_NGAYKIEM",
-    "description": "Bảng cung cấp số liệu sản phẩm lỗi (SpLoi). CÔNG THỨC TỶ LỆ % LỖI CHUẨN: %Lỗi = ((Tổng Lỗi) / (Tổng Lỗi + Tổng Đạt)) * 100. Trong đó Tổng Lỗi là SUM(SpLoi) của bảng này, Tổng Đạt lấy từ SEW_CoefficientSize. BẮT BUỘC cộng cả Tổng Lỗi vào mẫu số.",
+    "description": "Bảng số liệu lỗi kiểm (SpLoi). Tổng lỗi = SUM(ISNULL(SpLoi,0)). CÔNG THỨC tỉ lệ lỗi: %Lỗi = TongLoi / NULLIF(TongLoi + TongDat, 0) * 100 với TongDat lấy từ SEW_CoefficientSize (đã gộp Quantity+SuaDat). !!! TRÁNH NHÂN ĐÔI: KHÔNG join trực tiếp QTY với SEW rồi SUM — sẽ làm TongLoi và TongDat lớn bất thường. Luôn SUM(SpLoi) trong subquery chỉ từ QTY (GROUP BY LineX và/hoặc StyleID theo câu hỏi), SUM(Quantity+SuaDat) trong subquery chỉ từ SEW với cùng LineX và cùng khoảng thời gian nếu có, rồi JOIN hai kết quả đã aggregate. So sánh chuyền 101 và 102: tính riêng từng LineX trong subquery, không gộp hai bảng gốc trước GROUP BY.",
     "columns": [
       {
         "name": "ID",
@@ -456,7 +456,7 @@
       {
         "name": "SpLoi",
         "data_type": "int",
-        "description": "Số sản phẩm lỗi (tử số). Sử dụng SUM(ISNULL(SpLoi, 0)) khi tính toán."
+        "description": "Số sản phẩm lỗi (tử số). Chỉ SUM(ISNULL(SpLoi, 0)) trên bảng QTY_MAHANG_NGAYKIEM khi chưa join SEW_CoefficientSize; sau khi join hai bảng gốc thì SUM(SpLoi) bị nhân đôi/nhiều lần — sai."
       },
       {
         "name": "TH_Ngay",
