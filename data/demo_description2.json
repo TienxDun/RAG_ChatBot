@@ -208,7 +208,7 @@
       {
         "name": "StypeId",
         "data_type": "varchar",
-        "description": "Mã kiểu dáng hoặc Tên mã hàng (nếu có). Dùng để phân loại sản lượng."
+        "description": "Mã kiểu dáng hoặc Mã hàng chi tiết. Định dạng thực tế trong DB sử dụng dấu gạch dưới '_' (ví dụ: SA_893_208_133, 0088_521_04_V0_0, LZN_00217). QUY TẮC: Nếu người dùng nhập mã có dấu gạch ngang '-' hoặc khoảng trắng, AI phải tự động chuyển đổi chúng sang dấu gạch dưới '_' trước khi tìm kiếm ở cột này."
       },
       {
         "name": "ColorId",
@@ -491,7 +491,7 @@
       {
         "name": "NVKiem",
         "data_type": "nvarchar",
-        "description": "Nhân viên kiểm tra."
+        "description": "Tên nhân viên KCS (kiểm tra chất lượng sản phẩm) thực hiện kiểm tra. Giá trị lưu theo định dạng 'KCS [Tên]', ví dụ: N'KCS Cherry', N'KCS DAISY'. Khi lọc theo tên nhân viên, phải dùng LIKE N'%[Tên]%' thay vì dùng dấu = để tránh không khớp dữ liệu."
       },
       {
         "name": "LanKiem",
