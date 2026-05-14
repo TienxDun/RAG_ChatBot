@@ -11,12 +11,12 @@
       {
         "name": "TenLenh",
         "data_type": "nvarchar",
-        "description": "Tên định danh của lệnh (thường chứa mã đơn hàng và phiên bản)."
+        "description": "Mã định danh lệnh (Dùng dấu gạch dưới '_', ví dụ: SA_893_208_133). QUY TẮC: Nếu người dùng nhập mã có dấu '-' hoặc khoảng trắng, hãy thử chuyển sang '_' để tìm ở cột này."
       },
       {
         "name": "MaHang",
         "data_type": "nvarchar",
-        "description": "Mã sản phẩm thực tế cần sản xuất."
+        "description": "Mã sản phẩm thực tế (Dùng dấu gạch nối '-' hoặc khoảng trắng, ví dụ: SA-893-208-133). Người dùng thường hỏi theo định dạng này."
       },
       {
         "name": "NgayTao",
@@ -299,7 +299,7 @@
       {
         "name": "SizeId",
         "data_type": "nvarchar",
-        "description": "Kích thước cụ thể."
+        "description": "Kích thước cụ thể. LƯU Ý: Giá trị trong DB luôn có tiền tố 'SIZE_', ví dụ: 'SIZE_S', 'SIZE_XL'. Phải thêm 'SIZE_' khi so sánh."
       },
       {
         "name": "DateCreate",
@@ -350,7 +350,7 @@
       {
         "name": "cd_name",
         "data_type": "nvarchar",
-        "description": "Tên đầy đủ của công đoạn kỹ thuật (ví dụ: VIEN DKTT - Front zipper facing, RA CHUYỀN). QUY TẮC LỌC DỮ LIỆU: Khi người dùng nhắc đến một công đoạn bất kỳ (ví dụ: may, viền, cắt, ra chuyền...), BẮT BUỘC trích xuất từ khóa đó và sử dụng toán tử LIKE với tiền tố N: cd_name LIKE N'%<Từ_khóa>%'. TUYỆT ĐỐI KHÔNG dùng toán tử '=' so sánh tuyệt đối để tránh việc truy vấn trả về rỗng do sai khác chuỗi phụ."
+        "description": "Tên đầy đủ của công đoạn kỹ thuật (ví dụ: VIEN DKTT - Front zipper facing, RA CHUYỀN). QUY TẮC LỌC DỮ LIỆU: Khi người dùng nhắc đến một công đoạn bất kỳ (ví dụ: may, viền, cắt, ra chuyền...), BẮT BUỘC trích xuất từ khóa đó và sử dụng toán tử LIKE với tiền tố N: cd_name LIKE N'<Từ_khóa>%'. TUYỆT ĐỐI KHÔNG dùng toán tử '=' so sánh tuyệt đối để tránh việc truy vấn trả về rỗng do sai khác chuỗi phụ và không được thay đổi công thức tôi đã đặt ra bằng cách thêm % ở phía trước."
       },
       {
         "name": "Id_board",
@@ -424,14 +424,24 @@
         "description": "Thông tin đầu size."
       },
       {
-        "name": "ColorID / MaMau",
+        "name": "ColorID",
         "data_type": "nvarchar",
-        "description": "Mã màu và tên màu."
+        "description": "Mã màu."
       },
       {
-        "name": "SizeID / Size",
+        "name": "MaMau",
         "data_type": "nvarchar",
-        "description": "Mã và kích cỡ thực tế."
+        "description": "Tên màu sắc (ví dụ: black, DARK ANTHRACITE). QUY TẮC: Luôn sử dụng toán tử LIKE với tiền tố N: MaMau LIKE N'%<từ_khóa_màu>%' để tìm kiếm linh hoạt."
+      },
+      {
+        "name": "SizeId",
+        "data_type": "nvarchar",
+        "description": "Mã kích thước cụ thể. LƯU Ý: Giá trị trong DB luôn có tiền tố 'SIZE_', ví dụ: 'SIZE_S', 'SIZE_XL'. Phải thêm 'SIZE_' khi so sánh."
+      },
+      {
+        "name": "Size",
+        "data_type": "nvarchar",
+        "description": "Kích thước cụ thể."
       },
       {
         "name": "SLKiem",
