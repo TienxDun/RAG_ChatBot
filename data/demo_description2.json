@@ -401,12 +401,12 @@
       {
         "name": "StyleID",
         "data_type": "varchar",
-        "description": "Mã kiểu dáng."
+        "description": "Mã kiểu dáng hệ thống. Định dạng sử dụng dấu gạch dưới '_' (ví dụ: SA_893_208_133, 0088_521_04_V0_0). QUY TẮC: Nếu người dùng nhập mã có dấu gạch ngang '-' hoặc khoảng trắng, hãy tự động chuyển đổi sang '_' để tìm ở cột này."
       },
       {
         "name": "MaHang",
         "data_type": "nvarchar",
-        "description": "Tên/mã hàng hóa."
+        "description": "Tên/mã hàng hóa (Định dạng hiển thị). Thường chứa dấu gạch ngang '-' hoặc khoảng trắng (ví dụ: SA-893-208-133, 0088 521 04 V0.0). Đây là cột chính dùng để tìm kiếm theo mã hàng mà người dùng thường hỏi."
       },
       {
         "name": "POID",
