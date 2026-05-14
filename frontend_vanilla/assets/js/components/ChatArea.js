@@ -43,7 +43,8 @@ export class ChatAreaComponent {
         this.uiState = {
             isLoading: false,
             selectedFile: null,
-            lastRawData: null
+            lastRawData: null,
+            lastDownloadUrl: null
         };
 
         this.speechService = null;
@@ -465,6 +466,7 @@ export class ChatAreaComponent {
                         }
                     }
                     this.uiState.lastRawData = data.rawData;
+                    this.uiState.lastDownloadUrl = data.downloadUrl;
                 },
                 onError: (msg) => {
                     if (typingIndicator.parentNode) messagesList.removeChild(typingIndicator);
@@ -530,6 +532,13 @@ export class ChatAreaComponent {
                     MessageRenderer.createMessageElement(msg.role, msg.content, msg.steps, msg.suggestions, msg.downloadUrl, msg.rawData, msg.userFile)
                 );
             });
+
+            // Cập nhật trạng thái cho nút Export trên Header từ tin nhắn cuối cùng
+            const lastAiMsg = [...conversation.messages].reverse().find(m => m.role === 'ai');
+            if (lastAiMsg) {
+                this.uiState.lastRawData = lastAiMsg.rawData;
+                this.uiState.lastDownloadUrl = lastAiMsg.downloadUrl;
+            }
         }
         
         this.scrollToBottom();
@@ -559,6 +568,18 @@ export class ChatAreaComponent {
     }
 
     async handleExportExcel() {
+        // Nếu tin nhắn cuối cùng có link download (file theo mẫu)
+        if (this.uiState.lastDownloadUrl) {
+            let absoluteUrl = this.uiState.lastDownloadUrl;
+            if (!absoluteUrl.startsWith('http')) {
+                const baseUrl = CONFIG.API_BASE_URL.replace(/\/api$/, '');
+                absoluteUrl = `${baseUrl}${absoluteUrl.startsWith('/') ? '' : '/'}${absoluteUrl}`;
+            }
+            window.open(absoluteUrl, '_blank');
+            return;
+        }
+
+        // Nếu không có mẫu, xuất dữ liệu thô (Generic)
         await ExportService.exportToExcel(this.uiState.lastRawData, this.elements.exportBtn, {
             defaultLabel: '<i class="ph-bold ph-microsoft-excel-logo"></i>'
         });
@@ -591,6 +612,7 @@ export class ChatAreaComponent {
         landingView.classList.remove('hidden');
         chatArea.classList.add('is-landing');
         this.uiState.lastRawData = null;
+        this.uiState.lastDownloadUrl = null;
         state.currentConversationId = null;
     }
 

@@ -183,8 +183,7 @@ export class MessageRenderer {
                     <div style="flex: 1"></div>
                     <div class="footer-actions-container">
                         ${content ? this._renderCopyButton() : ''}
-                        ${downloadUrl ? this._renderDownloadSection(downloadUrl) : ''}
-                        ${this._renderExportSection(messageEl.getAttribute('data-raw'))}
+                        ${this._renderUnifiedExportButton(downloadUrl, messageEl.getAttribute('data-raw'))}
                     </div>
                 </div>
             `;
@@ -271,12 +270,8 @@ export class MessageRenderer {
             // Nút Sao chép (Chỉ hiển thị khi đã có nội dung)
             if (content) actionsHtml += this._renderCopyButton();
             
-            // Nút tải theo mẫu từ Backend (nếu có)
-            if (downloadUrl) actionsHtml += this._renderDownloadSection(downloadUrl);
-            
-            // Nút xuất dữ liệu thô ra Excel (nếu có dữ liệu raw)
-            const rawDataAttr = messageEl.getAttribute('data-raw');
-            if (rawDataAttr) actionsHtml += this._renderExportSection(rawDataAttr);
+            // Nút xuất Excel duy nhất (Ưu tiên mẫu, sau đó đến dữ liệu thô)
+            actionsHtml += this._renderUnifiedExportButton(downloadUrl, messageEl.getAttribute('data-raw'));
             
             footerActionsContainer.innerHTML = actionsHtml;
         }
@@ -296,25 +291,28 @@ export class MessageRenderer {
         `;
     }
 
-    static _renderDownloadSection(url) {
-        if (!url) return '';
-        
-        let absoluteUrl = url;
-        if (!url.startsWith('http')) {
-            const baseUrl = CONFIG.API_BASE_URL.replace(/\/api$/, '');
-            absoluteUrl = `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+    /**
+     * Nút xuất Excel thông minh: Tự động quyết định dùng link download (mẫu) 
+     * hay dùng button export (dữ liệu thô).
+     */
+    static _renderUnifiedExportButton(downloadUrl, rawDataStr) {
+        if (!downloadUrl && !rawDataStr) return '';
+
+        // TRƯỜNG HỢP 1: Có mẫu từ server (Ưu tiên số 1)
+        if (downloadUrl) {
+            let absoluteUrl = downloadUrl;
+            if (!downloadUrl.startsWith('http')) {
+                const baseUrl = CONFIG.API_BASE_URL.replace(/\/api$/, '');
+                absoluteUrl = `${baseUrl}${downloadUrl.startsWith('/') ? '' : '/'}${downloadUrl}`;
+            }
+            return `
+                <a href="${absoluteUrl}" target="_blank" class="footer-download" title="Tải báo cáo theo mẫu Excel">
+                    <i class="ph-duotone ph-microsoft-excel-logo"></i> Xuất Excel
+                </a>
+            `;
         }
 
-        return `
-            <a href="${absoluteUrl}" target="_blank" class="footer-download" title="Tải báo cáo theo mẫu Excel">
-                <i class="ph-duotone ph-microsoft-excel-logo"></i> Mẫu Excel
-            </a>
-        `;
-    }
-
-    static _renderExportSection(rawDataStr) {
-        if (!rawDataStr) return '';
-        
+        // TRƯỜNG HỢP 2: Không có mẫu nhưng có dữ liệu thô (Dùng Generic Export)
         return `
             <button class="footer-download" data-action="export-msg-excel" title="Xuất dữ liệu này ra file Excel">
                 <i class="ph-duotone ph-microsoft-excel-logo"></i> Xuất Excel
