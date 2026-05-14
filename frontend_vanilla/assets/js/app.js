@@ -49,23 +49,13 @@ class App {
 
         let isFirstHealthCheck = true;
 
-        let hasLoggedWarmup = false;
-        
         // Hàm kiểm tra thực tế
         const check = async () => {
             try {
                 // Chỉ log lần đầu tiên, các lần sau chạy ngầm (silent)
-                const res = await ApiClient.get(ENDPOINTS.HEALTH, { silent: !isFirstHealthCheck });
+                await ApiClient.get(ENDPOINTS.HEALTH, { silent: !isFirstHealthCheck });
                 state.isBackendOnline = true;
                 isFirstHealthCheck = false; 
-
-                // Log warm-up status to DevTools
-                if (res && res.isWarmedUp && !hasLoggedWarmup) {
-                    console.log(`%c🚀 [Backend] ${res.message}`, "color: #10b981; font-weight: bold;");
-                    hasLoggedWarmup = true;
-                } else if (res && !res.isWarmedUp) {
-                    console.log(`%c⏳ [Backend] ${res.message}`, "color: #f59e0b;");
-                }
             } catch (e) {
                 state.isBackendOnline = false;
             }
