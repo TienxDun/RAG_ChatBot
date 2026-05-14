@@ -50,7 +50,7 @@ export class ChatAreaComponent {
         this.speechService = null;
         this._init();
         this._initSpeechService();
-        this._loadCollections();
+        this.loadCollections();
     }
 
     _init() {
@@ -126,7 +126,7 @@ export class ChatAreaComponent {
         });
     }
 
-    async _loadCollections() {
+    async loadCollections() {
         const { collectionSelect } = this.elements;
         if (!collectionSelect) return;
 
