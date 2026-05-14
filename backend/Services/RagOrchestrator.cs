@@ -137,8 +137,9 @@ public sealed class RagOrchestrator
                         QUY TẮC VIẾT SQL:
                         1. 🎯 CHỈ thực hiện nhiệm vụ trong 'NHIỆM VỤ HIỆN TẠI'. 
                         2. 🔗 BẮT BUỘC sử dụng giá trị thực tế từ 'KẾT QUẢ CÁC BƯỚC TRƯỚC ĐÓ' để làm điều kiện lọc (WHERE).
-                        3. Nếu nhiệm vụ yêu cầu 'tìm', 'liệt kê', hãy sử dụng TOP để giới hạn nếu cần thiết (mặc định TOP 100 nếu không yêu cầu cụ thể).
-                        4. Trả về mã SQL thô, không giải thích, không markdown.
+                        4. BẮT BUỘC chỉ trả về DUY NHẤT một câu lệnh SELECT (hoặc một khối CTE). Nếu cần lấy nhiều kết quả khác nhau (ví dụ cả Max và Min), hãy sử dụng toán tử UNION ALL để gộp chúng vào cùng một tập kết quả.
+                        5. ⚖️ XỬ LÝ ĐỒNG HẠNG: Nếu có nhiều kết quả có giá trị bằng nhau (ví dụ 2 khung giờ cùng đạt sản lượng cao nhất), hãy sử dụng `TOP 1 WITH TIES` hoặc các kỹ thuật lọc để trả về TẤT CẢ các kết quả đó, không được tự ý bỏ sót.
+                        6. Trả về mã SQL thô, không giải thích, không markdown.
                         {(string.IsNullOrEmpty(lastError) ? "" : $"\nLỖI TRƯỚC ĐÓ: {lastError}\nHãy sửa SQL.")}";
 
                     generatedSql = await _aiClient.GenerateContentAsync(sqlPrompt, ct);

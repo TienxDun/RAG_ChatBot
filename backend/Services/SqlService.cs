@@ -10,6 +10,12 @@ public sealed class SqlService
     private readonly IConfiguration _configuration;
     private readonly string _connectionString;
     
+    private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
+    {
+        WriteIndented = true,
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
+    
     // Danh sách các từ khóa nguy hiểm bị cấm tuyệt đối
     private static readonly string[] ForbiddenKeywords = { 
         "DROP", "DELETE", "TRUNCATE", "ALTER", "UPDATE", "INSERT", 
@@ -33,7 +39,15 @@ public sealed class SqlService
         using var reader = await command.ExecuteReaderAsync(ct);
         
         var dataTable = new DataTable();
-        dataTable.Load(reader);
+        bool hasMoreResults = true;
+        while (hasMoreResults)
+        {
+            var nextTable = new DataTable();
+            nextTable.Load(reader);
+            dataTable.Merge(nextTable);
+            hasMoreResults = !reader.IsClosed;
+        }
+
         return dataTable;
 
     }
@@ -52,24 +66,29 @@ public sealed class SqlService
             using var reader = await command.ExecuteReaderAsync(ct);
 
             var results = new List<Dictionary<string, object>>();
-            var columnNames = Enumerable.Range(0, reader.FieldCount).Select(reader.GetName).ToList();
-
-            while (await reader.ReadAsync(ct))
+            
+            do 
             {
-                var row = new Dictionary<string, object>();
-                foreach (var name in columnNames)
+                var columnNames = Enumerable.Range(0, reader.FieldCount).Select(reader.GetName).ToList();
+                while (await reader.ReadAsync(ct))
                 {
-                    var value = reader[name];
-                    row[name] = value is DBNull ? null! : value;
+                    var row = new Dictionary<string, object>();
+                    foreach (var name in columnNames)
+                    {
+                        var value = reader[name];
+                        row[name] = value is DBNull ? null! : value;
+                    }
+                    results.Add(row);
                 }
-                results.Add(row);
-            }
+            } while (await reader.NextResultAsync(ct));
 
-            return JsonSerializer.Serialize(results, new JsonSerializerOptions 
-            { 
-                WriteIndented = true,
-                Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-            });
+            // Tự động lọc bỏ các dòng trùng lặp hoàn toàn để kết quả sạch hơn
+            var uniqueResults = results
+                .GroupBy(r => JsonSerializer.Serialize(r))
+                .Select(g => g.First())
+                .ToList();
+
+            return JsonSerializer.Serialize(uniqueResults, _jsonOptions);
         }
         catch (Exception ex)
         {
@@ -90,10 +109,10 @@ public sealed class SqlService
             throw new InvalidOperationException("Hệ thống chỉ cho phép thực thi các câu lệnh truy vấn dữ liệu (SELECT).");
         }
 
-        // 2. Chặn chạy nhiều câu lệnh (SQL Batching) bằng dấu chấm phẩy
-        if (sql.Contains(";"))
+        // 2. Chặn chạy nhiều câu lệnh nguy hiểm, nhưng cho phép phân tách các câu lệnh SELECT/WITH bằng dấu ;
+        if (sql.Contains(";") && (upperSql.Contains("DROP") || upperSql.Contains("DELETE") || upperSql.Contains("UPDATE") || upperSql.Contains("INSERT")))
         {
-            throw new InvalidOperationException("Không được phép sử dụng dấu chấm phẩy (;) để thực thi nhiều câu lệnh.");
+            throw new InvalidOperationException("Không được phép sử dụng dấu chấm phẩy (;) kết hợp với các lệnh thay đổi dữ liệu.");
         }
 
         // 3. Kiểm tra các từ khóa nguy hiểm
