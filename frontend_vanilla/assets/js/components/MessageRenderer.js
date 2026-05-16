@@ -67,11 +67,16 @@ export class MessageRenderer {
 
         return `
             <div class="rag-steps ${isStreaming ? 'rag-steps--streaming' : ''}">
-                <button class="rag-steps__toggle ${isStreaming ? 'active' : ''}" data-action="toggle-steps">
-                    <i class="ph-fill ph-lightning"></i>
-                    <span>RAG TRACE (${steps.length} steps)</span>
-                    <i class="ph-bold ph-caret-down"></i>
-                </button>
+                <div class="rag-steps__header">
+                    <button class="rag-steps__toggle ${isStreaming ? 'active' : ''}" data-action="toggle-steps">
+                        <i class="ph-fill ph-lightning"></i>
+                        <span>RAG TRACE (${steps.length} steps)</span>
+                        <i class="ph-bold ph-caret-down"></i>
+                    </button>
+                    <button class="rag-steps__copy" data-action="copy-rag-trace" title="Copy toàn bộ RAG Trace">
+                        <i class="ph ph-copy"></i>
+                    </button>
+                </div>
                 <div class="rag-steps__content">
                     ${stepsHtml}
                 </div>
@@ -136,7 +141,7 @@ export class MessageRenderer {
         return finalHtml;
     }
 
-    static createMessageElement(role, content, steps = [], suggestedQuestions = [], downloadUrl = null, rawData = null, userFile = null, loadingStatus = null) {
+    static createMessageElement(role, content, steps = [], suggestedQuestions = [], downloadUrl = null, rawData = null, userFile = null, loadingStatus = null, duration = null) {
         const messageEl = document.createElement('div');
         messageEl.className = `message message--${role === 'user' ? 'user' : 'ai'} animate-slide-up`;
         
@@ -176,10 +181,11 @@ export class MessageRenderer {
         `;
 
         if (role === 'ai') {
+            const displayDuration = duration !== null ? `(${duration}s)` : '(0s)';
             html += `
                 <div class="message__footer">
                     <span class="ai-label">AI INSIGHT</span>
-                    ${!content ? '<span class="loading-timer ml-1 text-xs opacity-50">(0s)</span>' : ''}
+                    ${!content ? `<span class="loading-timer ml-1 text-xs opacity-50">${displayDuration}</span>` : `<span class="loading-timer ml-1 text-xs font-bold">${displayDuration}</span>`}
                     <div style="flex: 1"></div>
                     <div class="footer-actions-container">
                         ${content ? this._renderCopyButton() : ''}
@@ -215,7 +221,7 @@ export class MessageRenderer {
         return messageEl;
     }
 
-    static updateMessage(messageEl, content, steps = [], suggestedQuestions = [], downloadUrl = null, rawData = null, userFile = null, loadingStatus = null) {
+    static updateMessage(messageEl, content, steps = [], suggestedQuestions = [], downloadUrl = null, rawData = null, userFile = null, loadingStatus = null, duration = null) {
         const contentEl = messageEl.querySelector('.markdown-content');
         const stepsContainer = messageEl.querySelector('.rag-steps-container');
         const footerActionsContainer = messageEl.querySelector('.footer-actions-container');
@@ -261,7 +267,8 @@ export class MessageRenderer {
             if (!footerEl.querySelector('.loading-timer')) {
                 const aiLabel = footerEl.querySelector('.ai-label');
                 if (aiLabel) {
-                    aiLabel.insertAdjacentHTML('afterend', '<span class="loading-timer ml-1 text-xs opacity-50">(0s)</span>');
+                    const displayDuration = duration !== null ? `(${duration}s)` : '(0s)';
+                    aiLabel.insertAdjacentHTML('afterend', `<span class="loading-timer ml-1 text-xs opacity-50">${displayDuration}</span>`);
                 }
             }
         }

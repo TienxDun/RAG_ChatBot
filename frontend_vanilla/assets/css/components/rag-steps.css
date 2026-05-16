@@ -4,6 +4,35 @@
     margin-bottom: 0.5rem;
 }
 
+.rag-steps__header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.rag-steps__copy {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 0.5rem;
+    background: color-mix(in srgb, var(--primary) 5%, transparent);
+    border: 1px solid color-mix(in srgb, var(--primary) 10%, transparent);
+    color: color-mix(in srgb, var(--primary) 70%, transparent);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.rag-steps__copy:hover {
+    background: color-mix(in srgb, var(--primary) 10%, transparent);
+    color: var(--primary);
+}
+
+.rag-steps__copy i {
+    font-size: 0.9rem;
+}
+
 .rag-steps__toggle {
     display: flex;
     align-items: center;
@@ -39,7 +68,7 @@
     padding-left: 1rem;
 }
 
-.rag-steps__toggle.active + .rag-steps__content,
+.rag-steps.is-active .rag-steps__content,
 .rag-steps--streaming .rag-steps__content {
     max-height: 10000px; /* Tăng giới hạn để đảm bảo hiển thị đầy đủ RAG steps */
     padding-top: 1rem;

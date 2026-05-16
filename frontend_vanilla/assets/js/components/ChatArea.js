@@ -163,7 +163,11 @@ export class ChatAreaComponent {
             case 'edit-msg': this._editMessage(btn); break;
             case 'copy-code': this._copyTerminalCode(btn); break;
             case 'quick-question': this._sendQuickQuestion(value); break;
-            case 'toggle-steps': btn.classList.toggle('active'); break;
+            case 'toggle-steps': 
+                btn.classList.toggle('active');
+                btn.closest('.rag-steps')?.classList.toggle('is-active');
+                break;
+            case 'copy-rag-trace': this._copyRagTrace(btn); break;
             case 'export-msg-excel': this._handleExportMessageExcel(btn); break;
         }
     }
@@ -424,17 +428,19 @@ export class ChatAreaComponent {
 
         // Bắt đầu đếm thời gian
         let seconds = 0;
+        let aiMessageEl = null;
         const timerInterval = setInterval(() => {
             seconds++;
-            const timerEls = document.querySelectorAll('.loading-timer');
-            timerEls.forEach(el => {
-                el.innerText = `(${seconds}s)`;
-            });
+            // Chỉ cập nhật cho tin nhắn đang tải hiện tại (typingIndicator hoặc aiMessageEl)
+            const currentMessageEl = aiMessageEl || typingIndicator;
+            if (currentMessageEl) {
+                const timerEl = currentMessageEl.querySelector('.loading-timer');
+                if (timerEl) timerEl.innerText = `(${seconds}s)`;
+            }
         }, 1000);
 
         try {
             const collectionName = collectionSelect ? collectionSelect.value : null;
-            let aiMessageEl = null;
             let aiSteps = [];
 
             await ChatService.sendMessage(text, currentFile, collectionName, {
@@ -470,7 +476,7 @@ export class ChatAreaComponent {
                 },
                 onFinal: (data) => {
                     if (aiMessageEl) {
-                        MessageRenderer.updateMessage(aiMessageEl, data.text, aiSteps, data.suggestedQuestions, data.downloadUrl, data.rawData);
+                        MessageRenderer.updateMessage(aiMessageEl, data.text, aiSteps, data.suggestedQuestions, data.downloadUrl, data.rawData, null, null, data.duration);
                         // Cập nhật thời gian tổng kết
                         const timerEl = aiMessageEl.querySelector('.loading-timer');
                         if (timerEl) {
@@ -517,7 +523,7 @@ export class ChatAreaComponent {
             chatArea.classList.remove('is-landing');
         }
 
-        const msgEl = MessageRenderer.createMessageElement(role, content, steps, suggestions, downloadUrl, rawData, userFile);
+        const msgEl = MessageRenderer.createMessageElement(role, content, steps, suggestions, downloadUrl, rawData, userFile, null, null);
         messagesList.appendChild(msgEl);
         this.scrollToBottom();
 
@@ -546,7 +552,7 @@ export class ChatAreaComponent {
         if (conversation.messages?.length > 0) {
             conversation.messages.forEach(msg => {
                 messagesList.appendChild(
-                    MessageRenderer.createMessageElement(msg.role, msg.content, msg.steps, msg.suggestions, msg.downloadUrl, msg.rawData, msg.userFile)
+                    MessageRenderer.createMessageElement(msg.role, msg.content, msg.steps, msg.suggestions, msg.downloadUrl, msg.rawData, msg.userFile, null, msg.duration)
                 );
             });
 
@@ -582,6 +588,24 @@ export class ChatAreaComponent {
     _copyTerminalCode(btn) {
         const text = InteractionService.getTerminalCode(btn);
         InteractionService.copyToClipboard(text, btn);
+    }
+
+    _copyRagTrace(btn) {
+        const ragStepsContainer = btn.closest('.rag-steps');
+        if (!ragStepsContainer) return;
+        
+        const steps = [];
+        ragStepsContainer.querySelectorAll('.rag-step').forEach(stepEl => {
+            const title = stepEl.querySelector('.rag-step__title')?.innerText.trim();
+            const content = stepEl.querySelector('.rag-step__content-inner')?.innerText.trim();
+            if (title) {
+                // Thêm tiêu đề bước và nội dung, cách nhau bằng dòng mới
+                steps.push(`[${title}]\n${content || ''}`);
+            }
+        });
+        
+        const fullTrace = steps.join('\n\n---\n\n');
+        InteractionService.copyToClipboard(fullTrace, btn);
     }
 
     async handleExportExcel() {

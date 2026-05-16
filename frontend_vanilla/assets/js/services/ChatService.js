@@ -17,6 +17,7 @@ export class ChatService {
         let lastRawData = null;
 
         try {
+            const startTime = Date.now();
             let elementCreated = false;
             await ApiClient.fetchStream(ENDPOINTS.CHAT, { body }, (data) => {
                 if (data.type === 'step') {
@@ -41,8 +42,9 @@ export class ChatService {
                 }
             });
 
-            this._saveToHistory(aiContent, aiSteps, aiSuggestions, aiDownloadUrl, lastRawData);
-            return { aiContent, aiSteps, aiSuggestions, aiDownloadUrl, lastRawData };
+            const duration = Math.round((Date.now() - startTime) / 1000);
+            this._saveToHistory(aiContent, aiSteps, aiSuggestions, aiDownloadUrl, lastRawData, duration);
+            return { aiContent, aiSteps, aiSuggestions, aiDownloadUrl, lastRawData, duration };
         } catch (error) {
             console.error('ChatService error:', error);
             if (onError) onError(error.message);
@@ -61,7 +63,7 @@ export class ChatService {
         return formData;
     }
 
-    static _saveToHistory(content, steps, suggestions, downloadUrl, rawData) {
+    static _saveToHistory(content, steps, suggestions, downloadUrl, rawData, duration) {
         if (!content && steps.length === 0) return;
         
         state.addMessageToHistory(state.currentConversationId, { 
@@ -70,7 +72,8 @@ export class ChatService {
             steps, 
             suggestions, 
             downloadUrl,
-            rawData
+            rawData,
+            duration
         });
     }
 
