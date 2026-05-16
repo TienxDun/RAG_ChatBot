@@ -419,9 +419,14 @@
         "description": "Số đơn hàng (Purchase Order)."
       },
       {
-        "name": "DauSizeID / DauSize",
+        "name": "DauSizeID",
         "data_type": "nvarchar",
-        "description": "Thông tin đầu size."
+        "description": "Mã định danh đầu size."
+      },
+      {
+        "name": "DauSize",
+        "data_type": "nvarchar",
+        "description": "Thông tin diễn giải đầu size (thường đi kèm với cột DauSizeID)."
       },
       {
         "name": "ColorID",
@@ -504,9 +509,24 @@
         "description": "Trạng thái hoàn thành."
       },
       {
-        "name": "SignPTDonVi / SignKT / SignToTruong / SignNVKiem",
+        "name": "SignPTDonVi",
         "data_type": "nvarchar",
-        "description": "Các trường ký xác nhận."
+        "description": "Chữ ký/Xác nhận của Phụ trách đơn vị."
+      },
+      {
+        "name": "SignKT",
+        "data_type": "nvarchar",
+        "description": "Chữ ký/Xác nhận của Kế toán."
+      },
+      {
+        "name": "SignToTruong",
+        "data_type": "nvarchar",
+        "description": "Chữ ký/Xác nhận của Tổ trưởng."
+      },
+      {
+        "name": "SignNVKiem",
+        "data_type": "nvarchar",
+        "description": "Chữ ký/Xác nhận của Nhân viên kiểm tra."
       },
       {
         "name": "Version",
