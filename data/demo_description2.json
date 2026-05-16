@@ -11,7 +11,7 @@
       {
         "name": "TenLenh",
         "data_type": "nvarchar",
-        "description": "Mã định danh lệnh (Dùng dấu gạch dưới '_', ví dụ: SA_893_208_133). QUY TẮC: Nếu người dùng nhập mã có dấu '-' hoặc khoảng trắng, hãy thử chuyển sang '_' để tìm ở cột này."
+        "description": "Mã định danh lệnh. Có thể là chuỗi số (ví dụ: 110055) hoặc mã dùng dấu gạch dưới '_' (ví dụ: SA_893_208_133). QUY TẮC: Nếu người dùng nhập mã có dấu '-' hoặc khoảng trắng, AI phải tự động chuyển đổi chúng sang '_' trước khi tìm kiếm ở cột này."
       },
       {
         "name": "MaHang",
@@ -183,7 +183,7 @@
   },
   {
     "table": "SEW_CoefficientStyle",
-    "description": "Nguồn dữ liệu tính Năng suất (Sản lượng làm ra). MẪU CHUẨN: SELECT SUM(Quantity) AS TongSanLuong, SUM(DefectNo) AS TongLoi, CAST(DateCreate AS DATE) AS Ngay FROM SEW_CoefficientStyle JOIN tbl_Steps ON StepId = Id_cd WHERE ... GROUP BY CAST(DateCreate AS DATE).",
+    "description": "Nguồn dữ liệu tính Năng suất (Sản lượng làm ra). LƯU Ý VỀ MÃ HÀNG: Các chuỗi số thuần túy (ví dụ: 110055) thường là Mã kiểu dáng (StypeId), không phải Mã lệnh (PoId). Chỉ dùng PoId khi có yêu cầu đích danh về 'Mã lệnh' hoặc 'Số PO'. MẪU CHUẨN: SELECT SUM(Quantity) AS TongSanLuong, SUM(DefectNo) AS TongLoi, CAST(DateCreate AS DATE) AS Ngay FROM SEW_CoefficientStyle JOIN tbl_Steps ON StepId = Id_cd WHERE ... GROUP BY CAST(DateCreate AS DATE).",
     "columns": [
       {
         "name": "PID",
@@ -198,7 +198,7 @@
       {
         "name": "PoId",
         "data_type": "varchar",
-        "description": "FK liên kết ERP_LENHSX.MaLenh."
+        "description": "Mã lệnh sản xuất (PO ID). CHỈ DÙNG khi người dùng nhắc đích danh 'Mã lệnh' hoặc 'Số PO'. TUYỆT ĐỐI KHÔNG dùng cho 'Mã hàng' hay 'Mã sản phẩm' ngay cả khi mã người dùng nhập là số thuần túy."
       },
       {
         "name": "StepId",
@@ -208,7 +208,7 @@
       {
         "name": "StypeId",
         "data_type": "varchar",
-        "description": "Mã kiểu dáng hoặc Mã hàng chi tiết. Định dạng thực tế trong DB sử dụng dấu gạch dưới '_' (ví dụ: SA_893_208_133, 0088_521_04_V0_0, LZN_00217). QUY TẮC: Nếu người dùng nhập mã có dấu gạch ngang '-' hoặc khoảng trắng, AI phải tự động chuyển đổi chúng sang dấu gạch dưới '_' trước khi tìm kiếm ở cột này."
+        "description": "Mã kiểu dáng / Mã hàng (CỘT LỌC CHÍNH). LƯU Ý: Mã kiểu dáng thường xuyên là chuỗi số (ví dụ: 110055). Khi người dùng hỏi về 'Mã hàng' hoặc 'Sản phẩm' mà đưa ra một con số, BẮT BUỘC dùng cột này để lọc, KHÔNG được nhầm sang PoId. QUY TẮC: Chuyển '-' hoặc ' ' sang '_'."
       },
       {
         "name": "ColorId",
@@ -279,7 +279,7 @@
       {
         "name": "StyleId",
         "data_type": "varchar",
-        "description": "Mã kiểu dáng."
+        "description": "Mã kiểu dáng (CỘT LỌC CHÍNH). Ưu tiên dùng khi tìm theo mã hàng/sản phẩm. Có thể là số (110055) hoặc mã có '_' (SA_893...). QUY TẮC: Chuyển '-' hoặc ' ' sang '_'."
       },
       {
         "name": "ColorId",
@@ -401,7 +401,7 @@
       {
         "name": "StyleID",
         "data_type": "varchar",
-        "description": "Mã kiểu dáng hệ thống. Định dạng sử dụng dấu gạch dưới '_' (ví dụ: SA_893_208_133, 0088_521_04_V0_0). QUY TẮC: Nếu người dùng nhập mã có dấu gạch ngang '-' hoặc khoảng trắng, hãy tự động chuyển đổi sang '_' để tìm ở cột này."
+        "description": "Mã kiểu dáng hệ thống (CỘT LỌC CHÍNH). Ưu tiên dùng khi tìm theo mã hàng. Có thể là số (110055) hoặc mã có '_' (SA_893...). QUY TẮC: Chuyển '-' hoặc ' ' sang '_'."
       },
       {
         "name": "MaHang",
