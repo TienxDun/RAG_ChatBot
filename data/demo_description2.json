@@ -126,7 +126,7 @@
       {
         "name": "MaDH",
         "data_type": "nvarchar",
-        "description": "Mã đơn hàng tổng (Join với bảng Orders)."
+        "description": "Mã đơn hàng tổng (Join với bảng Orders). Đặc điểm chung: Có tiền tố 'DH_' theo sau là số (Ví dụ: DH_123)."
       },
       {
         "name": "MaDVSX",
@@ -294,7 +294,7 @@
       {
         "name": "PO",
         "data_type": "varchar",
-        "description": "Mã đơn hàng chi tiết."
+        "description": "Mã đơn hàng chi tiết. Đặc điểm chung: Chuỗi phức hợp gồm mã đơn hàng tổng và mã chi tiết, phân tách bởi dấu gạch đứng '|' (Ví dụ: DH_15|5010288, DH_18|PO_610353100)."
       },
       {
         "name": "SizeId",
