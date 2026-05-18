@@ -70,6 +70,12 @@ public class ExcelReportService
 
         var columnsStr = string.Join(", ", columns);
 
+        // Gửi step chi tiết các cột đã phân tích được từ file Excel
+        var excelAnalysisContent = $"Đã trích xuất thành công cấu trúc hàng tiêu đề (hàng số **{headerRowIndex}**).\n\n" +
+                                   $"**Danh sách {columns.Count} cột tiêu đề phát hiện được:**\n" +
+                                   $"```json\n{JsonSerializer.Serialize(columns, new JsonSerializerOptions { WriteIndented = true })}\n```";
+        await onStep(new RagStep("Excel Template Analysis", excelAnalysisContent));
+
         // 2. GỘP CÂU QUERY CỦA USER + YÊU CẦU CỘT EXCEL
         string combinedQuery;
         var mappingInstructions = $"\n\nYÊU CẦU ĐẶC BIỆT CHO BÁO CÁO EXCEL:\n" +
