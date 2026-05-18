@@ -178,7 +178,7 @@ export class SidebarComponent {
                     progressBar.style.background = 'linear-gradient(90deg, var(--primary) 0%, #10b981 100%)'; // Xanh lá/Tím
                 }
                 
-                quotaEl.textContent = `Tối ưu: ${limitMB} MB`;
+                quotaEl.textContent = `Tối đa: ${limitMB} MB`;
             } else {
                 // Phương án dự phòng cho trình duyệt cũ
                 const historyStr = JSON.stringify(state.chatHistory);
@@ -190,7 +190,7 @@ export class SidebarComponent {
                 usageEl.textContent = `${usedMB.toFixed(2)} MB`;
                 const percent = Math.min((usedBytes / limitBytes) * 100, 100);
                 progressBar.style.width = `${percent}%`;
-                quotaEl.textContent = `Tối ưu: ${limitMB} MB`;
+                quotaEl.textContent = `Tối đa: ${limitMB} MB`;
             }
         } catch (err) {
             console.error('Failed to estimate storage usage:', err);
