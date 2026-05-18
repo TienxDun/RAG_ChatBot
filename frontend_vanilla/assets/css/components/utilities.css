@@ -1,5 +1,6 @@
 /* Utilities & Responsive Helpers */
 .hidden { display: none !important; }
+.mt-2 { margin-top: 0.5rem !important; }
 
 .overlay {
     position: fixed;

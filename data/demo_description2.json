@@ -193,7 +193,7 @@
       {
         "name": "Linex",
         "data_type": "int",
-        "description": "Mã chuyền (kiểu INT, chữ x thường). Dùng WHERE Linex = 105 không có nháy đơn. KHÔNG dùng cho tỉ lệ lỗi."
+        "description": "Mã chuyền (kiểu INT). !!! CẢNH BÁO TỐI QUAN TRỌNG !!!: Tên cột bắt buộc dùng chữ 'x' thường (Linex), TUYỆT ĐỐI KHÔNG dùng 'X' hoa. Dùng WHERE Linex = 105 (không có nháy đơn)."
       },
       {
         "name": "PoId",
@@ -208,7 +208,7 @@
       {
         "name": "StypeId",
         "data_type": "varchar",
-        "description": "Mã kiểu dáng / Mã hàng (CỘT LỌC CHÍNH). LƯU Ý: Mã kiểu dáng thường xuyên là chuỗi số (ví dụ: 110055). Khi người dùng hỏi về 'Mã hàng' hoặc 'Sản phẩm' mà đưa ra một con số, BẮT BUỘC dùng cột này để lọc, KHÔNG được nhầm sang PoId. QUY TẮC: Chuyển '-' hoặc ' ' sang '_'."
+        "description": "Mã kiểu dáng / Mã hàng (CỘT LỌC CHÍNH). !!! CẢNH BÁO TỐI QUAN TRỌNG !!!: CHÚ Ý CHÍNH TẢ, tên cột bắt buộc là StypeId (có chữ 'y', KHÔNG có chữ 'l'). Khi người dùng hỏi về 'Mã hàng' mà đưa ra một con số (ví dụ: 110055), BẮT BUỘC dùng cột này. QUY TẮC: Chuyển '-' hoặc ' ' sang '_'."
       },
       {
         "name": "ColorId",
@@ -264,7 +264,7 @@
       {
         "name": "LineX",
         "data_type": "varchar",
-        "description": "Mã chuyền (kiểu INT, ví dụ 105). Dùng WHERE LineX = 105 không có nháy. Cột lọc chính theo chuyền."
+        "description": "Mã chuyền (ví dụ 105). !!! CẢNH BÁO TỐI QUAN TRỌNG !!!: Tên cột bắt buộc dùng chữ 'X' HOA (LineX), TUYỆT ĐỐI KHÔNG dùng 'x' thường. Dùng WHERE LineX = 105 không có nháy."
       },
       {
         "name": "PoId",
@@ -279,7 +279,7 @@
       {
         "name": "StyleId",
         "data_type": "varchar",
-        "description": "Mã kiểu dáng (CỘT LỌC CHÍNH). Ưu tiên dùng khi tìm theo mã hàng/sản phẩm. Có thể là số (110055) hoặc mã có '_' (SA_893...). QUY TẮC: Chuyển '-' hoặc ' ' sang '_'."
+        "description": "Mã kiểu dáng (CỘT LỌC CHÍNH). !!! CẢNH BÁO TỐI QUAN TRỌNG !!!: CHÚ Ý CHÍNH TẢ, tên cột bắt buộc là StyleId (có chữ 'l', KHÔNG dùng 'y'). Ưu tiên dùng khi tìm theo mã hàng. QUY TẮC: Chuyển '-' hoặc ' ' sang '_'."
       },
       {
         "name": "ColorId",
@@ -299,7 +299,7 @@
       {
         "name": "SizeId",
         "data_type": "nvarchar",
-        "description": "Kích thước cụ thể. LƯU Ý: Giá trị trong DB luôn có tiền tố 'SIZE_', ví dụ: 'SIZE_S', 'SIZE_XL'. Phải thêm 'SIZE_' khi so sánh."
+        "description": "Mã kích thước định danh (ID). !!! CẢNH BÁO TỐI QUAN TRỌNG !!!: Cột này LUÔN LUÔN chứa tiền tố 'SIZE_' (Ví dụ: 'SIZE_L', 'SIZE_85', 'SIZE_XL'). BẮT BUỘC thêm tiền tố 'SIZE_' khi lọc theo cột này."
       },
       {
         "name": "DateCreate",
@@ -329,7 +329,7 @@
       {
         "name": "NVKiemKCS",
         "data_type": "nvarchar",
-        "description": "Nhân viên kiểm KCS."
+        "description": "Nhân viên ghi nhận sản lượng tại công đoạn (Sản lượng đạt)."
       },
       {
         "name": "CheckType",
@@ -391,7 +391,7 @@
       {
         "name": "LineX",
         "data_type": "varchar",
-        "description": "Mã chuyền (kiểu INT, ví dụ 105). Dùng WHERE LineX = 105 không có nháy. Cột lọc chính theo chuyền."
+        "description": "Mã chuyền (ví dụ 105). !!! CẢNH BÁO TỐI QUAN TRỌNG !!!: Tên cột bắt buộc dùng chữ 'X' HOA (LineX), TUYỆT ĐỐI KHÔNG dùng 'x' thường. Dùng WHERE LineX = 105 không có nháy."
       },
       {
         "name": "PlanCode",
@@ -401,12 +401,12 @@
       {
         "name": "StyleID",
         "data_type": "varchar",
-        "description": "Mã kiểu dáng hệ thống (CỘT LỌC CHÍNH). Ưu tiên dùng khi tìm theo mã hàng. Có thể là số (110055) hoặc mã có '_' (SA_893...). QUY TẮC: Chuyển '-' hoặc ' ' sang '_'."
+        "description": "Mã kiểu dáng hệ thống (CỘT LỌC CHÍNH). !!! CẢNH BÁO TỐI QUAN TRỌNG !!!: CHÚ Ý CHÍNH TẢ, tên cột bắt buộc là StyleID (ID viết HOA). Dùng để tìm mã có dấu gạch dưới '_' (Ví dụ: SA_893_208_133). Ưu tiên dùng khi tìm theo mã hàng chính xác."
       },
       {
         "name": "MaHang",
         "data_type": "nvarchar",
-        "description": "Tên/mã hàng hóa (Định dạng hiển thị). Thường chứa dấu gạch ngang '-' hoặc khoảng trắng (ví dụ: SA-893-208-133, 0088 521 04 V0.0). Đây là cột chính dùng để tìm kiếm theo mã hàng mà người dùng thường hỏi."
+        "description": "Tên/mã hàng hóa (Định dạng hiển thị). Thường chứa dấu gạch ngang '-' hoặc khoảng trắng (ví dụ: SA-893-208-133, 0088 521 04 V0.0). CHỈ DÙNG cột này khi người dùng nhập mã có định dạng gạch ngang hoặc khoảng trắng. Nếu mã có gạch dưới '_', hãy ưu tiên dùng StyleID."
       },
       {
         "name": "POID",
@@ -441,12 +441,12 @@
       {
         "name": "SizeId",
         "data_type": "nvarchar",
-        "description": "Mã kích thước cụ thể. LƯU Ý: Giá trị trong DB luôn có tiền tố 'SIZE_', ví dụ: 'SIZE_S', 'SIZE_XL'. Phải thêm 'SIZE_' khi so sánh."
+        "description": "Mã kích thước định danh (ID). !!! CẢNH BÁO TỐI QUAN TRỌNG !!!: Cột này LUÔN LUÔN chứa tiền tố 'SIZE_' (Ví dụ: 'SIZE_L', 'SIZE_85', 'SIZE_XL'). Khi sử dụng cột này để lọc, BẮT BUỘC phải thêm tiền tố 'SIZE_' vào trước giá trị người dùng cung cấp."
       },
       {
         "name": "Size",
         "data_type": "nvarchar",
-        "description": "Kích thước cụ thể."
+        "description": "Tên hiển thị của kích thước. !!! CẢNH BÁO TỐI QUAN TRỌNG !!!: Cột này TUYỆT ĐỐI KHÔNG có tiền tố 'SIZE_' (Ví dụ: 'L', '85', 'XL'). Nếu người dùng hỏi 'size L' hoặc 'size 85', hãy sử dụng cột này với giá trị gốc của người dùng (không thêm tiền tố)."
       },
       {
         "name": "SLKiem",
@@ -496,7 +496,7 @@
       {
         "name": "NVKiem",
         "data_type": "nvarchar",
-        "description": "Tên nhân viên KCS (kiểm tra chất lượng sản phẩm) thực hiện kiểm tra. Giá trị lưu theo định dạng 'KCS [Tên]', ví dụ: N'KCS Cherry', N'KCS DAISY'. Khi lọc theo tên nhân viên, phải dùng LIKE N'%[Tên]%' thay vì dùng dấu = để tránh không khớp dữ liệu."
+        "description": "Tên nhân viên KCS thực hiện ghi nhận lỗi (Tử số của tỉ lệ lỗi). Giá trị lưu theo định dạng 'KCS [Tên]', ví dụ: N'KCS Cherry'. Khi lọc theo tên nhân viên, phải dùng LIKE N'%[Tên]%' thay vì dùng dấu =."
       },
       {
         "name": "LanKiem",

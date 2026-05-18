@@ -33,7 +33,7 @@ export class MessageRenderer {
             </div>`;
     }
 
-    static renderRagSteps(steps, isStreaming = false) {
+    static renderRagStepsInner(steps) {
         if (!steps || steps.length === 0) return '';
 
         const getStepIcon = (title) => {
@@ -52,8 +52,8 @@ export class MessageRenderer {
             return iconMap[key] || 'ph-lightning';
         };
 
-        const stepsHtml = steps.map((step, idx) => `
-            <div class="rag-step animate-fade-in" style="animation-delay: ${idx * 0.1}s">
+        return steps.map((step, idx) => `
+            <div class="rag-step animate-fade-in" style="animation-delay: ${idx * 0.05}s">
                 <div class="rag-step__dot"></div>
                 <div class="rag-step__panel">
                     <div class="rag-step__title">
@@ -64,9 +64,16 @@ export class MessageRenderer {
                 </div>
             </div>
         `).join('');
+    }
+
+    static renderRagSteps(steps, isStreaming = false) {
+        if (!steps || steps.length === 0) return '';
+
+        const escapedSteps = encodeURIComponent(JSON.stringify(steps));
+        const stepsHtml = isStreaming ? this.renderRagStepsInner(steps) : '';
 
         return `
-            <div class="rag-steps ${isStreaming ? 'rag-steps--streaming' : ''}">
+            <div class="rag-steps ${isStreaming ? 'rag-steps--streaming is-active' : ''}" data-steps="${escapedSteps}">
                 <div class="rag-steps__header">
                     <button class="rag-steps__toggle ${isStreaming ? 'active' : ''}" data-action="toggle-steps">
                         <i class="ph-fill ph-lightning"></i>
@@ -77,7 +84,7 @@ export class MessageRenderer {
                         <i class="ph ph-copy"></i>
                     </button>
                 </div>
-                <div class="rag-steps__content">
+                <div class="rag-steps__content" ${!isStreaming ? 'style="display: none;"' : ''}>
                     ${stepsHtml}
                 </div>
             </div>

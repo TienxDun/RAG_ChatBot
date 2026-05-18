@@ -18,17 +18,43 @@ export class SidebarComponent {
         if (this.openBtn) this.openBtn.addEventListener('click', () => this.toggleSidebar());
         if (this.closeBtn) this.closeBtn.addEventListener('click', () => this.toggleSidebar());
         if (this.overlay) this.overlay.addEventListener('click', () => this.toggleSidebar());
+        
+        const cleanBtn = document.getElementById('clean-storage');
+        if (cleanBtn) cleanBtn.addEventListener('click', () => this.handleStorageCleanup());
+
+        // Đăng ký và xử lý checkbox Fast-path
+        const fastpathCheckbox = document.getElementById('fastpath-checkbox');
+        if (fastpathCheckbox) {
+            fastpathCheckbox.checked = state.isFastPathEnabled;
+            fastpathCheckbox.addEventListener('change', (e) => {
+                state.isFastPathEnabled = e.target.checked;
+                if (window.app && window.app.toast) {
+                    window.app.toast.success(
+                        e.target.checked 
+                            ? "Đã kích hoạt chế độ Fast-path siêu tốc!" 
+                            : "Đã tắt chế độ Fast-path!"
+                    );
+                }
+            });
+        }
 
         // Khởi tạo trạng thái ban đầu từ State
         this.applySidebarState();
 
         // Listen for history changes
         state.subscribe((key, value) => {
-            if (key === 'chatHistory') this.renderHistory();
+            if (key === 'chatHistory') {
+                this.renderHistory();
+                this.updateStorageEstimation();
+            }
             if (key === 'isSidebarOpen') this.applySidebarState();
+            if (key === 'isFastPathEnabled' && fastpathCheckbox) {
+                fastpathCheckbox.checked = value;
+            }
         });
 
         this.renderHistory();
+        this.updateStorageEstimation();
         
         // Handle global click for delete (delegation)
         window.deleteHistory = (id) => this.handleDelete(id);
@@ -99,5 +125,75 @@ export class SidebarComponent {
 
     handleDelete(id) {
         state.chatHistory = state.chatHistory.filter(item => String(item.id) !== String(id));
+    }
+
+    async handleStorageCleanup() {
+        const choice = confirm("Hệ thống sẽ dọn dẹp dữ liệu nặng (JSON, Traces) để web chạy mượt hơn. \n\n- Nhấn OK để TỐI ƯU HÓA (vẫn giữ lại tin nhắn văn bản). \n- Nhấn CANCEL để thoát.");
+        
+        if (choice) {
+            const success = state.optimizeHistory();
+            if (success) {
+                if (window.app && window.app.toast) {
+                    window.app.toast.success("Đã tối ưu hóa bộ nhớ thành công!");
+                } else {
+                    alert("Đã tối ưu hóa bộ nhớ thành công!");
+                }
+                this.renderHistory(); // Refresh view
+                this.updateStorageEstimation(); // Cập nhật lại dung lượng bộ nhớ
+            }
+        }
+    }
+
+    async updateStorageEstimation() {
+        const usageEl = document.getElementById('storage-usage');
+        const progressBar = document.getElementById('storage-progress-bar');
+        const quotaEl = document.getElementById('storage-quota');
+
+        if (!usageEl || !progressBar || !quotaEl) return;
+
+        try {
+            // Sử dụng API ước lượng bộ nhớ của trình duyệt
+            if (navigator.storage && navigator.storage.estimate) {
+                const estimate = await navigator.storage.estimate();
+                const usedBytes = estimate.usage || 0;
+                
+                // Đặt hạn mức hiển thị tối ưu trực quan là 250 MB
+                const limitMB = 250;
+                const limitBytes = limitMB * 1024 * 1024;
+                const usedMB = usedBytes / (1024 * 1024);
+                
+                // Cập nhật text hiển thị
+                usageEl.textContent = `${usedMB.toFixed(2)} MB`;
+                
+                // Cập nhật phần trăm tiến độ
+                const percent = Math.min((usedBytes / limitBytes) * 100, 100);
+                progressBar.style.width = `${percent}%`;
+                
+                // Đổi màu sắc thanh tiến độ dựa trên mức độ đầy của bộ nhớ tối ưu
+                if (percent > 80) {
+                    progressBar.style.background = 'linear-gradient(90deg, #ef4444 0%, #b91c1c 100%)'; // Đỏ khi sắp đầy
+                } else if (percent > 50) {
+                    progressBar.style.background = 'linear-gradient(90deg, #f59e0b 0%, #d97706 100%)'; // Cam
+                } else {
+                    progressBar.style.background = 'linear-gradient(90deg, var(--primary) 0%, #10b981 100%)'; // Xanh lá/Tím
+                }
+                
+                quotaEl.textContent = `Tối ưu: ${limitMB} MB`;
+            } else {
+                // Phương án dự phòng cho trình duyệt cũ
+                const historyStr = JSON.stringify(state.chatHistory);
+                const usedBytes = new Blob([historyStr]).size;
+                const limitMB = 50;
+                const limitBytes = limitMB * 1024 * 1024;
+                const usedMB = usedBytes / (1024 * 1024);
+                
+                usageEl.textContent = `${usedMB.toFixed(2)} MB`;
+                const percent = Math.min((usedBytes / limitBytes) * 100, 100);
+                progressBar.style.width = `${percent}%`;
+                quotaEl.textContent = `Tối ưu: ${limitMB} MB`;
+            }
+        } catch (err) {
+            console.error('Failed to estimate storage usage:', err);
+        }
     }
 }

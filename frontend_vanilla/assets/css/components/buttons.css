@@ -19,6 +19,17 @@
 .btn-secondary { background: var(--glass-bg); border: 1px solid var(--glass-border); color: var(--foreground); }
 .btn-secondary:hover { background: var(--muted); }
 
+.btn-outline { 
+    background: transparent; 
+    border: 1.5px solid var(--glass-border); 
+    color: var(--muted-foreground); 
+}
+.btn-outline:hover { 
+    border-color: var(--primary); 
+    color: var(--primary); 
+    background: rgba(139, 92, 246, 0.05);
+}
+
 .btn-full { 
     width: 100%; 
     justify-content: center;

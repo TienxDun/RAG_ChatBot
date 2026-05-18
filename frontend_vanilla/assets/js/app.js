@@ -13,7 +13,10 @@ class App {
         this.init();
     }
 
-    init() {
+    async init() {
+        // Khởi tạo trạng thái trước
+        await state.init();
+
         // Khởi tạo các component
         this.theme = new ThemeComponent();
         this.sidebar = new SidebarComponent();

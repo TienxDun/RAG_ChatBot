@@ -46,11 +46,41 @@
         </div>
         
         <div class="sidebar__footer">
-            <div class="sidebar__footer-actions">
-                <button id="new-chat" class="btn btn-primary btn-full">
-                    <i class="ph-bold ph-plus"></i>
-                    <span>Chat mới</span>
-                </button>
+
+            <!-- Fast-path Toggle Widget -->
+            <div class="sidebar__fastpath-toggle">
+                <div class="fastpath-toggle__header">
+                    <span class="fastpath-toggle__title">
+                        <i class="ph-bold ph-lightning"></i>
+                        <span>Tối ưu Fast-path</span>
+                    </span>
+                    <label class="switch">
+                        <input type="checkbox" id="fastpath-checkbox" checked>
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="sidebar__storage-info">
+                <div class="storage-info__header">
+                    <span class="storage-info__title">
+                        <i class="ph-bold ph-hard-drive animate-pulse"></i>
+                        <span>Lưu trữ hệ thống</span>
+                    </span>
+                    <span id="storage-usage" class="storage-info__value">0.00 MB</span>
+                </div>
+                
+                <div class="storage-info__progress-container">
+                    <div id="storage-progress-bar" class="storage-info__progress-bar" style="width: 0%"></div>
+                </div>
+                
+                <div class="storage-info__footer">
+                    <span id="storage-quota" class="storage-info__quota">Tối đa: 250 MB</span>
+                    <button id="clean-storage" class="storage-info__clean-btn" title="Giải phóng các RAG steps cũ để tăng tốc độ duyệt web">
+                        <i class="ph-bold ph-broom"></i>
+                        <span>Dọn dẹp</span>
+                    </button>
+                </div>
             </div>
         </div>
     </aside>

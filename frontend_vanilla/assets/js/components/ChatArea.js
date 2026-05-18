@@ -163,10 +163,36 @@ export class ChatAreaComponent {
             case 'edit-msg': this._editMessage(btn); break;
             case 'copy-code': this._copyTerminalCode(btn); break;
             case 'quick-question': this._sendQuickQuestion(value); break;
-            case 'toggle-steps': 
-                btn.classList.toggle('active');
-                btn.closest('.rag-steps')?.classList.toggle('is-active');
+            case 'toggle-steps': {
+                const ragSteps = btn.closest('.rag-steps');
+                if (ragSteps) {
+                    const isOpening = !ragSteps.classList.contains('is-active');
+                    btn.classList.toggle('active', isOpening);
+                    ragSteps.classList.toggle('is-active', isOpening);
+                    
+                    const contentEl = ragSteps.querySelector('.rag-steps__content');
+                    if (contentEl) {
+                        if (isOpening) {
+                            // Mở: Vẽ các steps động
+                            const dataStepsStr = ragSteps.getAttribute('data-steps');
+                            if (dataStepsStr && (!contentEl.innerHTML.trim() || contentEl.innerHTML === '')) {
+                                try {
+                                    const steps = JSON.parse(decodeURIComponent(dataStepsStr));
+                                    contentEl.innerHTML = MessageRenderer.renderRagStepsInner(steps);
+                                } catch (err) {
+                                    console.error('Failed to render dynamic RAG steps:', err);
+                                }
+                            }
+                            contentEl.style.display = 'block';
+                        } else {
+                            // Đóng: Dọn dẹp DOM ngay lập tức để tiết kiệm tài nguyên
+                            contentEl.innerHTML = '';
+                            contentEl.style.display = 'none';
+                        }
+                    }
+                }
                 break;
+            }
             case 'copy-rag-trace': this._copyRagTrace(btn); break;
             case 'export-msg-excel': this._handleExportMessageExcel(btn); break;
         }
@@ -594,12 +620,25 @@ export class ChatAreaComponent {
         const ragStepsContainer = btn.closest('.rag-steps');
         if (!ragStepsContainer) return;
         
+        const dataStepsStr = ragStepsContainer.getAttribute('data-steps');
+        if (dataStepsStr) {
+            try {
+                const steps = JSON.parse(decodeURIComponent(dataStepsStr));
+                const stepsText = steps.map(step => `[${step.title}]\n${step.content || ''}`);
+                const fullTrace = stepsText.join('\n\n---\n\n');
+                InteractionService.copyToClipboard(fullTrace, btn);
+                return;
+            } catch (err) {
+                console.error('Failed to copy dynamic RAG steps:', err);
+            }
+        }
+        
+        // Dự phòng nếu không tìm thấy thuộc tính data-steps
         const steps = [];
         ragStepsContainer.querySelectorAll('.rag-step').forEach(stepEl => {
             const title = stepEl.querySelector('.rag-step__title')?.innerText.trim();
             const content = stepEl.querySelector('.rag-step__content-inner')?.innerText.trim();
             if (title) {
-                // Thêm tiêu đề bước và nội dung, cách nhau bằng dòng mới
                 steps.push(`[${title}]\n${content || ''}`);
             }
         });

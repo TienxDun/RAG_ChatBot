@@ -1,4 +1,5 @@
-// State.js - Simple State Management
+// State.js - Simple State Management with IndexedDB Support
+import { StorageManager } from './Storage.js';
 
 class State {
     constructor() {
@@ -7,13 +8,45 @@ class State {
             isSidebarOpen: localStorage.getItem('sidebar_state') !== null 
                 ? localStorage.getItem('sidebar_state') === 'open' 
                 : window.innerWidth > 768,
-            chatHistory: JSON.parse(localStorage.getItem('chat_history')) || [],
+            chatHistory: [], // Will be loaded from IndexedDB in init()
             selectedFiles: [],
             isUploading: false,
             currentConversationId: null,
-            isBackendOnline: true
+            isBackendOnline: true,
+            isFastPathEnabled: localStorage.getItem('fastpath_enabled') !== 'false'
         };
         this._listeners = [];
+        this._saveDebounceTimer = null;
+    }
+
+    /**
+     * Khởi tạo State, tải dữ liệu từ IndexedDB
+     */
+    async init() {
+        console.log('🔄 Initializing State...');
+        
+        // 1. Thử tải từ IndexedDB
+        let history = await StorageManager.loadHistory();
+        
+        // 2. Nếu IndexedDB trống, kiểm tra migration từ localStorage
+        if (history.length === 0) {
+            const localHistory = localStorage.getItem('chat_history');
+            if (localHistory) {
+                console.log('📦 Migrating history from localStorage to IndexedDB...');
+                try {
+                    history = JSON.parse(localHistory);
+                    await StorageManager.saveHistory(history);
+                    // Sau khi migrate thành công, có thể xóa localStorage để tiết kiệm
+                    // localStorage.removeItem('chat_history'); 
+                } catch (e) {
+                    console.error('Migration failed:', e);
+                }
+            }
+        }
+
+        this._state.chatHistory = history;
+        this._notify('chatHistory', history);
+        console.log(`✅ State initialized with ${history.length} conversations.`);
     }
 
     get theme() { return this._state.theme; }
@@ -33,7 +66,10 @@ class State {
     get chatHistory() { return this._state.chatHistory; }
     set chatHistory(value) {
         this._state.chatHistory = value;
-        localStorage.setItem('chat_history', JSON.stringify(value));
+        // Save to IndexedDB in background
+        StorageManager.saveHistory(value).catch(err => {
+            console.error('Failed to save history to IndexedDB:', err);
+        });
         this._notify('chatHistory', value);
     }
 
@@ -49,7 +85,9 @@ class State {
         if (index !== -1) {
             if (!history[index].messages) history[index].messages = [];
             history[index].messages.push(message);
-            this.chatHistory = history; // Trigger setter to save
+            this._state.chatHistory = history;
+            this._notify('chatHistory', history);
+            this.saveConversationDebounced(id);
         }
     }
 
@@ -58,14 +96,39 @@ class State {
         const index = history.findIndex(h => String(h.id) === String(id));
         if (index !== -1) {
             history[index] = { ...history[index], ...updateData };
-            this.chatHistory = history;
+            this._state.chatHistory = history;
+            this._notify('chatHistory', history);
+            this.saveConversationDebounced(id);
         }
+    }
+
+    saveConversationDebounced(convId) {
+        if (this._saveDebounceTimer) {
+            clearTimeout(this._saveDebounceTimer);
+        }
+        this._saveDebounceTimer = setTimeout(() => {
+            const history = this._state.chatHistory;
+            const conv = history.find(h => String(h.id) === String(convId));
+            if (conv) {
+                StorageManager.saveConversation(conv).catch(err => {
+                    console.error('Failed to save conversation to IndexedDB:', err);
+                });
+            }
+            this._saveDebounceTimer = null;
+        }, 1500); // Trì hoãn 1.5 giây sau lần cập nhật cuối cùng
     }
 
     get isBackendOnline() { return this._state.isBackendOnline; }
     set isBackendOnline(value) {
         this._state.isBackendOnline = value;
         this._notify('isBackendOnline', value);
+    }
+
+    get isFastPathEnabled() { return this._state.isFastPathEnabled; }
+    set isFastPathEnabled(value) {
+        this._state.isFastPathEnabled = value;
+        localStorage.setItem('fastpath_enabled', value ? 'true' : 'false');
+        this._notify('isFastPathEnabled', value);
     }
 
     get selectedFiles() { return this._state.selectedFiles; }
@@ -78,6 +141,27 @@ class State {
     set isUploading(value) {
         this._state.isUploading = value;
         this._notify('isUploading', value);
+    }
+
+    clearAllHistory() {
+        this.chatHistory = [];
+        this.currentConversationId = null;
+        localStorage.removeItem('chat_history');
+        // IndexedDB is cleared via setter calling StorageManager.saveHistory([])
+        console.log('History cleared by user.');
+    }
+
+    optimizeHistory() {
+        const optimized = this.chatHistory.map(conv => ({
+            ...conv,
+            messages: conv.messages ? conv.messages.map(msg => {
+                const { rawData, steps, ...lightMsg } = msg;
+                return lightMsg;
+            }) : []
+        }));
+        this.chatHistory = optimized;
+        console.log('History optimized by user.');
+        return true;
     }
 
     subscribe(callback) {

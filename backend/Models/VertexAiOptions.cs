@@ -28,8 +28,13 @@ public sealed record VertexAiOptions(
 
         var missing = new List<string>();
         if (string.IsNullOrWhiteSpace(apiKey)) missing.Add("VERTEX_API_KEY");
-        if (string.IsNullOrWhiteSpace(projectId)) missing.Add("VERTEX_PROJECT_ID");
-        if (string.IsNullOrWhiteSpace(region)) missing.Add("VERTEX_REGION");
+        
+        if (!expressMode)
+        {
+            if (string.IsNullOrWhiteSpace(projectId)) missing.Add("VERTEX_PROJECT_ID");
+            if (string.IsNullOrWhiteSpace(region)) missing.Add("VERTEX_REGION");
+        }
+        
         if (string.IsNullOrWhiteSpace(llmModelId)) missing.Add("VERTEX_LLM_MODEL");
         if (string.IsNullOrWhiteSpace(embeddingModelId)) missing.Add("VERTEX_EMBED_MODEL");
 
@@ -48,8 +53,8 @@ public sealed record VertexAiOptions(
 
         return new VertexAiOptions(
             apiKey!,
-            projectId!,
-            region!,
+            projectId ?? "",
+            region ?? "",
             llmModelId!,
             embeddingModelId!,
             expressMode,

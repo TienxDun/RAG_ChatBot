@@ -22,6 +22,7 @@ public sealed class SqlService
         "EXEC", "EXECUTE", "CREATE", "GRANT", "REVOKE", "DBCC" 
     };
 
+    // Khởi tạo SqlService bằng cách lấy chuỗi kết nối MSSQL_CONNECTION_STRING từ cấu hình hệ thống.
     public SqlService(IConfiguration configuration)
     {
         _configuration = configuration;
@@ -29,9 +30,10 @@ public sealed class SqlService
             ?? throw new InvalidOperationException("MSSQL_CONNECTION_STRING is not set in environment variables or configuration.");
     }
 
+    // Thực thi câu lệnh SQL truy vấn và trả về kết quả dưới dạng cấu trúc bảng DataTable của ADO.NET.
     public async Task<DataTable> ExecuteQueryAsDataTableAsync(string sql, CancellationToken ct)
     {
-
+        // Kiểm tra an toàn bảo mật của câu lệnh trước khi thực thi
         ValidateSqlSecurity(sql);
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync(ct);
@@ -52,6 +54,8 @@ public sealed class SqlService
 
     }
 
+    // Thực thi câu lệnh SQL truy vấn và trả về kết quả dưới dạng chuỗi JSON đã được format và lọc trùng lặp.
+    // Phục vụ việc xuất hoặc truyền nhận dữ liệu phi cấu trúc một cách nhanh chóng.
     public async Task<string> ExecuteQueryAsJsonAsync(string sql, CancellationToken ct)
     {
         // 1. Kiểm tra an toàn trước khi thực thi
@@ -96,6 +100,8 @@ public sealed class SqlService
         }
     }
 
+    // Kiểm tra an toàn bảo mật của câu lệnh SQL. 
+    // Chỉ cho phép các câu lệnh đọc dữ liệu (SELECT/WITH), chặn SQL Injection và các từ khóa làm thay đổi dữ liệu nguy hiểm.
     private void ValidateSqlSecurity(string sql)
     {
         if (string.IsNullOrWhiteSpace(sql))

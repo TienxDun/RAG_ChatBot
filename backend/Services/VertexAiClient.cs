@@ -9,24 +9,28 @@ public sealed class VertexAiClient
     private readonly HttpClient _httpClient;
     private readonly VertexAiOptions _options;
 
+    // Cấu hình JsonSerializer để hỗ trợ UTF-8 và tránh escape ký tự
     private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web)
     {
         Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
     };
 
+    // Khởi tạo VertexAiClient với HttpClient và cấu hình VertexAiOptions.
     public VertexAiClient(HttpClient httpClient, VertexAiOptions options)
     {
         _httpClient = httpClient;
         _options = options;
     }
 
+    // Gửi yêu cầu sinh nội dung văn bản tới mô hình Gemini của Vertex AI dựa trên prompt đầu vào.
     public async Task<string> GenerateContentAsync(string message, CancellationToken ct)
     {
+        // 1. Tạo URL endpoint API bằng cách thay thế các placeholder trong cấu hình template và đính kèm khóa API
         var url = _options.ApiUrlTemplate
-            .Replace("{region}", _options.Region)
-            .Replace("{projectId}", _options.ProjectId)
             .Replace("{modelId}", _options.LlmModelId)
             .Replace("{action}", "generateContent") + $"?key={_options.ApiKey}";
+
+        // 2. Thiết lập cấu trúc dữ liệu JSON payload để gửi tới API (theo chuẩn đặc tả của Google Vertex AI / Gemini API)
         var payload = new
         {
             contents = new[]
@@ -40,6 +44,7 @@ public sealed class VertexAiClient
                     }
                 }
             },
+            // Cấu hình tham số sinh văn bản: temperature bằng 0 để đảm bảo kết quả sinh ra ổn định và chính xác nhất
             generationConfig = new
             {
                 temperature = 0.0,
@@ -50,18 +55,23 @@ public sealed class VertexAiClient
             }
         };
 
+        // 3. Khởi tạo HttpRequestMessage dạng POST với dữ liệu payload được tuần tự hóa thành chuỗi JSON dạng UTF-8
         using var request = new HttpRequestMessage(HttpMethod.Post, url)
         {
             Content = new StringContent(JsonSerializer.Serialize(payload, _jsonOptions), Encoding.UTF8, "application/json")
         };
 
+        // 4. Gửi yêu cầu HTTP POST bất đồng bộ tới API Vertex AI và đọc kết quả trả về dưới dạng chuỗi
         using var response = await _httpClient.SendAsync(request, ct);
         var body = await response.Content.ReadAsStringAsync(ct);
+
+        // 5. Kiểm tra mã trạng thái HTTP, nếu không thành công (không thuộc dải 2xx) thì ném ngoại lệ kèm thông báo chi tiết
         if (!response.IsSuccessStatusCode)
         {
             throw new InvalidOperationException($"Vertex AI error ({(int)response.StatusCode}): {body}");
         }
 
+        // 6. Phân tích chuỗi JSON phản hồi từ API để trích xuất văn bản câu trả lời sinh ra từ mô hình
         using var doc = JsonDocument.Parse(body);
         if (doc.RootElement.TryGetProperty("candidates", out var candidates) && candidates.GetArrayLength() > 0)
         {
@@ -71,13 +81,16 @@ public sealed class VertexAiClient
                 parts.GetArrayLength() > 0 &&
                 parts[0].TryGetProperty("text", out var textElement))
             {
+                // Trả về chuỗi văn bản kết quả đã bóc tách thành công từ cấu trúc JSON
                 return textElement.GetString() ?? string.Empty;
             }
         }
 
+        // Trả về chuỗi rỗng nếu không tìm thấy nội dung phản hồi hợp lệ trong cấu trúc JSON
         return string.Empty;
     }
 
+    // Phân tích và chuyển đổi dữ liệu cấu trúc database dạng JSON thành các mô tả văn bản chi tiết bằng tiếng Việt.
     public async Task<string> TransformJsonToDescriptionsAsync(string jsonContent, CancellationToken ct)
     {
         var prompt = $@"Đây là dữ liệu cấu trúc database dưới dạng JSON:
@@ -93,6 +106,7 @@ public sealed class VertexAiClient
         return await GenerateContentAsync(prompt, ct);
     }
 
+    // Gọi API Vertex AI để chuyển đổi đoạn văn bản thành vector (Embedding) phục vụ cho việc tìm kiếm tương đồng.
     public async Task<IReadOnlyList<float>> GetEmbeddingAsync(
         string text,
         string? taskType,
@@ -100,8 +114,6 @@ public sealed class VertexAiClient
         CancellationToken ct)
     {
         var url = _options.ApiUrlTemplate
-            .Replace("{region}", _options.Region)
-            .Replace("{projectId}", _options.ProjectId)
             .Replace("{modelId}", _options.EmbeddingModelId)
             .Replace("{action}", "predict") + $"?key={_options.ApiKey}";
         var resolvedTaskType = string.IsNullOrWhiteSpace(taskType) ? "RETRIEVAL_QUERY" : taskType;
@@ -160,6 +172,7 @@ public sealed class VertexAiClient
         return Array.Empty<float>();
     }
 
+    // Đọc và bóc tách toàn bộ nội dung văn bản cũng như bảng biểu từ tệp tài liệu và chuyển sang định dạng Markdown.
     public async Task<string> ExtractTextFromFileAsync(Stream fileStream, string mimeType, CancellationToken ct)
     {
         using var memoryStream = new MemoryStream();
@@ -167,8 +180,6 @@ public sealed class VertexAiClient
         var base64Data = Convert.ToBase64String(memoryStream.ToArray());
 
         var url = _options.ApiUrlTemplate
-            .Replace("{region}", _options.Region)
-            .Replace("{projectId}", _options.ProjectId)
             .Replace("{modelId}", _options.LlmModelId)
             .Replace("{action}", "generateContent") + $"?key={_options.ApiKey}";
 

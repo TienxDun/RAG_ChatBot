@@ -8,23 +8,37 @@ public sealed class QdrantService
     private readonly QdrantClient _client;
     private const string DefaultCollectionName = "db_schema";
 
+    // Khởi tạo QdrantService bằng cách lấy cấu hình kết nối từ biến môi trường.
+    // Bắt buộc có QDRANT_HOST và QDRANT_API_KEY. Luôn sử dụng HTTPS kết nối trực tiếp tới Qdrant Cloud.
     public QdrantService()
     {
-        var host = Environment.GetEnvironmentVariable("QDRANT_HOST") ?? "localhost";
+        var host = Environment.GetEnvironmentVariable("QDRANT_HOST");
         var apiKey = Environment.GetEnvironmentVariable("QDRANT_API_KEY");
         
-        // Nếu host không phải localhost thì mặc định dùng HTTPS (cho Cloud)
-        bool useHttps = host != "localhost";
+        if (string.IsNullOrWhiteSpace(host))
+        {
+            throw new InvalidOperationException("Thiếu biến môi trường bắt buộc: QDRANT_HOST. Yêu cầu cấu hình Qdrant Cloud.");
+        }
+
+        if (string.IsNullOrWhiteSpace(apiKey))
+        {
+            throw new InvalidOperationException("Thiếu biến môi trường bắt buộc: QDRANT_API_KEY. Yêu cầu cấu hình Qdrant Cloud.");
+        }
         
-        _client = new QdrantClient(host, port: 6334, https: useHttps, apiKey: apiKey);
+        // Vì hệ thống hiện tại sử dụng Qdrant online/Cloud, luôn bắt buộc dùng HTTPS
+        _client = new QdrantClient(host, port: 6334, https: true, apiKey: apiKey);
     }
 
+    
+    // Lấy danh sách tất cả các collections hiện có trong Qdrant.
     public async Task<List<string>> GetCollectionsAsync()
     {
         var collections = await _client.ListCollectionsAsync();
         return collections.ToList();
     }
 
+    // Tìm kiếm cấu trúc database (schema) tương đồng nhất dựa trên vector đầu vào.
+    // Trả về danh sách thông tin schema thô (full_text) làm ngữ cảnh (context) cho AI.
     public async Task<List<string>> SearchSchemaAsync(IReadOnlyList<float> vector, int limit = 3, string? collectionName = null)
     {
         var targetCollection = string.IsNullOrWhiteSpace(collectionName) ? DefaultCollectionName : collectionName;
@@ -38,6 +52,10 @@ public sealed class QdrantService
         return searchResult.Select(r => r.Payload["full_text"].StringValue).ToList();
     }
 
+    
+    // Thêm mới hoặc cập nhật các điểm vector (points) vào một collection trong Qdrant.
+    // Nếu collection chưa tồn tại, hàm sẽ tự động tạo mới.
+    // Nếu đã tồn tại, hàm sẽ xóa dữ liệu cũ của cùng một file trước khi chèn mới để tránh trùng lặp.
     public async Task UpsertPointsAsync(
         List<QdrantPoint> points,
         string? collectionName,
@@ -112,7 +130,8 @@ public sealed class QdrantService
 
     public record QdrantPoint(IReadOnlyList<float> Vector, string Text, string FileName, int Index, Dictionary<string, string>? Metadata = null);
 
-
+    // Tạo một ID số nguyên 64-bit (ulong) duy nhất dựa trên việc băm tên file và chỉ số chunk.
+    // Giúp định danh duy nhất cho từng điểm vector trong Qdrant.
     private static ulong CreateNumericId(string fileName, int index)
     {
         // Băm tên file thành một số 32-bit làm tiền tố
