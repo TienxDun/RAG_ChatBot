@@ -54,7 +54,10 @@ public sealed class RagOrchestrator
         }
         var schemaInfo = schemaInfoBuilder.ToString();
         
-        var step2 = new RagStep("Schema Retrieval", $"Tìm thấy {schemaContexts.Count} cấu trúc database liên quan.");
+        var step2Content = $"Tìm thấy {schemaContexts.Count} cấu trúc database liên quan.\n\n" +
+                           "**Chi tiết cấu trúc được trích xuất từ Qdrant:**\n" +
+                           $"```sql\n{schemaInfo}\n```";
+        var step2 = new RagStep("Schema Retrieval", step2Content);
         steps.Add(step2);
         await onStep(step2);
 
