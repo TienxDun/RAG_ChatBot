@@ -102,7 +102,8 @@ public static class ChatEndpoints
                     type = "final", 
                     text = response.Text, 
                     suggestedQuestions = response.SuggestedQuestions,
-                    rawData = response.RawData
+                    rawData = response.RawData,
+                    isAmbiguous = response.IsAmbiguous
                 });
             }
         }

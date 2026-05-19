@@ -67,6 +67,9 @@ public sealed class RagOrchestrator
         // 3. Planning Phase: AI đánh giá phạm vi và lập kế hoạch
         var stepsToExecute = new List<string>();
         bool isOutOfScope = false;
+        bool isAmbiguous = false;
+        string clarificationMessage = string.Empty;
+        var suggestedQuestions = new List<string>();
 
         if (enableFastPath && IsSimpleQuery(userQuery))
         {
@@ -77,15 +80,22 @@ public sealed class RagOrchestrator
         {
             await onStep(new RagStep("Execution Planning", "AI đang phân tích câu hỏi và lập kế hoạch truy vấn..."));
             var planningPrompt = $@"Bạn là chuyên gia phân tích yêu cầu và lập kế hoạch truy vấn SQL.
-                Dựa trên CẤU TRÚC DATABASE được cung cấp:
+                Dựa trên CẤU TRÚC DATABASE được cung cấp dưới đây (được trích xuất động từ Qdrant dựa trên ngữ cảnh câu hỏi):
                 {schemaInfo}
 
                 CÂU HỎI CỦA NGƯỜI DÙNG: ""{userQuery}""
 
                 NHIỆM VỤ CỦA BẠN:
-                1. Kiểm tra xem câu hỏi có liên quan đến dữ liệu trong các bảng trên hay không.
-                2. Nếu câu hỏi KHÔNG liên quan đến database (hỏi kiến thức chung, thời tiết, linh tinh) hoặc không thể trả lời bằng các bảng này, hãy đặt `isOutOfScope: true`.
-                3. Nếu câu hỏi HỢP LỆ, hãy đặt `isOutOfScope: false` và chia nhỏ câu hỏi thành các bước truy vấn SQL logic.
+                1. Kiểm tra xem câu hỏi có liên quan đến dữ liệu trong các bảng trên hay không. Nếu không liên quan đến database, hãy đặt `isOutOfScope: true`.
+                2. Nếu câu hỏi liên quan đến database, hãy phân tích xem câu hỏi có bị mơ hồ, thiếu thông tin gom nhóm (GROUP BY) hoặc thống kê cụ thể hay không:
+                   - Một câu hỏi bị MƠ HỒ khi yêu cầu thống kê cực trị (top, cao nhất, thấp nhất, nhiều nhất) hoặc tổng hợp chung chung nhưng không chỉ rõ đối tượng phân tích cụ thể (ví dụ: 'top lỗi', 'sản lượng cao nhất').
+                   - **BẮT BUỘC ĐỐI CHIẾU SCHEMA THỰC TẾ:** Nếu phát hiện mơ hồ, hãy đặt `isAmbiguous: true`. Bạn BẮT BUỘC phải đọc kỹ danh sách bảng và cột thực tế trong CẤU TRÚC DATABASE được cung cấp bên trên để:
+                     a. Xác định xem những bảng nào có liên quan đến câu hỏi (ví dụ: bảng QTY_MAHANG_NGAYKIEM chứa thông tin lỗi sản phẩm, bảng ERP_LENHSX chứa thông tin lệnh sản xuất).
+                     b. Lựa chọn các cột thực tế thích hợp làm đối tượng gom nhóm từ các bảng đó (ví dụ: cột StyleID - Mã hàng, cột LineX - Chuyền sản xuất trong bảng QTY_MAHANG_NGAYKIEM).
+                     c. Soạn thảo `clarificationMessage` bằng tiếng Việt giải thích rõ ràng bạn tìm thấy bảng nào và đề xuất người dùng làm rõ xem muốn thống kê theo cột cụ thể nào của bảng đó.
+                     d. Tạo ra 3 gợi ý trong mảng `suggestions` sử dụng chính xác các câu hỏi chuẩn hóa chứa tên bảng và tên cột thực tế.
+                   - **TUYỆT ĐỐI CẤM:** Không được sử dụng hoặc tự bịa ra bất kỳ tên bảng hay tên cột nào không xuất hiện trong cấu trúc database được cung cấp phía trên.
+                3. Nếu câu hỏi HỢP LỆ và RÕ RÀNG, hãy đặt `isOutOfScope: false`, `isAmbiguous: false` và chia nhỏ câu hỏi thành các bước truy vấn SQL logic.
                    - Với câu hỏi đơn giản hoặc câu hỏi SO SÁNH/THỐNG KÊ (nhiều ngày, nhiều mã hàng): ƯU TIÊN thực hiện trong 1 bước duy nhất bằng cách sử dụng các toán tử IN, BETWEEN hoặc GROUP BY. 
                    Nếu một bước đã lấy đủ dữ liệu cho các đối tượng cần so sánh, TUYỆT ĐỐI KHÔNG tạo thêm bước truy vấn để tính toán lại.
                    - Với câu hỏi phức tạp (cần lấy kết quả bước này làm tham số cho bước sau - ví dụ tìm ID rồi mới lấy chi tiết): Chia tối đa 5 bước.
@@ -94,7 +104,10 @@ public sealed class RagOrchestrator
                 YÊU CẦU ĐỊNH DẠNG (BẮT BUỘC TRẢ VỀ JSON):
                 {{
                     ""isOutOfScope"": false,
-                    ""reason"": ""Lý do tại sao câu hỏi này nằm trong/ngoài phạm vi"",
+                    ""isAmbiguous"": false,
+                    ""clarificationMessage"": ""Thông điệp yêu cầu làm rõ động sử dụng tên bảng/cột thực tế (để trống nếu câu hỏi rõ ràng)"",
+                    ""suggestions"": [""Câu hỏi gợi ý chuẩn hóa 1"", ""Câu hỏi gợi ý chuẩn hóa 2"", ""Câu hỏi gợi ý chuẩn hóa 3""],
+                    ""reason"": ""Lý do tại sao câu hỏi này nằm trong/ngoài phạm vi hoặc mơ hồ"",
                     ""steps"": [""Mô tả bước 1"", ""Mô tả bước 2""]
                 }}";
 
@@ -104,7 +117,21 @@ public sealed class RagOrchestrator
             try {
                 var planObj = JsonSerializer.Deserialize<JsonElement>(planJson);
                 isOutOfScope = planObj.GetProperty("isOutOfScope").GetBoolean();
-                if (!isOutOfScope)
+                
+                if (planObj.TryGetProperty("isAmbiguous", out var ambProp))
+                {
+                    isAmbiguous = ambProp.GetBoolean();
+                }
+
+                if (isAmbiguous)
+                {
+                    clarificationMessage = planObj.GetProperty("clarificationMessage").GetString() ?? string.Empty;
+                    if (planObj.TryGetProperty("suggestions", out var sugProp) && sugProp.ValueKind == JsonValueKind.Array)
+                    {
+                        suggestedQuestions = sugProp.EnumerateArray().Select(x => x.GetString() ?? "").Where(x => !string.IsNullOrEmpty(x)).ToList();
+                    }
+                }
+                else if (!isOutOfScope)
                 {
                     stepsToExecute = planObj.GetProperty("steps").EnumerateArray().Select(x => x.GetString()!).ToList();
                 }
@@ -114,10 +141,26 @@ public sealed class RagOrchestrator
             }
         }
 
-        // Nếu ngoài phạm vi, bỏ qua bước thực thi SQL
+        // Nếu ngoài phạm vi hoặc mơ hồ, bỏ qua bước thực thi SQL
         var workingContext = new StringBuilder();
         string lastStepJson = string.Empty;
         DataTable? lastDataTable = null;
+
+        if (isAmbiguous)
+        {
+            var clarificationStep = new RagStep("Clarification Requested", clarificationMessage);
+            steps.Add(clarificationStep);
+            await onStep(clarificationStep);
+
+            return new ChatResponse(
+                Text: clarificationMessage,
+                Steps: steps,
+                SuggestedQuestions: suggestedQuestions,
+                RawData: string.Empty,
+                RawDataTable: null,
+                IsAmbiguous: true
+            );
+        }
 
         if (isOutOfScope)
         {
@@ -151,20 +194,24 @@ public sealed class RagOrchestrator
                         {(isMultiStep ? "" : $@"CÂU HỎI GỐC: ""{userQuery}""")}
 
                         QUY TẮC VIẾT SQL:
+                        0. BẮT BUỘC TUÂN THỦ METADATA: 
+                           - Đọc cực kỳ kỹ phần mô tả (Description) của từng bảng và từng cột trong cấu trúc database được cung cấp. Tuyệt đối tuân thủ mọi chỉ dẫn, công thức tính toán và đặc biệt là các 'Cảnh báo', 'Lưu ý' hoặc 'Quy tắc' được viết trong đó (Ví dụ: nếu mô tả cột GhiChu ghi cấm dùng để gom nhóm/GROUP BY khi tìm top lỗi thì TUYỆT ĐỐI KHÔNG được sử dụng).
+                           - BẮT BUỘC ĐỐI CHIẾU CHÍNH TẢ: Đối chiếu chính xác từng ký tự viết HOA/thường và sự khác biệt ký tự của tên cột đối với từng bảng cụ thể đang truy vấn (ví dụ: StyleID có chữ 'D' viết hoa trong QTY_MAHANG_NGAYKIEM, StyleId có chữ 'd' viết thường trong SEW_CoefficientSize, và StypeId có chữ 'y' và không có chữ 'l' trong SEW_CoefficientStyle). Tuyệt đối không được viết sai lệch chính tả tên cột của bảng đó để tránh lỗi cú pháp SQL.
+
                         1. CHỈ thực hiện nhiệm vụ trong 'NHIỆM VỤ HIỆN TẠI'. 
                         {(isMultiStep ? "TUYỆT ĐỐI KHÔNG giải quyết toàn bộ yêu cầu của người dùng nếu nó đòi hỏi nhiều bước xử lý. Chỉ tập trung lấy dữ liệu trung gian cho bước này." : "")}
                         
                         2. TRUYỀN THAM SỐ GIỮA CÁC BƯỚC: BẮT BUỘC sử dụng giá trị thực tế lấy từ phần 'KẾT QUẢ CÁC BƯỚC TRƯỚC ĐÓ' bên trên (nhìn vào SampleData) và các TÊN CỘT tương ứng để làm điều kiện lọc (WHERE) cho bước này.
                            - Nếu bước trước trả về danh sách nhiều ID, hãy sử dụng toán tử IN (ví dụ: WHERE MaKhachHang IN ('KH001', 'KH002')) thay vì chỉ lọc một giá trị.
-
+ 
                         3. TRÁNH NHẦM LẪN SCHEMA: Phân biệt rõ ràng giữa cột ID liên kết (ví dụ: SizeId, StyleId, BrandId) và cột hiển thị tên (ví dụ: Size/SizeName, Style/StyleName). Tuyệt đối không dùng chuỗi ký tự (Text) để so sánh trực tiếp với cột ID dạng số và ngược lại.
-
+ 
                         4. ĐỊNH DẠNG NGÀY THÁNG: Khi so sánh ngày tháng trong SQL Server, luôn sử dụng định dạng chuẩn ISO 'YYYY-MM-DD' hoặc 'YYYY-MM-DD HH:mm:ss'. Nếu cần lấy ngày hiện tại của hệ thống để tính toán, hãy sử dụng hàm GETDATE() thay vì hardcode ngày cố định.
-
+ 
                         5. TỐI ƯU HÓA TRUY VẤN: Để lấy nhiều giá trị cực trị (ví dụ cả sản lượng Cao nhất và Thấp nhất), KHÔNG NÊN dùng UNION ALL. Hãy sử dụng CTE kết hợp với Window Functions (ví dụ: `RANK() OVER(ORDER BY ... DESC)` as RankMax, `RANK() OVER(ORDER BY ... ASC)` as RankMin) để lọc kết quả trong một lần quét duy nhất.
-
+ 
                         6. XỬ LÝ ĐỒNG HẠNG: Luôn sử dụng `RANK()` hoặc `DENSE_RANK()` thay vì `TOP 1` để đảm bảo nếu có nhiều kết quả bằng nhau thì sẽ lấy được TẤT CẢ.
-
+ 
                         7. Trả về mã SQL thô, không giải thích, không markdown.
                         {(string.IsNullOrEmpty(lastError) ? "" : $"\nLỖI TRƯỚC ĐÓ: {lastError}\nHãy sửa SQL.")}";
 
@@ -320,30 +367,53 @@ public sealed class RagOrchestrator
 
         var q = query.ToLower().Trim();
 
-        // 1. Lọc các câu chào hỏi hoặc câu hỏi chung chung ngoài luồng để đưa qua Planner đánh giá outOfScope chính xác
+        // LỚP 1: TỪ CHỐI FAST-PATH 100% NẾU CHỨA TỪ KHÓA THỐNG KÊ/PHÂN TÍCH/SO SÁNH/CỰC TRỊ
+        // Bất kỳ câu hỏi nào mang tính chất tổng hợp số liệu đều phải qua AI Planning để kiểm tra tính mơ hồ
+        string[] analysisKeywords = { 
+            "top", "cao nhất", "thấp nhất", "nhiều nhất", "ít nhất", "tệ nhất", "tốt nhất",
+            "thống kê", "so sánh", "tổng hợp", "báo cáo", "biểu đồ", "trung bình", "tỷ lệ", 
+            "tỉ lệ", "phần trăm", "%", "lũy kế", "luy ke", "biến động", "xu hướng"
+        };
+        foreach (var keyword in analysisKeywords)
+        {
+            if (q.Contains(keyword)) return false; // Ép đi qua AI Planning
+        }
+
+        // LỚP 2: TỪ CHỐI FAST-PATH NẾU LIÊN QUAN ĐẾN LỖI/SẢN LƯỢNG MÀ KHÔNG CHỨA ĐỊNH DANH CỤ THỂ
+        // Ví dụ: "lỗi thế nào", "tình hình lỗi", "sản lượng đạt không" -> Không có mã chuyền/mã hàng cụ thể
+        bool relatesToData = q.Contains("lỗi") || q.Contains("sản lượng") || q.Contains("san luong") || q.Contains("loi");
+        if (relatesToData)
+        {
+            // Kiểm tra xem có chứa định danh chuyền (ví dụ chuyền có dạng số: 101, 102, 105...) 
+            // hoặc mã hàng (thường chứa chữ và số hoặc dấu gạch ngang '-') hay không.
+            bool hasLineIdentifier = System.Text.RegularExpressions.Regex.IsMatch(q, @"\b\d{3,}\b") || q.Contains("chuyền") || q.Contains("chuyen");
+            bool hasStyleIdentifier = System.Text.RegularExpressions.Regex.IsMatch(q, @"[a-zA-Z].*\d|\d.*[a-zA-Z]") || q.Contains("-");
+
+            if (!hasLineIdentifier && !hasStyleIdentifier)
+            {
+                return false; // Thiếu định danh thực thể -> Ép đi qua AI Planning để làm rõ
+            }
+        }
+
+        // LỚP 3: CÁC BỘ LỌC CHÀO HỎI & PHỨC TẠP
+        // Lọc câu chào hỏi/chung chung
         string[] generalKeywords = { "chào", "hello", "hi", "bạn là ai", "giúp gì", "thời tiết", "cảm ơn", "thank", "tên gì" };
         foreach (var keyword in generalKeywords)
         {
             if (q == keyword || q.StartsWith(keyword + " ") || q.EndsWith(" " + keyword))
             {
-                return false; // Đi qua Planning Phase để chặn OutOfScope một cách lịch sự
+                return false;
             }
         }
         
-        // 2. Nếu câu hỏi ngắn (dưới 90 ký tự), hầu hết là hỏi trực tiếp thông tin đơn lẻ (ví dụ: "chuyền 109 chạy mã nào")
-        if (query.Length < 90) return true;
-        
-        // 3. Nếu chứa từ khóa yêu cầu xử lý tuần tự phức tạp, bắt buộc phải qua bước Planning
+        // Lọc các từ khóa chỉ thứ tự xử lý phức tạp
         string[] complexKeywords = { "sau đó", "sau khi", "rồi mới", "kết quả của", "tổng hợp từ", "kết hợp cả", "sau đó lọc" };
         foreach (var keyword in complexKeywords)
         {
             if (q.Contains(keyword)) return false;
         }
 
-        // 4. Nếu chứa câu hỏi so sánh nhiều đối tượng
-        if (q.Contains("so sánh") && (q.Contains("và") || q.Contains("với"))) return false;
-
-        // Mặc định, nếu không quá dài (dưới 150 ký tự) và không có dấu hiệu phức tạp, xem như đơn giản để chạy Fast-path
-        return query.Length < 150;
+        // Mặc định: Chỉ những câu hỏi ngắn tra cứu tĩnh (< 80 ký tự) mới được đi Fast-path
+        return query.Length < 80;
     }
 }

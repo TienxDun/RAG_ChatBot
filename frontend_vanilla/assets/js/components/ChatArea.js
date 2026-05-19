@@ -10,6 +10,7 @@ import { ExportService } from '../services/ExportService.js';
 import { ChatService } from '../services/ChatService.js';
 import { InteractionService } from '../services/InteractionService.js';
 import { TemplateCacheService } from '../services/TemplateCacheService.js';
+import Minimap from './Minimap.js';
 
 
 export class ChatAreaComponent {
@@ -25,6 +26,7 @@ export class ChatAreaComponent {
             newChatBtn: document.querySelector(SELECTORS.NEW_CHAT),
             headerNewChatBtn: document.querySelector(SELECTORS.HEADER_NEW_CHAT),
             exportBtn: document.getElementById('export-excel'),
+            minimap: document.getElementById('chat-minimap'),
             
             // Voice & Attachments
             micBtn: document.querySelector(SELECTORS.MIC_BTN),
@@ -47,6 +49,7 @@ export class ChatAreaComponent {
             lastDownloadUrl: null
         };
 
+        this.minimap = new Minimap(this.elements.minimap, this.elements.chatArea, this.elements.messagesList);
         this.speechService = null;
         this._init();
         this._initSpeechService();
@@ -550,7 +553,7 @@ export class ChatAreaComponent {
                 },
                 onFinal: (data) => {
                     if (aiMessageEl) {
-                        MessageRenderer.updateMessage(aiMessageEl, data.text, aiSteps, data.suggestedQuestions, data.downloadUrl, data.rawData, null, null, data.duration);
+                        MessageRenderer.updateMessage(aiMessageEl, data.text, aiSteps, data.suggestedQuestions, data.downloadUrl, data.rawData, null, null, data.duration, data.isAmbiguous);
                         // Cập nhật thời gian tổng kết
                         const timerEl = aiMessageEl.querySelector('.loading-timer');
                         if (timerEl) {
@@ -601,6 +604,10 @@ export class ChatAreaComponent {
         messagesList.appendChild(msgEl);
         this.scrollToBottom();
 
+        // Cập nhật Minimap
+        this.minimap.update();
+        this.minimap.toggleVisibility(false);
+
         if (role === 'user' && state.currentConversationId) {
             state.addMessageToHistory(state.currentConversationId, { 
                 role, 
@@ -626,7 +633,7 @@ export class ChatAreaComponent {
         if (conversation.messages?.length > 0) {
             conversation.messages.forEach(msg => {
                 messagesList.appendChild(
-                    MessageRenderer.createMessageElement(msg.role, msg.content, msg.steps, msg.suggestions, msg.downloadUrl, msg.rawData, msg.userFile, null, msg.duration)
+                    MessageRenderer.createMessageElement(msg.role, msg.content, msg.steps, msg.suggestions, msg.downloadUrl, msg.rawData, msg.userFile, null, msg.duration, msg.isAmbiguous)
                 );
             });
 
@@ -637,6 +644,10 @@ export class ChatAreaComponent {
                 this.uiState.lastDownloadUrl = lastAiMsg.downloadUrl;
             }
         }
+
+        // Cập nhật Minimap
+        this.minimap.update();
+        this.minimap.toggleVisibility(false);
         
         this.scrollToBottom();
         if (window.innerWidth <= 768) state.isSidebarOpen = false;
@@ -742,6 +753,10 @@ export class ChatAreaComponent {
         this.uiState.lastRawData = null;
         this.uiState.lastDownloadUrl = null;
         state.currentConversationId = null;
+
+        // Cập nhật và ẩn Minimap (trở về Landing)
+        this.minimap.update();
+        this.minimap.toggleVisibility(true);
     }
 
     _setLoading(val) {

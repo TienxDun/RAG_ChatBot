@@ -148,7 +148,7 @@ export class MessageRenderer {
         return finalHtml;
     }
 
-    static createMessageElement(role, content, steps = [], suggestedQuestions = [], downloadUrl = null, rawData = null, userFile = null, loadingStatus = null, duration = null) {
+    static createMessageElement(role, content, steps = [], suggestedQuestions = [], downloadUrl = null, rawData = null, userFile = null, loadingStatus = null, duration = null, isAmbiguous = false) {
         const messageEl = document.createElement('div');
         messageEl.className = `message message--${role === 'user' ? 'user' : 'ai'} animate-slide-up`;
         
@@ -162,6 +162,10 @@ export class MessageRenderer {
             } catch (e) {
                 console.warn('Failed to parse rawData in createMessageElement', e);
             }
+        }
+
+        if (isAmbiguous) {
+            messageEl.setAttribute('data-ambiguous', 'true');
         }
 
         // Lưu thông tin file vào attribute nếu là tin nhắn user
@@ -222,13 +226,18 @@ export class MessageRenderer {
         messageEl.innerHTML = html;
 
         if (role === 'ai' && suggestedQuestions?.length > 0) {
-            this.renderSuggestions(messageEl, suggestedQuestions);
+            const checkAmbiguous = isAmbiguous || messageEl.getAttribute('data-ambiguous') === 'true';
+            if (checkAmbiguous) {
+                this.renderClarificationOptions(messageEl, suggestedQuestions);
+            } else {
+                this.renderSuggestions(messageEl, suggestedQuestions);
+            }
         }
 
         return messageEl;
     }
 
-    static updateMessage(messageEl, content, steps = [], suggestedQuestions = [], downloadUrl = null, rawData = null, userFile = null, loadingStatus = null, duration = null) {
+    static updateMessage(messageEl, content, steps = [], suggestedQuestions = [], downloadUrl = null, rawData = null, userFile = null, loadingStatus = null, duration = null, isAmbiguous = false) {
         const contentEl = messageEl.querySelector('.markdown-content');
         const stepsContainer = messageEl.querySelector('.rag-steps-container');
         const footerActionsContainer = messageEl.querySelector('.footer-actions-container');
@@ -244,6 +253,10 @@ export class MessageRenderer {
             } catch (e) {
                 console.error("MessageRenderer: Failed to parse rawData", e);
             }
+        }
+
+        if (isAmbiguous) {
+            messageEl.setAttribute('data-ambiguous', 'true');
         }
 
         if (userFile && bubbleEl && !bubbleEl.querySelector('.message-file-chip')) {
@@ -291,7 +304,12 @@ export class MessageRenderer {
         }
 
         if (suggestedQuestions?.length > 0) {
-            this.renderSuggestions(messageEl, suggestedQuestions);
+            const checkAmbiguous = isAmbiguous || messageEl.getAttribute('data-ambiguous') === 'true';
+            if (checkAmbiguous) {
+                this.renderClarificationOptions(messageEl, suggestedQuestions);
+            } else {
+                this.renderSuggestions(messageEl, suggestedQuestions);
+            }
         }
     }
 
@@ -355,6 +373,36 @@ export class MessageRenderer {
             </button>
         `).join('');
         
+        container.appendChild(listDiv);
+    }
+
+    static renderClarificationOptions(messageEl, suggestedQuestions) {
+        let container = messageEl.querySelector('.suggestions-list-container');
+        if (!container) return;
+
+        container.innerHTML = '';
+        const listDiv = document.createElement('div');
+        listDiv.className = 'clarification-hub animate-fade-in';
+        
+        let html = `
+            <div class="clarification-hub__title">
+                <span>Ý bạn là một trong các khía cạnh phân tích dưới đây?</span>
+            </div>
+            <div class="clarification-list">
+        `;
+
+        suggestedQuestions.forEach((q, idx) => {
+            html += `
+                <div class="clarification-item animate-fade-in" data-action="quick-question" data-value="${q}">
+                    <span class="clarification-item__index">${idx + 1}.</span>
+                    <span class="clarification-item__text">${q}</span>
+                    <i class="ph-bold ph-arrow-up-right clarification-item__arrow"></i>
+                </div>
+            `;
+        });
+
+        html += `</div>`;
+        listDiv.innerHTML = html;
         container.appendChild(listDiv);
     }
 

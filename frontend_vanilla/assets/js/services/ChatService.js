@@ -15,6 +15,7 @@ export class ChatService {
         let aiSuggestions = [];
         let aiDownloadUrl = null;
         let lastRawData = null;
+        let aiIsAmbiguous = false;
 
         try {
             const startTime = Date.now();
@@ -35,6 +36,7 @@ export class ChatService {
                     aiSuggestions = data.suggestedQuestions || [];
                     aiDownloadUrl = data.downloadUrl;
                     lastRawData = data.rawData;
+                    aiIsAmbiguous = data.isAmbiguous || false;
                     if (onFinal) onFinal(data);
                 } else if (data.type === 'error') {
                     aiContent = `⚠️ Lỗi: ${data.message}`;
@@ -43,8 +45,8 @@ export class ChatService {
             });
 
             const duration = Math.round((Date.now() - startTime) / 1000);
-            this._saveToHistory(aiContent, aiSteps, aiSuggestions, aiDownloadUrl, lastRawData, duration);
-            return { aiContent, aiSteps, aiSuggestions, aiDownloadUrl, lastRawData, duration };
+            this._saveToHistory(aiContent, aiSteps, aiSuggestions, aiDownloadUrl, lastRawData, duration, aiIsAmbiguous);
+            return { aiContent, aiSteps, aiSuggestions, aiDownloadUrl, lastRawData, duration, aiIsAmbiguous };
         } catch (error) {
             console.error('ChatService error:', error);
             if (onError) onError(error.message);
@@ -65,7 +67,7 @@ export class ChatService {
         return formData;
     }
 
-    static _saveToHistory(content, steps, suggestions, downloadUrl, rawData, duration) {
+    static _saveToHistory(content, steps, suggestions, downloadUrl, rawData, duration, isAmbiguous = false) {
         if (!content && steps.length === 0) return;
         
         state.addMessageToHistory(state.currentConversationId, { 
@@ -75,7 +77,8 @@ export class ChatService {
             suggestions, 
             downloadUrl,
             rawData,
-            duration
+            duration,
+            isAmbiguous
         });
     }
 

@@ -9,5 +9,6 @@ public sealed record ChatResponse(
     List<RagStep>? Steps = null,
     List<string>? SuggestedQuestions = null,
     string? RawData = null,
-    DataTable? RawDataTable = null
+    DataTable? RawDataTable = null,
+    bool IsAmbiguous = false
 );

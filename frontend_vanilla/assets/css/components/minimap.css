@@ -1,0 +1,141 @@
+/* Minimap Sidebar Navigation (Request Minimap) */
+.chat-minimap {
+    position: fixed;
+    right: 1.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 95;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+    padding: 0.75rem 0.5rem;
+    border-radius: 1.25rem;
+    background: transparent;
+    border: 1px solid transparent;
+    transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    pointer-events: auto;
+    user-select: none;
+    max-height: 30vh;
+    overflow-y: auto;
+    scrollbar-width: none; /* Firefox */
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, black 1.5rem, black calc(100% - 1.5rem), transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0, black 1.5rem, black calc(100% - 1.5rem), transparent 100%);
+}
+
+.chat-minimap::-webkit-scrollbar {
+    display: none; /* Chrome, Safari */
+}
+
+/* Khi hover vào vùng chứa minimap */
+.chat-minimap:hover {
+    background: var(--glass-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-border);
+    padding: 1.25rem 1rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+}
+
+/* Tiêu đề ẩn hiện */
+.minimap-header {
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    color: var(--primary);
+    margin-bottom: 0.5rem;
+    opacity: 0;
+    transform: translateX(10px);
+    transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+    pointer-events: none;
+    display: none; /* Tránh chiếm diện tích khi thu nhỏ */
+}
+
+.chat-minimap:hover .minimap-header {
+    display: block;
+    opacity: 0.8;
+    transform: translateX(0);
+}
+
+/* Minimap Item */
+.minimap-item {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    cursor: pointer;
+    padding: 0.25rem 0;
+    transition: all 0.3s ease;
+    min-height: 24px;
+}
+
+/* Nhãn chữ rút gọn của câu hỏi */
+.minimap-item__text {
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--muted-foreground);
+    text-align: right;
+    white-space: nowrap;
+    opacity: 0;
+    max-width: 0;
+    transform: translateX(12px);
+    transition: all 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+    pointer-events: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.chat-minimap:hover .minimap-item__text {
+    opacity: 0.85;
+    max-width: 95px; /* Điều chỉnh lại cho khớp khít với độ dài chữ CUỘC HỘI THOẠI */
+    transform: translateX(0);
+    pointer-events: auto;
+}
+
+/* Vạch ngang ở mép phải */
+.minimap-item__line {
+    width: 14px;
+    height: 3px;
+    border-radius: 2px;
+    background: color-mix(in srgb, var(--muted-foreground) 25%, transparent);
+    transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+    flex-shrink: 0;
+}
+
+/* Hover hiệu ứng từng dòng */
+.minimap-item:hover .minimap-item__text {
+    color: var(--primary);
+    opacity: 1;
+}
+
+.minimap-item:hover .minimap-item__line {
+    background: var(--primary);
+    width: 20px;
+    box-shadow: 0 0 8px rgba(139, 92, 246, 0.4);
+}
+
+/* Trạng thái Active (Câu hỏi hiện tại đang xem) */
+.minimap-item.active .minimap-item__text {
+    color: #3b82f6; /* Xanh dương rực rỡ */
+    font-weight: 600;
+    opacity: 1;
+}
+
+.minimap-item.active .minimap-item__line {
+    background: #3b82f6; /* Xanh dương */
+    width: 22px;
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+}
+
+/* Hover nhẹ lướt cả dòng sang trái */
+.chat-minimap:hover .minimap-item:hover {
+    transform: translateX(-4px);
+}
+
+/* Ẩn hoàn toàn Minimap trên màn hình Mobile & Tablet hẹp */
+@media (max-width: 992px) {
+    .chat-minimap {
+        display: none !important;
+    }
+}
