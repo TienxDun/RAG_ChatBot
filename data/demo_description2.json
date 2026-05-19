@@ -481,7 +481,7 @@
       {
         "name": "GhiChu",
         "data_type": "nvarchar",
-        "description": "Ghi chú kiểm tra."
+        "description": "Ghi chú kiểm tra (Dữ liệu hiện tại đang NULL). Vui lòng bỏ qua cột này, không sử dụng để truy vấn hay gom nhóm (GROUP BY). Khi người dùng hỏi về danh sách 'lỗi', hãy chủ động chuyển hướng gom nhóm theo Mã Hàng (StyleID) hoặc Chuyền (LineX)."
       },
       {
         "name": "SpLoiQA",
@@ -537,6 +537,193 @@
         "name": "CheckType",
         "data_type": "int",
         "description": "Phân loại kiểm tra."
+      }
+    ]
+  },
+  {
+    "table": "QTY_MaHang_KiemQC_ChiTiet",
+    "description": "Bảng chi tiết ghi nhận từng lỗi của sản phẩm. CHỈ SỬ DỤNG bảng này khi người dùng yêu cầu thống kê TOP TÊN LỖI / LOẠI LỖI (Ví dụ: 'Top 5 lỗi', 'Top 3 lỗi phổ biến'). Để tính số lượng của mỗi loại lỗi, hãy dùng hàm đếm số dòng (ví dụ: COUNT(Code)) kết hợp JOIN với bảng QTY_NHOMLOI_CHITIET và GROUP BY TenLoi. !!! QUAN TRỌNG !!!: Nếu người dùng hỏi 'Top 3 MÃ HÀNG có lỗi nhiều nhất' hoặc 'Top CHUYỀN bị lỗi nhiều nhất', TUYỆT ĐỐI KHÔNG dùng bảng này, hãy sử dụng bảng QTY_MAHANG_NGAYKIEM để tính tổng SpLoi.",
+    "columns": [
+      {
+        "name": "RowID",
+        "data_type": "bigint",
+        "description": "ID định danh duy nhất của từng bản ghi lỗi."
+      },
+      {
+        "name": "NgayKiem",
+        "data_type": "datetime",
+        "description": "Ngày giờ ghi nhận lỗi. BẮT BUỘC CAST(NgayKiem AS DATE) khi lọc theo ngày."
+      },
+      {
+        "name": "Gio",
+        "data_type": "time",
+        "description": "Giờ ghi nhận lỗi trong ngày."
+      },
+      {
+        "name": "LineX",
+        "data_type": "varchar",
+        "description": "Mã chuyền (Ví dụ: 105)."
+      },
+      {
+        "name": "PlanCode",
+        "data_type": "int",
+        "description": "Mã kế hoạch sản xuất."
+      },
+      {
+        "name": "StyleID",
+        "data_type": "varchar",
+        "description": "Mã kiểu dáng."
+      },
+      {
+        "name": "MaHang",
+        "data_type": "nvarchar",
+        "description": "Mã hàng hiển thị."
+      },
+      {
+        "name": "POID",
+        "data_type": "nvarchar",
+        "description": "Mã đơn hàng kết hợp."
+      },
+      {
+        "name": "PO",
+        "data_type": "nvarchar",
+        "description": "Số đơn hàng (Purchase Order)."
+      },
+      {
+        "name": "DauSizeID",
+        "data_type": "nvarchar",
+        "description": "Mã định danh đầu size."
+      },
+      {
+        "name": "DauSize",
+        "data_type": "nvarchar",
+        "description": "Thông tin diễn giải đầu size."
+      },
+      {
+        "name": "ColorID",
+        "data_type": "nvarchar",
+        "description": "Mã màu hệ thống."
+      },
+      {
+        "name": "MaMau",
+        "data_type": "nvarchar",
+        "description": "Tên màu hoặc mã định danh màu sắc."
+      },
+      {
+        "name": "SizeID",
+        "data_type": "nvarchar",
+        "description": "Mã kích thước định danh."
+      },
+      {
+        "name": "Size",
+        "data_type": "nvarchar",
+        "description": "Tên hiển thị của kích thước."
+      },
+      {
+        "name": "CumID",
+        "data_type": "int",
+        "description": "ID cụm hoặc khu vực kiểm tra."
+      },
+      {
+        "name": "Code",
+        "data_type": "varchar",
+        "description": "Mã lỗi kỹ thuật (Ví dụ: C2, C8, F2...). Khóa ngoại (Foreign Key) dùng để JOIN với bảng QTY_NHOMLOI_CHITIET.MaLoi (ON Code = MaLoi) để lấy TenLoi."
+      },
+      {
+        "name": "PageX",
+        "data_type": "float",
+        "description": "Tọa độ X của vị trí đánh dấu lỗi trên màn hình/hình ảnh kiểm tra."
+      },
+      {
+        "name": "PageY",
+        "data_type": "float",
+        "description": "Tọa độ Y của vị trí đánh dấu lỗi trên màn hình/hình ảnh kiểm tra."
+      },
+      {
+        "name": "TramKiem",
+        "data_type": "int",
+        "description": "ID hoặc mã trạm kiểm tra chất lượng."
+      },
+      {
+        "name": "MaCongDoan",
+        "data_type": "varchar",
+        "description": "Mã công đoạn ghi nhận lỗi (Ví dụ: 6.2, 1.15)."
+      },
+      {
+        "name": "GhiChu",
+        "data_type": "nvarchar",
+        "description": "Ghi chú bổ sung từ QC."
+      },
+      {
+        "name": "IsQC",
+        "data_type": "bit",
+        "description": "Flag xác nhận đã qua QC."
+      },
+      {
+        "name": "NVKiem",
+        "data_type": "nvarchar",
+        "description": "Mã hoặc tên nhân viên/trạm KCS (Ví dụ: Endline_c8_1)."
+      },
+      {
+        "name": "LanKiem",
+        "data_type": "int",
+        "description": "Số lần kiểm tra."
+      },
+      {
+        "name": "StatusHT",
+        "data_type": "int",
+        "description": "Trạng thái hoàn thành xử lý lỗi."
+      },
+      {
+        "name": "Version",
+        "data_type": "int",
+        "description": "Phiên bản của bản ghi."
+      },
+      {
+        "name": "CheckType",
+        "data_type": "int",
+        "description": "Phân loại kiểm tra."
+      }
+    ]
+  },
+  {
+    "table": "QTY_NHOMLOI_CHITIET",
+    "description": "Bảng danh mục định nghĩa tên gọi chi tiết của các loại lỗi. Dùng kết hợp với QTY_MaHang_KiemQC_ChiTiet để truy xuất tên lỗi.",
+    "columns": [
+      {
+        "name": "Pid",
+        "data_type": "int",
+        "description": "Mã định danh tự tăng của danh mục lỗi."
+      },
+      {
+        "name": "MaLoi",
+        "data_type": "varchar",
+        "description": "Khóa chính của lỗi (Ví dụ: A1, C2). Dùng để JOIN với cột Code của bảng QTY_MaHang_KiemQC_ChiTiet."
+      },
+      {
+        "name": "NhomLoi",
+        "data_type": "int",
+        "description": "Mã nhóm phân loại lỗi (Ví dụ: Nhóm 1, Nhóm 2)."
+      },
+      {
+        "name": "TenLoi",
+        "data_type": "nvarchar",
+        "description": "Tên hiển thị thực tế của lỗi (Ví dụ: 'Đứt chỉ', 'Lỗi vải'). ĐÂY CHÍNH LÀ CỘT DÙNG ĐỂ GOM NHÓM (GROUP BY TenLoi) khi người dùng hỏi 'Top 5 lỗi'."
+      },
+      {
+        "name": "GhiChu",
+        "data_type": "nvarchar",
+        "description": "Mô tả chi tiết hoặc giải thích thêm về lỗi (Ví dụ: 'Sai Nhãn', 'Thiếu, Lệch')."
+      },
+      {
+        "name": "Sort",
+        "data_type": "int",
+        "description": "Thứ tự sắp xếp hiển thị trên giao diện (nếu có)."
+      },
+      {
+        "name": "LoaiLoi",
+        "data_type": "int",
+        "description": "Phân loại mã lỗi."
       }
     ]
   }
