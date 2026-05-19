@@ -392,10 +392,58 @@ export class ChatAreaComponent {
                 btn.addEventListener('click', async (e) => {
                     e.stopPropagation(); // Ngăn sự kiện chọn template
                     const id = btn.getAttribute('data-id');
-                    if (await TemplateCacheService.removeTemplate(id)) {
-                        this._refreshTemplateList(true);
-                    } else {
-                        Toast.error("Không thể xóa template.");
+                    const item = btn.closest('.template-item');
+                    if (!item) return;
+
+                    // 🌟 Optimistic UI: Làm mờ và trượt phần tử biến mất ngay lập tức để tạo cảm giác mượt mà
+                    item.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                    item.style.opacity = '0';
+                    item.style.transform = 'translateX(20px)';
+                    item.style.pointerEvents = 'none'; // Ngăn click đúp trong lúc xử lý
+
+                    // Đợi hiệu ứng trượt mượt mà chạy xong thì ẩn tạm thời bằng display
+                    const hideTimeout = setTimeout(() => {
+                        item.style.display = 'none';
+                    }, 300);
+
+                    try {
+                        const success = await TemplateCacheService.removeTemplate(id);
+                        if (success) {
+                            clearTimeout(hideTimeout);
+                            item.remove(); // Xóa hẳn khỏi DOM
+                            this._lastTemplateFetch = Date.now();
+                            
+                            // Nếu không còn template nào nữa, hiển thị trạng thái trống
+                            const activeItems = listContainer.querySelectorAll('.template-item');
+                            if (activeItems.length === 0) {
+                                listContainer.innerHTML = `
+                                    <div class="template-empty">
+                                        <i class="ph-duotone ph-folder-open"></i>
+                                        <span>Chưa có template nào được lưu.</span>
+                                    </div>
+                                `;
+                            }
+                        } else {
+                            // Nếu xóa thất bại, hoàn tác lại giao diện (hiển thị lại như cũ)
+                            clearTimeout(hideTimeout);
+                            item.style.display = 'flex';
+                            item.style.pointerEvents = 'auto';
+                            setTimeout(() => {
+                                item.style.opacity = '1';
+                                item.style.transform = 'none';
+                            }, 50);
+                            Toast.error("Không thể xóa template.");
+                        }
+                    } catch (error) {
+                        // Khôi phục lại giao diện nếu xảy ra lỗi kết nối
+                        clearTimeout(hideTimeout);
+                        item.style.display = 'flex';
+                        item.style.pointerEvents = 'auto';
+                        setTimeout(() => {
+                            item.style.opacity = '1';
+                            item.style.transform = 'none';
+                        }, 50);
+                        Toast.error("Lỗi kết nối khi xóa template.");
                     }
                 });
             });
