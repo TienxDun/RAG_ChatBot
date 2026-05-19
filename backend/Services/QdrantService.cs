@@ -74,9 +74,38 @@ public sealed class QdrantService
                 new VectorParams { Size = vectorSize, Distance = Distance.Cosine },
                 cancellationToken: ct
             );
+
+            // Tạo index cho source_file để phục vụ lọc/xóa
+            await _client.CreatePayloadIndexAsync(
+                targetCollection,
+                "source_file",
+                PayloadSchemaType.Keyword,
+                cancellationToken: ct
+            );
         }
         else
         {
+            // Đảm bảo payload index cho source_file tồn tại trước khi xóa/lọc
+            try
+            {
+                await _client.CreatePayloadIndexAsync(
+                    targetCollection,
+                    "source_file",
+                    PayloadSchemaType.Keyword,
+                    cancellationToken: ct
+                );
+            }
+            catch (Exception ex)
+            {
+                // Chỉ bỏ qua nếu index đã tồn tại
+                if (!ex.Message.Contains("already exists", StringComparison.OrdinalIgnoreCase) && 
+                    !ex.Message.Contains("already indexed", StringComparison.OrdinalIgnoreCase) &&
+                    !ex.Message.Contains("AlreadyExists", StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException($"Lỗi tạo payload index cho 'source_file': {ex.Message}", ex);
+                }
+            }
+
             var fileName = points.First().FileName;
             await _client.DeleteAsync(targetCollection, 
                 filter: new Qdrant.Client.Grpc.Filter

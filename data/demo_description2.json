@@ -21,22 +21,22 @@
       {
         "name": "NgayTao",
         "data_type": "datetime",
-        "description": "Ngày hệ thống ghi nhận lệnh sản xuất."
+        "description": "Ngày hệ thống ghi nhận lệnh sản xuất. BẮT BUỘC dùng CAST(NgayTao AS DATE) = 'YYYY-MM-DD' khi lọc theo ngày để tránh bỏ sót do phần giờ phút giây."
       },
       {
         "name": "TuNgay",
         "data_type": "datetime",
-        "description": "Ngày dự kiến bắt đầu triển khai."
+        "description": "Ngày dự kiến bắt đầu triển khai. BẮT BUỘC dùng CAST(TuNgay AS DATE) = 'YYYY-MM-DD' khi lọc theo ngày."
       },
       {
         "name": "DenNgay",
         "data_type": "datetime",
-        "description": "Ngày dự kiến kết thúc sản xuất."
+        "description": "Ngày dự kiến kết thúc sản xuất. BẮT BUỘC dùng CAST(DenNgay AS DATE) = 'YYYY-MM-DD' khi lọc theo ngày."
       },
       {
         "name": "NgayXN",
         "data_type": "datetime",
-        "description": "Ngày xác nhận lệnh sản xuất chính thức."
+        "description": "Ngày xác nhận lệnh sản xuất chính thức. BẮT BUỘC dùng CAST(NgayXN AS DATE) = 'YYYY-MM-DD' khi lọc theo ngày."
       },
       {
         "name": "MaKhachHang",
@@ -91,7 +91,7 @@
       {
         "name": "Status",
         "data_type": "int",
-        "description": "Trạng thái hiện tại của lệnh (ví dụ: 3 - Đã hoàn thành/Đã chốt)."
+        "description": "Trạng thái hiện tại của lệnh (3 - Đã hoàn thành/Đã chốt, 1 - Đang thực hiện/Chưa chốt)."
       },
       {
         "name": "MoTa",
@@ -193,12 +193,12 @@
       {
         "name": "Linex",
         "data_type": "int",
-        "description": "Mã chuyền (kiểu INT). !!! CẢNH BÁO TỐI QUAN TRỌNG !!!: Tên cột bắt buộc dùng chữ 'x' thường (Linex), TUYỆT ĐỐI KHÔNG dùng 'X' hoa. Dùng WHERE Linex = 105 (không có nháy đơn)."
+        "description": "Mã chuyền (kiểu INT). !!! CẢNH BÁO TỐI QUAN TRỌNG !!!: Tên cột bắt buộc dùng chữ 'x' thường (Linex), TUYỆT ĐỐI KHÔNG dùng 'X' hoa. Dùng WHERE Linex = 105 (không có nháy đơn). CẢNH BÁO KIỂU DỮ LIỆU: Cột này kiểu INT. Nếu cần JOIN với cột LineX (kiểu varchar) ở các bảng khác, cần CAST ép kiểu LineX sang INT (ví dụ: Linex = CAST(LineX AS INT)) để tránh lỗi chuyển đổi kiểu dữ liệu trong SQL Server."
       },
       {
         "name": "PoId",
         "data_type": "varchar",
-        "description": "Mã lệnh sản xuất (PO ID). CHỈ DÙNG khi người dùng nhắc đích danh 'Mã lệnh' hoặc 'Số PO'. TUYỆT ĐỐI KHÔNG dùng cho 'Mã hàng' hay 'Mã sản phẩm' ngay cả khi mã người dùng nhập là số thuần túy."
+        "description": "Mã lệnh sản xuất (PO ID). Khóa ngoại (Foreign Key) liên kết với ERP_LENHSX.MaLenh. Bản chất là ID của lệnh sản xuất. CHỈ DÙNG khi người dùng nhắc đích danh 'Mã lệnh' hoặc 'Số PO'. TUYỆT ĐỐI KHÔNG dùng cho 'Mã hàng' hay 'Mã sản phẩm' ngay cả khi mã người dùng nhập là số thuần túy."
       },
       {
         "name": "StepId",
@@ -264,12 +264,12 @@
       {
         "name": "LineX",
         "data_type": "varchar",
-        "description": "Mã chuyền (ví dụ 105). !!! CẢNH BÁO TỐI QUAN TRỌNG !!!: Tên cột bắt buộc dùng chữ 'X' HOA (LineX), TUYỆT ĐỐI KHÔNG dùng 'x' thường. Dùng WHERE LineX = 105 không có nháy."
+        "description": "Mã chuyền (ví dụ 105). !!! CẢNH BÁO TỐI QUAN TRỌNG !!!: Tên cột bắt buộc dùng chữ 'X' HOA (LineX), TUYỆT ĐỐI KHÔNG dùng 'x' thường. Dùng WHERE LineX = '105' (hoặc LineX = 105). CẢNH BÁO KIỂU DỮ LIỆU: Cột này kiểu varchar. Nếu JOIN với cột Linex (kiểu INT) của bảng SEW_CoefficientStyle, phải CAST cột này sang INT (ví dụ: CAST(LineX AS INT) = Linex) để đảm bảo an toàn."
       },
       {
         "name": "PoId",
         "data_type": "varchar",
-        "description": "FK liên kết ERP_LENHSX.MaLenh."
+        "description": "Mã lệnh sản xuất (PO ID). Khóa ngoại (Foreign Key) liên kết với ERP_LENHSX.MaLenh. Bản chất là ID của lệnh sản xuất."
       },
       {
         "name": "StepId",
@@ -279,7 +279,7 @@
       {
         "name": "StyleId",
         "data_type": "varchar",
-        "description": "Mã kiểu dáng (CỘT LỌC CHÍNH). !!! CẢNH BÁO TỐI QUAN TRỌNG !!!: CHÚ Ý CHÍNH TẢ, tên cột bắt buộc là StyleId (có chữ 'l', KHÔNG dùng 'y'). Ưu tiên dùng khi tìm theo mã hàng. QUY TẮC: Chuyển '-' hoặc ' ' sang '_'."
+        "description": "Mã kiểu dáng (CỘT LỌC CHÍNH). !!! CẢNH BÁO TỐI QUAN TRỌNG !!!: CHÚ Ý CHÍNH TẢ, tên cột bắt buộc là StyleId (có chữ 'l', KHÔNG dùng 'y'). Ưu tiên dùng khi tìm theo mã hàng. QUY TẮC: Chuyển '-' hoặc ' ' sang '_'. Khớp với cột ERP_LENHSX.TenLenh."
       },
       {
         "name": "ColorId",
@@ -329,7 +329,7 @@
       {
         "name": "NVKiemKCS",
         "data_type": "nvarchar",
-        "description": "Nhân viên ghi nhận sản lượng tại công đoạn (Sản lượng đạt)."
+        "description": "Tên nhân viên KCS ghi nhận sản lượng tại công đoạn. Giá trị lưu theo định dạng 'KCS [Tên]' hoặc 'Kcs [Tên]', ví dụ: N'KCS COSMOS'. Lọc bằng LIKE N'%[Tên]%'. (Sản lượng đạt)."
       },
       {
         "name": "CheckType",
@@ -376,7 +376,7 @@
   },
   {
     "table": "QTY_MAHANG_NGAYKIEM",
-    "description": "Bảng số liệu lỗi kiểm (SpLoi). Tổng lỗi = SUM(ISNULL(SpLoi,0)). CÔNG THỨC tỉ lệ lỗi: %Lỗi = TongLoi / NULLIF(TongLoi + TongDat, 0) * 100 với TongDat lấy từ SEW_CoefficientSize (đã gộp Quantity+SuaDat). !!! TRÁNH NHÂN ĐÔI: KHÔNG join trực tiếp QTY với SEW rồi SUM — sẽ làm TongLoi và TongDat lớn bất thường. Luôn SUM(SpLoi) trong subquery chỉ từ QTY (GROUP BY LineX và/hoặc StyleID theo câu hỏi), SUM(Quantity+SuaDat) trong subquery chỉ từ SEW với cùng LineX và cùng khoảng thời gian nếu có, rồi JOIN hai kết quả đã aggregate. So sánh chuyền 101 và 102: tính riêng từng LineX trong subquery, không gộp hai bảng gốc trước GROUP BY.",
+    "description": "Bảng số liệu lỗi kiểm (SpLoi). Tổng lỗi = SUM(ISNULL(SpLoi,0)). CÔNG THỨC tỉ lệ lỗi: %Lỗi = TongLoi / NULLIF(TongLoi + TongDat, 0) * 100 với TongDat lấy từ SEW_CoefficientSize (đã gộp Quantity+SuaDat). !!! TRÁNH NHÂN ĐÔI: KHÔNG join trực tiếp QTY với SEW rồi SUM — sẽ làm TongLoi và TongDat lớn bất thường. Luôn SUM(SpLoi) trong subquery chỉ từ QTY (GROUP BY LineX và/hoặc StyleID theo câu hỏi), SUM(Quantity+SuaDat) trong subquery chỉ từ SEW với cùng LineX và cùng khoảng thời gian nếu có, rồi JOIN hai kết quả đã aggregate. So sánh chuyền 101 và 102: tính riêng từng LineX trong subquery, không gộp hai bảng gốc trước GROUP BY. !!! CẢNH BÁO QUAN TRỌNG !!!: Bảng này chỉ lưu số lượng sản phẩm lỗi chung chung (SpLoi), KHÔNG chứa mã lỗi hay loại lỗi cụ thể. Nếu câu hỏi yêu cầu thống kê theo Tên lỗi, Mã lỗi, hoặc Loại lỗi (ví dụ: Loại lỗi số 3), TUYỆT ĐỐI KHÔNG dùng bảng này, bắt buộc phải dùng bảng QTY_MaHang_KiemQC_ChiTiet kết hợp với QTY_NHOMLOI_CHITIET.",
     "columns": [
       {
         "name": "ID",
@@ -391,7 +391,7 @@
       {
         "name": "LineX",
         "data_type": "varchar",
-        "description": "Mã chuyền (ví dụ 105). !!! CẢNH BÁO TỐI QUAN TRỌNG !!!: Tên cột bắt buộc dùng chữ 'X' HOA (LineX), TUYỆT ĐỐI KHÔNG dùng 'x' thường. Dùng WHERE LineX = 105 không có nháy."
+        "description": "Mã chuyền (ví dụ 105). !!! CẢNH BÁO TỐI QUAN TRỌNG !!!: Tên cột bắt buộc dùng chữ 'X' HOA (LineX), TUYỆT ĐỐI KHÔNG dùng 'x' thường. Dùng WHERE LineX = '105' (hoặc LineX = 105). Cột này kiểu varchar."
       },
       {
         "name": "PlanCode",
@@ -496,7 +496,7 @@
       {
         "name": "NVKiem",
         "data_type": "nvarchar",
-        "description": "Tên nhân viên KCS thực hiện ghi nhận lỗi (Tử số của tỉ lệ lỗi). Giá trị lưu theo định dạng 'KCS [Tên]', ví dụ: N'KCS Cherry'. Khi lọc theo tên nhân viên, phải dùng LIKE N'%[Tên]%' thay vì dùng dấu =."
+        "description": "Tên nhân viên KCS thực hiện ghi nhận lỗi (Tử số của tỉ lệ lỗi). Giá trị lưu theo định dạng 'KCS [Tên]' hoặc 'Kcs [Tên]', ví dụ: N'KCS Cherry', N'KCS PANSY'. Khi lọc theo tên nhân viên, phải dùng LIKE N'%[Tên]%' để tìm kiếm không phân biệt chữ hoa thường."
       },
       {
         "name": "LanKiem",
@@ -567,17 +567,17 @@
       {
         "name": "PlanCode",
         "data_type": "int",
-        "description": "Mã kế hoạch sản xuất."
+        "description": "Mã kế hoạch sản xuất. Khóa ngoại (Foreign Key) liên kết với ERP_LENHSX.MaLenh. Bản chất là ID của lệnh sản xuất."
       },
       {
         "name": "StyleID",
         "data_type": "varchar",
-        "description": "Mã kiểu dáng."
+        "description": "Mã kiểu dáng hệ thống. Tên cột viết HOA chữ 'ID'. Dùng để tìm mã có dấu gạch dưới '_' (Ví dụ: 0088_342_29_V0_2). Khớp với cột ERP_LENHSX.TenLenh."
       },
       {
         "name": "MaHang",
         "data_type": "nvarchar",
-        "description": "Mã hàng hiển thị."
+        "description": "Tên/mã hàng hiển thị thực tế (thường chứa khoảng trắng hoặc dấu gạch ngang '-', ví dụ: '0088 342 29 V0.2', 'SA-893-208-133'). Khớp với cột ERP_LENHSX.MaHang."
       },
       {
         "name": "POID",
@@ -662,7 +662,7 @@
       {
         "name": "NVKiem",
         "data_type": "nvarchar",
-        "description": "Mã hoặc tên nhân viên/trạm KCS (Ví dụ: Endline_c8_1)."
+        "description": "Tên nhân viên KCS thực hiện ghi nhận lỗi. Giá trị lưu theo định dạng 'KCS [Tên]' hoặc 'Kcs [Tên]', ví dụ: N'KCS Cherry', N'KCS PANSY'. Khi lọc theo tên nhân viên, phải dùng LIKE N'%[Tên]%' để tìm kiếm không phân biệt chữ hoa thường."
       },
       {
         "name": "LanKiem",
@@ -703,7 +703,7 @@
       {
         "name": "NhomLoi",
         "data_type": "int",
-        "description": "Mã nhóm phân loại lỗi (Ví dụ: Nhóm 1, Nhóm 2)."
+        "description": "Mã nhóm lỗi kỹ thuật (1: Lỗi may/A, 2: Lỗi tape/B, 3: Lỗi phụ liệu/C, 4: Lỗi vệ sinh/D, 5: Khóa cài/E, 6: Mắt cáo/F, 7: Dây kéo/G, 8: Nhung gai/H, v.v.). Đây là nhóm phân loại kỹ thuật dựa trên ký tự đầu của mã lỗi (A->1, B->2, C->3...). Cảnh báo: TUYỆT ĐỐI không nhầm cột này với cột LoaiLoi. Các lỗi có NhomLoi = 1 vẫn có thể thuộc LoaiLoi = 3."
       },
       {
         "name": "TenLoi",
@@ -723,7 +723,7 @@
       {
         "name": "LoaiLoi",
         "data_type": "int",
-        "description": "Phân loại mã lỗi."
+        "description": "Loại lỗi phân loại theo mức độ nghiêm trọng (1, 2, 3). Khi người dùng hỏi về 'Loại lỗi số X' hoặc 'LoaiLoi = X', BẮT BUỘC dùng cột này. Cảnh báo: TUYỆT ĐỐI không nhầm cột này với cột NhomLoi."
       }
     ]
   }

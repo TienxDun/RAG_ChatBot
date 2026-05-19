@@ -70,22 +70,6 @@ public sealed class DocumentProcessor
             return new DocumentResult(fileName, 0, "No text content extracted.");
         }
 
-        // Step 1.5: Debug - Lưu kết quả bóc tách ra file để kiểm tra
-        try
-        {
-            var debugDir = Path.Combine(Directory.GetCurrentDirectory(), "temp_debug");
-            if (!Directory.Exists(debugDir)) Directory.CreateDirectory(debugDir);
-
-            // Thêm timestamp để phân biệt các lần bóc tách
-            var safeFileName = string.Concat(fileName.Split(Path.GetInvalidFileNameChars()));
-            var debugPath = Path.Combine(debugDir, $"debug_{DateTime.Now:yyyyMMdd_HHmmss}_{safeFileName}.txt");
-            
-            await File.WriteAllTextAsync(debugPath, extractedText, ct);
-        }
-        catch
-        {
-            // Không chặn tiến trình chính nếu lưu debug lỗi
-        }
 
         // Step 3: Embed each chunk/object
         var points = new List<QdrantService.QdrantPoint>();

@@ -244,7 +244,23 @@ public sealed class RagOrchestrator
                         lastStepJson = stepJson;
                         workingContext.AppendLine($"\n--- [Kết quả {stepTitle}: {currentStepDesc}] ---\n{GetCompactContext(stepJson)}");
 
-                        var stepLog = new RagStep(stepTitle, $"Hoàn thành: {currentStepDesc}\n\n```sql\n{generatedSql}\n```\n\nKết quả:\n```json\n{stepJson}\n```");
+                        // Logic rút gọn hiển thị kết quả SQL trên UI để tối ưu hiệu năng
+                        const int maxRowsForUi = 10;
+                        string stepUiJson;
+                        string truncationNotice = string.Empty;
+
+                        if (rows.Count > maxRowsForUi)
+                        {
+                            var truncatedRows = rows.Take(maxRowsForUi).ToList();
+                            stepUiJson = JsonSerializer.Serialize(truncatedRows, new JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
+                            truncationNotice = $"\n\n*⚠️ Lưu ý: Dữ liệu quá lớn. Hệ thống đã tự động rút gọn hiển thị {maxRowsForUi} trên tổng số {rows.Count} dòng để tối ưu hiệu năng UI.*";
+                        }
+                        else
+                        {
+                            stepUiJson = stepJson;
+                        }
+
+                        var stepLog = new RagStep(stepTitle, $"Hoàn thành: {currentStepDesc}\n\n```sql\n{generatedSql}\n```\n\nKết quả:\n```json\n{stepUiJson}\n```{truncationNotice}");
                         steps.Add(stepLog);
                         await onStep(stepLog);
                         break; 

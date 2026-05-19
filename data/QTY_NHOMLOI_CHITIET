@@ -1,0 +1,100 @@
+Pid	MaLoi	NhomLoi	TenLoi	GhiChu	Sort	LoaiLoi
+1	A1	1	Bỏ mũi / Skipped Stitch	NULL	NULL	3
+2	A2	1	Đứt chỉ / Broken stitches	NULL	NULL	3
+3	A3	1	Lỏng chỉ, nhe chỉ / Loose Stitch, Thread Looseness	NULL	NULL	3
+4	A4	1	Sụp mí /Run-off stitching	NULL	NULL	3
+5	A5	1	Xì / Broken the seam	NULL	NULL	3
+6	A6	1	Thiếu bọ / Missing bartack	NULL	NULL	3
+7	A7	1	Diễu không đều / Uneven Stitching	NULL	NULL	3
+8	A8	1	Thiếu đường may / Missing stitch seam	NULL	NULL	3
+9	A9	1	Lệch nhung gai / Uneven velcro	NULL	NULL	3
+10	A10	1	Dính túi / The pocket lining is stuck to seam	NULL	NULL	3
+11	A11	1	Thiếu, đứt dây câu / Missing or Broken taking tape	NULL	NULL	3
+12	A12	1	Nhăn, nhíu, vặn / Wrinkles, Creases, Twisted seam	NULL	NULL	3
+13	A13	1	DK cong gợn / Zipper weavingv	NULL	NULL	3
+14	A14	1	Nẹp chồm / Placket overflap	NULL	NULL	3
+15	A15	1	Nẹp hở / Open placket	NULL	NULL	3
+16	A16	1	Lỗ kim / Needle hole	NULL	NULL	3
+17	A17	1	Thiếu lót, giật lót => đùn / Lining width or length is shorter than outer	NULL	NULL	3
+18	A18	1	Không đối xứng / Unsymmetrical	NULL	NULL	3
+19	A19	1	Thông số vượt dung size /Measurement over tolerance	NULL	NULL	2
+20	B1	2	Thiếu, hụt tape lăn / Missing seam tape	NULL	NULL	3
+21	B2	2	Hở tape lăn, keo, film/Peel off seam tape,adhesive tape,film	NULL	NULL	3
+22	B3	2	Dính keo/ Sticky glue	NULL	NULL	3
+23	B4	2	Tape lăn xếp ply/ Seam tape have pleated	NULL	NULL	3
+24	B5	2	Dộp keo / Bubble seam tape,adhesive	NULL	NULL	3
+25	B6	2	Rách PU/ PU torn	NULL	NULL	3
+26	C1	3	Lỏng, xoay nút, mắt cáo/ Loose button, eyelet	NULL	NULL	3
+27	C2	3	Trầy nút, mắt cáo/ Scratched button,eyelet	NULL	NULL	3
+28	C3	3	Ngược logo nút/ Wrong direction of logo, button	NULL	NULL	3
+29	C4	3	Bong mép logo/ Peeling off logo	NULL	NULL	3
+30	C5	3	Trầy logo, reflex/ Scratched logo,reflective	NULL	NULL	3
+31	C6	3	Sai vị trí logo/ Wrong logo position	NULL	NULL	3
+32	C7	3	Thiếu, dư nhãn, logo /Missing/extra label,logo	NULL	NULL	3
+33	D1	4	Dơ/ Dirty	NULL	NULL	3
+34	D2	4	Dính dầu/Oil stain	NULL	NULL	3
+35	D3	4	Không đồng màu trên SP/ Not matching color on garment	NULL	NULL	3
+36	D4	4	Sót chỉ/ Untrimmed thread end	NULL	NULL	3
+48	A20	1	Nối chỉ không trùng/ Not match thread 	NULL	NULL	3
+49	B7	2	Chỉ trong tape lăn/ thread end in seam tape	NULL	NULL	2
+50	C8	3	Sai nhãn size	NULL	NULL	2
+51	C9	3	Bung nút	NULL	NULL	2
+52	B8	2	Vô nước/leakage	NULL	NULL	2
+53	C10	3	Thiếu nút	NULL	NULL	2
+54	C11	3	Nhãn ngược	NULL	NULL	2
+55	B9	2	Chưa dập tape lăn	NULL	NULL	2
+56	C12	3	Chưa dập tape lăn	NULL	NULL	3
+57	A21	1	Lủng vải	NULL	NULL	2
+58	A22	1	Thiếu dây treo đầu dây kéo/Missing zipper puller	NULL	NULL	3
+59	C13	3	Nút logo không đúng hướng	NULL	NULL	3
+60	A23	1	Nhốt mí	NULL	NULL	3
+61	A24	1	Sai màu chỉ	NULL	NULL	2
+62	A25	1	Khác màu trên sản phẩm	NULL	NULL	2
+63	C14	3	Bể nút	NULL	NULL	2
+64	C15	3	Nhãn mờ/mất chữ (Label is not clear)	NULL	NULL	2
+65	C16	3	Nhãn rách	NULL	NULL	2
+66	A26	1	Bọ lệch, xéo	NULL	NULL	3
+67	A27	1	May dính dây treo đầu dây kéo	NULL	NULL	2
+68	A28	1	Thiếu mũi	NULL	NULL	3
+69	D5	4	Sót phấn	NULL	NULL	3
+70	A29	1	Lỗi sợi	NULL	NULL	2
+72	A31	1	Nối chỉ 2 lần trên 1 đường thẳng	NULL	NULL	2
+73	E1	5	NGƯỢC MẶT KHÓA CÀI	NULL	NULL	2
+74	E2	5	TRẦY KHÓA CÀI	NULL	NULL	3
+75	F1	6	Thiếu mắt cáo	NULL	NULL	2
+76	F2	6	Trầy mắt cáo	NULL	NULL	3
+77	F3	6	Bể mắt cáo	NULL	NULL	2
+78	F4	6	Mắt cáo lỏng/xoay	NULL	NULL	2
+79	E3	5	THIẾU KHÓA CÀI	NULL	NULL	2
+80	A32	1	Tra tay ngược	NULL	NULL	2
+81	A33	1	Bo tay ngược	NULL	NULL	2
+82	C17	3	Nhãn dơ	NULL	NULL	3
+83	G1	7	TRẦY DÂY KÉO	NULL	NULL	2
+84	G2	7	TRÓC SƠN	NULL	NULL	2
+85	G3	7	BỂ RĂNG DÂY KÉO	NULL	NULL	2
+86	G4	7	DÂY KÉO SAI LOẠI	NULL	NULL	2
+87	G5	7	KHÁC MÀU RĂNG DÂY KÉO	NULL	NULL	2
+88	A34	1	Lố mũi	NULL	NULL	3
+89	A35	1	Bo tay sai loại	NULL	NULL	2
+92	A36	1	Chéo tay	NULL	NULL	2
+93	A37	1	Đóng bọ dính nhãn	NULL	NULL	2
+94	A38	1	Bo tay lủng	NULL	NULL	2
+95	A39	1	bo tay xướt sợi	NULL	NULL	3
+96	I1	-2147483648	SAI KÍCH CỠ/ WRONG SIZE	NULL	NULL	2
+97	I2	-2147483648	TƯA DÂY	NULL	NULL	3
+98	I3	-2147483648	DÂY BỊ LỖI SỢI	NULL	NULL	2
+99	H1	8	THIẾU NHUNG/GAI	NULL	NULL	2
+100	H2	8	NHUNG/GAI BỊ CHÁY XÉN	NULL	NULL	2
+101	A40	1	Le mí	NULL	NULL	3
+102	A41	1	Đóng bọ dính lót/chính	NULL	NULL	2
+103	A42	1	Thiếu passant	NULL	NULL	2
+104	A43	1	Thiếu loop	NULL	NULL	2
+105	A44	1	Xước vải	NULL	NULL	2
+106	C18	3	Sai loại logo	NULL	NULL	2
+107	A45	1	Dạ quang túi to nhỏ	NULL	NULL	2
+109	A46	1	Túi hộp che dạ quang	NULL	NULL	2
+110	E4	5	GẮN DÂY ĐEO LỘN SIZE	NULL	NULL	2
+111	A47	1	Sai mặt vải	NULL	NULL	2
+112	A48	1	Ngược đầu dây kéo	NULL	NULL	2
+113	A49	1	Viền không ôm bờ đường may	NULL	NULL	3
+114	E5	5	XỎ CON CHẬN SAI QUY CÁCH	NULL	NULL	2
