@@ -5,7 +5,7 @@
  */
 
 export const env = {
-    API_BASE_URL: 'https://rag-chatbot-api-b4r5.onrender.com/api', // Production
-    // API_BASE_URL: 'http://localhost:5000/api', // Local Development
+    //API_BASE_URL: 'https://rag-chatbot-api-b4r5.onrender.com/api', // Production
+    API_BASE_URL: 'http://localhost:5000/api', // Local Development
     DEBUG: true, // Bật log chi tiết cho môi trường dev
 };
