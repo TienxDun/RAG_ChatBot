@@ -708,12 +708,12 @@
       {
         "name": "TenLoi",
         "data_type": "nvarchar",
-        "description": "Tên hiển thị thực tế của lỗi (Ví dụ: 'Đứt chỉ', 'Lỗi vải'). ĐÂY CHÍNH LÀ CỘT DÙNG ĐỂ GOM NHÓM (GROUP BY TenLoi) khi người dùng hỏi 'Top 5 lỗi'."
+        "description": "Tên hiển thị thực tế của lỗi (Ví dụ: 'Đứt chỉ', 'Lỗi vải'). ĐÂY CHÍNH LÀ CỘT DÙNG ĐỂ GOM NHÓM (GROUP BY TenLoi) khi người dùng hỏi 'Top 5 lỗi'. QUY TẮC LỌC: Khi tìm kiếm một lỗi cụ thể, BẮT BUỘC chỉ đặt dấu % ở SAU từ khóa (Ví dụ: LIKE N'không đối xứng%'), TUYỆT ĐỐI KHÔNG đặt % ở đầu."
       },
       {
         "name": "GhiChu",
         "data_type": "nvarchar",
-        "description": "Mô tả chi tiết hoặc giải thích thêm về lỗi (Ví dụ: 'Sai Nhãn', 'Thiếu, Lệch')."
+        "description": "Mô tả chi tiết hoặc giải thích thêm về lỗi (Ví dụ: 'Sai Nhãn', 'Thiếu, Lệch'). QUY TẮC LỌC: Tương tự TenLoi, khi tìm kiếm BẮT BUỘC chỉ đặt dấu % ở SAU từ khóa (Ví dụ: LIKE N'không đối xứng%')."
       },
       {
         "name": "Sort",
