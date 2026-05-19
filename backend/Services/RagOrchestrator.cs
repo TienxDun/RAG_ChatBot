@@ -22,7 +22,7 @@ public sealed class RagOrchestrator
     }
 
     // Quy trình điều phối RAG chính: Chuyển đổi vector, tìm kiếm schema từ Qdrant, lập kế hoạch, sinh và chạy SQL, tổng hợp câu trả lời cuối cùng.
-    public async Task<ChatResponse> ProcessQueryAsync(string userQuery, string? collectionName, Func<RagStep, Task> onStep, CancellationToken ct, bool enableFastPath = true)
+    public async Task<ChatResponse> ProcessQueryAsync(string userQuery, string? collectionName, Func<RagStep, Task> onStep, CancellationToken ct, bool enableFastPath = true, bool isExcelTemplate = false)
     {
         var steps = new List<RagStep>();
 
@@ -89,6 +89,7 @@ public sealed class RagOrchestrator
                 1. Kiểm tra xem câu hỏi có liên quan đến dữ liệu trong các bảng trên hay không. Nếu không liên quan đến database, hãy đặt `isOutOfScope: true`.
                 2. Nếu câu hỏi liên quan đến database, hãy phân tích xem câu hỏi có bị mơ hồ, thiếu thông tin gom nhóm (GROUP BY) hoặc thống kê cụ thể hay không:
                    - Một câu hỏi bị MƠ HỒ khi yêu cầu thống kê cực trị (top, cao nhất, thấp nhất, nhiều nhất) hoặc tổng hợp chung chung nhưng không chỉ rõ đối tượng phân tích cụ thể (ví dụ: 'top lỗi', 'sản lượng cao nhất').
+                   - **NGOẠI LỆ CHO BÁO CÁO EXCEL:** {(isExcelTemplate ? "Đây là yêu cầu xuất báo cáo Excel (chứa phần 'YÊU CẦU ĐẶC BIỆT CHO BÁO CÁO EXCEL'). Bạn TUYỆT ĐỐI KHÔNG ĐƯỢC đặt `isAmbiguous: true` dù câu hỏi có phạm vi rộng hay thiếu thông tin chi tiết (như Chuyền, Mã hàng, Ngày tháng). Hãy đặt `isAmbiguous: false` và lập kế hoạch sinh câu truy vấn SQL để lấy toàn bộ dữ liệu cần thiết điền vào các cột Excel." : "")}
                    - **BẮT BUỘC ĐỐI CHIẾU SCHEMA THỰC TẾ:** Nếu phát hiện mơ hồ, hãy đặt `isAmbiguous: true`. Bạn BẮT BUỘC phải đọc kỹ danh sách bảng và cột thực tế trong CẤU TRÚC DATABASE được cung cấp bên trên để:
                      a. Xác định xem những bảng nào có liên quan đến câu hỏi (ví dụ: bảng QTY_MAHANG_NGAYKIEM chứa thông tin lỗi sản phẩm, bảng ERP_LENHSX chứa thông tin lệnh sản xuất).
                      b. Lựa chọn các cột thực tế thích hợp làm đối tượng gom nhóm từ các bảng đó (ví dụ: cột StyleID - Mã hàng, cột LineX - Chuyền sản xuất trong bảng QTY_MAHANG_NGAYKIEM).
@@ -125,10 +126,18 @@ public sealed class RagOrchestrator
 
                 if (isAmbiguous)
                 {
-                    clarificationMessage = planObj.GetProperty("clarificationMessage").GetString() ?? string.Empty;
-                    if (planObj.TryGetProperty("suggestions", out var sugProp) && sugProp.ValueKind == JsonValueKind.Array)
+                    if (isExcelTemplate)
                     {
-                        suggestedQuestions = sugProp.EnumerateArray().Select(x => x.GetString() ?? "").Where(x => !string.IsNullOrEmpty(x)).ToList();
+                        isAmbiguous = false;
+                        stepsToExecute = new List<string> { userQuery };
+                    }
+                    else
+                    {
+                        clarificationMessage = planObj.GetProperty("clarificationMessage").GetString() ?? string.Empty;
+                        if (planObj.TryGetProperty("suggestions", out var sugProp) && sugProp.ValueKind == JsonValueKind.Array)
+                        {
+                            suggestedQuestions = sugProp.EnumerateArray().Select(x => x.GetString() ?? "").Where(x => !string.IsNullOrEmpty(x)).ToList();
+                        }
                     }
                 }
                 else if (!isOutOfScope)

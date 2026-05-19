@@ -16,12 +16,13 @@ public class ExcelReportService
 {
     private readonly RagOrchestrator _ragOrchestrator;
 
+    // Khởi tạo ExcelReportService dùng để xử lý và định dạng báo cáo Excel
     public ExcelReportService(RagOrchestrator ragOrchestrator)
     {
         _ragOrchestrator = ragOrchestrator;
-        ExcelPackage.License.SetNonCommercialPersonal("My Project"); // Chuẩn bản quyền EPPlus 8
     }
 
+    // Nhận file Excel mẫu, phân tích cấu trúc cột, truy vấn dữ liệu qua RAG và điền dữ liệu đã định dạng vào file
     public async Task<ExcelReportResult> ProcessExcelTemplateAsync(Stream excelStream, string? additionalQuery, Func<RagStep, Task> onStep, CancellationToken ct)
     {
         using var package = new ExcelPackage(excelStream);
@@ -94,7 +95,7 @@ public class ExcelReportService
         }
 
         // 3. Chạy toàn bộ luồng RAG (Embeddings -> Qdrant Schema -> Vertex SQL -> Execute)
-        var ragResponse = await _ragOrchestrator.ProcessQueryAsync(combinedQuery, null, onStep, ct);
+        var ragResponse = await _ragOrchestrator.ProcessQueryAsync(combinedQuery, null, onStep, ct, isExcelTemplate: true);
 
         // 4. Lấy kết quả
         DataTable dataTable;
@@ -140,7 +141,7 @@ public class ExcelReportService
         int dataStartRow = headerRowIndex + 1;
         if (worksheet.Dimension != null && worksheet.Dimension.End.Row >= dataStartRow)
         {
-            worksheet.Cells[dataStartRow, 1, worksheet.Dimension.End.Row, worksheet.Dimension.End.Column].Clear();
+            worksheet.Cells[dataStartRow, 1, worksheet.Dimension.End.Row, worksheet.Dimension.End.Column].Value = null;
         }
 
         // Đổ dữ liệu mới
@@ -152,10 +153,24 @@ public class ExcelReportService
             for (int i = 0; i < dataTable.Columns.Count; i++)
             {
                 var column = dataTable.Columns[i];
+                var colRange = worksheet.Cells[dataStartRow, i + 1, dataStartRow + dataTable.Rows.Count - 1, i + 1];
+
                 if (column.ExtendedProperties["IsNumeric"] is bool isNum && isNum)
                 {
-                    var colRange = worksheet.Cells[dataStartRow, i + 1, dataStartRow + dataTable.Rows.Count - 1, i + 1];
                     colRange.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Right;
+                }
+
+                // Định dạng ngày tháng
+                bool isDateColumn = column.DataType == typeof(DateTime) || 
+                                    column.DataType == typeof(DateTimeOffset) ||
+                                    column.ColumnName.Contains("Ngay", StringComparison.OrdinalIgnoreCase) ||
+                                    column.ColumnName.Contains("Date", StringComparison.OrdinalIgnoreCase) ||
+                                    column.ColumnName.Contains("Time", StringComparison.OrdinalIgnoreCase);
+
+                if (isDateColumn)
+                {
+                    colRange.Style.Numberformat.Format = "dd/mm/yyyy";
+                    colRange.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
                 }
             }
         }
@@ -201,6 +216,7 @@ public class ExcelReportService
         };
     }
 
+    // Chuyển dữ liệu chuỗi JSON từ kết quả truy vấn thành DataTable và parse định dạng ngày tháng
     private DataTable ConvertJsonToDataTable(string jsonString, List<string> templateColumns)
     {
         var dataTable = new DataTable();
@@ -263,9 +279,13 @@ public class ExcelReportService
                         if (!string.IsNullOrWhiteSpace(strVal))
                         {
                             hasAnyData = true;
-                            if (isNumeric && double.TryParse(strVal, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double val))
+                             if (isNumeric && double.TryParse(strVal, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double val))
                             {
                                 row[colName] = val;
+                            }
+                            else if (DateTime.TryParse(strVal, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out DateTime dtVal))
+                            {
+                                row[colName] = dtVal;
                             }
                             else
                             {
@@ -293,6 +313,7 @@ public class ExcelReportService
         return dataTable;
     }
 
+    // Xuất danh sách dữ liệu ra file Excel dạng bảng lưới thông thường, định dạng số và ngày tháng (dd/MM/yyyy)
     public byte[] ExportGenericExcel(List<Dictionary<string, object>> data)
     {
         using var package = new ExcelPackage();
@@ -344,11 +365,15 @@ public class ExcelReportService
                             cell.Value = null;
                             break;
                         case JsonValueKind.String:
-                            var str = element.GetString() ?? "";
+                             var str = element.GetString() ?? "";
                             // Thử parse số để định dạng đúng trong Excel nếu chuỗi chỉ chứa số
                             if (double.TryParse(str, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double dbl))
                             {
                                 cell.Value = dbl;
+                            }
+                            else if (DateTime.TryParse(str, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out DateTime dtVal))
+                            {
+                                cell.Value = dtVal;
                             }
                             else
                             {
@@ -365,11 +390,25 @@ public class ExcelReportService
                     cell.Value = val;
                 }
 
-                // Căn lề phải và format dấu phẩy cho các cột số cho chuyên nghiệp
+                 // Căn lề phải và format dấu phẩy cho các cột số cho chuyên nghiệp
                 if (cell.Value is double || cell.Value is float || cell.Value is decimal || cell.Value is long || cell.Value is int)
                 {
                     cell.Style.Numberformat.Format = "#,##0";
                     cell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Right;
+                }
+                else if (cell.Value is DateTime || cell.Value is DateTimeOffset || headers[colIndex].Contains("Ngay", StringComparison.OrdinalIgnoreCase) || headers[colIndex].Contains("Date", StringComparison.OrdinalIgnoreCase) || headers[colIndex].Contains("Time", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Nếu là string dạng ngày, thử chuyển sang DateTime để format chuẩn
+                    if (cell.Value is string strDate && DateTime.TryParse(strDate, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out DateTime parsedDate))
+                    {
+                        cell.Value = parsedDate;
+                    }
+
+                    if (cell.Value is DateTime || cell.Value is DateTimeOffset)
+                    {
+                        cell.Style.Numberformat.Format = "dd/mm/yyyy";
+                        cell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                    }
                 }
 
                 cell.Style.Border.Top.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;

@@ -8,6 +8,12 @@ using System.Net;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Set EPPlus License context globally
+OfficeOpenXml.ExcelPackage.License.SetNonCommercialPersonal("My Project");
+
+// Register Memory Cache
+builder.Services.AddMemoryCache();
+
 // Load .env file from root directory
 var rootDir = builder.Environment.ContentRootPath;
 var envPath = Path.GetFullPath(Path.Combine(rootDir, "..", ".env"));
@@ -77,7 +83,7 @@ app.MapGet("/api/documents/collections", async (QdrantService qdrant) =>
     return Results.Ok(collections);
 });
 
-app.MapPost("/api/chat", (HttpContext context, RagOrchestrator orchestrator, ExcelReportService excelService, CancellationToken ct) => ChatEndpoints.HandleChatAsync(context, orchestrator, excelService, ct))
+app.MapPost("/api/chat", (HttpContext context, RagOrchestrator orchestrator, ExcelReportService excelService, Microsoft.Extensions.Caching.Memory.IMemoryCache cache, CancellationToken ct) => ChatEndpoints.HandleChatAsync(context, orchestrator, excelService, cache, ct))
     .WithName("Chat")
     .WithOpenApi(operation =>
     {
@@ -119,7 +125,7 @@ app.MapPost("/api/embeddings", async (EmbeddingRequest request, VertexAiClient c
     .WithName("Embeddings")
     .WithOpenApi();
 
-app.MapGet("/api/download/{id}", (string id) => ChatEndpoints.HandleDownloadAsync(id))
+app.MapGet("/api/download/{id}", (string id, Microsoft.Extensions.Caching.Memory.IMemoryCache cache) => ChatEndpoints.HandleDownloadAsync(id, cache))
 .WithName("DownloadExcel")
 .WithOpenApi(operation => 
 {

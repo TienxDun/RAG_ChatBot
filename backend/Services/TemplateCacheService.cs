@@ -4,9 +4,7 @@ using System.Linq;
 
 namespace Backend.Services;
 
-/// <summary>
-/// Cấu trúc dữ liệu cho mỗi template được cache trong bộ nhớ
-/// </summary>
+// Cấu trúc dữ liệu cho mỗi template được cache trong bộ nhớ
 public class CachedTemplate
 {
     public string Id { get; set; } = string.Empty;           // GUID unique
@@ -16,9 +14,7 @@ public class CachedTemplate
     public long FileSize { get; set; }                       // Kích thước (bytes)
 }
 
-/// <summary>
-/// Service Singleton quản lý bộ nhớ đệm (in-memory) cho các template Excel trống.
-/// </summary>
+// Service Singleton quản lý bộ nhớ đệm (in-memory) cho các template Excel trống.
 public class TemplateCacheService
 {
     private readonly List<CachedTemplate> _cache = new();
@@ -26,10 +22,8 @@ public class TemplateCacheService
     private const int MaxCacheItems = 20; // Giới hạn tối đa 20 templates
     private const long MaxFileSizeBytes = 10 * 1024 * 1024; // Giới hạn 10MB mỗi file
 
-    /// <summary>
-    /// Lưu template vào bộ nhớ đệm. 
-    /// Nếu cache đầy (20 items), sẽ xóa item cũ nhất (FIFO).
-    /// </summary>
+    // Lưu template vào bộ nhớ đệm. 
+    // Nếu cache đầy (20 items), sẽ xóa item cũ nhất (FIFO).
     public CachedTemplate StoreTemplate(byte[] bytes, string fileName)
     {
         if (bytes == null || bytes.Length == 0)
@@ -75,9 +69,7 @@ public class TemplateCacheService
         }
     }
 
-    /// <summary>
-    /// Lấy một template từ cache theo ID.
-    /// </summary>
+    // Lấy một template từ cache theo ID.
     public CachedTemplate? GetTemplate(string id)
     {
         lock (_lock)
@@ -86,9 +78,7 @@ public class TemplateCacheService
         }
     }
 
-    /// <summary>
-    /// Lấy danh sách tất cả các template hiện có trong cache.
-    /// </summary>
+    // Lấy danh sách tất cả các template hiện có trong cache.
     public List<CachedTemplate> GetAllTemplates()
     {
         lock (_lock)
@@ -98,9 +88,7 @@ public class TemplateCacheService
         }
     }
 
-    /// <summary>
-    /// Xóa một template khỏi cache theo ID.
-    /// </summary>
+    // Xóa một template khỏi cache theo ID.
     public bool RemoveTemplate(string id)
     {
         lock (_lock)
@@ -114,9 +102,7 @@ public class TemplateCacheService
         }
     }
 
-    /// <summary>
-    /// Xóa toàn bộ cache.
-    /// </summary>
+    // Xóa toàn bộ cache.
     public void ClearAll()
     {
         lock (_lock)
@@ -125,9 +111,7 @@ public class TemplateCacheService
         }
     }
 
-    /// <summary>
-    /// Lấy thông tin thống kê về bộ nhớ đệm.
-    /// </summary>
+    // Lấy thông tin thống kê về bộ nhớ đệm.
     public object GetCacheStats()
     {
         lock (_lock)

@@ -3,20 +3,18 @@ using Backend.Services;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Concurrent;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Backend.Endpoints;
 
 public static class ChatEndpoints
 {
-    // Lưu trữ file Excel tạm thời trong bộ nhớ (Cache)
-    private static readonly ConcurrentDictionary<string, byte[]> _fileCache = new();
-
     private static readonly JsonSerializerOptions _serializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web)
     {
         Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
     };
 
-    public static async Task<IResult> HandleChatAsync(HttpContext context, RagOrchestrator orchestrator, ExcelReportService excelService, CancellationToken ct)
+    public static async Task<IResult> HandleChatAsync(HttpContext context, RagOrchestrator orchestrator, ExcelReportService excelService, IMemoryCache cache, CancellationToken ct)
     {
         string message = string.Empty;
         string? collectionName = null;
@@ -74,10 +72,10 @@ public static class ChatEndpoints
                     await SendEventAsync(new { type = "step", step });
                 }, ct);
 
-                // Lưu file vào cache memory để cho phép download
+                // Lưu file vào cache memory để cho phép download (tự động xóa sau 30 phút)
                 var fileId = Guid.NewGuid().ToString() + ".xlsx";
                 var excelBytes = Convert.FromBase64String(result.ExcelBase64);
-                _fileCache[fileId] = excelBytes;
+                cache.Set(fileId, excelBytes, TimeSpan.FromMinutes(30));
                 var downloadUrl = $"/api/download/{fileId}";
 
                 // Gửi kết quả cuối cùng kèm link tải Excel
@@ -124,9 +122,9 @@ public static class ChatEndpoints
         return Results.Empty;
     }
 
-    public static IResult HandleDownloadAsync(string id)
+    public static IResult HandleDownloadAsync(string id, IMemoryCache cache)
     {
-        if (_fileCache.TryGetValue(id, out var bytes))
+        if (cache.TryGetValue<byte[]>(id, out var bytes) && bytes != null)
         {
             return Results.File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", id);
         }
