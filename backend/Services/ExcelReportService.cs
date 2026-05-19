@@ -391,7 +391,12 @@ public class ExcelReportService
                 }
 
                  // Căn lề phải và format dấu phẩy cho các cột số cho chuyên nghiệp
-                if (cell.Value is double || cell.Value is float || cell.Value is decimal || cell.Value is long || cell.Value is int)
+                if (cell.Value is double || cell.Value is float || cell.Value is decimal)
+                {
+                    cell.Style.Numberformat.Format = "#,##0.00";
+                    cell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Right;
+                }
+                else if (cell.Value is long || cell.Value is int)
                 {
                     cell.Style.Numberformat.Format = "#,##0";
                     cell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Right;

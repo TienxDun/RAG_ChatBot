@@ -70,6 +70,7 @@ public sealed class RagOrchestrator
         bool isAmbiguous = false;
         string clarificationMessage = string.Empty;
         var suggestedQuestions = new List<string>();
+        string planningReason = string.Empty;
 
         if (enableFastPath && IsSimpleQuery(userQuery))
         {
@@ -87,16 +88,14 @@ public sealed class RagOrchestrator
 
                 NHIỆM VỤ CỦA BẠN:
                 1. Kiểm tra xem câu hỏi có liên quan đến dữ liệu trong các bảng trên hay không. Nếu không liên quan đến database, hãy đặt `isOutOfScope: true`.
-                2. Nếu câu hỏi liên quan đến database, hãy phân tích xem câu hỏi có bị mơ hồ, thiếu thông tin gom nhóm (GROUP BY) hoặc thống kê cụ thể hay không:
-                   - Một câu hỏi bị MƠ HỒ khi yêu cầu thống kê cực trị (top, cao nhất, thấp nhất, nhiều nhất) hoặc tổng hợp chung chung nhưng không chỉ rõ đối tượng phân tích cụ thể (ví dụ: 'top lỗi', 'sản lượng cao nhất').
-                   - **NGOẠI LỆ CHO BÁO CÁO EXCEL:** {(isExcelTemplate ? "Đây là yêu cầu xuất báo cáo Excel (chứa phần 'YÊU CẦU ĐẶC BIỆT CHO BÁO CÁO EXCEL'). Bạn TUYỆT ĐỐI KHÔNG ĐƯỢC đặt `isAmbiguous: true` dù câu hỏi có phạm vi rộng hay thiếu thông tin chi tiết (như Chuyền, Mã hàng, Ngày tháng). Hãy đặt `isAmbiguous: false` và lập kế hoạch sinh câu truy vấn SQL để lấy toàn bộ dữ liệu cần thiết điền vào các cột Excel." : "")}
-                   - **BẮT BUỘC ĐỐI CHIẾU SCHEMA THỰC TẾ:** Nếu phát hiện mơ hồ, hãy đặt `isAmbiguous: true`. Bạn BẮT BUỘC phải đọc kỹ danh sách bảng và cột thực tế trong CẤU TRÚC DATABASE được cung cấp bên trên để:
-                     a. Xác định xem những bảng nào có liên quan đến câu hỏi (ví dụ: bảng QTY_MAHANG_NGAYKIEM chứa thông tin lỗi sản phẩm, bảng ERP_LENHSX chứa thông tin lệnh sản xuất).
-                     b. Lựa chọn các cột thực tế thích hợp làm đối tượng gom nhóm từ các bảng đó (ví dụ: cột StyleID - Mã hàng, cột LineX - Chuyền sản xuất trong bảng QTY_MAHANG_NGAYKIEM).
-                     c. Soạn thảo `clarificationMessage` bằng tiếng Việt giải thích rõ ràng bạn tìm thấy bảng nào và đề xuất người dùng làm rõ xem muốn thống kê theo cột cụ thể nào của bảng đó.
-                     d. Tạo ra 3 gợi ý trong mảng `suggestions` sử dụng chính xác các câu hỏi chuẩn hóa chứa tên bảng và tên cột thực tế.
+                2. Nếu câu hỏi liên quan đến database, hãy phân tích xem câu hỏi có bị mơ hồ, thiếu thông tin gom nhóm (GROUP BY) hoặc thống kê cụ thể hay không (ví dụ: 'top lỗi', 'sản lượng cao nhất'):
+                   - Bạn TUYỆT ĐỐI KHÔNG ĐƯỢC đặt `isAmbiguous: true` và không được yêu cầu người dùng làm rõ.
+                   - Hãy tự động đưa ra quyết định hoặc giả định hợp lý nhất dựa trên cấu trúc CSDL thực tế được cung cấp bên trên (ví dụ: tự động chọn cột phân tích thích hợp như StyleID hoặc LineX từ các bảng liên quan làm đối tượng gom nhóm GROUP BY).
+                   - Đặt `isAmbiguous: false` và `clarificationMessage: ""` (để trống).
+                   - Lập kế hoạch sinh câu truy vấn SQL để thực thi theo giả định mặc định đó ngay lập tức.
+                   - Giải trình rõ lý do tự động quyết định và giả định bạn đã chọn trong trường ""reason"".
                    - **TUYỆT ĐỐI CẤM:** Không được sử dụng hoặc tự bịa ra bất kỳ tên bảng hay tên cột nào không xuất hiện trong cấu trúc database được cung cấp phía trên.
-                3. Nếu câu hỏi HỢP LỆ và RÕ RÀNG, hãy đặt `isOutOfScope: false`, `isAmbiguous: false` và chia nhỏ câu hỏi thành các bước truy vấn SQL logic.
+                3. Nếu câu hỏi hợp lệ, hãy đặt `isOutOfScope: false`, `isAmbiguous: false` và chia nhỏ câu hỏi thành các bước truy vấn SQL logic.
                    - Với câu hỏi đơn giản hoặc câu hỏi SO SÁNH/THỐNG KÊ (nhiều ngày, nhiều mã hàng): ƯU TIÊN thực hiện trong 1 bước duy nhất bằng cách sử dụng các toán tử IN, BETWEEN hoặc GROUP BY. 
                    Nếu một bước đã lấy đủ dữ liệu cho các đối tượng cần so sánh, TUYỆT ĐỐI KHÔNG tạo thêm bước truy vấn để tính toán lại.
                    - Với câu hỏi phức tạp (cần lấy kết quả bước này làm tham số cho bước sau - ví dụ tìm ID rồi mới lấy chi tiết): Chia tối đa 5 bước.
@@ -106,19 +105,24 @@ public sealed class RagOrchestrator
                 {{
                     ""isOutOfScope"": false,
                     ""isAmbiguous"": false,
-                    ""clarificationMessage"": ""Thông điệp yêu cầu làm rõ động sử dụng tên bảng/cột thực tế (để trống nếu câu hỏi rõ ràng)"",
+                    ""clarificationMessage"": """",
                     ""suggestions"": [""Câu hỏi gợi ý chuẩn hóa 1"", ""Câu hỏi gợi ý chuẩn hóa 2"", ""Câu hỏi gợi ý chuẩn hóa 3""],
-                    ""reason"": ""Lý do tại sao câu hỏi này nằm trong/ngoài phạm vi hoặc mơ hồ"",
+                    ""reason"": ""Giải thích lý do lập kế hoạch hoặc giả định/quyết định ngầm định được chọn khi gặp câu mơ hồ"",
                     ""steps"": [""Mô tả bước 1"", ""Mô tả bước 2""]
                 }}";
 
             var planResponse = await _aiClient.GenerateContentAsync(planningPrompt, ct);
             var planJson = planResponse.Replace("```json", "").Replace("```", "").Trim();
-
+            
             try {
                 var planObj = JsonSerializer.Deserialize<JsonElement>(planJson);
                 isOutOfScope = planObj.GetProperty("isOutOfScope").GetBoolean();
                 
+                if (planObj.TryGetProperty("reason", out var reasonProp))
+                {
+                    planningReason = reasonProp.GetString() ?? string.Empty;
+                }
+
                 if (planObj.TryGetProperty("isAmbiguous", out var ambProp))
                 {
                     isAmbiguous = ambProp.GetBoolean();
@@ -284,6 +288,7 @@ public sealed class RagOrchestrator
             Thời gian hệ thống: {currentTimeStr}
             Câu hỏi: ""{userQuery}""
             Trạng thái ngoài phạm vi: {(isOutOfScope ? "CÓ" : "KHÔNG")}
+            Giả định/Lý do lập kế hoạch ban đầu: ""{planningReason}""
             
             DỮ LIỆU ĐÃ TRUY VẤN ĐƯỢC:
             {workingContext}
@@ -293,9 +298,16 @@ public sealed class RagOrchestrator
             2. Nếu KHÔNG CÓ DỮ LIỆU nào được tìm thấy và không bị OutOfScope: Báo rằng không tìm thấy thông tin phù hợp trong hệ thống cho yêu cầu này.
             3. Nếu CÓ DỮ LIỆU: Trình bày câu trả lời chuyên nghiệp bằng Markdown.
                - Sử dụng ### 💠 Tổng quan: Câu trả lời ngắn gọn, trực diện, nêu rõ ngày tháng.
+                 Đặc biệt: Nếu câu hỏi ban đầu mơ hồ/thiếu thông tin gom nhóm hoặc thống kê cụ thể, hãy dựa vào phần 'Giả định/Lý do lập kế hoạch ban đầu' để thuyết minh/giải thích rõ ràng cho người dùng biết hệ thống đã tự động quyết định chọn chiều phân tích, bộ lọc hoặc gom nhóm nào để truy xuất dữ liệu.
                - Sử dụng ### 📋 Chi tiết: Dùng bảng Markdown (tiếng Việt) nếu có danh sách.
                - Định dạng số: Phân cách hàng nghìn (ví dụ 1.234.567).
                - Đưa ra 3 câu hỏi gợi ý liên quan.
+
+            QUY TẮC QUAN TRỌNG VỀ DỮ LIỆU EXCEL:
+            - Nếu dữ liệu đã truy vấn được là một danh sách dài/bảng dữ liệu gốc từ database (ví dụ: danh sách lệnh sản xuất, danh sách lỗi, chi tiết kiểm QC...):
+              * BẮT BUỘC để `excelData` là mảng rỗng `[]`. Tuyệt đối không tự điền vài dòng mẫu vào đây.
+              * Cung cấp `columnMapping` để dịch toàn bộ các cột từ tiếng Anh sang tiếng Việt thân thiện (ví dụ: {{""MaLenh"": ""Mã Lệnh"", ""TenLenh"": ""Tên Lệnh""}}). Hệ thống sẽ tự động dùng mapping này để xuất toàn bộ danh sách gốc ra Excel.
+            - Chỉ điền dữ liệu vào `excelData` khi bạn tự tính toán/tổng hợp ra một bảng số liệu tóm tắt mới (ví dụ: bảng so sánh, bảng tổng số lượng theo chuyền tự tính, bảng KPI...) mà không thể xuất trực tiếp từ database gốc được. Khi đó, `columnMapping` để trống `{{}}`.
 
             YÊU CẦU JSON TRẢ VỀ:
             {{
