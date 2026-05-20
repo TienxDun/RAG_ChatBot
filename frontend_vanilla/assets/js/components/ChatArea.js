@@ -22,6 +22,7 @@ export class ChatAreaComponent {
             messagesList: document.getElementById('messages-list'),
             landingView: document.getElementById('landing-view'),
             scrollTopBtn: document.querySelector(SELECTORS.SCROLL_TOP),
+            scrollBottomBtn: document.querySelector(SELECTORS.SCROLL_BOTTOM),
             sendBtn: document.querySelector(SELECTORS.SEND_BTN),
             newChatBtn: document.querySelector(SELECTORS.NEW_CHAT),
             headerNewChatBtn: document.querySelector(SELECTORS.HEADER_NEW_CHAT),
@@ -57,7 +58,7 @@ export class ChatAreaComponent {
     }
 
     _init() {
-        const { chatInput, sendBtn, newChatBtn, headerNewChatBtn, exportBtn, micBtn, attachBtn, chatFile, chatArea, scrollTopBtn, messagesList, inputContainer } = this.elements;
+        const { chatInput, sendBtn, newChatBtn, headerNewChatBtn, exportBtn, micBtn, attachBtn, chatFile, chatArea, scrollTopBtn, scrollBottomBtn, messagesList, inputContainer } = this.elements;
 
         if (chatInput) {
             chatInput.addEventListener('input', () => this._handleInputAutoResize());
@@ -86,6 +87,12 @@ export class ChatAreaComponent {
         if (scrollTopBtn) {
             scrollTopBtn.addEventListener('click', () => {
                 chatArea.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        }
+
+        if (scrollBottomBtn) {
+            scrollBottomBtn.addEventListener('click', () => {
+                this.scrollToBottom();
             });
         }
 
@@ -757,6 +764,7 @@ export class ChatAreaComponent {
         // Cập nhật và ẩn Minimap (trở về Landing)
         this.minimap.update();
         this.minimap.toggleVisibility(true);
+        this._handleScroll();
     }
 
     _setLoading(val) {
@@ -765,8 +773,20 @@ export class ChatAreaComponent {
     }
 
     _handleScroll() {
-        const { scrollTopBtn, chatArea } = this.elements;
-        scrollTopBtn?.classList.toggle('hidden', chatArea.scrollTop <= 400);
+        const { scrollTopBtn, scrollBottomBtn, chatArea, messagesList } = this.elements;
+        if (!messagesList || messagesList.classList.contains('hidden')) {
+            scrollTopBtn?.classList.add('hidden');
+            scrollBottomBtn?.classList.add('hidden');
+            return;
+        }
+
+        // Hiện scroll-top khi scroll cách đỉnh > 400
+        const isNearTop = chatArea.scrollTop <= 400;
+        scrollTopBtn?.classList.toggle('hidden', isNearTop);
+
+        // Hiện scroll-bottom khi scroll cách đáy > 100
+        const isNearBottom = chatArea.scrollHeight - chatArea.scrollTop - chatArea.clientHeight <= 100;
+        scrollBottomBtn?.classList.toggle('hidden', isNearBottom);
     }
 
     scrollToBottom() {

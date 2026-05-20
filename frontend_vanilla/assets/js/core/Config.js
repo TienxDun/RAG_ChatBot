@@ -27,6 +27,7 @@ export const SELECTORS = {
     CHAT_INPUT: '#chat-input',
     CHAT_AREA: '#chat-area',
     SCROLL_TOP: '#scroll-top',
+    SCROLL_BOTTOM: '#scroll-bottom',
     CHAT_HISTORY: '#chat-history',
     APP_CONTAINER: '.app-container',
     
