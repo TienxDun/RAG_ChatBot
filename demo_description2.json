@@ -111,7 +111,7 @@
       {
         "name": "SeaSon",
         "data_type": "nvarchar",
-        "description": "Mùa vụ hoặc năm tài chính của lệnh sản xuất (ví dụ: 2025)."
+        "description": "Mùa vụ, năm tài chính hoặc mã số hợp đồng của lệnh sản xuất. Dữ liệu mẫu chứa nhiều định dạng khác nhau: năm thuần túy (ví dụ: '2025'), mã mùa (ví dụ: 'FW2025', 'SS25'), mã hợp đồng (ví dụ: 'CN106779'), hoặc định dạng ngày (ví dụ: '143/08/2025'). Nên sử dụng toán tử LIKE khi tìm kiếm trên cột này."
       },
       {
         "name": "IsMaChiTiet",
@@ -183,7 +183,7 @@
   },
   {
     "table": "SEW_CoefficientStyle",
-    "description": "Nguồn dữ liệu tính Năng suất (Sản lượng làm ra). LƯU Ý VỀ MÃ HÀNG: Các chuỗi số thuần túy (ví dụ: 110055) thường là Mã kiểu dáng (StypeId), không phải Mã lệnh (PoId). Chỉ dùng PoId khi có yêu cầu đích danh về 'Mã lệnh' hoặc 'Số PO'. MẪU CHUẨN: SELECT SUM(Quantity) AS TongSanLuong, SUM(DefectNo) AS TongLoi, CAST(DateCreate AS DATE) AS Ngay FROM SEW_CoefficientStyle JOIN tbl_Steps ON StepId = Id_cd WHERE ... GROUP BY CAST(DateCreate AS DATE).",
+    "description": "Nguồn dữ liệu tính Năng suất (Sản lượng làm ra) của mã hàng theo công đoạn. Bảng này không chứa thông tin kích thước (size). Hãy luôn ưu tiên sử dụng bảng này cho các câu hỏi về năng suất, sản lượng hoặc số lượng của công đoạn nói chung (khi câu hỏi không nhắc tới kích thước/size cụ thể). !!! CẢNH BÁO TỐI QUAN TRỌNG !!!: Bảng này chứa sản lượng của tất cả các công đoạn/bước sản xuất. Khi người dùng hỏi về năng suất hoặc sản lượng của một công đoạn cụ thể (Ví dụ: 'KCS', 'RA CHUYỀN'), BẮT BUỘC phải JOIN với bảng tbl_Steps (qua StepId = Id_cd) và lọc theo tên công đoạn ở cột cd_name (Ví dụ: s.cd_name = N'KCS' hoặc s.cd_name = N'RA CHUYỀN (Output)'). Nếu không lọc theo khâu, dữ liệu sẽ bị cộng dồn trùng lặp của toàn bộ các khâu làm số liệu tăng vọt không chính xác. LƯU Ý VỀ MÃ HÀNG: Các chuỗi số thuần túy (ví dụ: 110055) thường là Mã kiểu dáng (StypeId), không phải Mã lệnh (PoId). Chỉ dùng PoId khi có yêu cầu đích danh về 'Mã lệnh' hoặc 'Số PO'. MẪU CHUẨN: SELECT SUM(Quantity) AS TongSanLuong, SUM(DefectNo) AS TongLoi, CAST(DateCreate AS DATE) AS Ngay FROM SEW_CoefficientStyle JOIN tbl_Steps ON StepId = Id_cd WHERE s.cd_name = N'KCS' GROUP BY CAST(DateCreate AS DATE).",
     "columns": [
       {
         "name": "PID",
@@ -254,7 +254,7 @@
   },
   {
     "table": "SEW_CoefficientSize",
-    "description": "Bảng cung cấp sản lượng đạt (mẫu số). Tổng đạt = SUM(ISNULL(Quantity,0) + ISNULL(SuaDat,0)). CÔNG THỨC tỉ lệ lỗi: % = TongLoi / NULLIF(TongLoi + TongDat, 0) * 100. !!! TRÁNH NHÂN ĐÔI (DOUBLE COUNT): TUYỆT ĐỐI KHÔNG FROM QTY_MAHANG_NGAYKIEM JOIN SEW_CoefficientSize rồi SUM(SpLoi) hoặc SUM(Quantity) — mỗi dòng QTY có thể khớp nhiều dòng SEW (hoặc ngược lại) nên SUM bị phình gấp nhiều lần. Cách đúng: (1) Subquery chỉ QTY: GROUP BY LineX (và StyleID/MaHang/Ngay nếu có) → TongLoi. (2) Subquery chỉ SEW: GROUP BY LineX (và StyleId/cùng khoảng ngày DateCreate nếu QTY lọc theo ngày) → TongDat. (3) JOIN hai subquery đã gộp trên LineX. So sánh nhiều chuyền (101 vs 102): lặp cùng pattern, mỗi chuyền một hàng trong subquery, không join hai bảng gốc trước khi aggregate.",
+    "description": "Bảng cung cấp sản lượng đạt chi tiết đến từng kích thước (size) của mã hàng theo công đoạn. Chỉ sử dụng bảng này khi câu hỏi yêu cầu phân tích/lọc chi tiết theo kích thước (size) cụ thể, hoặc khi tính toán tỷ lệ lỗi (làm mẫu số cho bảng QTY). TUYỆT ĐỐI KHÔNG sử dụng cho các câu hỏi về sản lượng, năng suất hoặc số lượng công đoạn chung mà không đề cập đến kích thước (khi đó phải dùng SEW_CoefficientStyle). !!! CẢNH BÁO TỐI QUAN TRỌNG !!!: Bảng này chứa sản lượng đạt của tất cả các công đoạn/bước sản xuất. Nếu người dùng hỏi về sản lượng đạt của một khâu cụ thể (Ví dụ: 'KCS', 'RA CHUYỀN'), BẮT BUỘC phải JOIN với bảng tbl_Steps (qua StepId = Id_cd) và lọc theo tên công đoạn ở cột cd_name (Ví dụ: s.cd_name LIKE N'KCS%'). CÔNG THỨC tỉ lệ lỗi: % = TongLoi / NULLIF(TongLoi + TongDat, 0) * 100. !!! TRÁNH NHÂN ĐÔI (DOUBLE COUNT): TUYỆT ĐỐI KHÔNG FROM QTY_MAHANG_NGAYKIEM JOIN SEW_CoefficientSize rồi SUM(SpLoi) hoặc SUM(Quantity) — mỗi dòng QTY có thể khớp nhiều dòng SEW (hoặc ngược lại) nên SUM bị phình gấp nhiều lần. Cách đúng: (1) Subquery chỉ QTY: GROUP BY LineX (và StyleID/MaHang/Ngay nếu có) → TongLoi. (2) Subquery chỉ SEW: GROUP BY LineX (và StyleId/cùng khoảng ngày DateCreate nếu QTY lọc theo ngày) → TongDat. (3) JOIN hai subquery đã gộp trên LineX. So sánh nhiều chuyền (101 vs 102): lặp cùng pattern, mỗi chuyền một hàng trong subquery, không join hai bảng gốc trước khi aggregate.",
     "columns": [
       {
         "name": "Pid",
@@ -350,7 +350,7 @@
       {
         "name": "cd_name",
         "data_type": "nvarchar",
-        "description": "Tên đầy đủ của công đoạn kỹ thuật (ví dụ: VIEN DKTT - Front zipper facing, RA CHUYỀN). QUY TẮC LỌC DỮ LIỆU: Khi người dùng nhắc đến một công đoạn bất kỳ (ví dụ: may, viền, cắt, ra chuyền...), BẮT BUỘC trích xuất từ khóa đó và sử dụng toán tử LIKE với tiền tố N: cd_name LIKE N'<Từ_khóa>%'. TUYỆT ĐỐI KHÔNG dùng toán tử '=' so sánh tuyệt đối để tránh việc truy vấn trả về rỗng do sai khác chuỗi phụ và không được thay đổi công thức tôi đã đặt ra bằng cách thêm % ở phía trước."
+        "description": "Tên đầy đủ của công đoạn kỹ thuật (ví dụ: VIEN DKTT - Front zipper facing, RA CHUYỀN). QUY TẮC LỌC DỮ LIỆU: Khi người dùng nhắc đến một công đoạn bất kỳ (ví dụ: may, viền, cắt, ra chuyền...), BẮT BUỘC trích xuất từ khóa đó và sử dụng toán tử LIKE với tiền tố N: cd_name LIKE N'<Từ_khóa>%'. LƯU Ý QUAN TRỌNG VỀ DẤU TIẾNG VIỆT: Hãy giữ nguyên trạng thái có dấu hoặc không dấu của từ khóa do người dùng cung cấp (ví dụ: người dùng nhập 'tui xeo' thì dùng N'tui xeo%' hoặc N'TUI XEO%', TUYỆT ĐỐI KHÔNG tự ý suy diễn thêm dấu tiếng Việt thành N'túi xèo%' vì cơ sở dữ liệu thực tế có thể lưu không dấu viết hoa). TUYỆT ĐỐI KHÔNG dùng toán tử '=' so sánh tuyệt đối và không được thêm % ở phía trước."
       },
       {
         "name": "Id_board",
@@ -411,7 +411,7 @@
       {
         "name": "POID",
         "data_type": "nvarchar",
-        "description": "Mã đơn hàng kết hợp."
+        "description": "Mã đơn hàng kết hợp. Được tạo bằng cách ghép [MaDH] và [PO] thông qua ký tự gạch đứng '|' (Ví dụ: 'DH_6|5010420')."
       },
       {
         "name": "PO",
@@ -439,9 +439,9 @@
         "description": "Tên màu sắc (ví dụ: black, DARK ANTHRACITE). QUY TẮC: Luôn sử dụng toán tử LIKE với tiền tố N: MaMau LIKE N'%<từ_khóa_màu>%' để tìm kiếm linh hoạt."
       },
       {
-        "name": "SizeId",
+        "name": "SizeID",
         "data_type": "nvarchar",
-        "description": "Mã kích thước định danh (ID). !!! CẢNH BÁO TỐI QUAN TRỌNG !!!: Cột này LUÔN LUÔN chứa tiền tố 'SIZE_' (Ví dụ: 'SIZE_L', 'SIZE_85', 'SIZE_XL'). Khi sử dụng cột này để lọc, BẮT BUỘC phải thêm tiền tố 'SIZE_' vào trước giá trị người dùng cung cấp."
+        "description": "Mã kích thước định danh (ID). !!! CẢNH BÁO TỐI QUAN TRỌNG !!!: Cột này LUÔN LUÔN chứa tiền tố 'SIZE_' (Ví dụ: 'SIZE_L', 'SIZE_85', 'SIZE_XL'). Tên cột trong Database thực tế là SizeID (ID viết hoa). Khi sử dụng cột này để lọc, BẮT BUỘC phải thêm tiền tố 'SIZE_' vào trước giá trị người dùng cung cấp."
       },
       {
         "name": "Size",
@@ -572,17 +572,17 @@
       {
         "name": "StyleID",
         "data_type": "varchar",
-        "description": "Mã kiểu dáng hệ thống. Tên cột viết HOA chữ 'ID'. Dùng để tìm mã có dấu gạch dưới '_' (Ví dụ: 0088_342_29_V0_2). Khớp với cột ERP_LENHSX.TenLenh."
+        "description": "Mã kiểu dáng hệ thống. Tên cột viết HOA chữ 'ID'. Dùng để tìm mã có dấu gạch dưới '_' (Ví dụ: 0088_342_29_V0_2). !!! CẢNH BÁO TỐI QUAN TRỌNG !!!: Nếu mã hàng/mã sản phẩm trong câu hỏi chứa dấu gạch dưới '_', BẮT BUỘC phải dùng cột StyleID này thay vì dùng cột MaHang. Khớp với cột ERP_LENHSX.TenLenh."
       },
       {
         "name": "MaHang",
         "data_type": "nvarchar",
-        "description": "Tên/mã hàng hiển thị thực tế (thường chứa khoảng trắng hoặc dấu gạch ngang '-', ví dụ: '0088 342 29 V0.2', 'SA-893-208-133'). Khớp với cột ERP_LENHSX.MaHang."
+        "description": "Tên/mã hàng hiển thị thực tế (thường chứa khoảng trắng hoặc dấu gạch ngang '-', ví dụ: '0088 342 29 V0.2', 'SA-893-208-133'). !!! CẢNH BÁO TỐI QUAN TRỌNG !!!: CHỈ DÙNG cột này khi người dùng nhập mã có định dạng gạch ngang hoặc khoảng trắng. Nếu mã chứa dấu gạch dưới '_', TUYỆT ĐỐI KHÔNG dùng cột này, bắt buộc phải dùng StyleID. Khớp với cột ERP_LENHSX.MaHang."
       },
       {
         "name": "POID",
         "data_type": "nvarchar",
-        "description": "Mã đơn hàng kết hợp."
+        "description": "Mã đơn hàng kết hợp. Được tạo bằng cách ghép [MaDH] và [PO] thông qua ký tự gạch đứng '|' (Ví dụ: 'DH_6|5010420')."
       },
       {
         "name": "PO",
@@ -632,12 +632,12 @@
       {
         "name": "PageX",
         "data_type": "float",
-        "description": "Tọa độ X của vị trí đánh dấu lỗi trên màn hình/hình ảnh kiểm tra."
+        "description": "Tọa độ X của vị trí đánh dấu lỗi trên màn hình/hình ảnh kiểm tra. !!! CẢNH BÁO TỐI QUAN TRỌNG !!!: Khi người dùng hỏi về tọa độ tập trung, hồ sơ lỗi hoặc phân bố vị trí lỗi trên áo, TUYỆT ĐỐI KHÔNG dùng hàm AVG() hoặc GROUP BY để gom nhóm tính trung bình cộng tọa độ (vì trung bình cộng tọa độ của các lỗi ở các vị trí khác nhau là vô nghĩa và sai lệch thực tế). Bắt buộc phải SELECT ra danh sách tọa độ thô (raw data) của từng lỗi để phân tích."
       },
       {
         "name": "PageY",
         "data_type": "float",
-        "description": "Tọa độ Y của vị trí đánh dấu lỗi trên màn hình/hình ảnh kiểm tra."
+        "description": "Tọa độ Y của vị trí đánh dấu lỗi trên màn hình/hình ảnh kiểm tra. !!! CẢNH BÁO TỐI QUAN TRỌNG !!!: Khi người dùng hỏi về tọa độ tập trung, hồ sơ lỗi hoặc phân bố vị trí lỗi trên áo, TUYỆT ĐỐI KHÔNG dùng hàm AVG() hoặc GROUP BY để gom nhóm tính trung bình cộng tọa độ (vì trung bình cộng tọa độ của các lỗi ở các vị trí khác nhau là vô nghĩa và sai lệch thực tế). Bắt buộc phải SELECT ra danh sách tọa độ thô (raw data) của từng lỗi để phân tích."
       },
       {
         "name": "TramKiem",
@@ -703,17 +703,17 @@
       {
         "name": "NhomLoi",
         "data_type": "int",
-        "description": "Mã nhóm lỗi kỹ thuật (1: Lỗi may/A, 2: Lỗi tape/B, 3: Lỗi phụ liệu/C, 4: Lỗi vệ sinh/D, 5: Khóa cài/E, 6: Mắt cáo/F, 7: Dây kéo/G, 8: Nhung gai/H, v.v.). Đây là nhóm phân loại kỹ thuật dựa trên ký tự đầu của mã lỗi (A->1, B->2, C->3...). Cảnh báo: TUYỆT ĐỐI không nhầm cột này với cột LoaiLoi. Các lỗi có NhomLoi = 1 vẫn có thể thuộc LoaiLoi = 3."
+        "description": "Mã nhóm lỗi kỹ thuật (1: Lỗi may/A, 2: Lỗi tape/B, 3: Lỗi phụ liệu/C, 4: Lỗi vệ sinh/D, 5: Khóa cài/E, 6: Mắt cáo/F, 7: Dây kéo/G, 8: Nhung gai/H, v.v.). Đây là nhóm phân loại kỹ thuật dựa trên ký tự đầu của mã lỗi (A->1, B->2, C->3...). Lưu ý đặc biệt: Nhóm lỗi dạng chữ 'I' (ví dụ: I1 - SAI KÍCH CỠ, I2 - TƯA DÂY) có giá trị NhomLoi lưu trong database là số âm đặc biệt '-2147483648'. Cảnh báo: TUYỆT ĐỐI không nhầm cột này với cột LoaiLoi. Các lỗi có NhomLoi = 1 vẫn có thể thuộc LoaiLoi = 3."
       },
       {
         "name": "TenLoi",
         "data_type": "nvarchar",
-        "description": "Tên hiển thị thực tế của lỗi (Ví dụ: 'Đứt chỉ', 'Lỗi vải'). ĐÂY CHÍNH LÀ CỘT DÙNG ĐỂ GOM NHÓM (GROUP BY TenLoi) khi người dùng hỏi 'Top 5 lỗi'. QUY TẮC LỌC: Khi tìm kiếm một lỗi cụ thể, BẮT BUỘC chỉ đặt dấu % ở SAU từ khóa (Ví dụ: LIKE N'không đối xứng%'), TUYỆT ĐỐI KHÔNG đặt % ở đầu."
+        "description": "Tên hiển thị thực tế của lỗi (Ví dụ: 'Đứt chỉ', 'Lỗi vải'). ĐÂY CHÍNH LÀ CỘT DÙNG ĐỂ GOM NHÓM (GROUP BY TenLoi) khi người dùng hỏi 'Top 5 lỗi'. QUY TẮC LỌC: Khi tìm kiếm một lỗi cụ thể, BẮT BUỘC chỉ đặt dấu % ở SAU từ khóa (Ví dụ: LIKE N'không đối xứng%'), TUYỆT ĐỐI KHÔNG đặt % ở đầu. LƯU Ý DẤU TIẾNG VIỆT: Giữ nguyên trạng thái có dấu hoặc không dấu của người dùng (Ví dụ: người dùng gõ 'loi vai' thì dùng N'loi vai%', không tự ý thêm dấu thành N'lỗi vải%')."
       },
       {
         "name": "GhiChu",
         "data_type": "nvarchar",
-        "description": "Mô tả chi tiết hoặc giải thích thêm về lỗi (Ví dụ: 'Sai Nhãn', 'Thiếu, Lệch'). QUY TẮC LỌC: Tương tự TenLoi, khi tìm kiếm BẮT BUỘC chỉ đặt dấu % ở SAU từ khóa (Ví dụ: LIKE N'không đối xứng%')."
+        "description": "Mô tả chi tiết hoặc giải thích thêm về lỗi (Ví dụ: 'Sai Nhãn', 'Thiếu, Lệch'). QUY TẮC LỌC: Tương tự TenLoi, khi tìm kiếm BẮT BUỘC chỉ đặt dấu % ở SAU từ khóa (Ví dụ: LIKE N'không đối xứng%'). LƯU Ý DẤU TIẾNG VIỆT: Giữ nguyên trạng thái có dấu/không dấu từ gốc của người dùng."
       },
       {
         "name": "Sort",
