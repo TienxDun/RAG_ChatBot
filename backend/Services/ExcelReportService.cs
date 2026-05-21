@@ -118,9 +118,32 @@ public class ExcelReportService
                     hasVerticalPhysicalTraits = true;
                 }
             }
+
+            // Kiểm tra thông minh: Nếu cột 1 chủ yếu chứa dữ liệu số (như STT 1, 2, 3...) thì chắc chắn không phải là template dọc
+            int numericCount = 0;
+            for (int r = scanStartRow; r <= scanEndRow; r++)
+            {
+                var cellText = worksheet.Cells[r, labelCol].Text?.Trim();
+                if (!string.IsNullOrEmpty(cellText) && double.TryParse(cellText, out _))
+                {
+                    numericCount++;
+                }
+            }
+            if (scannedRows > 0 && (double)numericCount / scannedRows > 0.5)
+            {
+                hasVerticalPhysicalTraits = false;
+            }
         }
 
-        bool isVerticalTemplate = columns.Count == 2 && (hasVerticalKeywords || hasVerticalPhysicalTraits);
+        // Loại trừ các trường hợp tiêu đề cột 1 là STT, No, Index, ID,... (đặc trưng của bảng ngang 2 cột)
+        bool isHorizontalCol1Header = false;
+        if (columns.Count == 2)
+        {
+            var horizontalKeywordsColumn1 = new[] { "stt", "số tt", "số tt", "no", "no.", "index", "id", "seq" };
+            isHorizontalCol1Header = horizontalKeywordsColumn1.Any(kw => columns[0].Equals(kw, StringComparison.OrdinalIgnoreCase) || columns[0].StartsWith(kw + " ", StringComparison.OrdinalIgnoreCase));
+        }
+
+        bool isVerticalTemplate = columns.Count == 2 && !isHorizontalCol1Header && (hasVerticalKeywords || hasVerticalPhysicalTraits);
 
         int labelColumnIndex = isVerticalTemplate && headerColumnIndices.Count > 0 ? headerColumnIndices[0] : 1;
         int valueColumnIndex = isVerticalTemplate && headerColumnIndices.Count > 1 ? headerColumnIndices[1] : 2;
@@ -292,6 +315,11 @@ public class ExcelReportService
         if (isVerticalTemplate)
         {
             ExcelStylingHelper.ApplyVerticalLabelStyle(worksheet, headerRowIndex, endRowOfData, labelColumnIndex);
+        }
+        else
+        {
+            // Áp dụng bộ lọc AutoFilter cho bảng báo cáo dạng ngang truyền thống
+            ExcelStylingHelper.ApplyAutoFilter(worksheet, headerRowIndex, endRowOfData, startColumnIndex, columns.Count);
         }
 
         // Dọn dẹp border thừa và thiết lập border xám nhạt tinh tế cho vùng bảng dữ liệu thực tế

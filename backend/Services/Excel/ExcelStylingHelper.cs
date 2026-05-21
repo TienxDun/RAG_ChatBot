@@ -71,4 +71,14 @@ public static class ExcelStylingHelper
             }
         }
     }
+
+    // Áp dụng bộ lọc (AutoFilter) cho vùng bảng dữ liệu dạng ngang
+    public static void ApplyAutoFilter(ExcelWorksheet worksheet, int headerRowIndex, int endRowOfData, int startColumnIndex, int columnCount)
+    {
+        if (endRowOfData >= headerRowIndex && columnCount > 0)
+        {
+            // Thiết lập AutoFilter cho vùng từ Header đến dòng cuối cùng của bảng dữ liệu
+            worksheet.Cells[headerRowIndex, startColumnIndex, endRowOfData, startColumnIndex + columnCount - 1].AutoFilter = true;
+        }
+    }
 }

@@ -122,6 +122,7 @@ public static class ExcelExportHelper
 
         if (headers.Count > 0)
         {
+            worksheet.Cells[1, 1, data.Count + 1, headers.Count].AutoFilter = true;
             worksheet.Cells[1, 1, data.Count + 1, headers.Count].AutoFitColumns(12);
         }
 
@@ -200,6 +201,10 @@ public static class ExcelExportHelper
             currentRow++;
         }
 
+        if (tableRows[0].Count > 0 && !isVerticalTable)
+        {
+            worksheet.Cells[1, 1, currentRow - 1, tableRows[0].Count].AutoFilter = true;
+        }
         worksheet.Cells[1, 1, currentRow - 1, tableRows[0].Count].AutoFitColumns(12);
         return package.GetAsByteArray();
     }
