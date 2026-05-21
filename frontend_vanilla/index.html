@@ -55,51 +55,58 @@
         </div>
         
         <div class="sidebar__footer">
+            <button id="sidebar-settings-toggle" class="sidebar-settings-btn" title="Cấu hình và lưu trữ">
+                <i class="ph-bold ph-gear-six"></i>
+                <span>Cấu hình hệ thống</span>
+            </button>
 
-            <!-- Settings Panel -->
-            <div class="sidebar__settings-panel">
-                <div class="settings-panel__row">
-                    <span class="settings-panel__title">
-                        <i class="ph-bold ph-lightning"></i>
-                        <span>Tối ưu Fast-path</span>
-                    </span>
-                    <label class="switch">
-                        <input type="checkbox" id="fastpath-checkbox" checked>
-                        <span class="slider round"></span>
-                    </label>
-                </div>
-                <div class="settings-panel__divider"></div>
-                <div class="settings-panel__row">
-                    <span class="settings-panel__title">
-                        <i class="ph-bold ph-shield-warning"></i>
-                        <span>Hiện quy tắc CSDL</span>
-                    </span>
-                    <label class="switch">
-                        <input type="checkbox" id="rules-checkbox">
-                        <span class="slider round"></span>
-                    </label>
-                </div>
-            </div>
-            
-            <div class="sidebar__storage-info">
-                <div class="storage-info__header">
-                    <span class="storage-info__title">
-                        <i class="ph-bold ph-hard-drive animate-pulse"></i>
-                        <span>Lưu trữ hệ thống</span>
-                    </span>
-                    <span id="storage-usage" class="storage-info__value">0.00 MB</span>
+            <!-- Settings Popover -->
+            <div id="sidebar-settings-popover" class="sidebar__settings-popover hidden">
+                <!-- Settings Panel -->
+                <div class="sidebar__settings-panel">
+                    <div class="settings-panel__row">
+                        <span class="settings-panel__title">
+                            <i class="ph-bold ph-lightning"></i>
+                            <span>Tối ưu Fast-path</span>
+                        </span>
+                        <label class="switch">
+                            <input type="checkbox" id="fastpath-checkbox" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <div class="settings-panel__divider"></div>
+                    <div class="settings-panel__row">
+                        <span class="settings-panel__title">
+                            <i class="ph-bold ph-shield-warning"></i>
+                            <span>Hiện quy tắc CSDL</span>
+                        </span>
+                        <label class="switch">
+                            <input type="checkbox" id="rules-checkbox">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
                 </div>
                 
-                <div class="storage-info__progress-container">
-                    <div id="storage-progress-bar" class="storage-info__progress-bar" style="width: 0%"></div>
-                </div>
-                
-                <div class="storage-info__footer">
-                    <span id="storage-quota" class="storage-info__quota">Tối đa: 250 MB</span>
-                    <button id="clean-storage" class="storage-info__clean-btn" title="Giải phóng các RAG steps cũ để tăng tốc độ duyệt web">
-                        <i class="ph-bold ph-broom"></i>
-                        <span>Dọn dẹp</span>
-                    </button>
+                <div class="sidebar__storage-info">
+                    <div class="storage-info__header">
+                        <span class="storage-info__title">
+                            <i class="ph-bold ph-hard-drive animate-pulse"></i>
+                            <span>Lưu trữ hệ thống</span>
+                        </span>
+                        <span id="storage-usage" class="storage-info__value">0.00 MB</span>
+                    </div>
+                    
+                    <div class="storage-info__progress-container">
+                        <div id="storage-progress-bar" class="storage-info__progress-bar" style="width: 0%"></div>
+                    </div>
+                    
+                    <div class="storage-info__footer">
+                        <span id="storage-quota" class="storage-info__quota">Tối đa: 250 MB</span>
+                        <button id="clean-storage" class="storage-info__clean-btn" title="Giải phóng các RAG steps cũ để tăng tốc độ duyệt web">
+                            <i class="ph-bold ph-broom"></i>
+                            <span>Dọn dẹp</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

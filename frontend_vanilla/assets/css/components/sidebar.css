@@ -132,6 +132,7 @@
 }
 
 .sidebar__footer {
+    position: relative;
     margin-top: auto;
     padding-top: 1.5rem;
     border-top: 1px solid var(--glass-border);
@@ -257,8 +258,93 @@
     box-shadow: 0 4px 12px rgba(124, 58, 237, 0.15);
 }
 
-.storage-info__clean-btn:active {
-    transform: translateY(0);
+/* Settings Button in Sidebar Footer */
+.sidebar-settings-btn {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    background: rgba(255, 255, 255, 0.4);
+    color: var(--muted-foreground);
+    font-size: 0.825rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+[data-theme="dark"] .sidebar-settings-btn {
+    border-color: rgba(255, 255, 255, 0.06);
+    background: rgba(31, 41, 55, 0.4);
+    color: var(--muted-foreground);
+}
+
+.sidebar-settings-btn:hover {
+    color: var(--primary);
+    background: rgba(124, 58, 237, 0.08);
+    border-color: rgba(124, 58, 237, 0.2);
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.06);
+}
+
+[data-theme="dark"] .sidebar-settings-btn:hover {
+    color: #c084fc;
+    background: rgba(139, 92, 246, 0.12);
+    border-color: rgba(139, 92, 246, 0.25);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.1);
+}
+
+.sidebar-settings-btn:hover i {
+    transform: rotate(45deg);
+}
+
+.sidebar-settings-btn i {
+    font-size: 1.15rem;
+    transition: transform 0.3s ease;
+}
+
+.sidebar-settings-btn.active {
+    color: var(--primary);
+    background: rgba(124, 58, 237, 0.12);
+    border-color: rgba(124, 58, 237, 0.3);
+    box-shadow: inset 0 2px 4px rgba(124, 58, 237, 0.06);
+}
+
+[data-theme="dark"] .sidebar-settings-btn.active {
+    color: #c084fc;
+    background: rgba(139, 92, 246, 0.18);
+    border-color: rgba(139, 92, 246, 0.35);
+}
+
+/* Settings Popover (Floating Panel) */
+.sidebar__settings-popover {
+    position: absolute;
+    bottom: calc(100% + 12px);
+    left: 0;
+    right: 0;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    transform-origin: bottom center;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                opacity 0.25s ease, 
+                visibility 0.25s ease;
+    visibility: visible;
+}
+
+.sidebar__settings-popover.hidden {
+    display: flex !important;
+    opacity: 0;
+    transform: translateY(12px) scale(0.94);
+    pointer-events: none;
+    visibility: hidden;
 }
 
 /* Settings Panel (unified controls) */

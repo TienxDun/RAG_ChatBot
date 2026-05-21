@@ -22,6 +22,34 @@ export class SidebarComponent {
         const cleanBtn = document.getElementById('clean-storage');
         if (cleanBtn) cleanBtn.addEventListener('click', () => this.handleStorageCleanup());
 
+        // Xử lý đóng/mở Settings Popover
+        const settingsToggleBtn = document.getElementById('sidebar-settings-toggle');
+        const settingsPopover = document.getElementById('sidebar-settings-popover');
+        
+        if (settingsToggleBtn && settingsPopover) {
+            settingsToggleBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isHidden = settingsPopover.classList.contains('hidden');
+                if (isHidden) {
+                    settingsPopover.classList.remove('hidden');
+                    settingsToggleBtn.classList.add('active');
+                } else {
+                    settingsPopover.classList.add('hidden');
+                    settingsToggleBtn.classList.remove('active');
+                }
+            });
+
+            // Xử lý click outside để tự động đóng popover
+            document.addEventListener('click', (e) => {
+                if (!settingsPopover.classList.contains('hidden') && 
+                    !settingsPopover.contains(e.target) && 
+                    !settingsToggleBtn.contains(e.target)) {
+                    settingsPopover.classList.add('hidden');
+                    settingsToggleBtn.classList.remove('active');
+                }
+            });
+        }
+
         // Đăng ký và xử lý checkbox Fast-path
         const fastpathCheckbox = document.getElementById('fastpath-checkbox');
         if (fastpathCheckbox) {
