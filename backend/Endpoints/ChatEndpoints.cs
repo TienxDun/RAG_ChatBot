@@ -140,10 +140,26 @@ public static class ChatEndpoints
             
             if (string.IsNullOrWhiteSpace(json)) return Results.BadRequest(new { error = "No data provided" });
 
-            var data = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(json);
-            if (data == null || data.Count == 0) return Results.BadRequest(new { error = "Invalid or empty data" });
+            using var jsonDoc = JsonDocument.Parse(json);
+            var root = jsonDoc.RootElement;
 
-            var content = excelService.ExportGenericExcel(data);
+            byte[] content;
+            if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("markdownText", out var mdProp))
+            {
+                string markdownText = mdProp.GetString() ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(markdownText))
+                {
+                    return Results.BadRequest(new { error = "Markdown text is empty." });
+                }
+                content = excelService.ExportMarkdownToExcelDynamic(markdownText);
+            }
+            else
+            {
+                var data = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(json);
+                if (data == null || data.Count == 0) return Results.BadRequest(new { error = "Invalid or empty data" });
+
+                content = excelService.ExportGenericExcel(data);
+            }
 
             return Results.File(
                 content, 

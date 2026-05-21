@@ -7,7 +7,14 @@ import { Toast } from '../components/Toast.js';
 
 export class ExportService {
     static async exportToExcel(data, triggerBtn, options = {}) {
-        if (!data || !data.length) {
+        if (!data) {
+            Toast.warning("Không có dữ liệu để xuất!");
+            return;
+        }
+
+        // Kiểm tra xem là mảng có dữ liệu hoặc object có chứa markdownText hợp lệ
+        const hasData = Array.isArray(data) ? data.length > 0 : (data.markdownText && data.markdownText.trim().length > 0);
+        if (!hasData) {
             Toast.warning("Không có dữ liệu để xuất!");
             return;
         }

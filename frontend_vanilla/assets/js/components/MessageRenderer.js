@@ -152,6 +152,11 @@ export class MessageRenderer {
         const messageEl = document.createElement('div');
         messageEl.className = `message message--${role === 'user' ? 'user' : 'ai'} animate-slide-up`;
         
+        // Lưu markdown để hỗ trợ xuất Excel trực tiếp từ Markdown
+        if (content) {
+            messageEl.setAttribute('data-markdown', content);
+        }
+
         // Lưu rawData vào data attribute để có thể truy xuất khi click export
         if (rawData) {
             try {
@@ -268,6 +273,7 @@ export class MessageRenderer {
         if (contentEl) {
             if (content) {
                 contentEl.innerHTML = this.renderContent(content);
+                messageEl.setAttribute('data-markdown', content);
             } else if (steps.length > 0) {
                 // Nếu đang loading nhưng đã có steps, ẩn typing indicator để show steps rõ hơn
                 contentEl.innerHTML = ''; 
