@@ -16,7 +16,7 @@
       {
         "name": "MaHang",
         "data_type": "nvarchar",
-        "description": "Mã sản phẩm thực tế (Dùng dấu gạch nối '-' hoặc khoảng trắng, ví dụ: SA-893-208-133). Người dùng thường hỏi theo định dạng này."
+        "description": "Mã sản phẩm thực tế (Dùng dấu gạch nối '-' hoặc khoảng trắng, ví dụ: SA-893-208-133). Người dùng thường hỏi theo định dạng này. LƯU Ý: Một số mã hàng có thể chứa ký tự khoảng trắng fullwidth (Unicode U+3000) thay vì khoảng trắng thường, ví dụ: 'ASAHIKAWA　Fire Department PT'. Khi tìm kiếm, nên dùng LIKE thay vì so sánh = tuyệt đối."
       },
       {
         "name": "NgayTao",
@@ -76,7 +76,7 @@
       {
         "name": "TileDG",
         "data_type": "nvarchar",
-        "description": "Tỉ lệ đóng gói (Dữ liệu mẫu hiện đang trống)."
+        "description": "Tỉ lệ đóng gói (Dữ liệu hiện tại luôn NULL/trống, không sử dụng để truy vấn)."
       },
       {
         "name": "Tile",
@@ -91,7 +91,7 @@
       {
         "name": "Status",
         "data_type": "int",
-        "description": "Trạng thái hiện tại của lệnh (3 - Đã hoàn thành/Đã chốt, 1 - Đang thực hiện/Chưa chốt)."
+        "description": "Trạng thái hiện tại của lệnh (0 - Mới tạo/Chưa bắt đầu, 1 - Đang thực hiện/Chưa chốt, 3 - Đã hoàn thành/Đã chốt)."
       },
       {
         "name": "MoTa",
@@ -106,7 +106,7 @@
       {
         "name": "ProductTypeID",
         "data_type": "nvarchar",
-        "description": "Phân loại dòng sản phẩm (ví dụ: CL_1, CL_2)."
+        "description": "Phân loại dòng sản phẩm. Giá trị có dạng CL_N (ví dụ: CL_1, CL_2, CL_3, CL_6, CL_9, CL_10). Có thể NULL nếu chưa phân loại."
       },
       {
         "name": "SeaSon",
@@ -496,7 +496,7 @@
       {
         "name": "NVKiem",
         "data_type": "nvarchar",
-        "description": "Tên nhân viên KCS thực hiện ghi nhận lỗi (Tử số của tỉ lệ lỗi). Giá trị lưu theo định dạng 'KCS [Tên]' hoặc 'Kcs [Tên]', ví dụ: N'KCS COSMOS', N'KCS PANSY'. QUY TẮC LỌC QUAN TRỌNG: Khi người dùng nhắc đến tên người kiểm KCS, BẮT BUỘC dùng so sánh bằng tuyệt đối (=) với chuỗi đầy đủ bao gồm tiền tố 'KCS ' (ví dụ: người dùng nói 'PANSY' hoặc 'KCS PANSY' → dùng NVKiemKCS = N'KCS PANSY'). TUYỆT ĐỐI KHÔNG dùng LIKE hay wildcard % vì hệ thống lưu tên đầy đủ, so sánh = cho kết quả chính xác và nhanh hơn."
+        "description": "Tên nhân viên KCS thực hiện ghi nhận lỗi (Tử số của tỉ lệ lỗi). Giá trị lưu theo định dạng 'KCS [Tên]' hoặc 'Kcs [Tên]', ví dụ: N'KCS COSMOS', N'KCS PANSY'. QUY TẮC LỌC QUAN TRỌNG: Khi người dùng nhắc đến tên người kiểm KCS, BẮT BUỘC dùng so sánh bằng tuyệt đối (=) với chuỗi đầy đủ bao gồm tiền tố 'KCS ' (ví dụ: người dùng nói 'PANSY' hoặc 'KCS PANSY' → dùng NVKiem = N'KCS PANSY'). TUYỆT ĐỐI KHÔNG dùng LIKE hay wildcard %. CHÚ Ý TÊN CỘT: Trong bảng này tên cột là NVKiem (KHÔNG phải NVKiemKCS)."
       },
       {
         "name": "LanKiem",
@@ -662,7 +662,7 @@
       {
         "name": "NVKiem",
         "data_type": "nvarchar",
-        "description": "Tên nhân viên KCS thực hiện ghi nhận lỗi. Giá trị lưu theo định dạng 'KCS [Tên]' hoặc 'Kcs [Tên]', ví dụ: N'KCS COSMOS', N'KCS PANSY'. QUY TẮC LỌC QUAN TRỌNG: Khi người dùng nhắc đến tên người kiểm KCS, BẮT BUỘC dùng so sánh bằng tuyệt đối (=) với chuỗi đầy đủ bao gồm tiền tố 'KCS ' (ví dụ: người dùng nói 'PANSY' hoặc 'KCS PANSY' → dùng NVKiemKCS = N'KCS PANSY'). TUYỆT ĐỐI KHÔNG dùng LIKE hay wildcard % vì hệ thống lưu tên đầy đủ, so sánh = cho kết quả chính xác và nhanh hơn."
+        "description": "Tên nhân viên KCS thực hiện ghi nhận lỗi. Giá trị lưu theo định dạng 'KCS [Tên]' hoặc 'Kcs [Tên]', ví dụ: N'KCS COSMOS', N'KCS PANSY'. QUY TẮC LỌC QUAN TRỌNG: Khi người dùng nhắc đến tên người kiểm KCS, BẮT BUỘC dùng so sánh bằng tuyệt đối (=) với chuỗi đầy đủ bao gồm tiền tố 'KCS ' (ví dụ: người dùng nói 'PANSY' hoặc 'KCS PANSY' → dùng NVKiem = N'KCS PANSY'). TUYỆT ĐỐI KHÔNG dùng LIKE hay wildcard %. CHÚ Ý TÊN CỘT: Trong bảng này tên cột là NVKiem (KHÔNG phải NVKiemKCS)."
       },
       {
         "name": "LanKiem",

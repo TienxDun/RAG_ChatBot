@@ -1,6 +1,7 @@
 ---
 name: testing-patterns
 description: Testing patterns and principles. Unit, integration, mocking strategies.
+when_to_use: "When writing unit tests, integration tests, choosing testing frameworks, or implementing mocking strategies."
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 ---
 

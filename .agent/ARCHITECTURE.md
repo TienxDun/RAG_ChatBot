@@ -1,16 +1,16 @@
-# Antigravity Kit Architecture
+# AG Kit Architecture
 
-> Comprehensive AI Agent Capability Expansion Toolkit
+> Comprehensive AI Agent Capability Expansion Toolkit — 2026.5.13
 
 ---
 
 ## 📋 Overview
 
-Antigravity Kit is a modular system consisting of:
+AG Kit is a modular system consisting of:
 
-- **20 Specialist Agents** - Role-based AI personas
-- **36 Skills** - Domain-specific knowledge modules
-- **11 Workflows** - Slash command procedures
+- **20 Specialist Agents** - Role-based AI personas (1 major upgrade in 2026.5.13)
+- **45 Skills** - Domain-specific knowledge modules with conditional loading
+- **14 Workflows** - Slash command procedures
 
 ---
 
@@ -20,9 +20,10 @@ Antigravity Kit is a modular system consisting of:
 .agent/
 ├── ARCHITECTURE.md          # This file
 ├── agents/                  # 20 Specialist Agents
-├── skills/                  # 36 Skills
-├── workflows/               # 11 Slash Commands
+├── skills/                  # 45 Skills (with conditional loading)
+├── workflows/               # 14 Slash Commands
 ├── rules/                   # Global Rules
+├── memory/                  # Persistent Memory (2026.5.13)
 └── scripts/                 # Master Validation Scripts
 ```
 
@@ -34,7 +35,7 @@ Specialist AI personas for different domains.
 
 | Agent                    | Focus                      | Skills Used                                              |
 | ------------------------ | -------------------------- | -------------------------------------------------------- |
-| `orchestrator`           | Multi-agent coordination   | parallel-agents, behavioral-modes                        |
+| `orchestrator`           | Multi-agent coordination   | parallel-agents, coordinator-mode, memory-system, context-compression, verify-changes |
 | `project-planner`        | Discovery, task planning   | brainstorming, plan-writing, architecture                |
 | `frontend-specialist`    | Web UI/UX                  | frontend-design, react-best-practices, tailwind-patterns |
 | `backend-specialist`     | API, business logic        | api-patterns, nodejs-best-practices, database-design     |
@@ -57,9 +58,9 @@ Specialist AI personas for different domains.
 
 ---
 
-## 🧩 Skills (36)
+## 🧩 Skills (45)
 
-Modular knowledge domains that agents can load on-demand. based on task context.
+Modular knowledge domains that agents can load on-demand based on task context. Each skill has a `when_to_use` frontmatter field for conditional/intelligent loading.
 
 ### Frontend & UI
 
@@ -153,6 +154,19 @@ Modular knowledge domains that agents can load on-demand. based on task context.
 | `bash-linux`         | Linux commands, scripting |
 | `powershell-windows` | Windows PowerShell        |
 
+### Orchestration & Memory (2026.5.13)
+
+| Skill                     | Description                                                 |
+| ------------------------- | ----------------------------------------------------------- |
+| `coordinator-mode`        | Multi-agent orchestration with parallel workers & synthesis  |
+| `memory-system`           | Persistent cross-session memory with MEMORY.md index        |
+| `context-compression`     | Auto-compress context in long sessions                      |
+| `verify-changes`          | Prove code works by running it, not just inspecting         |
+| `batch-operations`        | Multi-file pattern-based modifications                      |
+| `simplify-code`           | Reduce over-engineered complexity                           |
+| `skillify`                | Auto-create skills from repetitive workflows                |
+| `code-review-graph`       | Token-efficient code review via Tree-sitter AST + MCP       |
+
 ### Other
 
 | Skill                     | Description               |
@@ -168,44 +182,56 @@ Modular knowledge domains that agents can load on-demand. based on task context.
 
 ---
 
-## 🔄 Workflows (11)
+## 🔄 Workflows (14)
 
 Slash command procedures. Invoke with `/command`.
 
-| Command          | Description              |
-| ---------------- | ------------------------ |
-| `/brainstorm`    | Socratic discovery       |
-| `/create`        | Create new features      |
-| `/debug`         | Debug issues             |
-| `/deploy`        | Deploy application       |
-| `/enhance`       | Improve existing code    |
-| `/orchestrate`   | Multi-agent coordination |
-| `/plan`          | Task breakdown           |
-| `/preview`       | Preview changes          |
-| `/status`        | Check project status     |
-| `/test`          | Run tests                |
-| `/ui-ux-pro-max` | Design with 50 styles    |
+| Command          | Description                                    |
+| ---------------- | ---------------------------------------------- |
+| `/brainstorm`    | Socratic discovery                             |
+| `/coordinate`    | **NEW** Advanced multi-agent coordination      |
+| `/create`        | Create new features                            |
+| `/debug`         | Debug issues                                   |
+| `/deploy`        | Deploy application                             |
+| `/enhance`       | Improve existing code                          |
+| `/orchestrate`   | Multi-agent coordination                       |
+| `/plan`          | Task breakdown                                 |
+| `/preview`       | Preview changes                                |
+| `/remember`      | **NEW** Save to persistent memory              |
+| `/status`        | Check project status                           |
+| `/test`          | Run tests                                      |
+| `/ui-ux-pro-max` | Design with 50 styles                          |
+| `/verify`        | **NEW** Prove code works by running it         |
 
 ---
 
-## 🎯 Skill Loading Protocol
+## 🎯 Skill Loading Protocol (2026.5.13 — Conditional)
 
 ```plaintext
-User Request → Skill Description Match → Load SKILL.md
-                                            ↓
-                                    Read references/
-                                            ↓
-                                    Read scripts/
+User Request → Check `when_to_use` frontmatter → Match? → Load full SKILL.md
+                                                    ↓ No match
+                                                 Skip (save tokens)
 ```
 
 ### Skill Structure
 
 ```plaintext
 skill-name/
-├── SKILL.md           # (Required) Metadata & instructions
+├── SKILL.md           # (Required) Metadata, when_to_use & instructions
 ├── scripts/           # (Optional) Python/Bash scripts
 ├── references/        # (Optional) Templates, docs
 └── assets/            # (Optional) Images, logos
+```
+
+### Required Frontmatter Fields
+
+```yaml
+---
+name: skill-name
+description: What this skill does
+when_to_use: "When to activate. NOT for X."  # 2026.5.13
+allowed-tools: Read, Grep, Glob
+---
 ```
 
 ### Enhanced Skills (with scripts/references)
@@ -264,13 +290,14 @@ For details, see [scripts/README.md](scripts/README.md)
 
 ## 📊 Statistics
 
-| Metric              | Value                         |
-| ------------------- | ----------------------------- |
-| **Total Agents**    | 20                            |
-| **Total Skills**    | 36                            |
-| **Total Workflows** | 11                            |
-| **Total Scripts**   | 2 (master) + 18 (skill-level) |
-| **Coverage**        | ~90% web/mobile development   |
+| Metric              | Value                             |
+| ------------------- | --------------------------------- |
+| **Total Agents**    | 20 (1 major upgrade in 2026.5.13) |
+| **Total Skills**    | 45 (+8 new in 2026.5.13)          |
+| **Total Workflows** | 14 (+3 new in 2026.5.13)          |
+| **Total Scripts**   | 2 (master) + 18 (skill-level)     |
+| **Coverage**        | ~95% web/mobile + orchestration   |
+| **Token Efficiency**| 13-33% better than v2 (2026.5.13) |
 
 ---
 

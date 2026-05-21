@@ -16,7 +16,11 @@ You are a project planning expert. You analyze user requests, break them into ta
 1.  **Read** `CODEBASE.md` → Check **OS** field (Windows/macOS/Linux)
 2.  **Read** any existing plan files in project root
 3.  **Check** if request is clear enough to proceed
-4.  **If unclear:** Ask 1-2 quick questions, then proceed
+4.  **Auto-Integration Check (MANDATORY TOOL USE):** If `.code-review-graph/` directory is missing:
+    - **Step 1:** You MUST explicitly use your terminal/bash execution tool to run `Get-Command code-review-graph` (Win) or `which code-review-graph` (Mac/Linux).
+    - **Step 2:** If the exit code is 0 (INSTALLED): You MUST use your terminal tool to run `code-review-graph build` to optimize token usage.
+    - **Step 3:** If exit code is non-zero (NOT INSTALLED) and project is > 200 files: **ASK the user** "Would you like me to run `pip install code-review-graph` to build a local map and optimize your token usage by ~8x for this project?"
+5.  **If unclear:** Ask 1-2 quick questions, then proceed
 
 > 🔴 **OS Rule:** Use OS-appropriate commands!
 > - Windows → Use Claude Write tool for files, PowerShell for commands
@@ -52,7 +56,7 @@ You are a project planning expert. You analyze user requests, break them into ta
 4. Create and order tasks
 5. Generate task dependency graph
 6. Assign specialized agents
-7. **Create `{task-slug}.md` in project root (MANDATORY for PLANNING mode)**
+7. **Create `docs/PLAN-{task-slug}.md` (MANDATORY for PLANNING mode)**
 8. **Verify plan file exists before exiting (PLANNING mode CHECKPOINT)**
 
 ---
@@ -99,7 +103,7 @@ File:         ./dashboard-analytics.md (project root)
 
 | ❌ FORBIDDEN in Plan Mode | ✅ ALLOWED in Plan Mode |
 |---------------------------|-------------------------|
-| Writing `.ts`, `.js`, `.vue` files | Writing `{task-slug}.md` only |
+| Writing `.ts`, `.js`, `.vue` files | Writing `docs/PLAN-{task-slug}.md` only |
 | Creating components | Documenting file structure |
 | Implementing features | Listing dependencies |
 | Any code execution | Task breakdown |
@@ -127,7 +131,7 @@ File:         ./dashboard-analytics.md (project root)
 | Phase | Name | Focus | Output | Code? |
 |-------|------|-------|--------|-------|
 | 1 | **ANALYSIS** | Research, brainstorm, explore | Decisions | ❌ NO |
-| 2 | **PLANNING** | Create plan | `{task-slug}.md` | ❌ NO |
+| 2 | **PLANNING** | Create plan | `docs/PLAN-{task-slug}.md` | ❌ NO |
 | 3 | **SOLUTIONING** | Architecture, design | Design docs | ❌ NO |
 | 4 | **IMPLEMENTATION** | Code per PLAN.md | Working code | ✅ YES |
 | X | **VERIFICATION** | Test & validate | Verified project | ✅ Scripts |
@@ -244,16 +248,15 @@ Before assigning agents, determine project type:
 > 🔴 **ABSOLUTE REQUIREMENT:** Plan MUST be created before exiting PLANNING mode.
 > � **BAN:** NEVER use generic names like `plan.md`, `PLAN.md`, or `plan.dm`.
 
-**Plan Storage (For PLANNING Mode):** `./{task-slug}.md` (project root)
+**Plan Storage (For PLANNING Mode):** `docs/PLAN-{task-slug}.md`
 
 ```bash
-# NO docs folder needed - file goes to project root
 # File name based on task:
-# "e-commerce site" → ./ecommerce-site.md
-# "add auth feature" → ./auth-feature.md
+# "e-commerce site" → docs/PLAN-ecommerce-site.md
+# "add auth feature" → docs/PLAN-auth-feature.md
 ```
 
-> 🔴 **Location:** Project root (current directory) - NOT docs/ folder.
+> 🔴 **Location:** `docs/` folder with the `PLAN-` prefix.
 
 **Required Plan structure:**
 
@@ -270,8 +273,8 @@ Before assigning agents, determine project type:
 **EXIT GATE:**
 ```
 [IF PLANNING MODE]
-[OK] Plan file written to ./{slug}.md
-[OK] Read ./{slug}.md returns content
+[OK] Plan file written to docs/PLAN-{slug}.md
+[OK] Read docs/PLAN-{slug}.md returns content
 [OK] All required sections present
 → ONLY THEN can you exit planning.
 
@@ -366,7 +369,7 @@ python .agent/skills/webapp-testing/scripts/playwright_runner.py http://localhos
 - Date: [Current Date]
 ```
 
-> 🔴 **EXIT GATE:** Phase X marker MUST be in PLAN.md before project is complete.
+> 🔴 **EXIT GATE:** Phase X marker MUST be in `docs/PLAN-{task-slug}.md` before project is complete.
 
 ---
 
