@@ -376,3 +376,432 @@ input:checked + .slider:before {
 .slider.round:before {
     border-radius: 50%;
 }
+/* Right Sidebar Modifier */
+.sidebar--right {
+    left: auto;
+    right: 0;
+    transform: translateX(100%);
+    border-right: none;
+    border-left: 1px solid rgba(0, 0, 0, 0.05);
+    width: 320px;
+    padding: 1.5rem;
+}
+
+@media (min-width: 769px) {
+    .sidebar--right {
+        transform: translateX(100%); 
+        border-left: 1px solid var(--glass-border);
+    }
+    
+    .sidebar--right.sidebar--active {
+        transform: translateX(0);
+    }
+}
+
+@media (max-width: 768px) {
+    .sidebar--right {
+        width: 100%;
+        max-width: 100%;
+        border-left: none;
+    }
+}
+
+.sidebar--right.active,
+.sidebar--right.sidebar--active {
+    transform: translateX(0);
+}
+
+/* Decorative visual placeholder to balance header close button on the left */
+.sidebar__header-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    color: var(--muted-foreground);
+    opacity: 0.25;
+    pointer-events: none;
+}
+
+/* Search results list */
+.search-results-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    overflow-y: auto;
+    flex: 1;
+    padding: 0.5rem 0.6rem;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.1) transparent;
+}
+
+[data-theme="dark"] .search-results-list {
+    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+.search-results-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.search-results-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.search-results-list::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+}
+
+[data-theme="dark"] .search-results-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.search-results-list::-webkit-scrollbar-thumb:hover {
+    background: var(--primary);
+}
+
+/* Search Result Item (Premium Card Style) */
+.search-result-item {
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.45);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.01);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+[data-theme="dark"] .search-result-item {
+    background: rgba(30, 41, 59, 0.45);
+    border-color: rgba(255, 255, 255, 0.06);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.search-result-item:hover {
+    border-color: var(--primary);
+    background: rgba(255, 255, 255, 0.85);
+    box-shadow: 0 8px 24px rgba(124, 58, 237, 0.08);
+    transform: translateY(-2px);
+}
+
+[data-theme="dark"] .search-result-item:hover {
+    background: rgba(30, 41, 59, 0.75);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    border-color: var(--primary);
+}
+
+.search-result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Premium Role Chips */
+.search-result-role {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 0.25rem 0.5rem;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.search-result-role.user {
+    background: rgba(124, 58, 237, 0.08);
+    color: var(--primary);
+    border: 1px solid rgba(124, 58, 237, 0.15);
+}
+
+[data-theme="dark"] .search-result-role.user {
+    background: rgba(139, 92, 246, 0.15);
+    color: #c084fc;
+    border: 1px solid rgba(139, 92, 246, 0.25);
+}
+
+.search-result-role.assistant {
+    background: rgba(6, 182, 212, 0.08);
+    color: var(--accent);
+    border: 1px solid rgba(6, 182, 212, 0.15);
+}
+
+[data-theme="dark"] .search-result-role.assistant {
+    background: rgba(6, 182, 212, 0.15);
+    color: #22d3ee;
+    border: 1px solid rgba(6, 182, 212, 0.25);
+}
+
+.search-result-date {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--muted-foreground);
+    opacity: 0.8;
+    display: inline-flex;
+    align-items: center;
+}
+
+.search-result-date-day {
+    font-weight: inherit;
+}
+
+.search-result-date-time {
+    margin-left: 4px;
+    opacity: 0.85;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+}
+
+.search-result-date-time::before {
+    content: "•";
+    margin-right: 4px;
+    opacity: 0.6;
+}
+
+.search-result-snippet {
+    font-size: 0.85rem;
+    color: var(--foreground);
+    opacity: 0.85;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.5;
+    word-break: break-word;
+}
+
+/* Meta Section (Conversation Title) */
+.search-result-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.15rem;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    max-width: 100%;
+    transition: all 0.2s ease;
+}
+
+[data-theme="dark"] .search-result-meta {
+    background: transparent;
+    border: none;
+}
+
+.search-result-meta i {
+    font-size: 0.85rem;
+    color: var(--muted-foreground);
+    opacity: 0.7;
+}
+
+.search-result-meta-title {
+    font-size: 0.72rem;
+    color: var(--muted-foreground);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.search-result-item:hover .search-result-meta {
+    background: transparent;
+    border: none;
+}
+
+[data-theme="dark"] .search-result-item:hover .search-result-meta {
+    background: transparent;
+    border: none;
+}
+
+/* Keywords Highlight Styles */
+.search-highlight {
+    background-color: rgba(124, 58, 237, 0.15);
+    color: var(--primary);
+    font-weight: 700;
+    padding: 0 4px;
+    border-radius: 4px;
+    border-bottom: 1.5px solid var(--primary);
+}
+
+[data-theme="dark"] .search-highlight {
+    background-color: rgba(139, 92, 246, 0.25);
+    color: #c084fc;
+    border-bottom: 1.5px solid #c084fc;
+}
+
+/* For main chat messages highlight */
+.message-highlight-match {
+    background-color: rgba(124, 58, 237, 0.25);
+    border-radius: 4px;
+    padding: 0 2px;
+    font-weight: 600;
+    animation: highlight-pulse 2s ease;
+}
+
+@keyframes highlight-pulse {
+    0% { background-color: rgba(124, 58, 237, 0.8); color: white; }
+    100% { background-color: rgba(124, 58, 237, 0.25); color: inherit; }
+}
+
+.message.focused-search-result {
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.25) !important;
+    transition: all 0.3s ease;
+}
+
+/* Custom Search Input Styling */
+.search-input-container {
+    margin-bottom: 1.25rem;
+    padding: 0 0.5rem;
+}
+
+.search-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.45);
+    border: 1px solid rgba(124, 58, 237, 0.2);
+    border-radius: 12px;
+    padding: 0.625rem 0.875rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+[data-theme="dark"] .search-input-wrapper {
+    background: rgba(30, 41, 59, 0.45);
+    border-color: rgba(139, 92, 246, 0.2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.search-input-wrapper:hover {
+    border-color: rgba(124, 58, 237, 0.3);
+    background: rgba(255, 255, 255, 0.6);
+}
+
+[data-theme="dark"] .search-input-wrapper:hover {
+    border-color: rgba(139, 92, 246, 0.3);
+    background: rgba(30, 41, 59, 0.6);
+}
+
+.search-input-wrapper:focus-within {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+    background: var(--card);
+}
+
+.search-input-icon {
+    font-size: 1.1rem;
+    color: var(--muted-foreground);
+    margin-right: 0.5rem;
+}
+
+.search-input-field {
+    border: none;
+    background: transparent;
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    width: 100%;
+    outline: none;
+}
+
+/* Search input clear button */
+.search-input-clear {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted-foreground);
+    opacity: 0.6;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 1.25rem;
+    margin-left: 0.5rem;
+    flex-shrink: 0;
+}
+
+.search-input-clear:hover {
+    opacity: 1;
+    color: var(--destructive);
+    transform: scale(1.1);
+}
+
+.search-input-clear.hidden {
+    display: none !important;
+}
+
+/* Redesigned Empty State */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 3.5rem 1.5rem;
+    color: var(--muted-foreground);
+}
+
+.empty-state__icon {
+    font-size: 2.75rem;
+    color: var(--primary);
+    opacity: 0.45;
+    margin-bottom: 0.85rem;
+    transition: all 0.3s ease;
+}
+
+[data-theme="dark"] .empty-state__icon {
+    opacity: 0.6;
+}
+
+.empty-state__icon--typing {
+    animation: search-pulse-light 1.5s infinite ease-in-out;
+    color: var(--accent);
+}
+
+.empty-state__title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--foreground);
+    margin-bottom: 0.35rem;
+    opacity: 0.9;
+}
+
+.empty-state__description {
+    font-size: 0.78rem;
+    line-height: 1.4;
+    max-width: 220px;
+    opacity: 0.75;
+}
+
+@keyframes search-pulse-light {
+    0%, 100% { opacity: 0.4; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.08); }
+}
+
+/* Search results transition improvements */
+.search-result-item {
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                border-color 0.25s ease, 
+                background-color 0.25s ease, 
+                box-shadow 0.25s ease !important;
+}
+
+.search-result-item:hover {
+    transform: translateY(-2px) scale(1.01) !important;
+}
+
+

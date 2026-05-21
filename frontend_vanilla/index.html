@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DODO AI - Intelligent Chatbot</title>
+    <meta name="description" content="DODO AI - Trợ lý cơ sở dữ liệu và chatbot thông minh, giúp bạn truy vấn, phân tích và quản lý dữ liệu hiệu quả bằng ngôn ngữ tự nhiên.">
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://tienxdun.github.io/RAG_ChatBot/">
+    <meta property="og:title" content="DODO AI - Intelligent Chatbot">
+    <meta property="og:description" content="Trợ lý cơ sở dữ liệu và chatbot thông minh, giúp bạn truy vấn, phân tích và quản lý dữ liệu bằng ngôn ngữ tự nhiên.">
+    <meta property="og:image" content="assets/images/og-image.png">
+    
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     
     <!-- Fonts -->
@@ -67,7 +75,7 @@
                         <span>Hiện quy tắc CSDL</span>
                     </span>
                     <label class="switch">
-                        <input type="checkbox" id="rules-checkbox" checked>
+                        <input type="checkbox" id="rules-checkbox">
                         <span class="slider round"></span>
                     </label>
                 </div>
@@ -100,6 +108,39 @@
     <!-- Overlay for mobile sidebar -->
     <div id="sidebar-overlay" class="overlay"></div>
 
+    <!-- Search Sidebar (Right) -->
+    <aside id="search-sidebar" class="sidebar sidebar--right glass">
+        <div class="sidebar__header">
+            <button id="close-search" class="icon-btn sidebar__close">
+                <i class="ph-bold ph-x"></i>
+            </button>
+            <h2 class="sidebar__title-main">TÌM KIẾM</h2>
+            <div class="sidebar__header-icon">
+                <i class="ph-bold ph-magnifying-glass"></i>
+            </div>
+        </div>
+        
+        <div class="sidebar__content">
+            <div class="search-input-container">
+                <div class="search-input-wrapper">
+                    <i class="ph-bold ph-magnifying-glass search-input-icon"></i>
+                    <input type="text" id="search-input" placeholder="Tìm tin nhắn, từ khóa..." class="search-input-field">
+                    <button id="clear-search" class="search-input-clear hidden" title="Xóa từ khóa">
+                        <i class="ph-bold ph-x-circle"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div id="search-results" class="search-results-list">
+                <div class="empty-state animate-fade-in">
+                    <i class="ph-duotone ph-magnifying-glass empty-state__icon"></i>
+                    <div class="empty-state__title">Tìm kiếm tin nhắn</div>
+                    <div class="empty-state__description">Nhập từ khóa để tìm lại tin nhắn trong lịch sử trò chuyện cục bộ.</div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
     <!-- Main Content -->
     <main class="app-container">
         <!-- Header -->
@@ -109,7 +150,7 @@
                     <i class="ph-bold ph-list"></i>
                 </button>
                 <div class="header__brand">
-                    <h1 class="logo-text">DO<span>DO</span></h1>
+                    <span class="logo-text">DO<span>DO</span></span>
                 </div>
                 <div class="header-v-separator"></div>
                 <div class="header__status">
@@ -120,6 +161,10 @@
             
             <div class="header__right">
                 <div class="header__actions-group glass-panel shadow-sm">
+                    <button id="open-search" class="header-action-btn" title="Tìm kiếm tin nhắn">
+                        <i class="ph-bold ph-magnifying-glass"></i>
+                    </button>
+                    <div class="header-separator"></div>
                     <button id="open-upload" class="header-action-btn" title="Tải lên tài liệu">
                         <i class="ph-bold ph-upload-simple"></i>
                     </button>

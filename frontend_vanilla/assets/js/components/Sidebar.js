@@ -63,6 +63,9 @@ export class SidebarComponent {
                 this.renderHistory();
                 this.updateStorageEstimation();
             }
+            if (key === 'currentConversationId') {
+                this.updateActiveHistoryItem(value);
+            }
             if (key === 'isSidebarOpen') this.applySidebarState();
             if (key === 'isFastPathEnabled' && fastpathCheckbox) {
                 fastpathCheckbox.checked = value;
@@ -110,20 +113,25 @@ export class SidebarComponent {
     renderHistory() {
         if (!this.historyContainer) return;
         const history = state.chatHistory;
+        const currentId = state.currentConversationId;
 
         if (history.length > 0) {
-            this.historyContainer.innerHTML = history.map(item => `
-                <div class="history-item animate-fade-in" data-id="${item.id}">
-                    <i class="ph-duotone ph-chat-circle-dots"></i>
-                    <div class="history-info">
-                        <div class="history-title">${item.title}</div>
-                        <div class="history-date">${item.date}</div>
+            this.historyContainer.innerHTML = history.map(item => {
+                const isActive = String(item.id) === String(currentId);
+                const formattedDate = this.formatDate(item.date, item.id);
+                return `
+                    <div class="history-item animate-fade-in ${isActive ? 'history-item--active' : ''}" data-id="${item.id}">
+                        <i class="ph-duotone ph-chat-circle-dots"></i>
+                        <div class="history-info">
+                            <div class="history-title">${item.title}</div>
+                            <div class="history-date">${formattedDate}</div>
+                        </div>
+                        <button class="history-delete" onclick="event.stopPropagation(); deleteHistory(${item.id})">
+                            <i class="ph-bold ph-trash"></i>
+                        </button>
                     </div>
-                    <button class="history-delete" onclick="event.stopPropagation(); deleteHistory(${item.id})">
-                        <i class="ph-duotone ph-trash"></i>
-                    </button>
-                </div>
-            `).join('');
+                `;
+            }).join('');
             
             this.bindItemClicks();
         } else {
@@ -139,6 +147,19 @@ export class SidebarComponent {
                     window.app.chatArea.loadConversation(id);
                 }
             });
+        });
+    }
+
+    updateActiveHistoryItem(activeId) {
+        if (!this.historyContainer) return;
+        this.historyContainer.querySelectorAll('.history-item').forEach(el => {
+            const id = el.getAttribute('data-id');
+            const isActive = String(id) === String(activeId);
+            if (isActive) {
+                el.classList.add('history-item--active');
+            } else {
+                el.classList.remove('history-item--active');
+            }
         });
     }
 
@@ -214,5 +235,31 @@ export class SidebarComponent {
         } catch (err) {
             console.error('Failed to estimate storage usage:', err);
         }
+    }
+
+    formatDate(dateStr, convId) {
+        const timestamp = Number(convId);
+        let datePart = dateStr || '';
+        let timePart = '';
+        
+        if (!isNaN(timestamp) && timestamp > 1000000000000) {
+            const d = new Date(timestamp);
+            const day = d.getDate();
+            const month = d.getMonth() + 1;
+            const year = d.getFullYear();
+            const hours = String(d.getHours()).padStart(2, '0');
+            const minutes = String(d.getMinutes()).padStart(2, '0');
+            datePart = `${day}/${month}/${year}`;
+            timePart = `${hours}:${minutes}`;
+        } else if (dateStr && dateStr.includes(' ')) {
+            const parts = dateStr.split(' ');
+            datePart = parts[0];
+            timePart = parts[1];
+        }
+        
+        if (timePart) {
+            return `<span class="history-date-day">${datePart}</span><span class="history-date-time">${timePart}</span>`;
+        }
+        return `<span class="history-date-day">${datePart}</span>`;
     }
 }

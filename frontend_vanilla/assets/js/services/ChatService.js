@@ -7,7 +7,7 @@ import { state } from '../core/State.js';
 
 export class ChatService {
     static async sendMessage(text, file, collectionName, callbacks = {}) {
-        const { onStep, onFinal, onError, onMessageElementCreated } = callbacks;
+        const { onStep, onFinal, onError, onMessageElementCreated, msgId } = callbacks;
         const body = this._prepareBody(text, file, collectionName);
         
         let aiContent = "";
@@ -45,8 +45,8 @@ export class ChatService {
             });
 
             const duration = Math.round((Date.now() - startTime) / 1000);
-            this._saveToHistory(aiContent, aiSteps, aiSuggestions, aiDownloadUrl, lastRawData, duration, aiIsAmbiguous);
-            return { aiContent, aiSteps, aiSuggestions, aiDownloadUrl, lastRawData, duration, aiIsAmbiguous };
+            this._saveToHistory(aiContent, aiSteps, aiSuggestions, aiDownloadUrl, lastRawData, duration, aiIsAmbiguous, msgId);
+            return { aiContent, aiSteps, aiSuggestions, aiDownloadUrl, lastRawData, duration, aiIsAmbiguous, msgId };
         } catch (error) {
             console.error('ChatService error:', error);
             if (onError) onError(error.message);
@@ -69,10 +69,11 @@ export class ChatService {
         return formData;
     }
 
-    static _saveToHistory(content, steps, suggestions, downloadUrl, rawData, duration, isAmbiguous = false) {
+    static _saveToHistory(content, steps, suggestions, downloadUrl, rawData, duration, isAmbiguous = false, msgId = null) {
         if (!content && steps.length === 0) return;
         
         state.addMessageToHistory(state.currentConversationId, { 
+            id: msgId,
             role: 'ai', 
             content, 
             steps, 
@@ -88,11 +89,13 @@ export class ChatService {
         if (!state.currentConversationId) {
             const newId = Date.now();
             state.currentConversationId = newId;
+            const now = new Date();
+            const dateStr = `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
             state.chatHistory = [
                 { 
                     id: newId, 
                     title: title || "Cuộc trò chuyện mới", 
-                    date: new Date().toLocaleDateString('vi-VN'),
+                    date: dateStr,
                     messages: []
                 },
                 ...state.chatHistory

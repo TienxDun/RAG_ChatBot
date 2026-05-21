@@ -575,6 +575,7 @@ export class ChatAreaComponent {
                     }
                     this.uiState.lastRawData = data.rawData;
                     this.uiState.lastDownloadUrl = data.downloadUrl;
+                    this.refreshMessageIndices();
                 },
                 onError: (msg) => {
                     if (typingIndicator.parentNode) messagesList.removeChild(typingIndicator);
@@ -625,6 +626,7 @@ export class ChatAreaComponent {
                 userFile: userFile ? (typeof userFile === 'string' ? userFile : userFile.name) : null 
             });
         }
+        this.refreshMessageIndices();
     }
 
     loadConversation(id) {
@@ -658,6 +660,7 @@ export class ChatAreaComponent {
         this.minimap.toggleVisibility(false);
         
         this.scrollToBottom();
+        this.refreshMessageIndices();
         if (window.innerWidth <= 768) state.isSidebarOpen = false;
     }
 
@@ -803,5 +806,14 @@ export class ChatAreaComponent {
     scrollToBottom() {
         const { chatArea } = this.elements;
         chatArea.scrollTo({ top: chatArea.scrollHeight, behavior: 'smooth' });
+    }
+
+    refreshMessageIndices() {
+        const { messagesList } = this.elements;
+        if (!messagesList) return;
+        const messages = messagesList.querySelectorAll('.message:not(#typing-indicator)');
+        messages.forEach((msgEl, index) => {
+            msgEl.setAttribute('data-msg-index', index);
+        });
     }
 }

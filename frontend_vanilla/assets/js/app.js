@@ -4,6 +4,7 @@ import { SidebarComponent } from './components/Sidebar.js';
 import { ModalComponent } from './components/Modal.js';
 import { ChatAreaComponent } from './components/ChatArea.js';
 import { StarfieldComponent } from './components/Starfield.js';
+import { SearchComponent } from './components/Search.js';
 import { state } from './core/State.js';
 import { ENDPOINTS } from './core/Config.js';
 import { ApiClient } from './core/ApiClient.js';
@@ -23,6 +24,7 @@ class App {
         this.modal = new ModalComponent();
         this.chatArea = new ChatAreaComponent();
         this.starfield = new StarfieldComponent('starfield');
+        this.search = new SearchComponent();
 
         this.initHealthCheck();
         console.log('✅ DODO AI - App Ready');
