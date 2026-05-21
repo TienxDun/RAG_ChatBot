@@ -574,6 +574,7 @@ export class ChatAreaComponent {
                         }
                     }
                     this.uiState.lastRawData = data.rawData;
+                    this.uiState.lastMarkdownText = data.text;
                     this.uiState.lastDownloadUrl = data.downloadUrl;
                     this.refreshMessageIndices();
                 },
@@ -651,6 +652,7 @@ export class ChatAreaComponent {
             const lastAiMsg = [...conversation.messages].reverse().find(m => m.role === 'ai');
             if (lastAiMsg) {
                 this.uiState.lastRawData = lastAiMsg.rawData;
+                this.uiState.lastMarkdownText = lastAiMsg.content;
                 this.uiState.lastDownloadUrl = lastAiMsg.downloadUrl;
             }
         }
@@ -739,6 +741,14 @@ export class ChatAreaComponent {
             return;
         }
 
+        // Nếu có markdownText cuối cùng, ưu tiên xuất từ markdown sang excel động
+        if (this.uiState.lastMarkdownText) {
+            await ExportService.exportToExcel({ markdownText: this.uiState.lastMarkdownText }, this.elements.exportBtn, {
+                defaultLabel: '<i class="ph-bold ph-microsoft-excel-logo"></i>'
+            });
+            return;
+        }
+
         // Nếu không có mẫu, xuất dữ liệu thô (Generic)
         await ExportService.exportToExcel(this.uiState.lastRawData, this.elements.exportBtn, {
             defaultLabel: '<i class="ph-bold ph-microsoft-excel-logo"></i>'
@@ -747,8 +757,17 @@ export class ChatAreaComponent {
 
     async _handleExportMessageExcel(btn) {
         const messageEl = btn.closest('.message');
-        const rawDataStr = messageEl?.getAttribute('data-raw');
+        const markdownText = messageEl?.getAttribute('data-markdown');
         
+        // Ưu tiên xuất từ Markdown sang Excel động
+        if (markdownText) {
+            await ExportService.exportToExcel({ markdownText }, btn, {
+                defaultLabel: '<i class="ph-duotone ph-microsoft-excel-logo"></i> Xuất Excel'
+            });
+            return;
+        }
+
+        const rawDataStr = messageEl?.getAttribute('data-raw');
         if (!rawDataStr) {
             Toast.warning("Không tìm thấy dữ liệu để xuất!");
             return;
@@ -772,6 +791,7 @@ export class ChatAreaComponent {
         landingView.classList.remove('hidden');
         chatArea.classList.add('is-landing');
         this.uiState.lastRawData = null;
+        this.uiState.lastMarkdownText = null;
         this.uiState.lastDownloadUrl = null;
         state.currentConversationId = null;
 
