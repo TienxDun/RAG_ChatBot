@@ -261,33 +261,34 @@
     transform: translateY(0);
 }
 
-/* Fast-path Toggle Widget Styling */
-.sidebar__fastpath-toggle {
+/* Settings Panel (unified controls) */
+.sidebar__settings-panel {
     padding: 0.85rem 1rem;
     border-radius: 16px;
     background: rgba(255, 255, 255, 0.45);
     border: 1px solid rgba(0, 0, 0, 0.06);
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.25rem;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.03);
     backdrop-filter: blur(10px);
     transition: all 0.3s ease;
 }
 
-[data-theme="dark"] .sidebar__fastpath-toggle {
+[data-theme="dark"] .sidebar__settings-panel {
     background: rgba(17, 24, 39, 0.55);
     border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.fastpath-toggle__header {
+.settings-panel__row {
     display: flex;
     justify-content: space-between;
     align-items: center;
     font-size: 0.75rem;
+    padding: 0.25rem 0;
 }
 
-.fastpath-toggle__title {
+.settings-panel__title {
     font-weight: 700;
     color: var(--foreground);
     display: flex;
@@ -297,9 +298,26 @@
     opacity: 0.9;
 }
 
-.fastpath-toggle__title i {
+.settings-panel__title i {
     font-size: 0.95rem;
+}
+
+.settings-panel__title .ph-lightning {
     color: #eab308; /* Amber yellow for lightning */
+}
+
+.settings-panel__title .ph-shield-warning {
+    color: var(--accent); /* Cyan for database rules */
+}
+
+.settings-panel__divider {
+    height: 1px;
+    background: rgba(0, 0, 0, 0.06);
+    margin: 0.5rem 0;
+}
+
+[data-theme="dark"] .settings-panel__divider {
+    background: rgba(255, 255, 255, 0.08);
 }
 
 /* Switch styling (iOS style) */

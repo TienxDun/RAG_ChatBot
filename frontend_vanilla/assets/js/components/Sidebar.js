@@ -38,6 +38,22 @@ export class SidebarComponent {
             });
         }
 
+        // Đăng ký và xử lý checkbox Rules
+        const rulesCheckbox = document.getElementById('rules-checkbox');
+        if (rulesCheckbox) {
+            rulesCheckbox.checked = state.isRulesEnabled;
+            rulesCheckbox.addEventListener('change', (e) => {
+                state.isRulesEnabled = e.target.checked;
+                if (window.app && window.app.toast) {
+                    window.app.toast.success(
+                        e.target.checked 
+                            ? "Đã hiển thị phần trích xuất quy tắc CSDL!" 
+                            : "Đã tắt phần trích xuất quy tắc CSDL!"
+                    );
+                }
+            });
+        }
+
         // Khởi tạo trạng thái ban đầu từ State
         this.applySidebarState();
 
@@ -50,6 +66,9 @@ export class SidebarComponent {
             if (key === 'isSidebarOpen') this.applySidebarState();
             if (key === 'isFastPathEnabled' && fastpathCheckbox) {
                 fastpathCheckbox.checked = value;
+            }
+            if (key === 'isRulesEnabled' && rulesCheckbox) {
+                rulesCheckbox.checked = value;
             }
         });
 

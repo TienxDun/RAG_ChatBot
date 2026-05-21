@@ -254,7 +254,7 @@
   },
   {
     "table": "SEW_CoefficientSize",
-    "description": "Bảng cung cấp sản lượng đạt chi tiết đến từng kích thước (size) của mã hàng theo công đoạn. Chỉ sử dụng bảng này khi câu hỏi yêu cầu phân tích/lọc chi tiết theo kích thước (size) cụ thể, hoặc khi tính toán tỷ lệ lỗi (làm mẫu số cho bảng QTY). TUYỆT ĐỐI KHÔNG sử dụng cho các câu hỏi về sản lượng, năng suất hoặc số lượng công đoạn chung mà không đề cập đến kích thước (khi đó phải dùng SEW_CoefficientStyle). !!! CẢNH BÁO TỐI QUAN TRỌNG !!!: Bảng này chứa sản lượng đạt của tất cả các công đoạn/bước sản xuất. Nếu người dùng hỏi về sản lượng đạt của một khâu cụ thể (Ví dụ: 'KCS', 'RA CHUYỀN'), BẮT BUỘC phải JOIN với bảng tbl_Steps (qua StepId = Id_cd) và lọc theo tên công đoạn ở cột cd_name (Ví dụ: s.cd_name LIKE N'KCS%'). CÔNG THỨC tỉ lệ lỗi: % = TongLoi / NULLIF(TongLoi + TongDat, 0) * 100. !!! TRÁNH NHÂN ĐÔI (DOUBLE COUNT): TUYỆT ĐỐI KHÔNG FROM QTY_MAHANG_NGAYKIEM JOIN SEW_CoefficientSize rồi SUM(SpLoi) hoặc SUM(Quantity) — mỗi dòng QTY có thể khớp nhiều dòng SEW (hoặc ngược lại) nên SUM bị phình gấp nhiều lần. Cách đúng: (1) Subquery chỉ QTY: GROUP BY LineX (và StyleID/MaHang/Ngay nếu có) → TongLoi. (2) Subquery chỉ SEW: GROUP BY LineX (và StyleId/cùng khoảng ngày DateCreate nếu QTY lọc theo ngày) → TongDat. (3) JOIN hai subquery đã gộp trên LineX. So sánh nhiều chuyền (101 vs 102): lặp cùng pattern, mỗi chuyền một hàng trong subquery, không join hai bảng gốc trước khi aggregate.",
+    "description": "Bảng cung cấp sản lượng đạt chi tiết đến từng kích thước (size) của mã hàng theo công đoạn. Chỉ sử dụng bảng này khi câu hỏi yêu cầu phân tích/lọc chi tiết theo kích thước (size) cụ thể, hoặc khi tính toán tỷ lệ lỗi (làm mẫu số cho bảng QTY). TUYỆT ĐỐI KHÔNG sử dụng cho các câu hỏi về sản lượng, năng suất hoặc số lượng công đoạn chung mà không đề cập đến kích thước (khi đó phải dùng SEW_CoefficientStyle). !!! CẢNH BÁO TỐI QUAN TRỌNG !!!: Bảng này chứa sản lượng đạt của tất cả các công đoạn/bước sản xuất. Nếu người dùng hỏi về sản lượng đạt của một khâu cụ thể (Ví dụ: 'KCS', 'RA CHUYỀN'), BẮT BUỘC phải JOIN với bảng tbl_Steps (qua StepId = Id_cd) và lọc theo tên công đoạn ở cột cd_name (Ví dụ: s.cd_name LIKE N'KCS%'). CÔNG THỨC tỉ lệ lỗi: % = TongLoi / NULLIF(TongLoi + TongDat, 0) * 100. CÔNG THỨC tính Năng suất/Sản lượng thông thường: sử dụng SUM(Quantity) cho cả bảng SEW_CoefficientStyle hoặc SEW_CoefficientSize. !!! TRÁNH NHÂN ĐÔI (DOUBLE COUNT): TUYỆT ĐỐI KHÔNG FROM QTY_MAHANG_NGAYKIEM JOIN SEW_CoefficientSize rồi SUM(SpLoi) hoặc SUM(Quantity) — mỗi dòng QTY có thể khớp nhiều dòng SEW (hoặc ngược lại) nên SUM bị phình gấp nhiều lần. Cách đúng: (1) Subquery chỉ QTY: GROUP BY LineX (và StyleID/MaHang/Ngay nếu có) → TongLoi. (2) Subquery chỉ SEW: GROUP BY LineX (và StyleId/cùng khoảng ngày DateCreate nếu QTY lọc theo ngày) → TongDat. (3) JOIN hai subquery đã gộp trên LineX. So sánh nhiều chuyền (101 vs 102): lặp cùng pattern, mỗi chuyền một hàng trong subquery, không join hai bảng gốc trước khi aggregate.",
     "columns": [
       {
         "name": "Pid",
@@ -329,7 +329,7 @@
       {
         "name": "NVKiemKCS",
         "data_type": "nvarchar",
-        "description": "Tên nhân viên KCS ghi nhận sản lượng tại công đoạn. Giá trị lưu theo định dạng 'KCS [Tên]' hoặc 'Kcs [Tên]', ví dụ: N'KCS COSMOS'. Lọc bằng LIKE N'%[Tên]%'. (Sản lượng đạt)."
+        "description": "Tên nhân viên KCS ghi nhận sản lượng tại công đoạn. Giá trị lưu theo định dạng 'KCS [Tên]' hoặc 'Kcs [Tên]', ví dụ: N'KCS COSMOS', N'KCS PANSY'. QUY TẮC LỌC QUAN TRỌNG: Khi người dùng nhắc đến tên người kiểm KCS, BẮT BUỘC dùng so sánh bằng tuyệt đối (=) với chuỗi đầy đủ bao gồm tiền tố 'KCS ' (ví dụ: người dùng nói 'PANSY' hoặc 'KCS PANSY' → dùng NVKiemKCS = N'KCS PANSY'). TUYỆT ĐỐI KHÔNG dùng LIKE hay wildcard % vì hệ thống lưu tên đầy đủ, so sánh = cho kết quả chính xác và nhanh hơn."
       },
       {
         "name": "CheckType",
@@ -496,7 +496,7 @@
       {
         "name": "NVKiem",
         "data_type": "nvarchar",
-        "description": "Tên nhân viên KCS thực hiện ghi nhận lỗi (Tử số của tỉ lệ lỗi). Giá trị lưu theo định dạng 'KCS [Tên]' hoặc 'Kcs [Tên]', ví dụ: N'KCS Cherry', N'KCS PANSY'. Khi lọc theo tên nhân viên, phải dùng LIKE N'%[Tên]%' để tìm kiếm không phân biệt chữ hoa thường."
+        "description": "Tên nhân viên KCS thực hiện ghi nhận lỗi (Tử số của tỉ lệ lỗi). Giá trị lưu theo định dạng 'KCS [Tên]' hoặc 'Kcs [Tên]', ví dụ: N'KCS COSMOS', N'KCS PANSY'. QUY TẮC LỌC QUAN TRỌNG: Khi người dùng nhắc đến tên người kiểm KCS, BẮT BUỘC dùng so sánh bằng tuyệt đối (=) với chuỗi đầy đủ bao gồm tiền tố 'KCS ' (ví dụ: người dùng nói 'PANSY' hoặc 'KCS PANSY' → dùng NVKiemKCS = N'KCS PANSY'). TUYỆT ĐỐI KHÔNG dùng LIKE hay wildcard % vì hệ thống lưu tên đầy đủ, so sánh = cho kết quả chính xác và nhanh hơn."
       },
       {
         "name": "LanKiem",
@@ -662,7 +662,7 @@
       {
         "name": "NVKiem",
         "data_type": "nvarchar",
-        "description": "Tên nhân viên KCS thực hiện ghi nhận lỗi. Giá trị lưu theo định dạng 'KCS [Tên]' hoặc 'Kcs [Tên]', ví dụ: N'KCS Cherry', N'KCS PANSY'. Khi lọc theo tên nhân viên, phải dùng LIKE N'%[Tên]%' để tìm kiếm không phân biệt chữ hoa thường."
+        "description": "Tên nhân viên KCS thực hiện ghi nhận lỗi. Giá trị lưu theo định dạng 'KCS [Tên]' hoặc 'Kcs [Tên]', ví dụ: N'KCS COSMOS', N'KCS PANSY'. QUY TẮC LỌC QUAN TRỌNG: Khi người dùng nhắc đến tên người kiểm KCS, BẮT BUỘC dùng so sánh bằng tuyệt đối (=) với chuỗi đầy đủ bao gồm tiền tố 'KCS ' (ví dụ: người dùng nói 'PANSY' hoặc 'KCS PANSY' → dùng NVKiemKCS = N'KCS PANSY'). TUYỆT ĐỐI KHÔNG dùng LIKE hay wildcard % vì hệ thống lưu tên đầy đủ, so sánh = cho kết quả chính xác và nhanh hơn."
       },
       {
         "name": "LanKiem",

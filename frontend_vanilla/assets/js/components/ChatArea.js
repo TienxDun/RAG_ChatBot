@@ -204,6 +204,7 @@ export class ChatAreaComponent {
                 break;
             }
             case 'copy-rag-trace': this._copyRagTrace(btn); break;
+            case 'copy-rules': this._copyRules(btn); break;
             case 'export-msg-excel': this._handleExportMessageExcel(btn); break;
         }
     }
@@ -711,6 +712,16 @@ export class ChatAreaComponent {
         
         const fullTrace = steps.join('\n\n---\n\n');
         InteractionService.copyToClipboard(fullTrace, btn);
+    }
+
+    _copyRules(btn) {
+        const panel = btn.closest('.rag-step__panel');
+        if (!panel) return;
+        const contentEl = panel.querySelector('.rag-step__content-inner');
+        if (contentEl) {
+            const text = contentEl.innerText.trim();
+            InteractionService.copyToClipboard(text, btn);
+        }
     }
 
     async handleExportExcel() {

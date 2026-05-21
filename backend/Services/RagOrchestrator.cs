@@ -22,7 +22,7 @@ public sealed class RagOrchestrator
     }
 
     // Quy trình điều phối RAG chính: Chuyển đổi vector, tìm kiếm schema từ Qdrant, lập kế hoạch, sinh và chạy SQL, tổng hợp câu trả lời cuối cùng.
-    public async Task<ChatResponse> ProcessQueryAsync(string userQuery, string? collectionName, Func<RagStep, Task> onStep, CancellationToken ct, bool enableFastPath = true, bool isExcelTemplate = false)
+    public async Task<ChatResponse> ProcessQueryAsync(string userQuery, string? collectionName, Func<RagStep, Task> onStep, CancellationToken ct, bool enableFastPath = true, bool isExcelTemplate = false, bool enableRulesExtraction = true)
     {
         var steps = new List<RagStep>();
 
@@ -60,6 +60,27 @@ public sealed class RagOrchestrator
         var step2 = new RagStep("Schema Retrieval", step2Content);
         steps.Add(step2);
         await onStep(step2);
+
+        // Khởi động task trích xuất các quy tắc, công thức và cảnh báo CSDL song song
+        Task<string>? rulesTask = null;
+        if (schemaContexts.Count > 0 && enableRulesExtraction)
+        {
+            var rulesPrompt = $@"Bạn là chuyên gia phân tích cấu trúc dữ liệu. 
+            Dưới đây là cấu trúc CSDL được trích xuất từ hệ thống:
+            {schemaInfo}
+
+            NHIỆM VỤ:
+            Hãy đọc kỹ cấu trúc trên và trích xuất/liệt kê toàn bộ các:
+            1. Công thức tính toán (Doanh thu, Tỉ lệ lỗi, Sản lượng đạt...).
+            2. Cảnh báo quan trọng (Tránh nhân đôi dòng, Tránh nhầm lẫn cột/bảng...).
+            3. Quy tắc lọc & So sánh (Bắt buộc dùng CAST, LIKE, thêm tiền tố 'SIZE_', viết hoa/thường của tên cột...).
+
+            Yêu cầu trình bày:
+            - Trình bày ngắn gọn, rõ ràng bằng các gạch đầu dòng Markdown tiếng Việt.
+            - Sử dụng các ký hiệu cảnh báo như ⚠️, 📌, ⚙️ để người dùng dễ theo dõi.";
+
+            rulesTask = _aiClient.GenerateContentAsync(rulesPrompt, ct);
+        }
 
         var now = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(7));
         var currentTimeStr = now.ToString("dd/MM/yyyy HH:mm");
@@ -153,6 +174,22 @@ public sealed class RagOrchestrator
             }
         }
 
+        // Await và hiển thị các quy tắc/công thức CSDL đã trích xuất
+        if (rulesTask != null)
+        {
+            try
+            {
+                var rulesText = await rulesTask;
+                var rulesStep = new RagStep("Database Rules & Highlights", rulesText);
+                steps.Add(rulesStep);
+                await onStep(rulesStep);
+            }
+            catch (Exception ex)
+            {
+                await onStep(new RagStep("Database Rules & Highlights", $"Không thể trích xuất quy tắc: {ex.Message}"));
+            }
+        }
+
         // Nếu ngoài phạm vi hoặc mơ hồ, bỏ qua bước thực thi SQL
         var workingContext = new StringBuilder();
         string lastStepJson = string.Empty;
@@ -218,6 +255,7 @@ public sealed class RagOrchestrator
  
                         3. TRÁNH NHẦM LẪN SCHEMA: Phân biệt rõ ràng giữa cột ID liên kết (ví dụ: SizeId, StyleId, BrandId) và cột hiển thị tên (ví dụ: Size/SizeName, Style/StyleName). Tuyệt đối không dùng chuỗi ký tự (Text) để so sánh trực tiếp với cột ID dạng số và ngược lại.
                            - PHÂN BIỆT STYLEID VÀ MAHANG: Nếu mã hàng cần tìm chứa dấu gạch dưới '_' (Ví dụ: '111143_181_H2Z9'), đây là mã kiểu dáng hệ thống, BẮT BUỘC dùng cột StyleID (hoặc StyleId / StypeId tùy theo bảng) làm điều kiện lọc. Chỉ dùng cột MaHang khi mã hàng chứa khoảng trắng hoặc dấu gạch ngang '-' (Ví dụ: 'SA-893-208-133'). Tuyệt đối không lọc cột MaHang với chuỗi chứa dấu gạch dưới '_'.
+                           - PHÂN BIỆT NĂNG SUẤT VÀ SẢN LƯỢNG ĐẠT: Nếu câu hỏi chỉ hỏi ""năng suất"", ""sản lượng"", ""cao nhất"", ""đỉnh cao"" hoặc tương đương mà KHÔNG nhắc rõ ""sản lượng đạt"", ""mẫu số"", ""tỷ lệ lỗi"", thì khi truy vấn SEW_CoefficientSize bắt buộc dùng SUM(Quantity), không được cộng SuaDat. Chỉ dùng SUM(Quantity + SuaDat) khi câu hỏi nói rõ ""sản lượng đạt"" hoặc khi tính mẫu số cho tỷ lệ lỗi.
 
                         4. ĐỊNH DẠNG NGÀY THÁNG & LỌC DATE: Khi so sánh ngày tháng trên các cột có kiểu DATETIME chứa cả giờ phút giây (Ví dụ: NgayKiem, DateCreate, NgayTao, TuNgay, DenNgay...):
                            - BẮT BUỘC dùng hàm ép kiểu `CAST(cột AS DATE)` khi so sánh hoặc sử dụng toán tử BETWEEN (Ví dụ: `WHERE CAST(A.NgayKiem AS DATE) BETWEEN '2026-01-01' AND '2026-03-31'`).
@@ -231,7 +269,10 @@ public sealed class RagOrchestrator
                             - !!! CẤM TỰ Ý GIỚI HẠN SỐ DÒNG !!!: Nếu người dùng KHÔNG nêu rõ số lượng cần lấy (ví dụ: 'Top 5', 'lấy 3 kết quả'), TUYỆT ĐỐI KHÔNG được tự ý thêm bất kỳ mệnh đề giới hạn hàng nào như TOP, LIMIT, FETCH FIRST vào SQL. Câu truy vấn phải trả về TOÀN BỘ kết quả phù hợp với điều kiện lọc.
                            - Khi tính toán sự CHÊNH LỆCH (sản lượng, năng suất, số lỗi...) giữa hai đối tượng/công đoạn/chuyền/ngày: BẮT BUỘC bọc phép toán trừ trong hàm trị tuyệt đối `ABS()` (Ví dụ: `ABS(A - B)`) để đảm bảo kết quả khoảng cách chênh lệch trả về luôn là số dương, tuyệt đối không trả về số âm.
  
-                        7. TUYỆT ĐỐI CẤM PHÁN ĐOÁN/BỊA MÃ LỌC (CHỐNG ẢO GIÁC): Khi lọc điều kiện (WHERE) cho các thông tin như tên lỗi, tên màu, tên công đoạn, tên khách hàng: BẮT BUỘC dùng toán tử LIKE kết hợp với tiền tố N. TUYỆT ĐỐI CẤM tự ý phỏng đoán và điền trực tiếp mã định danh.
+                        7. BẮT BUỘC DÙNG TIỀN TỐ N CHO CHUỖI CÓ DẤU TIẾNG VIỆT & CHỐNG ẢO GIÁC:
+                           - BẮT BUỘC thêm tiền tố N đứng trước các hằng chuỗi THỰC SỰ chứa ký tự tiếng Việt có dấu (Unicode) xuất hiện trong câu lệnh SQL (bao gồm hằng chuỗi mô tả/dịch nghĩa trong SELECT, điều kiện lọc trong WHERE, biểu thức CASE WHEN, ORDER BY...). Ví dụ: N'Bảng danh mục khách hàng...', N'Lỗi may', N'Đang thực hiện'.
+                           - TUYỆT ĐỐI KHÔNG thêm tiền tố N đứng trước các hằng chuỗi thuần ASCII không chứa dấu tiếng Việt (Ví dụ: mã lỗi 'A1', mã chuyền '105', mã khách hàng 'VKVN-01', tên bảng/mã hệ thống 'DIC_KHACHHANG', 'ERP_LENHSX', 'TenBang', 'MoTa'). Giữ nguyên định dạng chuỗi thường 'string' đối với các giá trị này để đảm bảo đúng kiểu dữ liệu của cột trong DB.
+                           - Khi lọc điều kiện (WHERE) cho các thông tin như tên lỗi, tên màu, tên công đoạn, tên khách hàng: BẮT BUỘC dùng toán tử LIKE kết hợp với tiền tố N nếu chuỗi lọc chứa tiếng Việt. TUYỆT ĐỐI CẤM tự ý phỏng đoán và điền trực tiếp mã định danh.
                            - ĐỊNH DẠNG LIKE: Phải đọc kỹ và tuân thủ tuyệt đối cấu trúc toán tử LIKE được mô tả riêng cho từng cột trong schema (Ví dụ: đối với cd_name trong tbl_Steps hoặc TenLoi trong QTY_NHOMLOI_CHITIET, mô tả cấm đặt '%' ở đầu để tránh gom nhầm dữ liệu của công đoạn/lỗi khác, do đó chỉ được dùng LIKE N'từ khóa%').
                            - CẤM DÙNG PHÉP SO SÁNH BẰNG (=): Đối với các cột như cd_name, TenLoi, GhiChu, MaMau, khi so sánh (bao gồm cả trong mệnh đề WHERE lẫn trong biểu thức CASE WHEN), TUYỆT ĐỐI KHÔNG được sử dụng toán tử '='. Bắt buộc sử dụng LIKE (Ví dụ: viết `CASE WHEN s.cd_name LIKE N'BTP%' THEN Quantity ELSE 0 END` và `WHERE s.cd_name LIKE N'BTP%'`).
                            - ĐỐI VỚI DẤU TIẾNG VIỆT: Hãy giữ nguyên trạng thái có dấu hoặc không dấu của từ khóa do người dùng cung cấp (Ví dụ: người dùng nhập 'tui xeo' thì dùng N'tui xeo%' hoặc N'TUI XEO%', TUYỆT ĐỐI KHÔNG tự ý suy diễn thêm dấu tiếng Việt thành N'Tui xèo%' vì cơ sở dữ liệu thực tế có thể lưu không dấu viết hoa). Nếu cần thiết, bạn có thể tạo điều kiện OR để tìm cả 2 phiên bản (Ví dụ: WHERE cd_name LIKE N'tui xeo%' OR cd_name LIKE N'túi xèo%').
@@ -313,7 +354,8 @@ public sealed class RagOrchestrator
             4. CẢNH BÁO NÉN DỮ LIỆU: Nếu trong dữ liệu có dòng 'WarningRules: DỮ LIỆU ĐÃ BỊ THU GỌN', bạn phải hiểu rằng danh sách hiển thị chỉ là 5 dòng mẫu. Tuyệt đối không tự đếm số dòng trong danh sách mẫu đó để đưa vào câu trả lời. Hãy sử dụng giá trị tổng số dòng 'TotalRows' hoặc các kết quả tính toán tổng hợp (SUM, COUNT) đã được tính sẵn bởi câu lệnh SQL.
             5. Trình bày câu trả lời chuyên nghiệp bằng Markdown:
                - Sử dụng ### 💠 Tổng quan: Câu trả lời ngắn gọn, trực diện, nêu rõ ngày tháng.
-                 Đặc biệt: Nếu câu hỏi ban đầu mơ hồ/thiếu thông tin gom nhóm hoặc thống kê cụ thể, hãy dựa vào phần 'Giả định/Lý do lập kế hoạch ban đầu' để thuyết minh/giải thích rõ ràng cho người dùng biết hệ thống đã tự động quyết định chọn chiều phân tích, bộ lọc hoặc gom nhóm nào để truy xuất dữ liệu.
+                 * ĐẶC BIỆT QUAN TRỌNG: Khi dữ liệu truy vấn được chứa nhiều thông tin chi tiết (ví dụ: danh sách nhiều chuyền sản xuất, nhiều mã hàng, nhiều ngày...), bạn BẮT BUỘC phải tự động tính toán tổng hợp các số liệu toàn cục để người dùng nắm bắt nhanh ngay trong phần này (ví dụ: tổng cộng dồn của tất cả các dòng, giá trị trung bình nếu có ý nghĩa). Tuy nhiên, TUYỆT ĐỐI KHÔNG liệt kê lại tên cụ thể và số liệu chi tiết của từng đối tượng y hệt như trong bảng bên dưới (tránh lặp lại thông tin thừa thãi). Thay vào đó, chỉ nhận xét ngắn gọn xu hướng, tỷ trọng % hoặc chỉ ra đối tượng nổi bật nhất/thấp nhất dưới dạng đúc rút thông tin (insight) nhanh (ví dụ: ""chuyền 109 đóng góp lớn nhất với hơn 30% tổng sản lượng"", hoặc ""lỗi Đứt chỉ chiếm tỷ trọng lớn nhất với hơn 50% tổng số lỗi""). Các phép tính và tỷ lệ phải chính xác 100% dựa trên dữ liệu thực tế.
+                 * Nếu câu hỏi ban đầu mơ hồ/thiếu thông tin gom nhóm hoặc thống kê cụ thể, hãy dựa vào phần 'Giả định/Lý do lập kế hoạch ban đầu' để thuyết minh/giải thích rõ ràng cho người dùng biết hệ thống đã tự động quyết định chọn chiều phân tích, bộ lọc hoặc gom nhóm nào để truy xuất dữ liệu.
                - Sử dụng ### 📋 Chi tiết: Dùng bảng Markdown (tiếng Việt) nếu có danh sách.
                - Định dạng số: Phân cách hàng nghìn (ví dụ 1.234.567).
                - Đưa ra 3 câu hỏi gợi ý liên quan.
@@ -325,6 +367,9 @@ public sealed class RagOrchestrator
             - Chỉ điền dữ liệu vào `excelData` khi bạn tự tính toán/tổng hợp ra một bảng số liệu tóm tắt mới (ví dụ: bảng so sánh, bảng tổng số lượng theo chuyền tự tính, bảng KPI...) mà không thể xuất trực tiếp từ database gốc được. Khi đó, `columnMapping` để trống `{{}}`.
 
             YÊU CẦU JSON TRẢ VỀ:
+            - Định dạng đầu ra BẮT BUỘC phải là một đối tượng JSON hợp lệ như cấu trúc dưới đây.
+            - Quan trọng: Hãy ESCAPE (thêm dấu gạch chéo ngược) cho tất cả các dấu nháy kép bên trong chuỗi Markdown của trường ""answer"" (ví dụ: viết là ""khối lượng công việc"" thay vì ""khối lượng công việc"") để tránh làm hỏng cấu trúc JSON.
+            
             {{
                 ""answer"": ""Nội dung Markdown"",
                 ""suggestions"": [""gợi ý 1"", ""gợi ý 2"", ""gợi ý 3""],
@@ -367,7 +412,59 @@ public sealed class RagOrchestrator
                     rawDataForExport = JsonSerializer.Serialize(friendlyRows, new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
                 }
             }
-        } catch { finalText = rawResponse; }
+        } 
+        catch 
+        { 
+            // Fallback: Nếu JSON lỗi do chứa unescaped quotes hoặc sai cú pháp, thử phân tích thủ công bằng Regex
+            if (TryExtractInvalidJsonFields(rawResponse, out var extractedAnswer, out var extractedSuggestions, out var extractedExcelData, out var extractedColumnMapping))
+            {
+                finalText = extractedAnswer;
+                suggestions = extractedSuggestions;
+
+                // Xử lý dữ liệu Excel nếu có
+                if (!string.IsNullOrEmpty(extractedExcelData))
+                {
+                    try
+                    {
+                        var excelProp = JsonSerializer.Deserialize<JsonElement>(extractedExcelData);
+                        if (excelProp.ValueKind == JsonValueKind.Array && excelProp.GetArrayLength() > 0)
+                        {
+                            rawDataForExport = JsonSerializer.Serialize(excelProp, new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
+                        }
+                    }
+                    catch { }
+                }
+
+                // Xử lý columnMapping nếu có
+                if (string.IsNullOrEmpty(extractedExcelData) && !string.IsNullOrEmpty(extractedColumnMapping) && lastDataTable != null)
+                {
+                    try
+                    {
+                        var mapping = JsonSerializer.Deserialize<Dictionary<string, string>>(extractedColumnMapping);
+                        if (mapping != null && mapping.Count > 0)
+                        {
+                            var friendlyRows = new List<Dictionary<string, object>>();
+                            foreach (DataRow row in lastDataTable.Rows)
+                            {
+                                var friendlyRow = new Dictionary<string, object>();
+                                foreach (DataColumn col in lastDataTable.Columns)
+                                {
+                                    string friendlyHeader = mapping.ContainsKey(col.ColumnName) ? mapping[col.ColumnName] : col.ColumnName;
+                                    friendlyRow[friendlyHeader] = row[col] == DBNull.Value ? null! : row[col];
+                                }
+                                friendlyRows.Add(friendlyRow);
+                            }
+                            rawDataForExport = JsonSerializer.Serialize(friendlyRows, new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
+                        }
+                    }
+                    catch { }
+                }
+            }
+            else
+            {
+                finalText = rawResponse;
+            }
+        }
 
         return new ChatResponse(finalText, steps, suggestions, rawDataForExport, lastDataTable);
     }
@@ -467,5 +564,109 @@ public sealed class RagOrchestrator
 
         // Mặc định: Chỉ những câu hỏi ngắn tra cứu tĩnh (< 80 ký tự) mới được đi Fast-path
         return query.Length < 80;
+    }
+
+    private static string UnescapeString(string raw)
+    {
+        try
+        {
+            return System.Text.RegularExpressions.Regex.Unescape(raw);
+        }
+        catch
+        {
+            return raw.Replace("\\n", "\n")
+                      .Replace("\\r", "\r")
+                      .Replace("\\t", "\t")
+                      .Replace("\\\"", "\"")
+                      .Replace("\\\\", "\\");
+        }
+    }
+
+    private static bool TryExtractInvalidJsonFields(string json, out string answer, out List<string> suggestions, out string? excelData, out string? columnMapping)
+    {
+        answer = "";
+        suggestions = new List<string>();
+        excelData = null;
+        columnMapping = null;
+
+        if (string.IsNullOrWhiteSpace(json)) return false;
+
+        // Làm sạch tag markdown code block json nếu AI bọc nó
+        var cleanJson = json.Replace("```json", "").Replace("```", "").Trim();
+
+        try
+        {
+            // 1. Trích xuất answer
+            // Regex này tìm từ "answer" : " đến dấu nháy kép đóng ngay trước dấu phẩy và từ khóa tiếp theo.
+            var answerMatch = System.Text.RegularExpressions.Regex.Match(cleanJson, @"""answer""\s*:\s*""([\s\S]*?)""\s*,\s*""(?:suggestions|excelData|columnMapping)""");
+            if (answerMatch.Success)
+            {
+                answer = UnescapeString(answerMatch.Groups[1].Value);
+            }
+            else
+            {
+                // Fallback trích xuất thủ công nếu regex trên không khớp
+                int answerKeyIdx = cleanJson.IndexOf("\"answer\"");
+                if (answerKeyIdx >= 0)
+                {
+                    int startQuoteIdx = cleanJson.IndexOf('"', answerKeyIdx + 8);
+                    if (startQuoteIdx >= 0)
+                    {
+                        // Tìm vị trí của từ khóa tiếp theo
+                        int nextKeyIdx = cleanJson.IndexOf("\"suggestions\"");
+                        if (nextKeyIdx < 0) nextKeyIdx = cleanJson.IndexOf("\"excelData\"");
+                        if (nextKeyIdx < 0) nextKeyIdx = cleanJson.IndexOf("\"columnMapping\"");
+
+                        if (nextKeyIdx > startQuoteIdx)
+                        {
+                            // Tìm dấu nháy kép đóng cuối cùng ngay trước nextKeyIdx
+                            int endQuoteIdx = cleanJson.LastIndexOf('"', nextKeyIdx);
+                            // Lùi lại để đảm bảo đó là dấu nháy đóng chuỗi (bỏ qua khoảng trắng, dấu phẩy)
+                            while (endQuoteIdx > startQuoteIdx && cleanJson[endQuoteIdx] != '"')
+                            {
+                                endQuoteIdx--;
+                            }
+                            if (endQuoteIdx > startQuoteIdx)
+                            {
+                                string rawAnswer = cleanJson.Substring(startQuoteIdx + 1, endQuoteIdx - startQuoteIdx - 1);
+                                answer = UnescapeString(rawAnswer);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 2. Trích xuất suggestions
+            var suggestionsMatch = System.Text.RegularExpressions.Regex.Match(cleanJson, @"""suggestions""\s*:\s*\[([\s\S]*?)\]");
+            if (suggestionsMatch.Success)
+            {
+                var sugContent = suggestionsMatch.Groups[1].Value;
+                var matches = System.Text.RegularExpressions.Regex.Matches(sugContent, @"""([\s\S]*?)""");
+                foreach (System.Text.RegularExpressions.Match m in matches)
+                {
+                    suggestions.Add(UnescapeString(m.Groups[1].Value));
+                }
+            }
+
+            // 3. Trích xuất excelData
+            var excelDataMatch = System.Text.RegularExpressions.Regex.Match(cleanJson, @"""excelData""\s*:\s*(\[[\s\S]*?\])");
+            if (excelDataMatch.Success)
+            {
+                excelData = excelDataMatch.Groups[1].Value;
+            }
+
+            // 4. Trích xuất columnMapping
+            var columnMappingMatch = System.Text.RegularExpressions.Regex.Match(cleanJson, @"""columnMapping""\s*:\s*(\{[\s\S]*?\})");
+            if (columnMappingMatch.Success)
+            {
+                columnMapping = columnMappingMatch.Groups[1].Value;
+            }
+
+            return !string.IsNullOrEmpty(answer);
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

@@ -42,6 +42,7 @@ export class MessageRenderer {
                 'vector': 'ph-file-search',
                 'retrieval': 'ph-magnifying-glass',
                 'schema': 'ph-database',
+                'rules': 'ph-shield-warning',
                 'sql': 'ph-code-block',
                 'execution': 'ph-code-block',
                 'healing': 'ph-magic-wand',
@@ -52,18 +53,29 @@ export class MessageRenderer {
             return iconMap[key] || 'ph-lightning';
         };
 
-        return steps.map((step, idx) => `
+        return steps.map((step, idx) => {
+            const isRules = step.title.toLowerCase().includes('rules');
+            const panelClass = isRules ? 'rag-step__panel rag-step__panel--rules' : 'rag-step__panel';
+            const dotClass = isRules ? 'rag-step__dot rag-step__dot--rules' : 'rag-step__dot';
+            return `
             <div class="rag-step animate-fade-in" style="animation-delay: ${idx * 0.05}s">
-                <div class="rag-step__dot"></div>
-                <div class="rag-step__panel">
+                <div class="${dotClass}"></div>
+                <div class="${panelClass}">
                     <div class="rag-step__title">
-                        <i class="ph-duotone ${getStepIcon(step.title)}"></i>
-                        ${step.title}
+                        <span class="rag-step__title-text" style="display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="ph-duotone ${getStepIcon(step.title)}"></i>
+                            ${step.title}
+                        </span>
+                        ${isRules ? `
+                        <button class="rag-step__copy-rules" data-action="copy-rules" title="Copy rules">
+                            <i class="ph ph-copy"></i>
+                        </button>
+                        ` : ''}
                     </div>
                     <div class="rag-step__content-inner text-sm opacity-80">${this.formatRagStepContent(step.content)}</div>
                 </div>
             </div>
-        `).join('');
+        `}).join('');
     }
 
     static renderRagSteps(steps, isStreaming = false) {

@@ -20,6 +20,7 @@ public static class ChatEndpoints
         string? collectionName = null;
         IFormFile? file = null;
         bool fastPathEnabled = true;
+        bool rulesEnabled = true;
 
         // Hỗ trợ đọc cả JSON (chat bình thường) và Form (khi có upload file Excel)
         if (context.Request.HasFormContentType)
@@ -32,6 +33,10 @@ public static class ChatEndpoints
             {
                 fastPathEnabled = fpVal;
             }
+            if (form.TryGetValue("rulesEnabled", out var reStr) && bool.TryParse(reStr, out var reVal))
+            {
+                rulesEnabled = reVal;
+            }
         }
         else if (context.Request.HasJsonContentType())
         {
@@ -41,6 +46,10 @@ public static class ChatEndpoints
             if (json.TryGetProperty("fastPath", out var fpProp) && (fpProp.ValueKind == JsonValueKind.True || fpProp.ValueKind == JsonValueKind.False))
             {
                 fastPathEnabled = fpProp.GetBoolean();
+            }
+            if (json.TryGetProperty("rulesEnabled", out var reProp) && (reProp.ValueKind == JsonValueKind.True || reProp.ValueKind == JsonValueKind.False))
+            {
+                rulesEnabled = reProp.GetBoolean();
             }
         }
 
@@ -94,7 +103,7 @@ public static class ChatEndpoints
                 var response = await orchestrator.ProcessQueryAsync(message, collectionName, async (step) => 
                 {
                     await SendEventAsync(new { type = "step", step });
-                }, ct, fastPathEnabled);
+                }, ct, fastPathEnabled, false, rulesEnabled);
 
                 await SendEventAsync(new { 
                     type = "final", 

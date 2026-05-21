@@ -13,7 +13,8 @@ class State {
             isUploading: false,
             currentConversationId: null,
             isBackendOnline: true,
-            isFastPathEnabled: localStorage.getItem('fastpath_enabled') !== 'false'
+            isFastPathEnabled: localStorage.getItem('fastpath_enabled') !== 'false',
+            isRulesEnabled: localStorage.getItem('rules_enabled') !== 'false'
         };
         this._listeners = [];
         this._saveDebounceTimer = null;
@@ -129,6 +130,13 @@ class State {
         this._state.isFastPathEnabled = value;
         localStorage.setItem('fastpath_enabled', value ? 'true' : 'false');
         this._notify('isFastPathEnabled', value);
+    }
+
+    get isRulesEnabled() { return this._state.isRulesEnabled; }
+    set isRulesEnabled(value) {
+        this._state.isRulesEnabled = value;
+        localStorage.setItem('rules_enabled', value ? 'true' : 'false');
+        this._notify('isRulesEnabled', value);
     }
 
     get selectedFiles() { return this._state.selectedFiles; }

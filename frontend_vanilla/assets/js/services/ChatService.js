@@ -56,13 +56,15 @@ export class ChatService {
 
     static _prepareBody(text, file, collectionName) {
         const isFastPath = state.isFastPathEnabled;
+        const isRulesEnabled = state.isRulesEnabled;
         if (!file) {
-            return JSON.stringify({ message: text, collectionName, fastPath: isFastPath });
+            return JSON.stringify({ message: text, collectionName, fastPath: isFastPath, rulesEnabled: isRulesEnabled });
         }
         const formData = new FormData();
         formData.append('message', text);
         formData.append('file', file);
         formData.append('fastPath', isFastPath.toString());
+        formData.append('rulesEnabled', isRulesEnabled.toString());
         if (collectionName) formData.append('collectionName', collectionName);
         return formData;
     }

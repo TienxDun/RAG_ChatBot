@@ -48,15 +48,26 @@
         
         <div class="sidebar__footer">
 
-            <!-- Fast-path Toggle Widget -->
-            <div class="sidebar__fastpath-toggle">
-                <div class="fastpath-toggle__header">
-                    <span class="fastpath-toggle__title">
+            <!-- Settings Panel -->
+            <div class="sidebar__settings-panel">
+                <div class="settings-panel__row">
+                    <span class="settings-panel__title">
                         <i class="ph-bold ph-lightning"></i>
                         <span>Tối ưu Fast-path</span>
                     </span>
                     <label class="switch">
                         <input type="checkbox" id="fastpath-checkbox" checked>
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <div class="settings-panel__divider"></div>
+                <div class="settings-panel__row">
+                    <span class="settings-panel__title">
+                        <i class="ph-bold ph-shield-warning"></i>
+                        <span>Hiện quy tắc CSDL</span>
+                    </span>
+                    <label class="switch">
+                        <input type="checkbox" id="rules-checkbox" checked>
                         <span class="slider round"></span>
                     </label>
                 </div>

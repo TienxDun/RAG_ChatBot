@@ -152,6 +152,7 @@
 .rag-step__title {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 0.5rem;
     font-size: 0.7rem;
     font-weight: 800;
@@ -159,6 +160,31 @@
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin-bottom: 0.5rem;
+}
+
+.rag-step__copy-rules {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
+    color: var(--accent);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    opacity: 0.75;
+}
+
+.rag-step__copy-rules:hover {
+    background: color-mix(in srgb, var(--accent) 18%, transparent);
+    opacity: 1;
+    transform: scale(1.05);
+}
+
+.rag-step__copy-rules i {
+    font-size: 0.85rem;
 }
 
 /* Schema Table Styling inside RAG Steps */
@@ -246,3 +272,89 @@
 .rag-step__content-inner p {
     margin: 0.25rem 0;
 }
+
+/* Custom rules step styling (Accent color / Cyan) */
+.rag-step__dot--rules {
+    position: absolute;
+    left: 0;
+    top: 2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--background);
+    border: 3px solid var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: translateX(-50%);
+    z-index: 2;
+    box-shadow: 0 0 0 4px var(--background);
+}
+
+.rag-step__dot--rules::after {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+}
+
+.rag-step__panel--rules {
+    background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 5%, transparent) 0%, var(--glass-bg) 100%) !important;
+    border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent) !important;
+    box-shadow: 0 8px 32px 0 color-mix(in srgb, var(--accent) 8%, transparent) !important;
+}
+
+.rag-step__panel--rules .rag-step__title {
+    color: var(--accent) !important;
+}
+
+.rag-step__panel--rules .rag-step__content-inner {
+    color: var(--foreground);
+    max-height: 180px;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+    scrollbar-width: thin;
+}
+
+.rag-step__panel--rules .rag-step__content-inner::-webkit-scrollbar {
+    width: 4px;
+}
+
+.rag-step__panel--rules .rag-step__content-inner::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.rag-step__panel--rules .rag-step__content-inner::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--accent) 30%, transparent);
+    border-radius: 4px;
+}
+
+.rag-step__panel--rules .rag-step__content-inner::-webkit-scrollbar-thumb:hover {
+    background: var(--accent);
+}
+
+/* Custom bullets inside rules content */
+.rag-step__panel--rules ul {
+    list-style-type: none;
+    padding-left: 0 !important;
+    margin: 0.5rem 0 !important;
+}
+
+.rag-step__panel--rules li {
+    position: relative;
+    padding-left: 1.25rem;
+    margin-bottom: 0.6rem;
+    line-height: 1.5;
+}
+
+.rag-step__panel--rules li::before {
+    content: "•";
+    position: absolute;
+    left: 0.25rem;
+    color: var(--accent);
+    font-weight: bold;
+    font-size: 1.1rem;
+    top: -0.1rem;
+}
+
