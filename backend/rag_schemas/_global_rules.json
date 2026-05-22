@@ -1,0 +1,79 @@
+{
+  "type": "global_rules",
+  "version": "2.0",
+  "description": "Các quy tắc và hướng dẫn viết SQL chung bắt buộc tuân thủ đối với toàn bộ các bảng trong hệ thống.",
+  "rules": [
+    {
+      "id": "G001",
+      "category": "datetime",
+      "severity": "CRITICAL",
+      "rule": "Khi so sánh hoặc lọc theo ngày tháng trên các cột DATETIME (ví dụ: NgayKiem, DateCreate, NgayTao, TuNgay, DenNgay, NgayXN...), BẮT BUỘC dùng hàm ép kiểu CAST(cột AS DATE) và định dạng YYYY-MM-DD. TUYỆT ĐỐI KHÔNG so sánh trực tiếp dạng cột <= 'YYYY-MM-DD' hoặc cột = 'YYYY-MM-DD' để tránh bỏ sót dữ liệu phát sinh sau 00:00:00 của ngày đó.",
+      "correct_example": "SELECT SUM(Quantity) FROM SEW_CoefficientSize WHERE CAST(DateCreate AS DATE) BETWEEN '2026-03-01' AND '2026-03-31'",
+      "wrong_example": "SELECT SUM(Quantity) FROM SEW_CoefficientSize WHERE DateCreate BETWEEN '2026-03-01' AND '2026-03-31'"
+    },
+    {
+      "id": "G002",
+      "category": "unicode_prefix",
+      "severity": "CRITICAL",
+      "rule": "BẮT BUỘC thêm tiền tố N trước các hằng chuỗi THỰC SỰ chứa ký tự tiếng Việt có dấu (Unicode) trong các biểu thức SQL (WHERE, SELECT, CASE WHEN, ORDER BY...). TUYỆT ĐỐI KHÔNG thêm tiền tố N trước hằng chuỗi thuần ASCII (ví dụ: mã lỗi 'A1', mã chuyền '105', mã khách hàng 'VKVN-01', tên bảng, mã hệ thống).",
+      "correct_example": "WHERE s.cd_name LIKE N'KCS RA CHUYỀN%' hoặc WHERE Code = 'A1'",
+      "wrong_example": "WHERE s.cd_name LIKE 'KCS RA CHUYỀN%' hoặc WHERE Code = N'A1'"
+    },
+    {
+      "id": "G003",
+      "category": "identifier_routing",
+      "severity": "CRITICAL",
+      "rule": "Quy tắc phân biệt Mã Kiểu dáng/Mã Hàng: Nếu mã cần tìm chứa dấu gạch dưới '_' (ví dụ: '111143_181_H2Z9'), đó là mã kiểu dáng hệ thống, BẮT BUỘC dùng cột StyleID (hoặc StyleId / StypeId tùy bảng) làm điều kiện lọc. Chỉ dùng cột MaHang khi mã chứa khoảng trắng hoặc dấu gạch ngang '-' (ví dụ: 'SA-893-208-133'). TUYỆT ĐỐI CẤM lọc cột MaHang với chuỗi chứa dấu gạch dưới '_'.",
+      "correct_example": "WHERE StypeId = '111143_181_H2Z9' hoặc WHERE MaHang = 'SA-893-208-133'",
+      "wrong_example": "WHERE MaHang = '111143_181_H2Z9'"
+    },
+    {
+      "id": "G004",
+      "category": "size_prefix",
+      "severity": "CRITICAL",
+      "rule": "Quy tắc định dạng Size: Cột SizeId (hoặc SizeID / SizeTypeID) lưu mã định danh size, luôn có tiền tố 'SIZE_' đứng trước (ví dụ: 'SIZE_S', 'SIZE_M', 'SIZE_2XL'). Còn cột Size chỉ lưu nhãn hiển thị và KHÔNG có tiền tố (ví dụ: 'S', 'M', '2XL'). Cần đối chiếu kỹ tên cột của bảng để lọc giá trị cho chính xác.",
+      "correct_example": "WHERE SizeId = 'SIZE_M' hoặc WHERE Size = 'M'",
+      "wrong_example": "WHERE SizeId = 'M' hoặc WHERE Size = 'SIZE_M'"
+    },
+    {
+      "id": "G005",
+      "category": "anti_double_count",
+      "severity": "CRITICAL",
+      "rule": "QUY TẮC CHỐNG NHÂN ĐÔI DÒNG (DOUBLE COUNT): TUYỆT ĐỐI CẤM JOIN trực tiếp giữa các bảng ghi nhận chất lượng (bảng QTY_*) và các bảng ghi nhận sản lượng may (bảng SEW_*) rồi dùng hàm SUM() cộng gộp. Việc JOIN trực tiếp sẽ gây nhân đôi/nhân nhiều lần dòng dữ liệu dẫn đến kết quả SUM bị sai lệch nghiêm trọng. BẮT BUỘC dùng CTE hoặc Subquery để tính SUM/COUNT riêng cho từng bảng trước, sau đó mới JOIN kết quả đã gom nhóm đó lại với nhau.",
+      "correct_example": "WITH loi AS (SELECT StyleID, SUM(SpLoi) AS TongLoi FROM QTY_MAHANG_NGAYKIEM GROUP BY StyleID), dat AS (SELECT StypeId, SUM(Quantity) AS TongDat FROM SEW_CoefficientStyle GROUP BY StypeId) SELECT l.StyleID, l.TongLoi, d.TongDat FROM loi l JOIN dat d ON l.StyleID = d.StypeId",
+      "wrong_example": "SELECT l.StyleID, SUM(l.SpLoi), SUM(d.Quantity) FROM QTY_MAHANG_NGAYKIEM l JOIN SEW_CoefficientStyle d ON l.StyleID = d.StypeId GROUP BY l.StyleID"
+    },
+    {
+      "id": "G006",
+      "category": "string_comparison",
+      "severity": "CRITICAL",
+      "rule": "Khi so sánh các thông tin chuỗi văn bản như tên công đoạn (cd_name), tên lỗi (TenLoi), ghi chú (GhiChu, MoTa) có nguy cơ chứa khoảng trắng hoặc định dạng khác nhau: TUYỆT ĐỐI CẤM dùng toán tử '='. Bắt buộc dùng toán tử LIKE kết hợp tiền tố N (ví dụ: LIKE N'KCS%'). Tuy nhiên, hãy đọc kỹ quy định đặt '%' trong schema của từng cột cụ thể để tránh lọc nhầm dữ liệu.",
+      "correct_example": "WHERE s.cd_name LIKE N'KCS%'",
+      "wrong_example": "WHERE s.cd_name = N'KCS'"
+    },
+    {
+      "id": "G007",
+      "category": "defect_coordinates",
+      "severity": "CRITICAL",
+      "rule": "Khi người dùng hỏi về tọa độ lỗi, phân bố vị trí lỗi hoặc tọa độ tập trung trên sản phẩm (áo/quần): TUYỆT ĐỐI KHÔNG sử dụng hàm AVG() hoặc GROUP BY để tính trung bình cộng tọa độ PageX và PageY. BẮT BUỘC SELECT ra toàn bộ danh sách tọa độ thô (raw data) của từng điểm lỗi để trả về cho mô hình tự phân tích mật độ.",
+      "correct_example": "SELECT PageX, PageY, Code FROM QTY_MaHang_KiemQC_ChiTiet WHERE StyleID = '...'",
+      "wrong_example": "SELECT AVG(PageX), AVG(PageY) FROM QTY_MaHang_KiemQC_ChiTiet WHERE StyleID = '...'"
+    },
+    {
+      "id": "G008",
+      "category": "row_limiting",
+      "severity": "CRITICAL",
+      "rule": "CẤM TỰ Ý GIỚI HẠN SỐ DÒNG: Nếu người dùng không chỉ định rõ số lượng kết quả (ví dụ: không nói 'lấy 5 dòng', 'Top 3 chuyền', '3 lỗi hàng đầu'...), TUYỆT ĐỐI KHÔNG thêm bất kỳ mệnh đề giới hạn hàng nào (như TOP, LIMIT, FETCH FIRST) vào câu lệnh SQL. Phải trả về toàn bộ kết quả phù hợp.",
+      "correct_example": "SELECT LineX, SUM(Quantity) FROM SEW_CoefficientSize GROUP BY LineX",
+      "wrong_example": "SELECT TOP 10 LineX, SUM(Quantity) FROM SEW_CoefficientSize GROUP BY LineX"
+    },
+    {
+      "id": "G009",
+      "category": "rank_ties",
+      "severity": "CRITICAL",
+      "rule": "XỬ LÝ ĐỒNG HẠNG: Khi truy vấn các bảng xếp hạng (Top cao nhất, thấp nhất...), TUYỆT ĐỐI CẤM dùng TOP 1 hoặc TOP N trực tiếp vì sẽ bỏ sót các kết quả đồng hạng. BẮT BUỘC sử dụng hàm RANK() hoặc DENSE_RANK() trong một CTE, sau đó lọc ở mệnh đề WHERE ngoài cùng (ví dụ: WHERE RankNumber = 1).",
+      "correct_example": "WITH Ranked AS (SELECT LineX, SUM(Quantity) as Qty, DENSE_RANK() OVER (ORDER BY SUM(Quantity) DESC) as Rk FROM SEW_CoefficientSize GROUP BY LineX) SELECT LineX, Qty FROM Ranked WHERE Rk = 1",
+      "wrong_example": "SELECT TOP 1 LineX, SUM(Quantity) FROM SEW_CoefficientSize GROUP BY LineX ORDER BY SUM(Quantity) DESC"
+    }
+  ]
+}

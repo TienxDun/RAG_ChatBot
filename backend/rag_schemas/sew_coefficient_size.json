@@ -1,0 +1,65 @@
+{
+  "table": "SEW_CoefficientSize",
+  "purpose": "Lưu trữ sản lượng đạt chi tiết đến từng kích thước (size) của mã hàng theo công đoạn sản xuất.",
+  "when_to_use": "Sử dụng khi câu hỏi yêu cầu lọc/phân tích chi tiết theo kích thước (size) cụ thể, hoặc khi tính toán tỉ lệ lỗi % (bảng này đóng vai trò làm mẫu số).",
+  "when_not_to_use": "KHÔNG sử dụng cho các câu hỏi về sản lượng, năng suất chung không nhắc đến kích thước/size (khi đó phải dùng SEW_CoefficientStyle để tối ưu tốc độ và tránh trùng lặp).",
+  "table_rules": [
+    {
+      "id": "T_SEW_SIZE_001",
+      "severity": "CRITICAL",
+      "rule": "Bảng này chứa sản lượng của tất cả các công đoạn. Khi lọc theo công đoạn (ví dụ: 'KCS', 'RA CHUYỀN'), BẮT BUỘC JOIN với tbl_Steps (qua StepId = Id_cd) và lọc cd_name (ví dụ: s.cd_name LIKE N'KCS%').",
+      "correct_example": "SELECT SUM(Quantity + SuaDat) FROM SEW_CoefficientSize sc JOIN tbl_Steps s ON sc.StepId = s.Id_cd WHERE s.cd_name LIKE N'KCS%'",
+      "wrong_example": "SELECT SUM(Quantity) FROM SEW_CoefficientSize"
+    },
+    {
+      "id": "T_SEW_SIZE_002",
+      "severity": "CRITICAL",
+      "rule": "CÔNG THỨC SẢN LƯỢNG ĐẠT: Sản lượng đạt thực tế bằng SUM(ISNULL(Quantity, 0) + ISNULL(SuaDat, 0)). TUYỆT ĐỐI KHÔNG dùng riêng SUM(Quantity) trừ khi câu hỏi nói rõ chỉ lấy Quantity.",
+      "correct_example": "SELECT SUM(ISNULL(Quantity, 0) + ISNULL(SuaDat, 0)) AS SanLuongDat FROM SEW_CoefficientSize",
+      "wrong_example": "SELECT SUM(Quantity) FROM SEW_CoefficientSize"
+    },
+    {
+      "id": "T_SEW_SIZE_003",
+      "severity": "CRITICAL",
+      "rule": "CÔNG THỨC TÍNH TỈ LỆ LỖI %: % = TongLoi / NULLIF(TongLoi + TongDat, 0) * 100. TongLoi lấy từ QTY_MAHANG_NGAYKIEM, TongDat = SUM(Quantity + SuaDat) từ SEW_CoefficientSize. Phải dùng subquery riêng để tính tổng trước khi JOIN để tránh double-count (áp dụng quy tắc toàn cục G005).",
+      "correct_example": "WITH loi AS (SELECT LineX, SUM(SpLoi) AS TongLoi FROM QTY_MAHANG_NGAYKIEM GROUP BY LineX), dat AS (SELECT LineX, SUM(Quantity + SuaDat) AS TongDat FROM SEW_CoefficientSize GROUP BY LineX) SELECT l.LineX, l.TongLoi / NULLIF(l.TongLoi + d.TongDat, 0) * 100 FROM loi l JOIN dat d ON l.LineX = d.LineX",
+      "wrong_example": "SELECT SUM(SpLoi) / SUM(Quantity) FROM QTY_MAHANG_NGAYKIEM JOIN SEW_CoefficientSize ON ..."
+    },
+    {
+      "id": "T_SEW_SIZE_004",
+      "severity": "HIGH",
+      "rule": "TÊN CỘT CHUYỀN BẮT BUỘC viết HOA chữ X: LineX (kiểu varchar). Dùng LineX = '105' (hoặc LineX = 105). Khi cần JOIN với Linex (kiểu INT) của bảng khác, phải CAST: CAST(LineX AS INT) = Linex.",
+      "correct_example": "WHERE LineX = '105'",
+      "wrong_example": "WHERE Linex = 105"
+    },
+    {
+      "id": "T_SEW_SIZE_005",
+      "severity": "HIGH",
+      "rule": "TÊN CỘT MÃ HÀNG BẮT BUỘC viết là StyleId (có chữ 'l', KHÔNG có chữ 'y'). Chuyển '-' hoặc ' ' sang '_' để khớp với cột ERP_LENHSX.TenLenh.",
+      "correct_example": "WHERE StyleId = '110055'",
+      "wrong_example": "WHERE StypeId = '110055'"
+    }
+  ],
+  "columns": [
+    { "name": "Pid", "type": "bigint", "role": "primary_key", "desc": "ID bản ghi kiểm tra." },
+    { "name": "LineX", "type": "varchar", "role": "filter", "desc": "Mã chuyền (kiểu varchar). Viết chữ 'X' hoa. Áp dụng rule T_SEW_SIZE_004." },
+    { "name": "PoId", "type": "varchar", "role": "foreign_key", "desc": "Mã lệnh sản xuất. Khóa ngoại liên kết ERP_LENHSX.MaLenh." },
+    { "name": "StepId", "type": "uniqueidentifier", "role": "foreign_key", "desc": "Khóa ngoại liên kết tbl_Steps.Id_cd. Áp dụng rule T_SEW_SIZE_001." },
+    { "name": "StyleId", "type": "varchar", "role": "filter_primary", "desc": "Mã kiểu dáng / Mã hàng. Viết 'StyleId'. Áp dụng rule T_SEW_SIZE_005." },
+    { "name": "ColorId", "type": "nvarchar", "role": "info", "desc": "Mã màu sản phẩm (thường rỗng trong dữ liệu mẫu)." },
+    { "name": "SizeTypeId", "type": "varchar", "role": "info", "desc": "Nhóm kích thước (SizeType)." },
+    { "name": "PO", "type": "varchar", "role": "filter", "desc": "Mã đơn hàng chi tiết (ví dụ: 'DH_15|5010288', 'DH_18|PO_610353100')." },
+    { "name": "SizeId", "type": "nvarchar", "role": "filter", "desc": "Mã kích thước định danh. Luôn có tiền tố 'SIZE_' (ví dụ: 'SIZE_L', 'SIZE_XL'). Áp dụng rule toàn cục G004." },
+    { "name": "DateCreate", "type": "datetime", "role": "filter", "desc": "Thời điểm ghi nhận. Áp dụng rule toàn cục G001." },
+    { "name": "TimeLineId", "type": "int", "role": "filter", "desc": "Mốc thời gian ghi nhận (khung giờ)." },
+    { "name": "Quantity", "type": "int", "role": "measure", "desc": "Một phần sản lượng đạt. Phải cộng với SuaDat trong SUM(Quantity + SuaDat). Áp dụng rule T_SEW_SIZE_002." },
+    { "name": "SuaDat", "type": "int", "role": "measure", "desc": "Một phần sản lượng đạt. Phải cộng với Quantity trong SUM(Quantity + SuaDat). Áp dụng rule T_SEW_SIZE_002." },
+    { "name": "DefectNo", "type": "int", "role": "info", "desc": "Cột lỗi cũ của SEW (KHÔNG dùng tính lỗi. Phải lấy từ bảng QTY)." },
+    { "name": "NVKiemKCS", "type": "nvarchar", "role": "filter", "desc": "Tên nhân viên KCS (ví dụ: N'KCS PANSY'). Yêu cầu lọc bằng so sánh bằng tuyệt đối (=) chuỗi có dấu. Không dùng LIKE." },
+    { "name": "CheckType", "type": "int", "role": "info", "desc": "Loại kiểm tra." }
+  ],
+  "relationships": [
+    { "target_table": "ERP_LENHSX", "join_on": "SEW_CoefficientSize.PoId = ERP_LENHSX.MaLenh", "notes": "Để lấy thông tin chi tiết lệnh." },
+    { "target_table": "tbl_Steps", "join_on": "SEW_CoefficientSize.StepId = tbl_Steps.Id_cd", "notes": "BẮT BUỘC khi lọc công đoạn." }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "table": "tbl_Steps",
+  "purpose": "Danh mục định nghĩa các bước công đoạn trong quy trình sản xuất (ví dụ: MAY TP, KCS, RA CHUYỀN, UI, DONG GOI...).",
+  "when_to_use": "Sử dụng khi câu hỏi yêu cầu lọc năng suất, sản lượng hoặc lỗi theo một công đoạn cụ thể (ví dụ: 'KCS', 'Ra chuyền', 'May TP'). Cần JOIN bảng này với bảng SEW_* hoặc QTY_* để lọc theo tên công đoạn ở cột cd_name.",
+  "when_not_to_use": "Không cần thiết sử dụng nếu câu hỏi không nhắc đến công đoạn cụ thể.",
+  "table_rules": [
+    {
+      "id": "T_STEPS_001",
+      "severity": "CRITICAL",
+      "rule": "Quy tắc lọc cột cd_name: cd_name trong cơ sở dữ liệu có thể chứa cả tiếng Việt có dấu hoặc không dấu. BẮT BUỘC dùng toán tử LIKE kết hợp tiền tố N (ví dụ: cd_name LIKE N'KCS%'). TUYỆT ĐỐI CẤM dùng toán tử so sánh '=' hoặc thêm '%' ở đầu chuỗi (ví dụ: cd_name LIKE N'%KCS' là sai vì sẽ gom nhầm dữ liệu của công đoạn khác). Hãy giữ nguyên trạng thái có dấu/không dấu của từ khóa do người dùng cung cấp.",
+      "correct_example": "WHERE s.cd_name LIKE N'KCS%' hoặc WHERE s.cd_name LIKE N'TUI XEO%'",
+      "wrong_example": "WHERE s.cd_name = N'KCS' hoặc WHERE s.cd_name LIKE N'%KCS%'"
+    }
+  ],
+  "columns": [
+    { "name": "Id_cd", "type": "uniqueidentifier", "role": "primary_key", "desc": "GUID duy nhất của công đoạn. Được tham chiếu bởi cột StepId trong SEW_* và QTY_*." },
+    { "name": "cd_name", "type": "nvarchar", "role": "filter", "desc": "Tên đầy đủ của công đoạn kỹ thuật (ví dụ: 'VIEN DKTT - Front zipper facing', 'RA CHUYỀN'). Áp dụng rule T_STEPS_001." },
+    { "name": "Id_board", "type": "int", "role": "info", "desc": "ID bảng điều khiển hiển thị trên dashboard." },
+    { "name": "Descriptions", "type": "nvarchar", "role": "info", "desc": "Mô tả chi tiết kỹ thuật công đoạn (Dữ liệu mẫu trống)." },
+    { "name": "StyleID", "type": "uniqueidentifier", "role": "foreign_key", "desc": "Mã kiểu dáng áp dụng công đoạn đặc thù." },
+    { "name": "DisplayName", "type": "nvarchar", "role": "display", "desc": "Tên hiển thị viết tắt (ví dụ: 'V.DKTT')." }
+  ],
+  "relationships": []
+}
