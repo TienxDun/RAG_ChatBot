@@ -21,9 +21,9 @@
     {
       "id": "T_SEW_SIZE_003",
       "severity": "CRITICAL",
-      "rule": "CÔNG THỨC TÍNH TỈ LỆ LỖI %: % = TongLoi / NULLIF(TongLoi + TongDat, 0) * 100. TongLoi lấy từ QTY_MAHANG_NGAYKIEM, TongDat = SUM(Quantity + SuaDat) từ SEW_CoefficientSize. Phải dùng subquery riêng để tính tổng trước khi JOIN để tránh double-count (áp dụng quy tắc toàn cục G005).",
-      "correct_example": "WITH loi AS (SELECT LineX, SUM(SpLoi) AS TongLoi FROM QTY_MAHANG_NGAYKIEM GROUP BY LineX), dat AS (SELECT LineX, SUM(Quantity + SuaDat) AS TongDat FROM SEW_CoefficientSize GROUP BY LineX) SELECT l.LineX, l.TongLoi / NULLIF(l.TongLoi + d.TongDat, 0) * 100 FROM loi l JOIN dat d ON l.LineX = d.LineX",
-      "wrong_example": "SELECT SUM(SpLoi) / SUM(Quantity) FROM QTY_MAHANG_NGAYKIEM JOIN SEW_CoefficientSize ON ..."
+      "rule": "CÔNG THỨC TÍNH TỈ LỆ LỖI %: % = TongLoi / NULLIF(TongLoi + TongDat, 0) * 100. TongLoi lấy từ QTY_MAHANG_NGAYKIEM. Mẫu số chuẩn (TongDat) BẮT BUỘC phải lấy sản lượng đạt từ SEW_CoefficientSize và BẮT BUỘC JOIN với tbl_Steps (qua StepId = Id_cd) và lọc theo công đoạn KCS (s.cd_name LIKE N'KCS%') để tránh cộng dồn sản lượng trùng lặp của các khâu may chi tiết khác. Đồng thời phải dùng subquery/CTE riêng để tính tổng trước khi JOIN (áp dụng rule G005).",
+      "correct_example": "WITH loi AS (SELECT LineX, SUM(ISNULL(SpLoi, 0)) AS TongLoi FROM QTY_MAHANG_NGAYKIEM GROUP BY LineX), dat AS (SELECT sc.LineX, SUM(ISNULL(sc.Quantity, 0) + ISNULL(sc.SuaDat, 0)) AS TongDat FROM SEW_CoefficientSize sc JOIN tbl_Steps s ON sc.StepId = s.Id_cd WHERE s.cd_name LIKE N'KCS%' GROUP BY sc.LineX) SELECT l.LineX, CAST(l.TongLoi AS FLOAT) / NULLIF(l.TongLoi + d.TongDat, 0) * 100 AS TyLeLoi FROM loi l JOIN dat d ON l.LineX = d.LineX",
+      "wrong_example": "WITH loi AS (SELECT LineX, SUM(SpLoi) AS TongLoi FROM QTY_MAHANG_NGAYKIEM GROUP BY LineX), dat AS (SELECT LineX, SUM(Quantity + SuaDat) AS TongDat FROM SEW_CoefficientSize GROUP BY LineX) SELECT l.LineX, l.TongLoi / NULLIF(l.TongLoi + d.TongDat, 0) * 100 FROM loi l JOIN dat d ON l.LineX = d.LineX"
     },
     {
       "id": "T_SEW_SIZE_004",

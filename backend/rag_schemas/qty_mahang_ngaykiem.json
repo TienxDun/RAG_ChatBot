@@ -7,9 +7,9 @@
     {
       "id": "T_QTY_NK_001",
       "severity": "CRITICAL",
-      "rule": "Tránh nhân đôi dữ liệu khi JOIN với bảng sản lượng SEW. Tuyệt đối KHÔNG JOIN trực tiếp bảng QTY và SEW trước khi thực hiện SUM. Bắt buộc phải tính tổng số lỗi (SUM(SpLoi)) và tổng sản lượng đạt (SUM(Quantity+SuaDat)) trong hai subquery (hoặc CTE) riêng biệt được GROUP BY theo các chiều tương tự nhau (ví dụ: LineX/Linex, StyleID/StypeId), sau đó JOIN hai kết quả đã aggregate đó lại với nhau.",
-      "correct_example": "WITH QtyLoi AS (SELECT LineX, StyleID, SUM(ISNULL(SpLoi,0)) as TongLoi FROM QTY_MAHANG_NGAYKIEM GROUP BY LineX, StyleID), SewDat AS (SELECT Linex, StypeId, SUM(Quantity+SuaDat) as TongDat FROM SEW_CoefficientSize GROUP BY Linex, StypeId) SELECT q.LineX, q.StyleID, CAST(q.TongLoi AS FLOAT) / NULLIF(q.TongLoi + s.TongDat, 0) * 100 as TyLeLoi FROM QtyLoi q JOIN SewDat s ON CAST(q.LineX AS INT) = s.Linex AND q.StyleID = s.StypeId",
-      "wrong_example": "SELECT q.LineX, q.StyleID, SUM(q.SpLoi) / NULLIF(SUM(q.SpLoi) + SUM(s.Quantity + s.SuaDat), 0) FROM QTY_MAHANG_NGAYKIEM q JOIN SEW_CoefficientSize s ON CAST(q.LineX AS INT) = s.Linex AND q.StyleID = s.StypeId GROUP BY q.LineX, q.StyleID"
+      "rule": "Tránh nhân đôi dữ liệu khi JOIN với bảng sản lượng SEW. Tuyệt đối KHÔNG JOIN trực tiếp bảng QTY và SEW trước khi thực hiện SUM. Bắt buộc phải tính tổng số lỗi (SUM(SpLoi)) và tổng sản lượng đạt (SUM(Quantity+SuaDat)) trong hai subquery (hoặc CTE) riêng biệt được GROUP BY theo các chiều tương tự nhau (ví dụ: LineX, StyleID/StyleId), sau đó JOIN hai kết quả đã aggregate đó lại với nhau. Đồng thời, bảng sản lượng đạt SEW_CoefficientSize bắt buộc phải JOIN với tbl_Steps (qua StepId = Id_cd) và lọc theo công đoạn KCS (s.cd_name LIKE N'KCS%') để lấy đúng sản lượng thực tế, tránh trùng lặp giữa các khâu may.",
+      "correct_example": "WITH QtyLoi AS (SELECT LineX, StyleID, SUM(ISNULL(SpLoi,0)) as TongLoi FROM QTY_MAHANG_NGAYKIEM GROUP BY LineX, StyleID), SewDat AS (SELECT sc.LineX, sc.StyleId, SUM(sc.Quantity+sc.SuaDat) as TongDat FROM SEW_CoefficientSize sc JOIN tbl_Steps s ON sc.StepId = s.Id_cd WHERE s.cd_name LIKE N'KCS%' GROUP BY sc.LineX, sc.StyleId) SELECT q.LineX, q.StyleID, CAST(q.TongLoi AS FLOAT) / NULLIF(q.TongLoi + s.TongDat, 0) * 100 as TyLeLoi FROM QtyLoi q JOIN SewDat s ON q.LineX = s.LineX AND q.StyleID = s.StyleId",
+      "wrong_example": "WITH QtyLoi AS (SELECT LineX, StyleID, SUM(ISNULL(SpLoi,0)) as TongLoi FROM QTY_MAHANG_NGAYKIEM GROUP BY LineX, StyleID), SewDat AS (SELECT LineX, StyleId, SUM(Quantity+SuaDat) as TongDat FROM SEW_CoefficientSize GROUP BY LineX, StyleId) SELECT q.LineX, q.StyleID, CAST(q.TongLoi AS FLOAT) / NULLIF(q.TongLoi + s.TongDat, 0) * 100 as TyLeLoi FROM QtyLoi q JOIN SewDat s ON q.LineX = s.LineX AND q.StyleID = s.StyleId"
     },
     {
       "id": "T_QTY_NK_002",
@@ -69,6 +69,6 @@
   ],
   "relationships": [
     { "target_table": "ERP_LENHSX", "join_on": "QTY_MAHANG_NGAYKIEM.PlanCode = ERP_LENHSX.MaLenh", "notes": "JOIN khi cần lọc theo thông tin lệnh sản xuất." },
-    { "target_table": "SEW_CoefficientSize", "join_on": "CAST(QTY_MAHANG_NGAYKIEM.LineX AS INT) = SEW_CoefficientSize.Linex AND QTY_MAHANG_NGAYKIEM.StyleID = SEW_CoefficientSize.StypeId AND QTY_MAHANG_NGAYKIEM.Size = SEW_CoefficientSize.Size", "notes": "JOIN gián tiếp thông qua subquery/CTE để tính tỷ lệ lỗi, áp dụng rule T_QTY_NK_001." }
+    { "target_table": "SEW_CoefficientSize", "join_on": "QTY_MAHANG_NGAYKIEM.LineX = SEW_CoefficientSize.LineX AND QTY_MAHANG_NGAYKIEM.StyleID = SEW_CoefficientSize.StyleId AND QTY_MAHANG_NGAYKIEM.Size = SEW_CoefficientSize.Size", "notes": "JOIN gián tiếp thông qua subquery/CTE để tính tỷ lệ lỗi, áp dụng rule T_QTY_NK_001." }
   ]
 }
