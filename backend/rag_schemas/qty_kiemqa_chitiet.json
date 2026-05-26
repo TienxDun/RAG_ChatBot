@@ -1,0 +1,74 @@
+{
+  "table": "QTY_KiemQA_CHITIET",
+  "purpose": "Lưu trữ chi tiết từng lỗi ghi nhận được trong quá trình kiểm tra chất lượng của bộ phận QA (Quality Assurance).",
+  "when_to_use": "Sử dụng khi câu hỏi yêu cầu liệt kê chi tiết các lỗi, mã lỗi (Code), hình ảnh lỗi (Image), nội dung lỗi (NoiDung), hoặc hành động xử lý (HanhDong) của bộ phận QA.",
+  "when_not_to_use": "Không sử dụng nếu câu hỏi chỉ yêu cầu thống kê số lượng lỗi tổng hợp theo ngày của QA (khi đó sử dụng QTY_KiemQA_NgayKiem để tối ưu hiệu năng).",
+  "table_rules": [
+    {
+      "id": "T_QTY_QA_CD_001",
+      "severity": "CRITICAL",
+      "rule": "Bảng này KHÔNG có cột StyleID. Khi lọc theo mã kiểu dáng có dấu gạch dưới '_' (ví dụ: 'SA_893_208_133'), BẮT BUỘC JOIN với ERP_LENHSX (qua LenhSX = MaLenh) và lọc trên cột ERP_LENHSX.TenLenh, HOẶC tự động chuyển đổi '_' thành '-' (ví dụ: 'SA-893-208-133') để lọc trên cột MaHang.",
+      "correct_example": "SELECT q.Code FROM QTY_KiemQA_CHITIET q JOIN ERP_LENHSX e ON q.LenhSX = e.MaLenh WHERE e.TenLenh = 'SA_893_208_133'",
+      "wrong_example": "SELECT Code FROM QTY_KiemQA_CHITIET WHERE StyleID = 'SA_893_208_133'"
+    },
+    {
+      "id": "T_QTY_QA_CD_002",
+      "severity": "CRITICAL",
+      "rule": "TÊN CỘT CHUYỀN LÀ LineX (chữ X viết HOA, kiểu varchar). TUYỆT ĐỐI CẤM dùng Line (không có X) hoặc Linex (chữ x viết thường). Lọc bằng so sánh bằng (ví dụ: LineX = '104').",
+      "correct_example": "WHERE LineX = '104'",
+      "wrong_example": "WHERE Line = '104' hoặc WHERE Linex = '104'"
+    },
+    {
+      "id": "T_QTY_QA_CD_003",
+      "severity": "HIGH",
+      "rule": "Quy tắc định dạng Size: Cột SizeID chứa tiền tố 'SIZE_' (ví dụ: 'SIZE_L', 'SIZE_85'). Cột Size chỉ chứa nhãn hiển thị trực tiếp (ví dụ: 'L', '85'). Áp dụng rule toàn cục G004.",
+      "correct_example": "WHERE SizeID = 'SIZE_L' hoặc WHERE Size = 'L'",
+      "wrong_example": "WHERE SizeID = 'L' hoặc WHERE Size = 'SIZE_L'"
+    },
+    {
+      "id": "T_QTY_QA_CD_004",
+      "severity": "HIGH",
+      "rule": "Tên cột đơn hàng chi tiết gộp là SPOID (có chữ S ở đầu), không phải POID.",
+      "correct_example": "SELECT SPOID FROM QTY_KiemQA_CHITIET",
+      "wrong_example": "SELECT POID FROM QTY_KiemQA_CHITIET"
+    }
+  ],
+  "columns": [
+    { "name": "ID", "type": "int", "role": "primary_key", "desc": "Mã định danh duy nhất của lỗi kiểm." },
+    { "name": "LineX", "type": "varchar", "role": "filter", "desc": "Mã chuyền kiểm tra (chữ X viết HOA). Áp dụng rule T_QTY_QA_CD_002." },
+    { "name": "LenhSX", "type": "varchar", "role": "foreign_key", "desc": "Mã lệnh sản xuất định danh hệ thống. Khóa ngoại liên kết ERP_LENHSX.MaLenh." },
+    { "name": "MaHang", "type": "nvarchar", "role": "filter_primary", "desc": "Mã hàng / mã sản phẩm thực tế (ví dụ: 'SA-893-208-133'). Áp dụng rule T_QTY_QA_CD_001." },
+    { "name": "SPOID", "type": "varchar", "role": "info", "desc": "Mã đơn hàng chi tiết gộp (MaDH|PO). Áp dụng rule T_QTY_QA_CD_004." },
+    { "name": "PO", "type": "varchar", "role": "filter", "desc": "Số đơn hàng (Purchase Order)." },
+    { "name": "DauSizeID", "type": "nvarchar", "role": "info", "desc": "Mã đầu size." },
+    { "name": "DauSize", "type": "nvarchar", "role": "info", "desc": "Nhãn đầu size." },
+    { "name": "ColorID", "type": "nvarchar", "role": "info", "desc": "Mã màu sản phẩm." },
+    { "name": "MaMau", "type": "nvarchar", "role": "filter", "desc": "Tên màu sắc sản phẩm (ví dụ: 'black')." },
+    { "name": "SizeID", "type": "nvarchar", "role": "filter", "desc": "Mã size định danh (chứa tiền tố 'SIZE_'). Áp dụng rule T_QTY_QA_CD_003." },
+    { "name": "Size", "type": "nvarchar", "role": "filter", "desc": "Tên nhãn kích thước hiển thị. Áp dụng rule T_QTY_QA_CD_003." },
+    { "name": "SPLoi", "type": "int", "role": "measure", "desc": "Số lượng sản phẩm lỗi. Sử dụng SUM(ISNULL(SPLoi, 0))." },
+    { "name": "IdNhomSPLoi", "type": "int", "role": "filter", "desc": "ID nhóm sản phẩm lỗi." },
+    { "name": "SLLoi", "type": "int", "role": "measure", "desc": "Số lượng lỗi chi tiết." },
+    { "name": "MaCongDoan", "type": "nvarchar", "role": "filter", "desc": "Mã công đoạn xảy ra lỗi." },
+    { "name": "Code", "type": "varchar", "role": "foreign_key", "desc": "Mã lỗi kỹ thuật (ví dụ: 'B7', 'A16'). Khóa ngoại liên kết QTY_NHOMLOI_CHITIET.MaLoi." },
+    { "name": "LoaiLoi", "type": "int", "role": "filter", "desc": "Phân loại mức độ nghiêm trọng của lỗi (1, 2, 3)." },
+    { "name": "PageX", "type": "float", "role": "info", "desc": "Tọa độ X của vị trí lỗi trên sản phẩm. Áp dụng rule toàn cục G007." },
+    { "name": "PageY", "type": "float", "role": "info", "desc": "Tọa độ Y của vị trí lỗi trên sản phẩm. Áp dụng rule toàn cục G007." },
+    { "name": "NgayKiem", "type": "datetime", "role": "filter", "desc": "Ngày QA kiểm tra chất lượng. Áp dụng rule toàn cục G001 (cần CAST sang DATE)." },
+    { "name": "NgayKiemLai", "type": "datetime2", "role": "filter", "desc": "Ngày QA kiểm tra lại." },
+    { "name": "NhanVienKiem", "type": "nvarchar", "role": "filter", "desc": "Tên nhân viên QA thực hiện kiểm tra (thường là 'QA')." },
+    { "name": "IsQC", "type": "int", "role": "filter", "desc": "Flag QC duyệt (0/1)." },
+    { "name": "LanKiem", "type": "int", "role": "filter", "desc": "Số lần kiểm tra." },
+    { "name": "StatusHT", "type": "int", "role": "filter", "desc": "Trạng thái hoàn thành sửa lỗi." },
+    { "name": "Module", "type": "int", "role": "filter", "desc": "ID module sản xuất." },
+    { "name": "NgayHT", "type": "datetime", "role": "filter", "desc": "Ngày hoàn thành sửa lỗi." },
+    { "name": "NoiDung", "type": "nvarchar", "role": "display", "desc": "Mô tả chi tiết lỗi bằng tiếng Việt." },
+    { "name": "HanhDong", "type": "nvarchar", "role": "display", "desc": "Hành động xử lý hoặc khắc phục lỗi (ví dụ: 'Yêu cầu tái chế')." },
+    { "name": "Image", "type": "nvarchar", "role": "display", "desc": "Hình ảnh minh họa vị trí lỗi." },
+    { "name": "Results", "type": "int", "role": "filter", "desc": "Kết quả đánh giá chất lượng." }
+  ],
+  "relationships": [
+    { "target_table": "ERP_LENHSX", "join_on": "QTY_KiemQA_CHITIET.LenhSX = ERP_LENHSX.MaLenh", "notes": "Để lấy thông tin chi tiết lệnh hoặc StyleID hệ thống." },
+    { "target_table": "QTY_NHOMLOI_CHITIET", "join_on": "QTY_KiemQA_CHITIET.Code = QTY_NHOMLOI_CHITIET.MaLoi", "notes": "Để lấy tên lỗi chi tiết (TenLoi)." }
+  ]
+}

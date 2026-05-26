@@ -90,6 +90,8 @@ export class ModalComponent {
             await ApiClient.uploadFiles(ENDPOINTS.UPLOAD, state.selectedFiles, collectionName, (data) => {
                 if (data.type === 'progress') {
                     this.updateProgress(data.percent, data.message);
+                } else if (data.type === 'error') {
+                    throw new Error(data.message || "Lỗi xử lý file từ server.");
                 } else if (data.type === 'result') {
                     this.updateProgress(100, "Tất cả file đã được xử lý!");
                     setTimeout(() => {

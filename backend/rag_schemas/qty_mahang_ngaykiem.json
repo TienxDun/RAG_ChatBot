@@ -1,0 +1,74 @@
+{
+  "table": "QTY_MAHANG_NGAYKIEM",
+  "purpose": "Lưu trữ số liệu lỗi kiểm (SpLoi) tổng hợp của mã hàng theo chuyền, ngày, màu và kích thước.",
+  "when_to_use": "Sử dụng khi cần tính tổng số lỗi (SpLoi) hoặc tỷ lệ lỗi (%) của mã hàng, chuyền, ngày, màu sắc, kích thước nói chung.",
+  "when_not_to_use": "Tuyệt đối không dùng khi câu hỏi yêu cầu thống kê hoặc lọc theo tên lỗi, mã lỗi, hoặc loại lỗi cụ thể (khi đó phải dùng QTY_MaHang_KiemQC_ChiTiet kết hợp QTY_NHOMLOI_CHITIET).",
+  "table_rules": [
+    {
+      "id": "T_QTY_NK_001",
+      "severity": "CRITICAL",
+      "rule": "Tránh nhân đôi dữ liệu khi JOIN với bảng sản lượng SEW. Tuyệt đối KHÔNG JOIN trực tiếp bảng QTY và SEW trước khi thực hiện SUM. Bắt buộc phải tính tổng số lỗi (SUM(SpLoi)) và tổng sản lượng đạt (SUM(Quantity+SuaDat)) trong hai subquery (hoặc CTE) riêng biệt được GROUP BY theo các chiều tương tự nhau (ví dụ: LineX, StyleID/StyleId), sau đó JOIN hai kết quả đã aggregate đó lại với nhau. Đồng thời, bảng sản lượng đạt SEW_CoefficientSize bắt buộc phải JOIN với tbl_Steps (qua StepId = Id_cd) và lọc theo công đoạn KCS (s.cd_name LIKE N'KCS%') để lấy đúng sản lượng thực tế, tránh trùng lặp giữa các khâu may.",
+      "correct_example": "WITH QtyLoi AS (SELECT LineX, StyleID, SUM(ISNULL(SpLoi,0)) as TongLoi FROM QTY_MAHANG_NGAYKIEM GROUP BY LineX, StyleID), SewDat AS (SELECT sc.LineX, sc.StyleId, SUM(sc.Quantity+sc.SuaDat) as TongDat FROM SEW_CoefficientSize sc JOIN tbl_Steps s ON sc.StepId = s.Id_cd WHERE s.cd_name LIKE N'KCS%' GROUP BY sc.LineX, sc.StyleId) SELECT q.LineX, q.StyleID, CAST(q.TongLoi AS FLOAT) / NULLIF(q.TongLoi + s.TongDat, 0) * 100 as TyLeLoi FROM QtyLoi q JOIN SewDat s ON q.LineX = s.LineX AND q.StyleID = s.StyleId",
+      "wrong_example": "WITH QtyLoi AS (SELECT LineX, StyleID, SUM(ISNULL(SpLoi,0)) as TongLoi FROM QTY_MAHANG_NGAYKIEM GROUP BY LineX, StyleID), SewDat AS (SELECT LineX, StyleId, SUM(Quantity+SuaDat) as TongDat FROM SEW_CoefficientSize GROUP BY LineX, StyleId) SELECT q.LineX, q.StyleID, CAST(q.TongLoi AS FLOAT) / NULLIF(q.TongLoi + s.TongDat, 0) * 100 as TyLeLoi FROM QtyLoi q JOIN SewDat s ON q.LineX = s.LineX AND q.StyleID = s.StyleId"
+    },
+    {
+      "id": "T_QTY_NK_002",
+      "severity": "CRITICAL",
+      "rule": "Tên cột chuyền bắt buộc là LineX (chữ X viết HOA), kiểu dữ liệu varchar. Dữ liệu khi lọc dùng WHERE LineX = '105' (hoặc LineX = 105).",
+      "correct_example": "WHERE LineX = '105'",
+      "wrong_example": "WHERE Linex = '105' hoặc WHERE LineX_ID = '105'"
+    },
+    {
+      "id": "T_QTY_NK_003",
+      "severity": "HIGH",
+      "rule": "Phân biệt cột StyleID và MaHang: Cột StyleID (ID viết hoa) kiểu varchar dùng cho các mã hàng có dấu gạch dưới '_' (ví dụ: SA_893_208_133). Cột MaHang kiểu nvarchar dùng cho các mã hàng có định dạng gạch ngang '-' hoặc khoảng trắng (ví dụ: SA-893-208-133, 0088 521 04 V0.0). Ưu tiên dùng StyleID.",
+      "correct_example": "WHERE StyleID = 'SA_893_208_133' hoặc WHERE MaHang = N'SA-893-208-133'",
+      "wrong_example": "WHERE StyleID = 'SA-893-208-133' hoặc WHERE MaHang = N'SA_893_208_133'"
+    },
+    {
+      "id": "T_QTY_NK_004",
+      "severity": "HIGH",
+      "rule": "Phân biệt cột SizeID và Size: Cột SizeID luôn chứa tiền tố 'SIZE_' (ví dụ: 'SIZE_L', 'SIZE_85'). Khi lọc theo SizeID, bắt buộc thêm tiền tố 'SIZE_'. Cột Size là tên hiển thị trực tiếp, TUYỆT ĐỐI không chứa tiền tố (ví dụ: 'L', '85'). Nếu người dùng hỏi kích thước gốc, dùng cột Size.",
+      "correct_example": "WHERE SizeID = 'SIZE_L' hoặc WHERE Size = N'L'",
+      "wrong_example": "WHERE SizeID = 'L' hoặc WHERE Size = N'SIZE_L'"
+    },
+    {
+      "id": "T_QTY_NK_005",
+      "severity": "HIGH",
+      "rule": "Lọc tên người kiểm KCS (cột NVKiem): Bắt buộc dùng so sánh bằng tuyệt đối (=) với chuỗi đầy đủ bao gồm tiền tố 'KCS ' hoặc 'Kcs ' (ví dụ: người dùng nói 'PANSY' -> dùng NVKiem = N'KCS PANSY'). Tuyệt đối cấm dùng LIKE hay wildcard %. Chú ý tên cột là NVKiem (không phải NVKiemKCS).",
+      "correct_example": "WHERE NVKiem = N'KCS PANSY'",
+      "wrong_example": "WHERE NVKiem LIKE N'%PANSY%' hoặc WHERE NVKiemKCS = N'KCS PANSY'"
+    }
+  ],
+  "columns": [
+    { "name": "ID", "type": "bigint", "role": "primary_key", "desc": "Mã bản ghi kiểm tra." },
+    { "name": "NgayKiem", "type": "datetime", "role": "filter", "desc": "Ngày kiểm tra chất lượng. Áp dụng quy tắc toàn cục G001 (cần CAST sang DATE)." },
+    { "name": "LineX", "type": "varchar", "role": "filter", "desc": "Mã chuyền (chữ X viết HOA). Áp dụng rule T_QTY_NK_002." },
+    { "name": "PlanCode", "type": "int", "role": "foreign_key", "desc": "Mã kế hoạch sản xuất. Khóa ngoại liên kết với ERP_LENHSX.MaLenh." },
+    { "name": "StyleID", "type": "varchar", "role": "filter_primary", "desc": "Mã kiểu dáng hệ thống. Áp dụng rule T_QTY_NK_003." },
+    { "name": "MaHang", "type": "nvarchar", "role": "display", "desc": "Tên/mã hàng hóa hiển thị. Áp dụng rule T_QTY_NK_003." },
+    { "name": "POID", "type": "nvarchar", "role": "info", "desc": "Mã đơn hàng kết hợp (MaDH|PO)." },
+    { "name": "PO", "type": "nvarchar", "role": "info", "desc": "Số đơn hàng (Purchase Order)." },
+    { "name": "DauSizeID", "type": "nvarchar", "role": "info", "desc": "Mã định danh đầu size." },
+    { "name": "DauSize", "type": "nvarchar", "role": "info", "desc": "Diễn giải đầu size." },
+    { "name": "ColorID", "type": "nvarchar", "role": "info", "desc": "Mã màu hệ thống." },
+    { "name": "MaMau", "type": "nvarchar", "role": "filter", "desc": "Tên màu sắc. Khi tìm kiếm dùng LIKE kết hợp tiền tố N (MaMau LIKE N'%black%')." },
+    { "name": "SizeID", "type": "nvarchar", "role": "filter", "desc": "Mã kích thước định danh (chứa 'SIZE_'). Áp dụng rule T_QTY_NK_004." },
+    { "name": "Size", "type": "nvarchar", "role": "filter", "desc": "Tên hiển thị của kích thước. Áp dụng rule T_QTY_NK_004." },
+    { "name": "SLKiem", "type": "int", "role": "measure", "desc": "Số lượng sản phẩm được kiểm tra." },
+    { "name": "SLKCS", "type": "int", "role": "measure", "desc": "Số lượng đối soát KCS tại khâu kiểm. Không dùng làm mẫu số tỷ lệ lỗi." },
+    { "name": "SpLoi", "type": "int", "role": "measure", "desc": "Số sản phẩm lỗi (tử số). Dùng SUM(ISNULL(SpLoi, 0)). Áp dụng rule T_QTY_NK_001." },
+    { "name": "SuaDat", "type": "int", "role": "measure", "desc": "Số lượng lỗi đã sửa đạt tại khâu kiểm. Không dùng trong mẫu số tính tỷ lệ lỗi (mẫu số chuẩn lấy từ SEW_CoefficientSize.SuaDat)." },
+    { "name": "HangLoai", "type": "int", "role": "measure", "desc": "Số sản phẩm hàng loại B." },
+    { "name": "GhiChu", "type": "nvarchar", "role": "info", "desc": "Ghi chú kiểm tra (Luôn rỗng/NULL trong dữ liệu mẫu, bỏ qua, không dùng để lọc hay GROUP BY)." },
+    { "name": "SpLoiQA", "type": "int", "role": "measure", "desc": "Số lỗi do QA ghi nhận." },
+    { "name": "IsQC", "type": "int", "role": "filter", "desc": "Flag đã qua kiểm tra chất lượng (0/1)." },
+    { "name": "NVKiem", "type": "nvarchar", "role": "filter", "desc": "Tên nhân viên KCS ghi nhận lỗi. Áp dụng rule T_QTY_NK_005." },
+    { "name": "LanKiem", "type": "int", "role": "filter", "desc": "Số lần kiểm tra." },
+    { "name": "StatusHT", "type": "int", "role": "filter", "desc": "Trạng thái hoàn thành." }
+  ],
+  "relationships": [
+    { "target_table": "ERP_LENHSX", "join_on": "QTY_MAHANG_NGAYKIEM.PlanCode = ERP_LENHSX.MaLenh", "notes": "JOIN khi cần lọc theo thông tin lệnh sản xuất." },
+    { "target_table": "SEW_CoefficientSize", "join_on": "QTY_MAHANG_NGAYKIEM.LineX = SEW_CoefficientSize.LineX AND QTY_MAHANG_NGAYKIEM.StyleID = SEW_CoefficientSize.StyleId AND QTY_MAHANG_NGAYKIEM.Size = SEW_CoefficientSize.Size", "notes": "JOIN gián tiếp thông qua subquery/CTE để tính tỷ lệ lỗi, áp dụng rule T_QTY_NK_001." }
+  ]
+}
