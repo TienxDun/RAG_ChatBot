@@ -65,7 +65,14 @@
     { "name": "IsQC", "type": "int", "role": "filter", "desc": "Flag đã qua kiểm tra chất lượng (0/1)." },
     { "name": "NVKiem", "type": "nvarchar", "role": "filter", "desc": "Tên nhân viên KCS ghi nhận lỗi. Áp dụng rule T_QTY_NK_005." },
     { "name": "LanKiem", "type": "int", "role": "filter", "desc": "Số lần kiểm tra." },
-    { "name": "StatusHT", "type": "int", "role": "filter", "desc": "Trạng thái hoàn thành." }
+    { "name": "StatusHT", "type": "int", "role": "filter", "desc": "Trạng thái hoàn thành." },
+    { "name": "TH_Ngay", "type": "int", "role": "info", "desc": "Định danh tổng hợp lỗi trong ngày (0 hoặc 1)." },
+    { "name": "SignPTDonVi", "type": "nvarchar", "role": "info", "desc": "Thông tin chữ ký số của phụ trách đơn vị." },
+    { "name": "SignKT", "type": "nvarchar", "role": "info", "desc": "Thông tin chữ ký số của kỹ thuật viên." },
+    { "name": "SignToTruong", "type": "nvarchar", "role": "info", "desc": "Thông tin chữ ký số của tổ trưởng chuyền." },
+    { "name": "SignNVKiem", "type": "nvarchar", "role": "info", "desc": "Thông tin chữ ký số của nhân viên KCS/kiểm tra." },
+    { "name": "Version", "type": "int", "role": "info", "desc": "Phiên bản dữ liệu hệ thống." },
+    { "name": "CheckType", "type": "int", "role": "info", "desc": "Phân loại hình thức kiểm tra (ví dụ: 0)." }
   ],
   "relationships": [
     { "target_table": "ERP_LENHSX", "join_on": "QTY_MAHANG_NGAYKIEM.PlanCode = ERP_LENHSX.MaLenh", "notes": "JOIN khi cần lọc theo thông tin lệnh sản xuất." },

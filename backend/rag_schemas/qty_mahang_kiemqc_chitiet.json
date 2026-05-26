@@ -66,7 +66,9 @@
     { "name": "IsQC", "type": "bit", "role": "filter", "desc": "Flag xác nhận đã qua QC." },
     { "name": "NVKiem", "type": "nvarchar", "role": "filter", "desc": "Tên nhân viên KCS ghi nhận lỗi. Áp dụng rule T_QTY_CT_005." },
     { "name": "LanKiem", "type": "int", "role": "filter", "desc": "Số lần kiểm tra." },
-    { "name": "StatusHT", "type": "int", "role": "filter", "desc": "Trạng thái hoàn thành xử lý lỗi." }
+    { "name": "StatusHT", "type": "int", "role": "filter", "desc": "Trạng thái hoàn thành xử lý lỗi." },
+    { "name": "Version", "type": "int", "role": "info", "desc": "Phiên bản của bản ghi kiểm QC." },
+    { "name": "CheckType", "type": "int", "role": "info", "desc": "Phân loại kiểu kiểm tra (ví dụ: 0)." }
   ],
   "relationships": [
     { "target_table": "ERP_LENHSX", "join_on": "QTY_MaHang_KiemQC_ChiTiet.PlanCode = ERP_LENHSX.MaLenh", "notes": "JOIN khi cần lọc theo thông tin lệnh sản xuất." },
