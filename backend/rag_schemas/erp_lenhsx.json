@@ -1,0 +1,58 @@
+{
+  "table": "ERP_LENHSX",
+  "purpose": "Lưu trữ thông tin chi tiết về lệnh sản xuất, thông số kỹ thuật, kế hoạch, trạng thái lệnh và tài chính đơn hàng.",
+  "when_to_use": "Sử dụng khi câu hỏi hỏi về thông tin lệnh sản xuất (TenLenh), ngày tạo, ngày dự kiến bắt đầu/kết thúc (TuNgay, DenNgay), mã khách hàng, đơn giá (VND, USD), tổng số lượng yêu cầu của lệnh (SLTong), trạng thái của lệnh (Status), phân loại dòng sản phẩm (ProductTypeID), mã đơn hàng (MaDH), hoặc mã mùa vụ/năm tài chính (SeaSon).",
+  "when_not_to_use": "KHÔNG sử dụng để tính toán sản lượng may thực tế hoặc số lỗi phát sinh ở chuyền (phải dùng bảng SEW_* hoặc QTY_*).",
+  "table_rules": [
+    {
+      "id": "T_ERP_001",
+      "severity": "CRITICAL",
+      "rule": "CÔNG THỨC TÍNH DOANH THU CHUẨN: Doanh thu VNĐ phải dùng SUM(SLTong * VND). Doanh thu USD phải dùng SUM(SLTong * USD). Thêm điều kiện lọc Status = 3 (Đã hoàn thành) trừ khi người dùng hỏi doanh thu dự kiến hoặc tất cả lệnh. TUYỆT ĐỐI KHÔNG sử dụng cột GiaTong hoặc GiaDuPhong để tính doanh thu vì dữ liệu này không chính xác hoặc bằng 0.",
+      "correct_example": "SELECT SUM(SLTong * VND) AS DoanhThu_VND FROM ERP_LENHSX WHERE Status = 3",
+      "wrong_example": "SELECT SUM(GiaTong) FROM ERP_LENHSX"
+    },
+    {
+      "id": "T_ERP_002",
+      "severity": "HIGH",
+      "rule": "Quy tắc lọc cột TenLenh: TenLenh trong cơ sở dữ liệu thường dùng dấu gạch dưới '_' (ví dụ: 'SA_893_208_133'). Nếu người dùng cung cấp mã có dấu gạch ngang '-' hoặc khoảng trắng (ví dụ: 'SA-893-208-133'), AI phải tự động chuyển đổi chúng sang '_' trước khi so sánh với TenLenh.",
+      "correct_example": "WHERE TenLenh = 'SA_893_208_133'",
+      "wrong_example": "WHERE TenLenh = 'SA-893-208-133'"
+    }
+  ],
+  "columns": [
+    { "name": "MaLenh", "type": "nvarchar", "role": "primary_key", "desc": "Mã định danh hệ thống duy nhất của lệnh sản xuất." },
+    { "name": "TenLenh", "type": "nvarchar", "role": "filter", "desc": "Mã định danh lệnh sản xuất hiển thị cho người dùng (ví dụ: '110055' hoặc 'SA_893_208_133'). Áp dụng rule T_ERP_002." },
+    { "name": "MaHang", "type": "nvarchar", "role": "filter", "desc": "Mã sản phẩm thực tế (ví dụ: 'SA-893-208-133'). LƯU Ý: Chứa khoảng trắng fullwidth Unicode U+3000 ở một số dòng (ví dụ: 'ASAHIKAWA　Fire Department PT'). Ưu tiên dùng LIKE khi lọc." },
+    { "name": "NgayTao", "type": "datetime", "role": "filter", "desc": "Ngày hệ thống ghi nhận lệnh. Áp dụng rule toàn cục G001." },
+    { "name": "TuNgay", "type": "datetime", "role": "filter", "desc": "Ngày dự kiến bắt đầu triển khai. Áp dụng rule toàn cục G001." },
+    { "name": "DenNgay", "type": "datetime", "role": "filter", "desc": "Ngày dự kiến kết thúc sản xuất. Áp dụng rule toàn cục G001." },
+    { "name": "NgayXN", "type": "datetime", "role": "filter", "desc": "Ngày xác nhận lệnh chính thức. Áp dụng rule toàn cục G001." },
+    { "name": "MaKhachHang", "type": "nvarchar", "role": "foreign_key", "desc": "Mã đối tác/khách hàng đặt hàng (ví dụ: 'VKVN-01'). Liên kết DIC_KHACHHANG.MaKhachHang." },
+    { "name": "EmployeeID", "type": "nvarchar", "role": "filter", "desc": "ID nhân viên phụ trách quản lý lệnh." },
+    { "name": "SLTong", "type": "int", "role": "measure", "desc": "Tổng số lượng sản phẩm cần sản xuất theo lệnh. Sử dụng làm thừa số tính doanh thu." },
+    { "name": "SLNPL", "type": "decimal", "role": "info", "desc": "Số lượng nguyên phụ liệu liên quan (Dữ liệu hiện tại luôn bằng 0)." },
+    { "name": "VND", "type": "decimal", "role": "measure", "desc": "Đơn giá sản phẩm (tiền VNĐ). Sử dụng cùng SLTong để tính doanh thu VNĐ." },
+    { "name": "USD", "type": "decimal", "role": "measure", "desc": "Đơn giá sản phẩm (tiền USD). Sử dụng cùng SLTong để tính doanh thu USD." },
+    { "name": "IsDD", "type": "int", "role": "info", "desc": "Đơn hàng đã duyệt/đơn định kỳ." },
+    { "name": "TileDG", "type": "nvarchar", "role": "info", "desc": "Tỉ lệ đóng gói (Dữ liệu mẫu hiện rỗng/NULL, không dùng truy vấn)." },
+    { "name": "Tile", "type": "nvarchar", "role": "info", "desc": "Tỉ lệ phần trăm hao hụt thiết kế." },
+    { "name": "KHChuan", "type": "int", "role": "info", "desc": "Đánh dấu kế hoạch chuẩn (0 hoặc 1)." },
+    { "name": "Status", "type": "int", "role": "filter", "desc": "Trạng thái lệnh: 0 (Mới tạo/Chưa bắt đầu), 1 (Đang thực hiện/Chưa chốt), 3 (Đã hoàn thành/Đã chốt)." },
+    { "name": "MoTa", "type": "nvarchar", "role": "info", "desc": "Mô tả ghi chú về lệnh sản xuất." },
+    { "name": "Vendor", "type": "nvarchar", "role": "info", "desc": "Mã nhà cung cấp vật tư liên quan." },
+    { "name": "ProductTypeID", "type": "nvarchar", "role": "filter", "desc": "Phân loại dòng sản phẩm. Giá trị có dạng CL_1 đến CL_10. Có thể NULL." },
+    { "name": "SeaSon", "type": "nvarchar", "role": "filter", "desc": "Mùa vụ/Năm tài chính/Số hợp đồng (ví dụ: '2025', 'FW2025', 'CN106779'). Dữ liệu đa dạng định dạng, ưu tiên dùng LIKE." },
+    { "name": "IsMaChiTiet", "type": "bit", "role": "info", "desc": "Đánh dấu lệnh có mã chi tiết." },
+    { "name": "MaLenhSX", "type": "nvarchar", "role": "filter", "desc": "Mã phức hợp gộp lệnh." },
+    { "name": "MaDH", "type": "nvarchar", "role": "filter", "desc": "Mã đơn hàng tổng (ví dụ: 'DH_123')." },
+    { "name": "MaDVSX", "type": "nvarchar", "role": "filter", "desc": "Mã đơn vị sản xuất trực tiếp." },
+    { "name": "BookingMaHang", "type": "nvarchar", "role": "info", "desc": "Mã giữ chỗ hàng hóa." },
+    { "name": "IsDSLT", "type": "bit", "role": "info", "desc": "Đánh dấu danh sách lũy tiến (Dữ liệu mẫu rỗng)." },
+    { "name": "MaGop", "type": "nvarchar", "role": "filter", "desc": "Mã nhóm lệnh sản xuất." },
+    { "name": "GiaTong", "type": "decimal", "role": "info", "desc": "Tổng giá trị đơn hàng tính sẵn (TUYỆT ĐỐI CẤM dùng cột này tính doanh thu)." },
+    { "name": "GiaDuPhong", "type": "decimal", "role": "info", "desc": "Chi phí dự phòng phát sinh (Dữ liệu hiện tại luôn bằng 0)." }
+  ],
+  "relationships": [
+    { "target_table": "DIC_KHACHHANG", "join_on": "ERP_LENHSX.MaKhachHang = DIC_KHACHHANG.MaKhachHang", "notes": "Để lấy thông tin chi tiết tên khách hàng." }
+  ]
+}

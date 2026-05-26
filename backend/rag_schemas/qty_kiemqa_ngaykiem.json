@@ -1,0 +1,88 @@
+{
+  "table": "QTY_KiemQA_NgayKiem",
+  "purpose": "Lưu trữ thông tin kiểm tra chất lượng tổng hợp theo ngày của bộ phận QA (Quality Assurance).",
+  "when_to_use": "Sử dụng khi câu hỏi yêu cầu thống kê, báo cáo số lượng kiểm tra (SoLuongKiem), số lượng lỗi (SoLuongLoi), số lượng đạt KCS (SoLuongKCS), hoặc số lượng thùng kiểm (SLThungKiem) của bộ phận QA.",
+  "when_not_to_use": "Không sử dụng nếu câu hỏi yêu cầu thống kê chi tiết theo từng loại lỗi hoặc mã lỗi cụ thể (khi đó phải dùng QTY_KiemQA_CHITIET).",
+  "table_rules": [
+    {
+      "id": "T_QTY_QA_NK_001",
+      "severity": "CRITICAL",
+      "rule": "Bảng này KHÔNG có cột StyleID. Khi lọc theo mã kiểu dáng có dấu gạch dưới '_' (ví dụ: 'SA_893_208_133'), BẮT BUỘC JOIN với ERP_LENHSX (qua LenhSX = MaLenh) và lọc trên cột ERP_LENHSX.TenLenh, HOẶC tự động chuyển đổi '_' thành '-' (ví dụ: 'SA-893-208-133') để lọc trên cột MaHang.",
+      "correct_example": "SELECT SUM(q.SoLuongLoi) FROM QTY_KiemQA_NgayKiem q JOIN ERP_LENHSX e ON q.LenhSX = e.MaLenh WHERE e.TenLenh = 'SA_893_208_133'",
+      "wrong_example": "SELECT SUM(SoLuongLoi) FROM QTY_KiemQA_NgayKiem WHERE StyleID = 'SA_893_208_133'"
+    },
+    {
+      "id": "T_QTY_QA_NK_002",
+      "severity": "CRITICAL",
+      "rule": "TÊN CỘT CHUYỀN LÀ LineX (chữ X viết HOA, kiểu varchar). TUYỆT ĐỐI CẤM dùng Line (không có X) hoặc Linex (chữ x viết thường). Lọc bằng so sánh bằng (ví dụ: LineX = '104').",
+      "correct_example": "WHERE LineX = '104'",
+      "wrong_example": "WHERE Line = '104' hoặc WHERE Linex = '104'"
+    },
+    {
+      "id": "T_QTY_QA_NK_003",
+      "severity": "CRITICAL",
+      "rule": "CÔNG THỨC TÍNH SỐ LƯỢNG LỖI CỦA QA: Sử dụng SUM(ISNULL(SoLuongLoi, 0)). Tuyệt đối không nhầm lẫn với cột SLKiem hay SoLuongKiem.",
+      "correct_example": "SELECT SUM(ISNULL(SoLuongLoi, 0)) AS TongLoi FROM QTY_KiemQA_NgayKiem",
+      "wrong_example": "SELECT SUM(SoLuongKiem) FROM QTY_KiemQA_NgayKiem"
+    },
+    {
+      "id": "T_QTY_QA_NK_004",
+      "severity": "HIGH",
+      "rule": "Quy tắc định dạng Size: Cột SizeID chứa tiền tố 'SIZE_' (ví dụ: 'SIZE_L', 'SIZE_85'). Cột Size chỉ chứa nhãn hiển thị trực tiếp (ví dụ: 'L', '85'). Áp dụng rule toàn cục G004.",
+      "correct_example": "WHERE SizeID = 'SIZE_L' hoặc WHERE Size = 'L'",
+      "wrong_example": "WHERE SizeID = 'L' hoặc WHERE Size = 'SIZE_L'"
+    },
+    {
+      "id": "T_QTY_QA_NK_005",
+      "severity": "HIGH",
+      "rule": "Tên cột đơn hàng chi tiết gộp là SPOID (có chữ S ở đầu), không phải POID.",
+      "correct_example": "SELECT SPOID FROM QTY_KiemQA_NgayKiem",
+      "wrong_example": "SELECT POID FROM QTY_KiemQA_NgayKiem"
+    }
+  ],
+  "columns": [
+    { "name": "ID", "type": "int", "role": "primary_key", "desc": "Mã định danh duy nhất của lỗi kiểm." },
+    { "name": "LineX", "type": "varchar", "role": "filter", "desc": "Mã chuyền kiểm tra (chữ X viết HOA). Áp dụng rule T_QTY_QA_NK_002." },
+    { "name": "LenhSX", "type": "varchar", "role": "foreign_key", "desc": "Mã lệnh sản xuất định danh hệ thống. Khóa ngoại liên kết ERP_LENHSX.MaLenh." },
+    { "name": "MaHang", "type": "nvarchar", "role": "filter_primary", "desc": "Mã hàng / mã sản phẩm thực tế (ví dụ: 'SA-893-208-133'). Áp dụng rule T_QTY_QA_NK_001." },
+    { "name": "SPOID", "type": "varchar", "role": "info", "desc": "Mã đơn hàng chi tiết gộp (MaDH|PO). Áp dụng rule T_QTY_QA_NK_005." },
+    { "name": "PO", "type": "varchar", "role": "filter", "desc": "Số đơn hàng (Purchase Order)." },
+    { "name": "DauSizeID", "type": "nvarchar", "role": "info", "desc": "Mã đầu size." },
+    { "name": "DauSize", "type": "nvarchar", "role": "info", "desc": "Nhãn đầu size." },
+    { "name": "ColorID", "type": "nvarchar", "role": "info", "desc": "Mã màu sản phẩm." },
+    { "name": "MaMau", "type": "nvarchar", "role": "filter", "desc": "Tên màu sắc sản phẩm (ví dụ: 'black')." },
+    { "name": "SizeID", "type": "nvarchar", "role": "filter", "desc": "Mã size định danh (chứa tiền tố 'SIZE_'). Áp dụng rule T_QTY_QA_NK_004." },
+    { "name": "Size", "type": "nvarchar", "role": "filter", "desc": "Tên nhãn kích thước hiển thị. Áp dụng rule T_QTY_QA_NK_004." },
+    { "name": "SLTong", "type": "int", "role": "measure", "desc": "Tổng số lượng sản phẩm QA phụ trách." },
+    { "name": "SLThungKiem", "type": "int", "role": "measure", "desc": "Số lượng thùng sản phẩm đã kiểm." },
+    { "name": "SoLuongKCS", "type": "int", "role": "measure", "desc": "Số lượng sản phẩm đạt chuẩn KCS." },
+    { "name": "SoLuongKiem", "type": "int", "role": "measure", "desc": "Số lượng sản phẩm thực tế được kiểm tra." },
+    { "name": "SoLuongLoi", "type": "int", "role": "measure", "desc": "Số lượng sản phẩm lỗi QA ghi nhận. Áp dụng rule T_QTY_QA_NK_003." },
+    { "name": "SuaDat", "type": "int", "role": "measure", "desc": "Số lượng lỗi đã sửa đạt." },
+    { "name": "HangLoai", "type": "int", "role": "measure", "desc": "Số sản phẩm hàng loại B." },
+    { "name": "NgayKiem", "type": "datetime", "role": "filter", "desc": "Ngày QA kiểm tra chất lượng. Áp dụng rule toàn cục G001 (cần CAST sang DATE)." },
+    { "name": "AQL", "type": "nvarchar", "role": "info", "desc": "Tiêu chuẩn chấp nhận chất lượng (Acceptable Quality Limit)." },
+    { "name": "NhanVienKiem", "type": "nvarchar", "role": "filter", "desc": "Tên nhân viên QA thực hiện kiểm tra." },
+    { "name": "IsQC", "type": "int", "role": "filter", "desc": "Flag QC duyệt (0/1)." },
+    { "name": "LanKiem", "type": "int", "role": "filter", "desc": "Số lần kiểm tra." },
+    { "name": "StatusHT", "type": "int", "role": "filter", "desc": "Trạng thái hoàn thành sửa lỗi." },
+    { "name": "Module", "type": "int", "role": "filter", "desc": "ID module sản xuất." },
+    { "name": "NgayHT", "type": "datetime", "role": "filter", "desc": "Ngày hoàn thành sửa lỗi." },
+    { "name": "NVDuyet", "type": "nvarchar", "role": "filter", "desc": "Nhân viên phê duyệt kết quả." },
+    { "name": "NgayDuyet", "type": "datetime", "role": "filter", "desc": "Ngày phê duyệt kết quả." },
+    { "name": "NoiDung", "type": "nvarchar", "role": "display", "desc": "Ghi chú nội dung tổng hợp." },
+    { "name": "SttThung", "type": "nvarchar", "role": "info", "desc": "Số thứ tự các thùng hàng được kiểm." },
+    { "name": "SignCNCL", "type": "nvarchar", "role": "info", "desc": "Chữ ký công nhân." },
+    { "name": "SignNVKiem", "type": "nvarchar", "role": "info", "desc": "Chữ ký nhân viên kiểm." },
+    { "name": "SignPTDonVi", "type": "nvarchar", "role": "info", "desc": "Chữ ký phụ trách đơn vị." },
+    { "name": "SignKT", "type": "nvarchar", "role": "info", "desc": "Chữ ký kế toán." },
+    { "name": "SignToTruong", "type": "nvarchar", "role": "info", "desc": "Chữ ký tổ trưởng." },
+    { "name": "IsDonHang", "type": "int", "role": "filter", "desc": "Flag xác định là đơn hàng chính thức." },
+    { "name": "StatusView", "type": "int", "role": "filter", "desc": "Trạng thái xem." },
+    { "name": "NgaySign", "type": "datetime", "role": "filter", "desc": "Ngày ký xác nhận." },
+    { "name": "NgaySignKT", "type": "datetime", "role": "filter", "desc": "Ngày ký xác nhận của kế toán." }
+  ],
+  "relationships": [
+    { "target_table": "ERP_LENHSX", "join_on": "QTY_KiemQA_NgayKiem.LenhSX = ERP_LENHSX.MaLenh", "notes": "Để lấy thông tin chi tiết lệnh hoặc StyleID hệ thống." }
+  ]
+}

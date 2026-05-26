@@ -21,6 +21,63 @@ public sealed class RagOrchestrator
         _options = options;
     }
 
+    private static string? _cachedGlobalRules;
+    private static DateTime _lastRulesReadTime = DateTime.MinValue;
+    private static readonly object _rulesLock = new();
+
+    private static async Task<string> GetGlobalRulesAsync()
+    {
+        var path = Path.Combine(AppContext.BaseDirectory, "rag_schemas", "_global_rules.json");
+        if (!File.Exists(path))
+        {
+            path = Path.Combine(Directory.GetCurrentDirectory(), "rag_schemas", "_global_rules.json");
+        }
+
+        if (!File.Exists(path))
+        {
+            return string.Empty;
+        }
+
+        try
+        {
+            var lastWrite = File.GetLastWriteTime(path);
+            if (_cachedGlobalRules == null || lastWrite > _lastRulesReadTime)
+            {
+                var content = await File.ReadAllTextAsync(path, Encoding.UTF8);
+                using var doc = JsonDocument.Parse(content);
+                var sb = new StringBuilder();
+                if (doc.RootElement.TryGetProperty("rules", out var rulesProp) && rulesProp.ValueKind == JsonValueKind.Array)
+                {
+                    sb.AppendLine("## QUY TẮC SQL TOÀN CỤC (GLOBAL RULES - BẮT BUỘC TUÂN THỦ):");
+                    foreach (var rule in rulesProp.EnumerateArray())
+                    {
+                        var id = rule.TryGetProperty("id", out var idProp) ? idProp.GetString() ?? "" : "";
+                        var severity = rule.TryGetProperty("severity", out var sevProp) ? sevProp.GetString() ?? "" : "";
+                        var text = rule.TryGetProperty("rule", out var rProp) ? rProp.GetString() ?? "" : "";
+                        var correct = rule.TryGetProperty("correct_example", out var corProp) ? corProp.GetString() ?? "" : "";
+                        var wrong = rule.TryGetProperty("wrong_example", out var wrgProp) ? wrgProp.GetString() ?? "" : "";
+
+                        sb.AppendLine($"- [{id}] [{severity}]: {text}");
+                        if (!string.IsNullOrWhiteSpace(correct)) sb.AppendLine($"  * Ví dụ ĐÚNG: `{correct}`");
+                        if (!string.IsNullOrWhiteSpace(wrong)) sb.AppendLine($"  * Ví dụ SAI: `{wrong}`");
+                    }
+                }
+                
+                lock (_rulesLock)
+                {
+                    _cachedGlobalRules = sb.ToString();
+                    _lastRulesReadTime = lastWrite;
+                }
+            }
+        }
+        catch
+        {
+            return _cachedGlobalRules ?? string.Empty;
+        }
+
+        return _cachedGlobalRules ?? string.Empty;
+    }
+
     // Quy trình điều phối RAG chính: Chuyển đổi vector, tìm kiếm schema từ Qdrant, lập kế hoạch, sinh và chạy SQL, tổng hợp câu trả lời cuối cùng.
     public async Task<ChatResponse> ProcessQueryAsync(string userQuery, string? collectionName, Func<RagStep, Task> onStep, CancellationToken ct, bool enableFastPath = true, bool isExcelTemplate = false, bool enableRulesExtraction = true)
     {
@@ -235,6 +292,7 @@ public sealed class RagOrchestrator
                 for (int attempt = 1; attempt <= stepMaxAttempts; attempt++)
                 {
                     var isMultiStep = stepsToExecute.Count > 1;
+                    var globalRules = await GetGlobalRulesAsync();
                     var sqlPrompt = $@"Bạn là chuyên gia SQL Server cao cấp.
                         Cấu trúc database: {schemaInfo}
                         {workingContext}
@@ -242,44 +300,16 @@ public sealed class RagOrchestrator
                         NHIỆM VỤ HIỆN TẠI: {currentStepDesc}
                         {(isMultiStep ? "" : $@"CÂU HỎI GỐC: ""{userQuery}""")}
 
-                        QUY TẮC VIẾT SQL:
-                        0. BẮT BUỘC TUÂN THỦ METADATA: 
-                           - Đọc cực kỳ kỹ phần mô tả (Description) của từng bảng và từng cột trong cấu trúc database được cung cấp. Tuyệt đối tuân thủ mọi chỉ dẫn, công thức tính toán và đặc biệt là các 'Cảnh báo', 'Lưu ý' hoặc 'Quy tắc' được viết trong đó (Ví dụ: nếu mô tả cột GhiChu ghi cấm dùng để gom nhóm/GROUP BY khi tìm top lỗi thì TUYỆT ĐỐI KHÔNG được sử dụng).
-                           - BẮT BUỘC ĐỐI CHIẾU CHÍNH TẢ: Đối chiếu chính xác từng ký tự viết HOA/thường và sự khác biệt ký tự của tên cột đối với từng bảng cụ thể đang truy vấn (ví dụ: StyleID có chữ 'D' viết hoa trong QTY_MAHANG_NGAYKIEM, StyleId có chữ 'd' viết thường trong SEW_CoefficientSize, và StypeId có chữ 'y' và không có chữ 'l' trong SEW_CoefficientStyle). Tuyệt đối không được viết sai lệch chính tả tên cột của bảng đó để tránh lỗi cú pháp SQL.
+                        {globalRules}
 
+                        QUY TẮC BỔ SUNG & ĐIỀU KIỆN TRUYỀN DỮ LIỆU:
                         1. CHỈ thực hiện nhiệm vụ trong 'NHIỆM VỤ HIỆN TẠI'. 
                         {(isMultiStep ? "TUYỆT ĐỐI KHÔNG giải quyết toàn bộ yêu cầu của người dùng nếu nó đòi hỏi nhiều bước xử lý. Chỉ tập trung lấy dữ liệu trung gian cho bước này." : "")}
                         
                         2. TRUYỀN THAM SỐ GIỮA CÁC BƯỚC: BẮT BUỘC sử dụng giá trị thực tế lấy từ phần 'KẾT QUẢ CÁC BƯỚC TRƯỚC ĐÓ' bên trên (nhìn vào SampleData) và các TÊN CỘT tương ứng để làm điều kiện lọc (WHERE) cho bước này.
                            - Nếu bước trước trả về danh sách nhiều ID, hãy sử dụng toán tử IN (ví dụ: WHERE MaKhachHang IN ('KH001', 'KH002')) thay vì chỉ lọc một giá trị.
- 
-                        3. TRÁNH NHẦM LẪN SCHEMA: Phân biệt rõ ràng giữa cột ID liên kết (ví dụ: SizeId, StyleId, BrandId) và cột hiển thị tên (ví dụ: Size/SizeName, Style/StyleName). Tuyệt đối không dùng chuỗi ký tự (Text) để so sánh trực tiếp với cột ID dạng số và ngược lại.
-                           - PHÂN BIỆT STYLEID VÀ MAHANG: Nếu mã hàng cần tìm chứa dấu gạch dưới '_' (Ví dụ: '111143_181_H2Z9'), đây là mã kiểu dáng hệ thống, BẮT BUỘC dùng cột StyleID (hoặc StyleId / StypeId tùy theo bảng) làm điều kiện lọc. Chỉ dùng cột MaHang khi mã hàng chứa khoảng trắng hoặc dấu gạch ngang '-' (Ví dụ: 'SA-893-208-133'). Tuyệt đối không lọc cột MaHang với chuỗi chứa dấu gạch dưới '_'.
-                           - PHÂN BIỆT NĂNG SUẤT VÀ SẢN LƯỢNG ĐẠT: Nếu câu hỏi chỉ hỏi ""năng suất"", ""sản lượng"", ""cao nhất"", ""đỉnh cao"" hoặc tương đương mà KHÔNG nhắc rõ ""sản lượng đạt"", ""mẫu số"", ""tỷ lệ lỗi"", thì khi truy vấn SEW_CoefficientSize bắt buộc dùng SUM(Quantity), không được cộng SuaDat. Chỉ dùng SUM(Quantity + SuaDat) khi câu hỏi nói rõ ""sản lượng đạt"" hoặc khi tính mẫu số cho tỷ lệ lỗi.
 
-                        4. ĐỊNH DẠNG NGÀY THÁNG & LỌC DATE: Khi so sánh ngày tháng trên các cột có kiểu DATETIME chứa cả giờ phút giây (Ví dụ: NgayKiem, DateCreate, NgayTao, TuNgay, DenNgay...):
-                           - BẮT BUỘC dùng hàm ép kiểu `CAST(cột AS DATE)` khi so sánh hoặc sử dụng toán tử BETWEEN (Ví dụ: `WHERE CAST(A.NgayKiem AS DATE) BETWEEN '2026-01-01' AND '2026-03-31'`).
-                           - TUYỆT ĐỐI KHÔNG so sánh trực tiếp dạng `cột <= 'YYYY-MM-DD'` vì SQL Server sẽ hiểu là ngày đó vào lúc 00:00:00, làm bỏ sót toàn bộ dữ liệu phát sinh sau 0h00 của ngày đó.
-                           - CỘT ĐẦU RA BẮT BUỘC: Hãy đọc kỹ yêu cầu người dùng để chọn đầy đủ các cột thông tin mong muốn trong câu SELECT cuối cùng (Ví dụ: nếu người dùng yêu cầu hiển thị thứ hạng thì bắt buộc phải thêm cột thứ hạng được tạo bởi RANK()/DENSE_RANK() vào mệnh đề SELECT cuối cùng).
- 
-                        5. TỐI ƯU HÓA TRUY VẤN: Để lấy nhiều giá trị cực trị (ví dụ cả sản lượng Cao nhất và Thấp nhất), KHÔNG NÊN dùng UNION ALL. Hãy sử dụng CTE kết hợp với Window Functions (ví dụ: `RANK() OVER(ORDER BY ... DESC)` as RankMax, `RANK() OVER(ORDER BY ... ASC)` as RankMin) để lọc kết quả trong một lần quét duy nhất.
- 
-                        6. XỬ LÝ ĐỒNG HẠNG & CHÊNH LỆCH:
-                            - TUYỆT ĐỐI CẤM dùng TOP 1 hoặc TOP N. Luôn thay thế bằng RANK() hoặc DENSE_RANK() trong CTE rồi lọc WHERE Rank = 1, để đảm bảo lấy được TẤT CẢ các kết quả đồng hạng.
-                            - !!! CẤM TỰ Ý GIỚI HẠN SỐ DÒNG !!!: Nếu người dùng KHÔNG nêu rõ số lượng cần lấy (ví dụ: 'Top 5', 'lấy 3 kết quả'), TUYỆT ĐỐI KHÔNG được tự ý thêm bất kỳ mệnh đề giới hạn hàng nào như TOP, LIMIT, FETCH FIRST vào SQL. Câu truy vấn phải trả về TOÀN BỘ kết quả phù hợp với điều kiện lọc.
-                           - Khi tính toán sự CHÊNH LỆCH (sản lượng, năng suất, số lỗi...) giữa hai đối tượng/công đoạn/chuyền/ngày: BẮT BUỘC bọc phép toán trừ trong hàm trị tuyệt đối `ABS()` (Ví dụ: `ABS(A - B)`) để đảm bảo kết quả khoảng cách chênh lệch trả về luôn là số dương, tuyệt đối không trả về số âm.
- 
-                        7. BẮT BUỘC DÙNG TIỀN TỐ N CHO CHUỖI CÓ DẤU TIẾNG VIỆT & CHỐNG ẢO GIÁC:
-                           - BẮT BUỘC thêm tiền tố N đứng trước các hằng chuỗi THỰC SỰ chứa ký tự tiếng Việt có dấu (Unicode) xuất hiện trong câu lệnh SQL (bao gồm hằng chuỗi mô tả/dịch nghĩa trong SELECT, điều kiện lọc trong WHERE, biểu thức CASE WHEN, ORDER BY...). Ví dụ: N'Bảng danh mục khách hàng...', N'Lỗi may', N'Đang thực hiện'.
-                           - TUYỆT ĐỐI KHÔNG thêm tiền tố N đứng trước các hằng chuỗi thuần ASCII không chứa dấu tiếng Việt (Ví dụ: mã lỗi 'A1', mã chuyền '105', mã khách hàng 'VKVN-01', tên bảng/mã hệ thống 'DIC_KHACHHANG', 'ERP_LENHSX', 'TenBang', 'MoTa'). Giữ nguyên định dạng chuỗi thường 'string' đối với các giá trị này để đảm bảo đúng kiểu dữ liệu của cột trong DB.
-                           - Khi lọc điều kiện (WHERE) cho các thông tin như tên lỗi, tên màu, tên công đoạn, tên khách hàng: BẮT BUỘC dùng toán tử LIKE kết hợp với tiền tố N nếu chuỗi lọc chứa tiếng Việt. TUYỆT ĐỐI CẤM tự ý phỏng đoán và điền trực tiếp mã định danh.
-                           - ĐỊNH DẠNG LIKE: Phải đọc kỹ và tuân thủ tuyệt đối cấu trúc toán tử LIKE được mô tả riêng cho từng cột trong schema (Ví dụ: đối với cd_name trong tbl_Steps hoặc TenLoi trong QTY_NHOMLOI_CHITIET, mô tả cấm đặt '%' ở đầu để tránh gom nhầm dữ liệu của công đoạn/lỗi khác, do đó chỉ được dùng LIKE N'từ khóa%').
-                           - CẤM DÙNG PHÉP SO SÁNH BẰNG (=): Đối với các cột như cd_name, TenLoi, GhiChu, MaMau, khi so sánh (bao gồm cả trong mệnh đề WHERE lẫn trong biểu thức CASE WHEN), TUYỆT ĐỐI KHÔNG được sử dụng toán tử '='. Bắt buộc sử dụng LIKE (Ví dụ: viết `CASE WHEN s.cd_name LIKE N'BTP%' THEN Quantity ELSE 0 END` và `WHERE s.cd_name LIKE N'BTP%'`).
-                           - ĐỐI VỚI DẤU TIẾNG VIỆT: Hãy giữ nguyên trạng thái có dấu hoặc không dấu của từ khóa do người dùng cung cấp (Ví dụ: người dùng nhập 'tui xeo' thì dùng N'tui xeo%' hoặc N'TUI XEO%', TUYỆT ĐỐI KHÔNG tự ý suy diễn thêm dấu tiếng Việt thành N'Tui xèo%' vì cơ sở dữ liệu thực tế có thể lưu không dấu viết hoa). Nếu cần thiết, bạn có thể tạo điều kiện OR để tìm cả 2 phiên bản (Ví dụ: WHERE cd_name LIKE N'tui xeo%' OR cd_name LIKE N'túi xèo%').
- 
-                        8. Trả về mã SQL thô, không giải thích, không markdown.
-                        
-                        9. KHÔNG TÍNH TRUNG BÌNH TỌA ĐỘ: Khi được hỏi về tọa độ lỗi, phân bố vị trí lỗi hoặc tọa độ tập trung trên áo, TUYỆT ĐỐI KHÔNG sử dụng hàm AVG() hoặc GROUP BY để tính trung bình cộng tọa độ PageX và PageY. Hãy SELECT ra danh sách tọa độ thô (raw data) của từng điểm lỗi để trả về cho mô hình tự phân tích mật độ tập trung.
+                        3. Cú pháp phản hồi: Trả về mã SQL thô, không giải thích, không markdown.
                         {(string.IsNullOrEmpty(lastError) ? "" : $"\nLỖI TRƯỚC ĐÓ: {lastError}\nHãy sửa SQL.")}";
 
                     generatedSql = await _aiClient.GenerateContentAsync(sqlPrompt, ct);
@@ -358,6 +388,7 @@ public sealed class RagOrchestrator
                  * Nếu câu hỏi ban đầu mơ hồ/thiếu thông tin gom nhóm hoặc thống kê cụ thể, hãy dựa vào phần 'Giả định/Lý do lập kế hoạch ban đầu' để thuyết minh/giải thích rõ ràng cho người dùng biết hệ thống đã tự động quyết định chọn chiều phân tích, bộ lọc hoặc gom nhóm nào để truy xuất dữ liệu.
                - Sử dụng ### 📋 Chi tiết: Dùng bảng Markdown (tiếng Việt) nếu có danh sách.
                - Định dạng số: Phân cách hàng nghìn (ví dụ 1.234.567).
+               - Quy tắc định dạng tỉ lệ lỗi / phần trăm (%): Đối với các giá trị tỉ lệ phần trăm thu được từ kết quả SQL (như cột TyLeLoi), đây là các con số đã được nhân 100 ở câu lệnh SQL (ví dụ: kết quả SQL trả về 0.19 tức là 0.19%, 15.5 tức là 15.5%). Bạn TUYỆT ĐỐI KHÔNG ĐƯỢC nhân thêm 100 hay chia cho 100 một lần nữa khi viết câu trả lời hoặc khi tạo dữ liệu Excel. Hãy giữ nguyên giá trị số đó và chỉ định dạng hiển thị kèm ký tự % (ví dụ: 0,20% hoặc 15,50%).
                - Đưa ra 3 câu hỏi gợi ý liên quan.
 
             QUY TẮC QUAN TRỌNG VỀ DỮ LIỆU EXCEL:

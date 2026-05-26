@@ -1,0 +1,13 @@
+{
+  "table": "DIC_KHACHHANG",
+  "purpose": "Danh mục quản lý thông tin khách hàng/đối tác đặt hàng.",
+  "when_to_use": "Sử dụng khi cần chuyển đổi mã khách hàng (MaKhachHang) sang tên hiển thị đầy đủ (KhachHang), hoặc khi người dùng tìm kiếm, lọc dữ liệu theo tên đối tác.",
+  "when_not_to_use": "Không dùng khi câu hỏi không nhắc đến tên khách hàng hay mã đối tác cụ thể.",
+  "table_rules": [],
+  "columns": [
+    { "name": "MaKhachHang", "type": "varchar", "role": "primary_key", "desc": "Mã định danh duy nhất của khách hàng (Primary Key). Dùng liên kết với các cột cùng tên ở các bảng khác." },
+    { "name": "KhachHang", "type": "nvarchar", "role": "display", "desc": "Tên đầy đủ của đơn vị đối tác/khách hàng (ví dụ: 'TEST DU LIEU'). Khi lọc theo tên này, bắt buộc dùng LIKE và tiền tố N." },
+    { "name": "Mota", "type": "nvarchar", "role": "info", "desc": "Ghi chú hoặc thông tin bổ sung liên quan đến khách hàng." }
+  ],
+  "relationships": []
+}
