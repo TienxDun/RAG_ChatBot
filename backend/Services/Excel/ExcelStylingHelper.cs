@@ -5,12 +5,12 @@ namespace Backend.Services.Excel;
 
 public static class ExcelStylingHelper
 {
-    // Tô màu nền xanh pastel nhẹ nhàng, chữ xám đậm đậm và thiết lập phông chữ cho hàng tiêu đề
+    // Tô màu chữ và thiết lập phông chữ cho hàng tiêu đề (bỏ qua tô nền xanh pastel để giữ nguyên mẫu gốc)
     public static void ApplyHeaderStyle(ExcelWorksheet worksheet, int headerRowIndex, int startColumnIndex, int columnCount)
     {
         var headerRange = worksheet.Cells[headerRowIndex, startColumnIndex, headerRowIndex, startColumnIndex + columnCount - 1];
-        headerRange.Style.Fill.PatternType = OfficeOpenXml.Style.ExcelFillStyle.Solid;
-        headerRange.Style.Fill.BackgroundColor.SetColor(Color.FromArgb(232, 240, 248)); // Xanh dương pastel thanh lịch
+        // headerRange.Style.Fill.PatternType = OfficeOpenXml.Style.ExcelFillStyle.Solid;
+        // headerRange.Style.Fill.BackgroundColor.SetColor(Color.FromArgb(232, 240, 248)); // Xanh dương pastel thanh lịch
         headerRange.Style.Font.Bold = true;
         headerRange.Style.Font.Color.SetColor(Color.FromArgb(51, 51, 51)); // Màu chữ xám đậm dễ nhìn
         headerRange.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
@@ -96,22 +96,22 @@ public static class ExcelStylingHelper
         }
     }
 
-    // Tô màu nền cho cả 2 dòng header (parent + child) đối với template phân cấp
+    // Tô màu chữ, in đậm cho cả 2 dòng header đối với template phân cấp (bỏ qua tô nền xanh để giữ nguyên mẫu gốc)
     public static void ApplyHierarchicalHeaderStyle(ExcelWorksheet worksheet, int parentRowIndex, int childRowIndex, int startColumnIndex, int columnCount)
     {
-        // 1. Dòng tiêu đề cha: Màu nền xanh đậm pastel thanh lịch hơn, chữ bold, căn giữa
+        // 1. Dòng tiêu đề cha: chữ bold, căn giữa, giữ nguyên nền mẫu gốc
         var parentRange = worksheet.Cells[parentRowIndex, startColumnIndex, parentRowIndex, startColumnIndex + columnCount - 1];
-        parentRange.Style.Fill.PatternType = OfficeOpenXml.Style.ExcelFillStyle.Solid;
-        parentRange.Style.Fill.BackgroundColor.SetColor(Color.FromArgb(184, 204, 228)); // Xanh dương pastel đậm (#B8CCE4)
+        // parentRange.Style.Fill.PatternType = OfficeOpenXml.Style.ExcelFillStyle.Solid;
+        // parentRange.Style.Fill.BackgroundColor.SetColor(Color.FromArgb(184, 204, 228)); // Xanh dương pastel đậm (#B8CCE4)
         parentRange.Style.Font.Bold = true;
         parentRange.Style.Font.Color.SetColor(Color.FromArgb(51, 51, 51));
         parentRange.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
         parentRange.Style.Font.Name = "Segoe UI";
 
-        // 2. Dòng tiêu đề con: Màu nền xanh pastel nhẹ nhàng, chữ bold, căn giữa
+        // 2. Dòng tiêu đề con: chữ bold, căn giữa, giữ nguyên nền mẫu gốc
         var childRange = worksheet.Cells[childRowIndex, startColumnIndex, childRowIndex, startColumnIndex + columnCount - 1];
-        childRange.Style.Fill.PatternType = OfficeOpenXml.Style.ExcelFillStyle.Solid;
-        childRange.Style.Fill.BackgroundColor.SetColor(Color.FromArgb(232, 240, 248)); // Xanh dương pastel nhẹ (#E8F0F8)
+        // childRange.Style.Fill.PatternType = OfficeOpenXml.Style.ExcelFillStyle.Solid;
+        // childRange.Style.Fill.BackgroundColor.SetColor(Color.FromArgb(232, 240, 248)); // Xanh dương pastel nhẹ (#E8F0F8)
         childRange.Style.Font.Bold = true;
         childRange.Style.Font.Color.SetColor(Color.FromArgb(51, 51, 51));
         childRange.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;

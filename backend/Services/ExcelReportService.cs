@@ -1,6 +1,9 @@
 using OfficeOpenXml;
 using System.Data;
+using System.Globalization;
+using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Backend.Models;
 using Backend.Services.Excel;
 
@@ -129,6 +132,9 @@ public class ExcelReportService
                 dataTable.Columns.Add(colName, typeof(object));
             }
 
+            // Xây dựng bảng ánh xạ mềm tên cột (normalize Unicode NFC/NFD) để tránh mismatch dấu tiếng Việt
+            var columnMapping = BuildSoftColumnMapping(ragResponse.RawDataTable, columns);
+
             foreach (DataRow sourceRow in ragResponse.RawDataTable.Rows)
             {
                 // Kiểm tra xem dòng này có phải là dòng Tổng từ SQL không
@@ -142,9 +148,9 @@ public class ExcelReportService
                 var newRow = dataTable.NewRow();
                 foreach (var colName in columns)
                 {
-                    if (ragResponse.RawDataTable.Columns.Contains(colName))
+                    if (columnMapping.TryGetValue(colName, out var sourceColName))
                     {
-                        newRow[colName] = sourceRow[colName];
+                        newRow[colName] = sourceRow[sourceColName];
                     }
                     else 
                     {
@@ -175,10 +181,83 @@ public class ExcelReportService
             ExcelTemplateFiller.FillHorizontalTemplate(worksheet, dataTable, headerRowIndex, startColumnIndex, columns.Count, templateInfo.RowLabels);
         }
 
-        // Điền Metadata nếu AI trả về dữ liệu tương ứng
-        if (templateInfo.MetadataCells.Count > 0 && ragResponse.Metadata != null && ragResponse.Metadata.Count > 0)
+        // Điền Metadata nếu AI trả về dữ liệu tương ứng hoặc trích xuất từ dữ liệu truy vấn gốc để làm giàu thông tin
+        if (templateInfo.MetadataCells.Count > 0)
         {
-            ExcelTemplateFiller.FillMetadataCells(worksheet, templateInfo.MetadataCells, ragResponse.Metadata);
+            var metadataValues = ragResponse.Metadata != null 
+                ? new Dictionary<string, string>(ragResponse.Metadata, StringComparer.OrdinalIgnoreCase) 
+                : new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            // Bổ sung dữ liệu từ kết quả truy vấn gốc (RawDataTable) để làm giàu metadata
+            if (ragResponse.RawDataTable != null && ragResponse.RawDataTable.Rows.Count > 0)
+            {
+                var firstRow = ragResponse.RawDataTable.Rows[0];
+                foreach (DataColumn col in ragResponse.RawDataTable.Columns)
+                {
+                    var colName = col.ColumnName;
+                    var valStr = firstRow[colName]?.ToString()?.Trim();
+                    if (!string.IsNullOrEmpty(valStr) && !metadataValues.ContainsKey(colName))
+                    {
+                        metadataValues[colName] = valStr;
+                    }
+                }
+            }
+
+            // Fallback: Trích xuất metadata từ WHERE clause của SQL đã sinh trong RAG steps
+            if (ragResponse.Steps != null)
+            {
+                var sqlMetaFallback = ExtractMetadataFromSqlSteps(ragResponse.Steps);
+                foreach (var kv in sqlMetaFallback)
+                {
+                    if (!metadataValues.ContainsKey(kv.Key))
+                    {
+                        metadataValues[kv.Key] = kv.Value;
+                    }
+                }
+            }
+
+            // Áp dụng so khớp mềm và gán trực tiếp cho các nhãn metadata đầu trang
+            foreach (var cell in templateInfo.MetadataCells)
+            {
+                var label = cell.Label?.Trim() ?? "";
+                if (string.IsNullOrEmpty(label)) continue;
+
+                // Thử tìm trong metadataValues bằng so khớp mềm nâng cao
+                string? matchedValue = null;
+                
+                // 1. So khớp chính xác hoặc chứa từ khóa
+                var match = metadataValues.FirstOrDefault(kv => 
+                    string.Equals(kv.Key.Trim(), label, StringComparison.OrdinalIgnoreCase) ||
+                    label.Contains(kv.Key.Trim(), StringComparison.OrdinalIgnoreCase) ||
+                    kv.Key.Trim().Contains(label, StringComparison.OrdinalIgnoreCase)
+                );
+                
+                if (match.Value != null)
+                {
+                    matchedValue = match.Value;
+                }
+                else
+                {
+                    // 2. So khớp mềm dựa trên các cột cơ sở dữ liệu phổ biến
+                    if (label.Contains("Mã Hàng", StringComparison.OrdinalIgnoreCase) || 
+                        label.Contains("Style", StringComparison.OrdinalIgnoreCase))
+                    {
+                        matchedValue = GetValueFromKeys(metadataValues, "MaHang", "StyleID", "StyleId", "StypeId", "TenLenh", "PoId");
+                    }
+                    else if (label.Contains("Chuyền", StringComparison.OrdinalIgnoreCase) || 
+                             label.Contains("Line", StringComparison.OrdinalIgnoreCase))
+                    {
+                        matchedValue = GetValueFromKeys(metadataValues, "LineX", "Linex", "Line", "Chuyen");
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(matchedValue) && !string.Equals(matchedValue, "N/A", StringComparison.OrdinalIgnoreCase))
+                {
+                    metadataValues[label] = matchedValue;
+                }
+            }
+
+            ExcelTemplateFiller.FillMetadataCells(worksheet, templateInfo.MetadataCells, metadataValues);
         }
 
         // Tìm dòng cuối cùng chứa dữ liệu thực tế của bảng
@@ -247,5 +326,106 @@ public class ExcelReportService
     public byte[] ExportMarkdownToExcelDynamic(string markdownText)
     {
         return ExcelExportHelper.ExportMarkdownToExcelDynamic(markdownText);
+    }
+
+    private string? GetValueFromKeys(Dictionary<string, string> dict, params string[] keys)
+    {
+        foreach (var key in keys)
+        {
+            if (dict.TryGetValue(key, out var val) && !string.IsNullOrEmpty(val))
+            {
+                return val;
+            }
+            // Thử so khớp mềm không phân biệt hoa thường
+            var softMatch = dict.FirstOrDefault(kv => string.Equals(kv.Key.Trim(), key, StringComparison.OrdinalIgnoreCase));
+            if (softMatch.Value != null && !string.IsNullOrEmpty(softMatch.Value))
+            {
+                return softMatch.Value;
+            }
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Normalize chuỗi Unicode về dạng NFC và lowercase để so khớp mềm tên cột có dấu tiếng Việt.
+    /// Tránh lỗi khi SQL Server trả về tên cột dạng NFD khác với template dạng NFC.
+    /// </summary>
+    private static string NormalizeColumnName(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return string.Empty;
+        return name.Normalize(NormalizationForm.FormC).Trim().ToLowerInvariant();
+    }
+
+    /// <summary>
+    /// Xây dựng bảng ánh xạ mềm: TemplateColumnName → ActualSourceColumnName.
+    /// So khớp bằng Unicode normalization NFC + case insensitive.
+    /// </summary>
+    private static Dictionary<string, string> BuildSoftColumnMapping(DataTable source, List<string> templateColumns)
+    {
+        var mapping = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var sourceColNames = new List<string>();
+        foreach (DataColumn col in source.Columns)
+        {
+            sourceColNames.Add(col.ColumnName);
+        }
+
+        foreach (var templateCol in templateColumns)
+        {
+            // 1. Khớp chính xác
+            if (source.Columns.Contains(templateCol))
+            {
+                mapping[templateCol] = templateCol;
+                continue;
+            }
+
+            // 2. Khớp mềm bằng Unicode normalization
+            var normalizedTemplate = NormalizeColumnName(templateCol);
+            var match = sourceColNames.FirstOrDefault(sc => NormalizeColumnName(sc) == normalizedTemplate);
+            if (match != null)
+            {
+                mapping[templateCol] = match;
+            }
+        }
+        return mapping;
+    }
+
+    /// <summary>
+    /// Trích xuất metadata (StyleID, MaHang, LineX) từ WHERE clause của SQL trong các RAG steps.
+    /// Đây là fallback khi AI không trả về metadata trong JSON response.
+    /// </summary>
+    private static Dictionary<string, string> ExtractMetadataFromSqlSteps(List<RagStep> steps)
+    {
+        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        // Regex patterns cho các cột metadata phổ biến trong WHERE clause
+        var patterns = new (string Key, string Pattern)[]
+        {
+            ("StyleID", @"StyleID\s*=\s*N?'([^']+)'"),
+            ("StypeId", @"StypeId\s*=\s*N?'([^']+)'"),
+            ("MaHang", @"MaHang\s*(?:=|LIKE)\s*N?'%?([^'%]+)%?'"),
+            ("LineX", @"LineX\s*=\s*N?'?([^'\s,)]+)'?"),
+        };
+
+        foreach (var step in steps)
+        {
+            if (string.IsNullOrEmpty(step.Content)) continue;
+
+            // Tìm SQL block trong step content (thường nằm trong ```sql ... ```)
+            var sqlMatch = Regex.Match(step.Content, @"```sql\s*([\s\S]*?)```");
+            if (!sqlMatch.Success) continue;
+            var sql = sqlMatch.Groups[1].Value;
+
+            foreach (var (key, pattern) in patterns)
+            {
+                if (result.ContainsKey(key)) continue;
+                var m = Regex.Match(sql, pattern, RegexOptions.IgnoreCase);
+                if (m.Success && !string.IsNullOrWhiteSpace(m.Groups[1].Value))
+                {
+                    result[key] = m.Groups[1].Value.Trim();
+                }
+            }
+        }
+
+        return result;
     }
 }

@@ -542,17 +542,27 @@ public static class ExcelTemplateFiller
         string labelClean = excelLabel.Trim();
         if (string.IsNullOrEmpty(labelClean)) return false;
 
+        // Ưu tiên dd/MM trước MM/dd vì template Việt Nam dùng định dạng ngày/tháng (dd/MM)
+        string[] dateFormats = new[] 
+        { 
+            "dd/MM/yyyy", "d/M/yyyy", "dd/MM/yy", "d/M/yy",
+            "yyyy-MM-dd", "yyyy/MM/dd", "dd-MM-yyyy", "d-M-yyyy"
+        };
+
         // 1. Nếu dbValue đã là DateTime
         if (dbValue is DateTime dt)
         {
-            // Thử parse nhãn excel theo các định dạng thông dụng
-            if (DateTime.TryParseExact(labelClean, new[] { "dd/MM/yyyy", "d/M/yyyy", "yyyy-MM-dd", "MM/dd/yyyy" }, 
+            // Ưu tiên TryParseExact với format dd/MM trước
+            if (DateTime.TryParseExact(labelClean, dateFormats, 
                 CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime excelDate))
             {
                 return dt.Date == excelDate.Date;
             }
             // Dự phòng so sánh chuỗi định dạng ngày
-            return dt.ToString("dd/MM/yyyy") == labelClean || dt.ToString("yyyy-MM-dd") == labelClean;
+            return dt.ToString("dd/MM/yyyy") == labelClean || 
+                   dt.ToString("yyyy-MM-dd") == labelClean || 
+                   dt.ToString("dd/MM/yy") == labelClean ||
+                   dt.ToString("d/M/yy") == labelClean;
         }
 
         // 2. Nếu là chuỗi
@@ -563,11 +573,12 @@ public static class ExcelTemplateFiller
         }
 
         // Thử parse cả hai về DateTime để so khớp ngày
-        bool dbParsed = DateTime.TryParse(dbStr, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime dbDate) ||
-                        DateTime.TryParseExact(dbStr, new[] { "dd/MM/yyyy", "yyyy-MM-dd" }, CultureInfo.InvariantCulture, DateTimeStyles.None, out dbDate);
-        bool excelParsed = DateTime.TryParseExact(labelClean, new[] { "dd/MM/yyyy", "d/M/yyyy", "yyyy-MM-dd", "MM/dd/yyyy" }, 
-                            CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime excelDate2) ||
-                           DateTime.TryParse(labelClean, CultureInfo.InvariantCulture, DateTimeStyles.None, out excelDate2);
+        // ƯU TIÊN TryParseExact (dd/MM format) TRƯỚC TryParse (InvariantCulture dùng MM/dd gây sai)
+        bool dbParsed = DateTime.TryParseExact(dbStr, dateFormats, 
+                            CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime dbDate) ||
+                        DateTime.TryParse(dbStr, CultureInfo.InvariantCulture, DateTimeStyles.None, out dbDate);
+        bool excelParsed = DateTime.TryParseExact(labelClean, dateFormats, 
+                            CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime excelDate2);
 
         if (dbParsed && excelParsed)
         {
