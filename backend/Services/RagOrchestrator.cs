@@ -381,6 +381,7 @@ public sealed class RagOrchestrator
         string finalText = rawResponse;
         List<string> suggestions = new();
         string rawDataForExport = lastStepJson; 
+        Dictionary<string, string>? metadata = null;
 
         try {
             var jsonString = rawResponse.Replace("```json", "").Replace("```", "").Trim();
@@ -390,6 +391,13 @@ public sealed class RagOrchestrator
             
             if (result.TryGetProperty("suggestions", out var sugProp)) {
                 suggestions = sugProp.EnumerateArray().Select(x => x.GetString() ?? "").Where(x => !string.IsNullOrEmpty(x)).ToList();
+            }
+
+            // Trích xuất metadata nếu có
+            if (result.TryGetProperty("metadata", out var metaProp) && metaProp.ValueKind == JsonValueKind.Object) {
+                try {
+                    metadata = JsonSerializer.Deserialize<Dictionary<string, string>>(metaProp.GetRawText());
+                } catch { }
             }
 
             // ƯU TIÊN 1: Nếu AI cung cấp excelData (thường cho bảng tóm tắt/KPI)
@@ -466,7 +474,7 @@ public sealed class RagOrchestrator
             }
         }
 
-        return new ChatResponse(finalText, steps, suggestions, rawDataForExport, lastDataTable);
+        return new ChatResponse(finalText, steps, suggestions, rawDataForExport, lastDataTable, Metadata: metadata);
     }
 
     // Thu gọn dữ liệu JSON thô (chỉ giữ lại 5 dòng mẫu và tổng số dòng) giúp tối ưu hóa bộ nhớ ngữ cảnh và tiết kiệm token cho LLM.

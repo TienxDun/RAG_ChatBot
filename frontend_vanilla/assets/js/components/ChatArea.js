@@ -729,6 +729,35 @@ export class ChatAreaComponent {
         }
     }
 
+    _checkIsVerticalTable(markdownText) {
+        if (!markdownText) return false;
+        
+        // Tìm các dòng chứa bảng markdown
+        const lines = markdownText.split('\n').map(l => l.trim());
+        const tableLines = lines.filter(l => l.startsWith('|') && l.endsWith('|'));
+        
+        if (tableLines.length < 3) return false; // Cần ít nhất 3 dòng (header, separator, data)
+        
+        // Dòng đầu tiên là Header
+        const headerLine = tableLines[0];
+        const headers = headerLine.split('|')
+                                  .slice(1, -1)
+                                  .map(h => h.trim().toLowerCase());
+                                  
+        if (headers.length !== 2) return false; // Chỉ có đúng 2 cột mới là bảng dọc
+        
+        const col1 = headers[0];
+        const col2 = headers[1];
+        
+        const verticalKeywordsColumn1 = ["thông", "thong", "label", "name", "field", "key", "chỉ tiêu", "chi tieu", "tiêu chí", "tieu chi", "nội dung", "noi dung", "danh mục", "danh muc", "mục", "muc", "yêu cầu", "yeu cau", "tên", "ten", "item", "description", "chỉ số", "chi so", "chỉ mục", "chi muc"];
+        const verticalKeywordsColumn2 = ["giá trị", "gia tri", "nội dung", "noi dung", "kết quả", "ket qua", "số liệu", "so lieu", "value", "result", "data", "amount", "quantity", "qty", "thông tin", "thong tin"];
+        
+        const col1Match = verticalKeywordsColumn1.some(kw => col1.includes(kw));
+        const col2Match = verticalKeywordsColumn2.some(kw => col2.includes(kw));
+        
+        return col1Match || col2Match;
+    }
+
     async handleExportExcel() {
         // Nếu tin nhắn cuối cùng có link download (file theo mẫu)
         if (this.uiState.lastDownloadUrl) {
@@ -741,7 +770,34 @@ export class ChatAreaComponent {
             return;
         }
 
-        // Nếu có markdownText cuối cùng, ưu tiên xuất từ markdown sang excel động
+        // Ưu tiên 1: Nếu là bảng dọc (có nhãn và cột), xuất từ markdown để giữ giao diện dọc
+        const isVertical = this._checkIsVerticalTable(this.uiState.lastMarkdownText);
+        if (isVertical && this.uiState.lastMarkdownText) {
+            await ExportService.exportToExcel({ markdownText: this.uiState.lastMarkdownText }, this.elements.exportBtn, {
+                defaultLabel: '<i class="ph-bold ph-microsoft-excel-logo"></i>'
+            });
+            return;
+        }
+
+        // Ưu tiên 2: Nếu là bảng ngang thường, ưu tiên xuất từ rawData để đầy đủ dòng
+        if (this.uiState.lastRawData) {
+            let data = this.uiState.lastRawData;
+            if (typeof data === 'string') {
+                try {
+                    data = JSON.parse(data);
+                } catch (e) {
+                    console.error('Failed to parse lastRawData', e);
+                }
+            }
+            if (Array.isArray(data) && data.length > 0) {
+                await ExportService.exportToExcel(data, this.elements.exportBtn, {
+                    defaultLabel: '<i class="ph-bold ph-microsoft-excel-logo"></i>'
+                });
+                return;
+            }
+        }
+
+        // Fallback 3: nếu không có rawData, xuất từ markdown
         if (this.uiState.lastMarkdownText) {
             await ExportService.exportToExcel({ markdownText: this.uiState.lastMarkdownText }, this.elements.exportBtn, {
                 defaultLabel: '<i class="ph-bold ph-microsoft-excel-logo"></i>'
@@ -749,17 +805,39 @@ export class ChatAreaComponent {
             return;
         }
 
-        // Nếu không có mẫu, xuất dữ liệu thô (Generic)
-        await ExportService.exportToExcel(this.uiState.lastRawData, this.elements.exportBtn, {
-            defaultLabel: '<i class="ph-bold ph-microsoft-excel-logo"></i>'
-        });
+        Toast.warning("Không có dữ liệu để xuất!");
     }
 
     async _handleExportMessageExcel(btn) {
         const messageEl = btn.closest('.message');
         const markdownText = messageEl?.getAttribute('data-markdown');
-        
-        // Ưu tiên xuất từ Markdown sang Excel động
+        const rawDataStr = messageEl?.getAttribute('data-raw');
+
+        // Ưu tiên 1: Nếu là bảng dọc (có nhãn và cột), xuất từ markdown để giữ giao diện dọc
+        const isVertical = this._checkIsVerticalTable(markdownText);
+        if (isVertical && markdownText) {
+            await ExportService.exportToExcel({ markdownText }, btn, {
+                defaultLabel: '<i class="ph-duotone ph-microsoft-excel-logo"></i> Xuất Excel'
+            });
+            return;
+        }
+
+        // Ưu tiên 2: Nếu là bảng ngang thường, ưu tiên xuất từ rawData để đầy đủ dòng
+        if (rawDataStr) {
+            try {
+                const data = JSON.parse(rawDataStr);
+                if (Array.isArray(data) && data.length > 0) {
+                    await ExportService.exportToExcel(data, btn, {
+                        defaultLabel: '<i class="ph-duotone ph-microsoft-excel-logo"></i> Xuất Excel'
+                    });
+                    return;
+                }
+            } catch (e) {
+                console.error('Failed to parse message rawData', e);
+            }
+        }
+
+        // Fallback 3: nếu không có rawData, xuất từ markdown
         if (markdownText) {
             await ExportService.exportToExcel({ markdownText }, btn, {
                 defaultLabel: '<i class="ph-duotone ph-microsoft-excel-logo"></i> Xuất Excel'
@@ -767,21 +845,7 @@ export class ChatAreaComponent {
             return;
         }
 
-        const rawDataStr = messageEl?.getAttribute('data-raw');
-        if (!rawDataStr) {
-            Toast.warning("Không tìm thấy dữ liệu để xuất!");
-            return;
-        }
-
-        try {
-            const data = JSON.parse(rawDataStr);
-            await ExportService.exportToExcel(data, btn, {
-                defaultLabel: '<i class="ph-duotone ph-microsoft-excel-logo"></i> Xuất Excel'
-            });
-        } catch (e) {
-            console.error('Failed to parse message rawData', e);
-            Toast.error("Dữ liệu không hợp lệ");
-        }
+        Toast.warning("Không tìm thấy dữ liệu để xuất!");
     }
 
     resetChat() {

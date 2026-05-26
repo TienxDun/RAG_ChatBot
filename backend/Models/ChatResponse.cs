@@ -10,5 +10,6 @@ public sealed record ChatResponse(
     List<string>? SuggestedQuestions = null,
     string? RawData = null,
     DataTable? RawDataTable = null,
-    bool IsAmbiguous = false
+    bool IsAmbiguous = false,
+    Dictionary<string, string>? Metadata = null
 );
