@@ -31,182 +31,84 @@ public class ExcelReportService
         var worksheet = package.Workbook.Worksheets[0];
 
         // Gửi step thông báo bắt đầu xử lý
-        await onStep(new RagStep("Excel Template Analysis", "Đang phân tích cấu trúc file template và trích xuất các cột tiêu đề..."));
+        await onStep(new RagStep("Excel Template Analysis", "Đang phân tích cấu trúc file template bằng bộ phân tích thông minh..."));
 
-        // 1. Tìm Header Row (Quét 15 dòng đầu để tìm dòng có nhiều cột nhất)
-        var columns = new List<string>();
-        var headerColumnIndices = new List<int>();
-        int headerRowIndex = 1;
-        int maxHeaderCols = 0;
+        // 1. Phân tích cấu trúc Template thông minh
+        var templateInfo = ExcelTemplateAnalyzer.Analyze(worksheet);
+        var columns = templateInfo.Columns.Select(c => c.UniqueKey).ToList();
+        int headerRowIndex = templateInfo.HeaderRowIndex;
+        int startColumnIndex = templateInfo.StartColumnIndex;
 
-        if (worksheet.Dimension != null)
+        // Gửi step chi tiết cấu trúc cột và nhãn metadata đã phân tích được từ template Excel
+        string excelAnalysisContent = $"Đã phân tích cấu trúc template thành công.\n\n" +
+                                     $"* **Loại template**: {(templateInfo.Type == TemplateType.Hierarchical ? "Phân cấp (Hierarchical)" : "Đơn giản (Simple)")}\n" +
+                                     $"* **Dòng tiêu đề chính**: {headerRowIndex}\n" +
+                                     $"* **Cột bắt đầu**: {startColumnIndex}\n\n" +
+                                     $"**Danh sách {templateInfo.Columns.Count} tiêu đề cột đã nhận diện & làm phẳng:**\n" +
+                                     $"```json\n{JsonSerializer.Serialize(templateInfo.Columns.Select(c => new { c.ColumnIndex, c.ParentHeader, c.ChildHeader, c.UniqueKey, c.FriendlyName }), new JsonSerializerOptions { WriteIndented = true })}\n```";
+        if (templateInfo.MetadataCells.Count > 0)
         {
-            int maxColsToScan = Math.Min(worksheet.Dimension.End.Column, 50);
-            int maxRowsToScan = Math.Min(worksheet.Dimension.End.Row, 15); // 15 dòng
-
-            for (int r = 1; r <= maxRowsToScan; r++)
-            {
-                var tempColumns = new List<string>();
-                var tempColumnIndices = new List<int>();
-                for (int c = 1; c <= maxColsToScan; c++)
-                {
-                    var val = worksheet.Cells[r, c].Text?.Trim();
-                    if (!string.IsNullOrWhiteSpace(val)) 
-                    {
-                        tempColumns.Add(val);
-                        tempColumnIndices.Add(c);
-                    }
-                }
-
-                // Nếu dòng này có nhiều cột hơn dòng trước đó -> Coi là Header
-                if (tempColumns.Count > maxHeaderCols)
-                {
-                    maxHeaderCols = tempColumns.Count;
-                    columns = tempColumns;
-                    headerColumnIndices = tempColumnIndices;
-                    headerRowIndex = r;
-                }
-            }
-        }
-
-        // Nếu không tìm thấy cột nào, thoát sớm
-        if (columns.Count == 0)
-        {
-            throw new Exception("Không tìm thấy hàng tiêu đề (Header) trong file Excel template.");
-        }
-
-        var columnsStr = string.Join(", ", columns);
-        int startColumnIndex = headerColumnIndices.Count > 0 ? headerColumnIndices[0] : 1;
-
-        // Phát hiện sớm template dạng dọc bằng từ khóa mở rộng tiếng Việt/tiếng Anh
-        var verticalKeywordsColumn1 = new[] { "thông", "thong", "label", "name", "field", "key", "chỉ tiêu", "chi tieu", "tiêu chí", "tieu chi", "nội dung", "noi dung", "danh mục", "danh muc", "mục", "muc", "yêu cầu", "yeu cau", "tên", "ten", "item", "description", "chỉ số", "chi so" };
-        var verticalKeywordsColumn2 = new[] { "giá trị", "gia tri", "nội dung", "noi dung", "kết quả", "ket qua", "số liệu", "so lieu", "value", "result", "data", "amount", "quantity", "qty", "thông tin", "thong tin" };
-
-        bool hasVerticalKeywords = false;
-        if (columns.Count == 2)
-        {
-            bool col1Match = verticalKeywordsColumn1.Any(kw => columns[0].Contains(kw, StringComparison.OrdinalIgnoreCase));
-            bool col2Match = verticalKeywordsColumn2.Any(kw => columns[1].Contains(kw, StringComparison.OrdinalIgnoreCase));
-            hasVerticalKeywords = col1Match || col2Match;
-        }
-
-        // Kiểm tra thêm đặc trưng vật lý: Cột 1 có nhiều chữ tĩnh, cột 2 trống phần lớn để điền dữ liệu
-        bool hasVerticalPhysicalTraits = false;
-        if (columns.Count == 2 && worksheet.Dimension != null && headerColumnIndices.Count >= 2)
-        {
-            int labelCol = headerColumnIndices[0];
-            int valCol = headerColumnIndices[1];
-            int textCountInCol1 = 0;
-            int textCountInCol2 = 0;
-            
-            int scanStartRow = headerRowIndex + 1;
-            int scanEndRow = Math.Min(worksheet.Dimension.End.Row, headerRowIndex + 15);
-            int scannedRows = 0;
-
-            for (int r = scanStartRow; r <= scanEndRow; r++)
-            {
-                scannedRows++;
-                if (!string.IsNullOrWhiteSpace(worksheet.Cells[r, labelCol].Text)) textCountInCol1++;
-                if (!string.IsNullOrWhiteSpace(worksheet.Cells[r, valCol].Text)) textCountInCol2++;
-            }
-
-            // Nếu cột 1 có chữ ở nhất thiết 30% số hàng quét, và cột 2 trống phần lớn (số lượng chữ < 40% so với cột 1)
-            if (scannedRows > 0 && textCountInCol1 >= 1)
-            {
-                if (textCountInCol2 == 0 || (double)textCountInCol2 / textCountInCol1 < 0.4)
-                {
-                    hasVerticalPhysicalTraits = true;
-                }
-            }
-
-            // Kiểm tra thông minh: Nếu cột 1 chủ yếu chứa dữ liệu số (như STT 1, 2, 3...) thì chắc chắn không phải là template dọc
-            int numericCount = 0;
-            for (int r = scanStartRow; r <= scanEndRow; r++)
-            {
-                var cellText = worksheet.Cells[r, labelCol].Text?.Trim();
-                if (!string.IsNullOrEmpty(cellText) && double.TryParse(cellText, out _))
-                {
-                    numericCount++;
-                }
-            }
-            if (scannedRows > 0 && (double)numericCount / scannedRows > 0.5)
-            {
-                hasVerticalPhysicalTraits = false;
-            }
-        }
-
-        // Loại trừ các trường hợp tiêu đề cột 1 là STT, No, Index, ID,... (đặc trưng của bảng ngang 2 cột)
-        bool isHorizontalCol1Header = false;
-        if (columns.Count == 2)
-        {
-            var horizontalKeywordsColumn1 = new[] { "stt", "số tt", "số tt", "no", "no.", "index", "id", "seq" };
-            isHorizontalCol1Header = horizontalKeywordsColumn1.Any(kw => columns[0].Equals(kw, StringComparison.OrdinalIgnoreCase) || columns[0].StartsWith(kw + " ", StringComparison.OrdinalIgnoreCase));
-        }
-
-        bool isVerticalTemplate = columns.Count == 2 && !isHorizontalCol1Header && (hasVerticalKeywords || hasVerticalPhysicalTraits);
-
-        int labelColumnIndex = isVerticalTemplate && headerColumnIndices.Count > 0 ? headerColumnIndices[0] : 1;
-        int valueColumnIndex = isVerticalTemplate && headerColumnIndices.Count > 1 ? headerColumnIndices[1] : 2;
-
-        var verticalLabels = new List<string>();
-        if (isVerticalTemplate && worksheet.Dimension != null)
-        {
-            for (int r = headerRowIndex + 1; r <= worksheet.Dimension.End.Row; r++)
-            {
-                var val = worksheet.Cells[r, labelColumnIndex].Text?.Trim();
-                if (!string.IsNullOrWhiteSpace(val))
-                {
-                    verticalLabels.Add(val);
-                }
-            }
-        }
-
-        // Gửi step chi tiết các cột/nhãn đã phân tích được từ file Excel
-        string excelAnalysisContent;
-        if (isVerticalTemplate)
-        {
-            excelAnalysisContent = $"Đã phát hiện **File mẫu dạng dọc (Vertical Template)** (hàng tiêu đề số **{headerRowIndex}**).\n\n" +
-                                   $"**Các cột tiêu đề:** `{columns[0]}` và `{columns[1]}`\n\n" +
-                                   $"**Danh sách {verticalLabels.Count} nhãn dữ liệu cần điền phát hiện được ở cột '{columns[0]}':**\n" +
-                                   $"```json\n{JsonSerializer.Serialize(verticalLabels, new JsonSerializerOptions { WriteIndented = true })}\n```";
-        }
-        else
-        {
-            excelAnalysisContent = $"Đã trích xuất thành công cấu trúc hàng tiêu đề (hàng số **{headerRowIndex}**).\n\n" +
-                                   $"**Danh sách {columns.Count} cột tiêu đề phát hiện được:**\n" +
-                                   $"```json\n{JsonSerializer.Serialize(columns, new JsonSerializerOptions { WriteIndented = true })}\n```";
+            excelAnalysisContent += $"\n\n**Danh sách {templateInfo.MetadataCells.Count} nhãn Metadata (thông tin chung ở đầu trang):**\n" +
+                                   $"```json\n{JsonSerializer.Serialize(templateInfo.MetadataCells.Select(m => m.Label), new JsonSerializerOptions { WriteIndented = true })}\n```";
         }
         await onStep(new RagStep("Excel Template Analysis", excelAnalysisContent));
 
-        // 2. GỘP CÂU QUERY CỦA USER + YÊU CẦU CỘT EXCEL
+        // 2. GỘP CÂU QUERY CỦA USER + YÊU CẦU CỘT EXCEL & METADATA
         string combinedQuery;
         string mappingInstructions;
-        if (isVerticalTemplate)
+
+        if (templateInfo.Type == TemplateType.Hierarchical)
         {
-            var labelsListStr = string.Join("\n", verticalLabels.Select(lbl => $"  - {lbl}"));
-            mappingInstructions = $"\n\nYÊU CẦU ĐẶC BIỆT CHO BÁO CÁO EXCEL DẠNG DỌC:\n" +
-                                   $"- Hệ thống phát hiện đây là mẫu báo cáo dạng dọc.\n" +
-                                   $"- Bạn BẮT BUỘC phải truy vấn thông tin trong database để lấy dữ liệu cho các nhãn (labels) sau đây:\n" +
-                                   $"{labelsListStr}\n" +
-                                   $"- Định dạng kết quả trả về BẮT BUỘC phải là một bảng Markdown gồm đúng 2 cột: '{columns[0]}' và '{columns[1]}'.\n" +
-                                   $"- Cột '{columns[0]}' chứa chính xác các nhãn trên.\n" +
-                                   $"- Cột '{columns[1]}' chứa giá trị tương ứng tìm được từ database. Nếu nhãn nào không có dữ liệu, hãy để trống giá trị ở cột '{columns[1]}' (không bỏ sót bất kỳ nhãn nào).\n" +
-                                   $"- Hãy đảm bảo tên của nhãn khớp hoàn toàn (ví dụ: 'Ngày kiểm tra', 'Chuyền', 'Mã hàng', 'Size', 'Nhân viên KCS', 'Tổng số lượng lỗi').";
+            var colMappings = string.Join("\n", templateInfo.Columns.Select(col => 
+                $"- Cột vật lý {col.ColumnIndex}: nhóm '{col.ParentHeader}' -> cột con '{col.ChildHeader}' -> Bạn BẮT BUỘC SELECT alias (AS) là [{col.UniqueKey}]"
+            ));
+            var metadataLabels = string.Join("\n", templateInfo.MetadataCells.Select(cell => 
+                $"- {cell.Label}"
+            ));
+            
+            mappingInstructions = $"\n\nYÊU CẦU ĐẶC BIỆT CHO BÁO CÁO EXCEL PHÂN CẤP (HIERARCHICAL TEMPLATE):\n" +
+                                  $"- Hệ thống phát hiện đây là mẫu báo cáo có cấu trúc tiêu đề phân cấp hai tầng (Parent-Child).\n" +
+                                  $"- Bạn BẮT BUỘC sử dụng ALIAS (AS) để tên cột trong kết quả trả về khớp hoàn toàn với các UniqueKey sau đây:\n" +
+                                  $"{colMappings}\n" +
+                                  $"- Nếu không tìm thấy cột tương ứng, hãy để trống hoặc dùng NULL, đừng cố đoán bừa.\n";
+            if (templateInfo.MetadataCells.Count > 0)
+            {
+                mappingInstructions += $"- Ngoài ra, bạn BẮT BUỘC phải truy vấn thông tin cho các nhãn thông tin chung (metadata) sau đây từ database và trả về dưới dạng JSON (Key-Value) trong thuộc tính \"metadata\" của kết quả:\n" +
+                                       $"{metadataLabels}\n" +
+                                       $"- Khóa JSON trả về phải khớp hoàn toàn với tên các nhãn trên.";
+            }
         }
         else
         {
+            var columnsStr = string.Join(", ", columns);
+            var metadataLabels = string.Join("\n", templateInfo.MetadataCells.Select(cell => 
+                $"- {cell.Label}"
+            ));
+            
             mappingInstructions = $"\n\nYÊU CẦU ĐẶC BIỆT CHO BÁO CÁO EXCEL:\n" +
-                                   $"- Dữ liệu trả về BẮT BUỘC phải có các cột tiêu đề sau: {columnsStr}.\n" +
-                                   $"- Quan trọng: Hãy ánh xạ (map) các tiêu đề này với trường tương ứng trong database (ví dụ: 'TenKhachHang' map với 'KhachHang', 'StepName' map với 'cd_name').\n" +
-                                   $"- Nếu không tìm thấy cột tương ứng, hãy để trống hoặc dùng NULL, đừng cố đoán bừa.\n" +
-                                   $"- BẮT BUỘC sử dụng ALIAS (AS) để tên cột trong kết quả trả về khớp hoàn toàn với tên tiêu đề Excel (ví dụ: SELECT KhachHang AS [TenKhachHang], cd_name AS [StepName] ...).";
+                                  $"- Dữ liệu trả về BẮT BUỘC phải có các cột tiêu đề sau: {columnsStr}.\n" +
+                                  $"- Quan trọng: Hãy ánh xạ (map) các tiêu đề này với trường tương ứng trong database (ví dụ: 'TenKhachHang' map với 'KhachHang', 'StepName' map với 'cd_name').\n" +
+                                  $"- Nếu không tìm thấy cột tương ứng, hãy để trống hoặc dùng NULL, đừng cố đoán bừa.\n" +
+                                  $"- BẮT BUỘC sử dụng ALIAS (AS) để tên cột trong kết quả trả về khớp hoàn toàn với tên tiêu đề Excel (ví dụ: SELECT KhachHang AS [TenKhachHang], cd_name AS [StepName] ...).";
+            if (templateInfo.MetadataCells.Count > 0)
+            {
+                mappingInstructions += $"\n- Ngoài ra, bạn BẮT BUỘC phải truy vấn thông tin cho các nhãn thông tin chung (metadata) sau đây từ database và trả về dưới dạng JSON (Key-Value) trong thuộc tính \"metadata\" của kết quả:\n" +
+                                       $"{metadataLabels}\n" +
+                                       $"- Khóa JSON trả về phải khớp hoàn toàn với tên các nhãn trên.";
+            }
+        }
+
+        // Bổ sung điều kiện giới hạn ngày/nhãn từ hàng dọc
+        if (templateInfo.RowLabels.Count > 0)
+        {
+            var labelsListStr = string.Join(", ", templateInfo.RowLabels.Select(l => $"'{l}'"));
+            mappingInstructions += $"\n- BẮT BUỘC chỉ lọc lấy dữ liệu phát sinh trong các Ngày/Nhãn sau ở điều kiện lọc: {labelsListStr}.\n" +
+                                   $"- Tuyệt đối không lấy thêm bất kỳ ngày nào khác ngoài danh sách này để tránh làm tràn hoặc thừa dữ liệu ngoài bảng của template mẫu.\n";
         }
 
         if (string.IsNullOrWhiteSpace(additionalQuery))
         {
-            combinedQuery = isVerticalTemplate 
-                ? $"Hãy lấy toàn bộ dữ liệu cần thiết để điền vào báo cáo dạng dọc theo các nhãn được yêu cầu.{mappingInstructions}"
-                : $"Hãy lấy toàn bộ dữ liệu cần thiết để điền vào báo cáo theo các cột được yêu cầu.{mappingInstructions}";
+            combinedQuery = $"Hãy lấy toàn bộ dữ liệu cần thiết để điền vào báo cáo theo các cột và thông tin được yêu cầu.{mappingInstructions}";
         }
         else
         {
@@ -220,7 +122,7 @@ public class ExcelReportService
         DataTable dataTable = new DataTable();
         if (ragResponse.RawDataTable != null && ragResponse.RawDataTable.Rows.Count > 0)
         {
-            // Nếu có DataTable gốc, chúng ta cần tạo một bản sao có các cột đúng thứ tự như Template
+            // Tạo bản sao DataTable có các cột đúng tên UniqueKey theo thứ tự của Template
             dataTable = new DataTable();
             foreach (var colName in columns)
             {
@@ -229,6 +131,14 @@ public class ExcelReportService
 
             foreach (DataRow sourceRow in ragResponse.RawDataTable.Rows)
             {
+                // Kiểm tra xem dòng này có phải là dòng Tổng từ SQL không
+                var firstColVal = sourceRow[0]?.ToString()?.Trim() ?? "";
+                if (firstColVal.Equals("Tổng", StringComparison.OrdinalIgnoreCase) || 
+                    firstColVal.Equals("Total", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue; // Bỏ qua dòng tổng từ SQL vì Excel đã có dòng tổng công thức riêng của template
+                }
+
                 var newRow = dataTable.NewRow();
                 foreach (var colName in columns)
                 {
@@ -255,93 +165,67 @@ public class ExcelReportService
             dataTable = ExcelTemplateFiller.ConvertJsonToDataTable(rawJson, columns);
         }
 
-        // 5. Xóa dữ liệu mẫu (dummy data) và điền data mới
-        if (isVerticalTemplate)
+        // 5. Điền dữ liệu chính (bảng lỗi) và điền metadata đầu trang
+        if (templateInfo.Type == TemplateType.Hierarchical)
         {
-            // Điền theo dạng dọc từ bảng markdown của ragResponse.Text với vị trí cột/hàng động
-            ExcelTemplateFiller.FillVerticalTemplate(worksheet, ragResponse.Text ?? string.Empty, headerRowIndex, labelColumnIndex, valueColumnIndex);
-            
-            // Xây dựng dataTable từ markdown table để phục vụ cho việc tạo PreviewData ở cuối
-            var parsedTable = MarkdownTableParser.ParseMarkdownTable(ragResponse.Text ?? string.Empty);
-            dataTable = new DataTable();
-            dataTable.Columns.Add(columns[0], typeof(object));
-            dataTable.Columns.Add(columns[1], typeof(object));
-            
-            int startIdx = 0;
-            if (parsedTable.Count > 0 && parsedTable[0].Count == 2 && 
-                (parsedTable[0][0].Contains("Thông", StringComparison.OrdinalIgnoreCase) || parsedTable[0][0].Contains("Thong", StringComparison.OrdinalIgnoreCase)))
-            {
-                startIdx = 1;
-            }
-            
-            for (int i = startIdx; i < parsedTable.Count; i++)
-            {
-                var row = dataTable.NewRow();
-                row[columns[0]] = parsedTable[i][0];
-                row[columns[1]] = parsedTable[i].Count > 1 ? parsedTable[i][1] : "";
-                dataTable.Rows.Add(row);
-            }
+            ExcelTemplateFiller.FillHierarchicalTemplate(worksheet, dataTable, headerRowIndex, startColumnIndex, templateInfo.Columns, templateInfo.RowLabels);
         }
         else
         {
-            ExcelTemplateFiller.FillHorizontalTemplate(worksheet, dataTable, headerRowIndex, startColumnIndex, columns.Count);
+            ExcelTemplateFiller.FillHorizontalTemplate(worksheet, dataTable, headerRowIndex, startColumnIndex, columns.Count, templateInfo.RowLabels);
+        }
+
+        // Điền Metadata nếu AI trả về dữ liệu tương ứng
+        if (templateInfo.MetadataCells.Count > 0 && ragResponse.Metadata != null && ragResponse.Metadata.Count > 0)
+        {
+            ExcelTemplateFiller.FillMetadataCells(worksheet, templateInfo.MetadataCells, ragResponse.Metadata);
         }
 
         // Tìm dòng cuối cùng chứa dữ liệu thực tế của bảng
-        int endRowOfData = headerRowIndex;
-        if (isVerticalTemplate)
-        {
-            if (worksheet.Dimension != null)
-            {
-                for (int r = headerRowIndex + 1; r <= worksheet.Dimension.End.Row; r++)
-                {
-                    if (!string.IsNullOrWhiteSpace(worksheet.Cells[r, labelColumnIndex].Text))
-                    {
-                        endRowOfData = r;
-                    }
-                }
-            }
-        }
-        else
-        {
-            endRowOfData = headerRowIndex + (dataTable?.Rows.Count ?? 0);
-        }
+        int endRowOfData = headerRowIndex + (dataTable?.Rows.Count ?? 0);
 
         // 6. Áp dụng phong cách làm đẹp thẩm mỹ
-        // Tô màu nền xanh pastel nhẹ cho Hàng tiêu đề chính
-        ExcelStylingHelper.ApplyHeaderStyle(worksheet, headerRowIndex, startColumnIndex, columns.Count);
-
-        // Định dạng cột nhãn cho template dọc (màu xám nhạt, in đậm) để tăng chiều sâu trực quan
-        if (isVerticalTemplate)
+        // Tô màu nền xanh pastel nhẹ cho các Hàng tiêu đề
+        if (templateInfo.Type == TemplateType.Hierarchical && templateInfo.ParentHeaderRowIndex.HasValue)
         {
-            ExcelStylingHelper.ApplyVerticalLabelStyle(worksheet, headerRowIndex, endRowOfData, labelColumnIndex);
+            ExcelStylingHelper.ApplyHierarchicalHeaderStyle(worksheet, templateInfo.ParentHeaderRowIndex.Value, headerRowIndex, startColumnIndex, columns.Count);
         }
         else
         {
-            // Áp dụng bộ lọc AutoFilter cho bảng báo cáo dạng ngang truyền thống
-            ExcelStylingHelper.ApplyAutoFilter(worksheet, headerRowIndex, endRowOfData, startColumnIndex, columns.Count);
+            ExcelStylingHelper.ApplyHeaderStyle(worksheet, headerRowIndex, startColumnIndex, columns.Count);
         }
 
-        // Dọn dẹp border thừa và thiết lập border xám nhạt tinh tế cho vùng bảng dữ liệu thực tế
-        ExcelStylingHelper.SanitizeBorders(worksheet, headerRowIndex, endRowOfData, startColumnIndex, columns.Count);
+        // Áp dụng bộ lọc AutoFilter cho bảng báo cáo
+        ExcelStylingHelper.ApplyAutoFilter(worksheet, headerRowIndex, endRowOfData, startColumnIndex, columns.Count);
+
+        // Dọn dẹp border thừa và thiết lập border xám nhạt tinh tế cho vùng bảng dữ liệu thực tế (Bao gồm cả hàng tiêu đề cha nếu có)
+        int startRowForBorders = templateInfo.ParentHeaderRowIndex ?? headerRowIndex;
+        ExcelStylingHelper.SanitizeBorders(worksheet, startRowForBorders, endRowOfData, startColumnIndex, columns.Count);
 
         int rowsToFit = Math.Min(50, worksheet.Dimension?.End.Row ?? 1);
         int colsToFit = worksheet.Dimension?.End.Column ?? 1;
         worksheet.Cells[1, 1, rowsToFit, colsToFit].AutoFitColumns(12);
+
+        // Kích hoạt tính năng tính toán công thức của EPPlus để tự động điền giá trị cho hàng Tổng
+        package.Workbook.Calculate();
+
         var excelBytes = package.GetAsByteArray();
 
         // 7. Trích xuất TOP 20 dòng làm Preview
         var previewList = new List<Dictionary<string, object>>();
-        int rowsToPreview = Math.Min(20, dataTable.Rows.Count);
-
-        for (int i = 0; i < rowsToPreview; i++)
+        if (dataTable != null)
         {
-            var rowDict = new Dictionary<string, object>();
-            foreach (DataColumn col in dataTable.Columns)
+            int rowsToPreview = Math.Min(20, dataTable.Rows.Count);
+
+            for (int i = 0; i < rowsToPreview; i++)
             {
-                rowDict[col.ColumnName] = dataTable.Rows[i][col];
+                var rowDict = new Dictionary<string, object>();
+                foreach (DataColumn col in dataTable.Columns)
+                {
+                    rowDict[col.ColumnName] = dataTable.Rows[i][col];
+                }
+                previewList.Add(rowDict);
             }
-            previewList.Add(rowDict);
         }
 
         return new ExcelReportResult

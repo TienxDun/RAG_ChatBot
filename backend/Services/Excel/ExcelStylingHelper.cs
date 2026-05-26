@@ -41,11 +41,17 @@ public static class ExcelStylingHelper
 
         for (int r = 1; r <= totalRows; r++)
         {
+            // Bảo toàn hoàn toàn định dạng và borders của các dòng phía trên bảng (Tiêu đề, logo, metadata đầu trang)
+            if (r < headerRowIndex) continue;
+
             for (int c = 1; c <= totalCols; c++)
             {
                 var cell = worksheet.Cells[r, c];
-                bool isInTableRange = r >= headerRowIndex && r <= endRowOfData && 
+                bool isInTableRange = r <= endRowOfData && 
                                      c >= startColumnIndex && c <= startColumnIndex + columnCount - 1;
+
+                // Hàng Tổng dịch chuyển nằm ngay sau hàng cuối của bảng dữ liệu
+                bool isTotalRow = r == endRowOfData + 1;
 
                 if (isInTableRange)
                 {
@@ -60,13 +66,21 @@ public static class ExcelStylingHelper
                     cell.Style.Border.Left.Color.SetColor(borderColor);
                     cell.Style.Border.Right.Color.SetColor(borderColor);
                 }
+                else if (isTotalRow)
+                {
+                    // Giữ nguyên hoàn toàn định dạng/border gốc của dòng Tổng, không chỉnh sửa gì
+                    continue;
+                }
                 else
                 {
-                    // Xóa sạch toàn bộ border thừa thãi ngoài vùng bảng dữ liệu thực tế
-                    cell.Style.Border.Top.Style = OfficeOpenXml.Style.ExcelBorderStyle.None;
-                    cell.Style.Border.Bottom.Style = OfficeOpenXml.Style.ExcelBorderStyle.None;
-                    cell.Style.Border.Left.Style = OfficeOpenXml.Style.ExcelBorderStyle.None;
-                    cell.Style.Border.Right.Style = OfficeOpenXml.Style.ExcelBorderStyle.None;
+                    // Chỉ xóa border cho các ô nằm hẳn bên dưới dòng Tổng để dọn sạch tàn dư của placeholder cũ
+                    if (r > endRowOfData + 1)
+                    {
+                        cell.Style.Border.Top.Style = OfficeOpenXml.Style.ExcelBorderStyle.None;
+                        cell.Style.Border.Bottom.Style = OfficeOpenXml.Style.ExcelBorderStyle.None;
+                        cell.Style.Border.Left.Style = OfficeOpenXml.Style.ExcelBorderStyle.None;
+                        cell.Style.Border.Right.Style = OfficeOpenXml.Style.ExcelBorderStyle.None;
+                    }
                 }
             }
         }
@@ -80,5 +94,27 @@ public static class ExcelStylingHelper
             // Thiết lập AutoFilter cho vùng từ Header đến dòng cuối cùng của bảng dữ liệu
             worksheet.Cells[headerRowIndex, startColumnIndex, endRowOfData, startColumnIndex + columnCount - 1].AutoFilter = true;
         }
+    }
+
+    // Tô màu nền cho cả 2 dòng header (parent + child) đối với template phân cấp
+    public static void ApplyHierarchicalHeaderStyle(ExcelWorksheet worksheet, int parentRowIndex, int childRowIndex, int startColumnIndex, int columnCount)
+    {
+        // 1. Dòng tiêu đề cha: Màu nền xanh đậm pastel thanh lịch hơn, chữ bold, căn giữa
+        var parentRange = worksheet.Cells[parentRowIndex, startColumnIndex, parentRowIndex, startColumnIndex + columnCount - 1];
+        parentRange.Style.Fill.PatternType = OfficeOpenXml.Style.ExcelFillStyle.Solid;
+        parentRange.Style.Fill.BackgroundColor.SetColor(Color.FromArgb(184, 204, 228)); // Xanh dương pastel đậm (#B8CCE4)
+        parentRange.Style.Font.Bold = true;
+        parentRange.Style.Font.Color.SetColor(Color.FromArgb(51, 51, 51));
+        parentRange.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+        parentRange.Style.Font.Name = "Segoe UI";
+
+        // 2. Dòng tiêu đề con: Màu nền xanh pastel nhẹ nhàng, chữ bold, căn giữa
+        var childRange = worksheet.Cells[childRowIndex, startColumnIndex, childRowIndex, startColumnIndex + columnCount - 1];
+        childRange.Style.Fill.PatternType = OfficeOpenXml.Style.ExcelFillStyle.Solid;
+        childRange.Style.Fill.BackgroundColor.SetColor(Color.FromArgb(232, 240, 248)); // Xanh dương pastel nhẹ (#E8F0F8)
+        childRange.Style.Font.Bold = true;
+        childRange.Style.Font.Color.SetColor(Color.FromArgb(51, 51, 51));
+        childRange.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+        childRange.Style.Font.Name = "Segoe UI";
     }
 }
