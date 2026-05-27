@@ -114,6 +114,22 @@
       "rule": "Bảng ERP_LENHSX KHÔNG chứa cột KhachHang hay TenKhachHang. Để lấy tên khách hàng (hoặc KhachHang/TenKhachHang), BẮT BUỘC JOIN với bảng danh mục DIC_KHACHHANG (qua điều kiện ERP_LENHSX.MaKhachHang = DIC_KHACHHANG.MaKhachHang) và chọn cột DIC_KHACHHANG.KhachHang.",
       "correct_example": "SELECT e.MaLenh, d.KhachHang AS [KhachHang] FROM ERP_LENHSX e JOIN DIC_KHACHHANG d ON e.MaKhachHang = d.MaKhachHang",
       "wrong_example": "SELECT e.KhachHang FROM ERP_LENHSX e"
+    },
+    {
+      "id": "G015",
+      "category": "table_routing_defect",
+      "severity": "CRITICAL",
+      "rule": "ĐỊNH TUYẾN BẢNG LỖI (DEFECT TABLE ROUTING): Khi câu hỏi liên quan đến sản phẩm lỗi, tỷ lệ lỗi, thống kê lỗi, phải xác định từ khóa trong câu hỏi để chọn đúng bảng. (A) MẶC ĐỊNH: Nếu câu hỏi KHÔNG chứa từ khóa 'inline' hoặc 'final'/'QA', BẮT BUỘC dùng QTY_MAHANG_NGAYKIEM (tổng hợp lỗi) hoặc QTY_MaHang_KiemQC_ChiTiet (chi tiết từng loại lỗi). (B) Nếu câu hỏi CÓ CHỨA từ khóa 'final', 'QA' hoặc 'thành phẩm cuối': Dùng QTY_KiemQA_NgayKiem (thống kê tổng hợp số lượng lỗi, số lượng kiểm, đạt KCS của QA), hoặc QTY_KiemQA_CHITIET (liệt kê chi tiết lỗi, mã lỗi, tọa độ lỗi của QA), hoặc TskFinal (chỉ dùng khi hỏi về trạng thái sửa lỗi, tác vụ kiểm tra final). (C) Nếu câu hỏi CÓ CHỨA từ khóa 'inline' hoặc 'in line', dùng QTY_InLineQC_NgayKiem (tổng hợp) hoặc QTY_InLineQC_CHITIET (chi tiết). TUYỆT ĐỐI CẤM dùng sai nhóm bảng khi không có từ khóa tương ứng.",
+      "correct_example": "SELECT SUM(ISNULL(SpLoi, 0)) FROM QTY_MAHANG_NGAYKIEM WHERE LineX = '...' hoặc SELECT SUM(ISNULL(SoLuongLoi, 0)) FROM QTY_KiemQA_NgayKiem WHERE LineX = '...' hoặc SELECT COUNT(*) FROM TskFinal WHERE Line = '...'",
+      "wrong_example": "SELECT SUM(ISNULL(SPLoi, 0)) FROM QTY_InLineQC_CHITIET WHERE NhanVienKiem = N'...' (khi câu hỏi không nhắc 'inline') hoặc SELECT SUM(ISNULL(SoLuongLoi, 0)) FROM QTY_KiemQA_NgayKiem WHERE LineX = '...' (khi câu hỏi không nhắc 'final' hoặc 'QA')"
+    },
+    {
+      "id": "G016",
+      "category": "table_routing_productivity",
+      "severity": "CRITICAL",
+      "rule": "ĐỊNH TUYẾN BẢNG NĂNG SUẤT / SẢN LƯỢNG (PRODUCTIVITY & OUTPUT ROUTING): Khi câu hỏi hỏi về năng suất, sản lượng sản xuất, năng suất đạt đỉnh, số lượng sản phẩm làm ra/hoàn thành. (A) CÓ LIÊN QUAN TỚI KCS (ví dụ: nhắc đến 'nhân viên KCS', 'KCS PANSY', 'KCS cosmos', 'công đoạn KCS'...): BẮT BUỘC dùng bảng SEW_CoefficientSize (bảng size) vì dữ liệu KCS ghi nhận năng suất có liên quan tới kích thước (size) và có phần sản lượng sửa đạt (SuaDat). Khi đó, tổng sản phẩm đạt (năng suất) BẮT BUỘC tính bằng công thức SUM(ISNULL(Quantity, 0) + ISNULL(SuaDat, 0)) và cột nhân viên KCS là NVKiemKCS. (B) KHÔNG LIÊN QUAN TỚI KCS: Mặc định dùng bảng SEW_CoefficientStyle (bảng style) để truy vấn năng suất/sản lượng chung. Khi đó, năng suất đạt chuẩn chỉ tính bằng công thức SUM(Quantity).",
+      "correct_example": "SELECT SUM(ISNULL(Quantity, 0) + ISNULL(SuaDat, 0)) FROM SEW_CoefficientSize WHERE SizeId = 'SIZE_XL' AND NVKiemKCS = N'KCS PANSY' hoặc SELECT SUM(Quantity) FROM SEW_CoefficientStyle",
+      "wrong_example": "SELECT COUNT(RowID) FROM QTY_MaHang_KiemQC_ChiTiet WHERE Size = N'XL' (khi câu hỏi hỏi về năng suất/sản lượng đạt chuẩn)"
     }
   ]
 }

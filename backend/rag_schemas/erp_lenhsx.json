@@ -60,6 +60,20 @@
     { "name": "GiaDuPhong", "type": "decimal", "role": "info", "desc": "Chi phí dự phòng phát sinh (Dữ liệu hiện tại luôn bằng 0)." }
   ],
   "relationships": [
-    { "target_table": "DIC_KHACHHANG", "join_on": "ERP_LENHSX.MaKhachHang = DIC_KHACHHANG.MaKhachHang", "notes": "Để lấy thông tin chi tiết tên khách hàng." }
+    {
+      "target_table": "DIC_KHACHHANG",
+      "join_on": "ERP_LENHSX.MaKhachHang = DIC_KHACHHANG.MaKhachHang",
+      "notes": "Để lấy thông tin chi tiết tên khách hàng."
+    },
+    {
+      "target_table": "QTY_MAHANG_NGAYKIEM",
+      "join_on": "ERP_LENHSX.MaLenh = QTY_MAHANG_NGAYKIEM.PlanCode",
+      "notes": "Để liên kết lệnh sản xuất với dữ liệu lỗi hàng ngày (SpLoi)."
+    },
+    {
+      "target_table": "QTY_MaHang_KiemQC_ChiTiet",
+      "join_on": "ERP_LENHSX.MaLenh = QTY_MaHang_KiemQC_ChiTiet.PlanCode",
+      "notes": "Để liên kết lệnh sản xuất với dữ liệu chi tiết lỗi."
+    }
   ]
 }
