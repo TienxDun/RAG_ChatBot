@@ -8,25 +8,12 @@ public sealed class QdrantService
     private readonly QdrantClient _client;
     private const string DefaultCollectionName = "db_schema";
 
-    // Khởi tạo QdrantService bằng cách lấy cấu hình kết nối từ biến môi trường.
+    // Khởi tạo QdrantService bằng cách tiêm cấu hình QdrantOptions.
     // Bắt buộc có QDRANT_HOST và QDRANT_API_KEY. Luôn sử dụng HTTPS kết nối trực tiếp tới Qdrant Cloud.
-    public QdrantService()
+    public QdrantService(Backend.Models.QdrantOptions options)
     {
-        var host = Environment.GetEnvironmentVariable("QDRANT_HOST");
-        var apiKey = Environment.GetEnvironmentVariable("QDRANT_API_KEY");
-        
-        if (string.IsNullOrWhiteSpace(host))
-        {
-            throw new InvalidOperationException("Thiếu biến môi trường bắt buộc: QDRANT_HOST. Yêu cầu cấu hình Qdrant Cloud.");
-        }
-
-        if (string.IsNullOrWhiteSpace(apiKey))
-        {
-            throw new InvalidOperationException("Thiếu biến môi trường bắt buộc: QDRANT_API_KEY. Yêu cầu cấu hình Qdrant Cloud.");
-        }
-        
         // Vì hệ thống hiện tại sử dụng Qdrant online/Cloud, luôn bắt buộc dùng HTTPS
-        _client = new QdrantClient(host, port: 6334, https: true, apiKey: apiKey);
+        _client = new QdrantClient(options.Host, port: 6334, https: true, apiKey: options.ApiKey);
     }
 
     

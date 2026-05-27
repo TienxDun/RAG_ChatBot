@@ -1,40 +1,43 @@
 using Microsoft.Data.SqlClient;
+using System;
+using System.Collections.Generic;
 using System.Data;
+using System.Linq;
 using System.Text.Json;
-using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
+using Backend.Services.Security;
 
 namespace Backend.Services;
 
 public sealed class SqlService
 {
-    private readonly IConfiguration _configuration;
     private readonly string _connectionString;
+    private readonly ISqlSecurityValidator _securityValidator;
     
     private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
     {
         WriteIndented = true,
         Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
     };
-    
-    // Danh sách các từ khóa nguy hiểm bị cấm tuyệt đối
-    private static readonly string[] ForbiddenKeywords = { 
-        "DROP", "DELETE", "TRUNCATE", "ALTER", "UPDATE", "INSERT", 
-        "EXEC", "EXECUTE", "CREATE", "GRANT", "REVOKE", "DBCC" 
-    };
 
-    // Khởi tạo SqlService bằng cách lấy chuỗi kết nối MSSQL_CONNECTION_STRING từ cấu hình hệ thống.
-    public SqlService(IConfiguration configuration)
+    // Khởi tạo SqlService bằng cách lấy chuỗi kết nối từ SqlOptions và tiêm ISqlSecurityValidator.
+    public SqlService(Backend.Models.SqlOptions options, ISqlSecurityValidator securityValidator)
     {
-        _configuration = configuration;
-        _connectionString = _configuration["MSSQL_CONNECTION_STRING"] 
-            ?? throw new InvalidOperationException("MSSQL_CONNECTION_STRING is not set in environment variables or configuration.");
+        _connectionString = options.ConnectionString;
+        if (string.IsNullOrWhiteSpace(_connectionString))
+        {
+            throw new InvalidOperationException("MSSQL_CONNECTION_STRING is not set in configuration.");
+        }
+        _securityValidator = securityValidator;
     }
 
     // Thực thi câu lệnh SQL truy vấn và trả về kết quả dưới dạng cấu trúc bảng DataTable của ADO.NET.
     public async Task<DataTable> ExecuteQueryAsDataTableAsync(string sql, CancellationToken ct)
     {
         // Kiểm tra an toàn bảo mật của câu lệnh trước khi thực thi
-        ValidateSqlSecurity(sql);
+        _securityValidator.ValidateSqlSecurity(sql);
+        
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync(ct);
         using var command = new SqlCommand(sql, connection);
@@ -51,7 +54,6 @@ public sealed class SqlService
         }
 
         return dataTable;
-
     }
 
     // Thực thi câu lệnh SQL truy vấn và trả về kết quả dưới dạng chuỗi JSON đã được format và lọc trùng lặp.
@@ -59,7 +61,7 @@ public sealed class SqlService
     public async Task<string> ExecuteQueryAsJsonAsync(string sql, CancellationToken ct)
     {
         // 1. Kiểm tra an toàn trước khi thực thi
-        ValidateSqlSecurity(sql);
+        _securityValidator.ValidateSqlSecurity(sql);
 
         try 
         {
@@ -97,39 +99,6 @@ public sealed class SqlService
         catch (Exception ex)
         {
             throw new Exception($"SQL Execution Error: {ex.Message}", ex);
-        }
-    }
-
-    // Kiểm tra an toàn bảo mật của câu lệnh SQL. 
-    // Chỉ cho phép các câu lệnh đọc dữ liệu (SELECT/WITH), chặn SQL Injection và các từ khóa làm thay đổi dữ liệu nguy hiểm.
-    private void ValidateSqlSecurity(string sql)
-    {
-        if (string.IsNullOrWhiteSpace(sql))
-            throw new InvalidOperationException("SQL query is empty.");
-
-        var upperSql = sql.Trim().ToUpper();
-
-        // 1. Chỉ cho phép câu lệnh truy vấn dữ liệu (SELECT hoặc CTE)
-        if (!upperSql.StartsWith("SELECT") && !upperSql.StartsWith("WITH"))
-        {
-            throw new InvalidOperationException("Hệ thống chỉ cho phép thực thi các câu lệnh truy vấn dữ liệu (SELECT).");
-        }
-
-        // 2. Chặn chạy nhiều câu lệnh nguy hiểm, nhưng cho phép phân tách các câu lệnh SELECT/WITH bằng dấu ;
-        if (sql.Contains(";") && (upperSql.Contains("DROP") || upperSql.Contains("DELETE") || upperSql.Contains("UPDATE") || upperSql.Contains("INSERT")))
-        {
-            throw new InvalidOperationException("Không được phép sử dụng dấu chấm phẩy (;) kết hợp với các lệnh thay đổi dữ liệu.");
-        }
-
-        // 3. Kiểm tra các từ khóa nguy hiểm
-        foreach (var keyword in ForbiddenKeywords)
-        {
-            // Sử dụng Regex để tránh chặn nhầm các từ nằm trong tên cột (ví dụ: UpdateDate)
-            var pattern = $@"\b{keyword}\b";
-            if (Regex.IsMatch(upperSql, pattern))
-            {
-                throw new InvalidOperationException($"Phát hiện từ khóa nguy hiểm bị cấm: {keyword}");
-            }
         }
     }
 }

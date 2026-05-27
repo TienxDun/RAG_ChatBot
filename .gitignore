@@ -81,3 +81,5 @@ cloudbeaver_data/
 coverage/
 /coverage/
 
+# Test output folder
+.testout/

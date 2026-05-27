@@ -74,6 +74,46 @@
       "rule": "XỬ LÝ ĐỒNG HẠNG: Khi truy vấn các bảng xếp hạng (Top cao nhất, thấp nhất...), TUYỆT ĐỐI CẤM dùng TOP 1 hoặc TOP N trực tiếp vì sẽ bỏ sót các kết quả đồng hạng. BẮT BUỘC sử dụng hàm RANK() hoặc DENSE_RANK() trong một CTE, sau đó lọc ở mệnh đề WHERE ngoài cùng (ví dụ: WHERE RankNumber = 1).",
       "correct_example": "WITH Ranked AS (SELECT LineX, SUM(Quantity) as Qty, DENSE_RANK() OVER (ORDER BY SUM(Quantity) DESC) as Rk FROM SEW_CoefficientSize GROUP BY LineX) SELECT LineX, Qty FROM Ranked WHERE Rk = 1",
       "wrong_example": "SELECT TOP 1 LineX, SUM(Quantity) FROM SEW_CoefficientSize GROUP BY LineX ORDER BY SUM(Quantity) DESC"
+    },
+    {
+      "id": "G010",
+      "category": "spelling_accuracy",
+      "severity": "CRITICAL",
+      "rule": "BẮT BUỘC ĐỐI CHIẾU CHÍNH TẢ TÊN CỘT: Đọc kỹ phần mô tả của từng bảng để viết chính xác ký tự viết HOA/thường và cấu trúc của tên cột (ví dụ: 'StyleID' có chữ 'D' viết hoa trong QTY_MAHANG_NGAYKIEM, 'StyleId' có chữ 'd' viết thường trong SEW_CoefficientSize, và 'StypeId' có chữ 'y' và không có chữ 'l' trong SEW_CoefficientStyle). Tuyệt đối không viết sai lệch chính tả tên cột của bảng đó.",
+      "correct_example": "SELECT StyleID FROM QTY_MAHANG_NGAYKIEM; SELECT StyleId FROM SEW_CoefficientSize; SELECT StypeId FROM SEW_CoefficientStyle;",
+      "wrong_example": "SELECT StyleId FROM QTY_MAHANG_NGAYKIEM; SELECT StyleID FROM SEW_CoefficientSize; SELECT StyleId FROM SEW_CoefficientStyle;"
+    },
+    {
+      "id": "G011",
+      "category": "metric_differentiation",
+      "severity": "CRITICAL",
+      "rule": "PHÂN BIỆT NĂNG SUẤT VÀ SẢN LƯỢNG ĐẠT: Khi truy vấn bảng SEW_CoefficientSize, nếu câu hỏi chỉ nhắc chung chung về 'năng suất' hoặc 'sản lượng' (ví dụ: tìm chuyền có sản lượng cao nhất) mà không nhắc rõ 'sản lượng đạt' hay 'tỷ lệ lỗi', bắt buộc dùng SUM(Quantity) làm thước đo (không cộng SuaDat). Chỉ sử dụng SUM(Quantity + SuaDat) khi câu hỏi nói rõ 'sản lượng đạt' hoặc khi tính mẫu số cho tỷ lệ lỗi.",
+      "correct_example": "SELECT SUM(Quantity) FROM SEW_CoefficientSize; (cho câu hỏi về sản lượng/năng suất nói chung)",
+      "wrong_example": "SELECT SUM(Quantity + SuaDat) FROM SEW_CoefficientSize; (khi câu hỏi không chỉ định rõ 'sản lượng đạt')"
+    },
+    {
+      "id": "G012",
+      "category": "absolute_difference",
+      "severity": "HIGH",
+      "rule": "XỬ LÝ CHÊNH LỆCH DƯƠNG: Khi tính toán sự chênh lệch (sản lượng, năng suất, số lỗi...) giữa hai đối tượng, công đoạn, chuyền hoặc ngày: BẮT BUỘC bọc phép toán trừ trong hàm trị tuyệt đối ABS() (ví dụ: ABS(A.Quantity - B.Quantity)) để đảm bảo khoảng cách chênh lệch trả về luôn là số dương, tuyệt đối không trả về số âm.",
+      "correct_example": "SELECT ABS(A.Qty - B.Qty) AS ChenhLech",
+      "wrong_example": "SELECT (A.Qty - B.Qty) AS ChenhLech"
+    },
+    {
+      "id": "G013",
+      "category": "excel_metadata_query",
+      "severity": "HIGH",
+      "rule": "BẮT BUỘC TRUY VẤN METADATA CHO BÁO CÁO EXCEL: Nếu yêu cầu Excel cần điền thông tin chung (metadata) như 'Mã Hàng / Style', 'StyleID', 'MaHang', 'Chuyền / Line', 'LineX', bạn BẮT BUỘC phải SELECT thêm các cột metadata này trong câu lệnh SQL cuối cùng. Nếu câu lệnh SQL có GROUP BY, phải dùng hàm gộp MAX hoặc MIN để SELECT (Ví dụ: SELECT MAX(StyleID) AS StyleID, MAX(MaHang) AS MaHang, MAX(LineX) AS LineX...).",
+      "correct_example": "SELECT NgayKiem, SUM(SpLoi) AS TongLoi, MAX(StyleID) AS StyleID, MAX(LineX) AS LineX FROM QTY_MAHANG_NGAYKIEM GROUP BY NgayKiem",
+      "wrong_example": "SELECT NgayKiem, SUM(SpLoi) AS TongLoi FROM QTY_MAHANG_NGAYKIEM GROUP BY NgayKiem"
+    },
+    {
+      "id": "G014",
+      "category": "customer_mapping",
+      "severity": "CRITICAL",
+      "rule": "Bảng ERP_LENHSX KHÔNG chứa cột KhachHang hay TenKhachHang. Để lấy tên khách hàng (hoặc KhachHang/TenKhachHang), BẮT BUỘC JOIN với bảng danh mục DIC_KHACHHANG (qua điều kiện ERP_LENHSX.MaKhachHang = DIC_KHACHHANG.MaKhachHang) và chọn cột DIC_KHACHHANG.KhachHang.",
+      "correct_example": "SELECT e.MaLenh, d.KhachHang AS [KhachHang] FROM ERP_LENHSX e JOIN DIC_KHACHHANG d ON e.MaKhachHang = d.MaKhachHang",
+      "wrong_example": "SELECT e.KhachHang FROM ERP_LENHSX e"
     }
   ]
 }

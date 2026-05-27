@@ -1,11 +1,16 @@
-using OfficeOpenXml;
+using System;
+using System.Collections.Generic;
 using System.Data;
-using System.Globalization;
+using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 using Backend.Models;
 using Backend.Services.Excel;
+using OfficeOpenXml;
 
 namespace Backend.Services;
 
@@ -20,43 +25,57 @@ public class ExcelReportResult
 public class ExcelReportService
 {
     private readonly RagOrchestrator _ragOrchestrator;
+    private readonly IExcelTemplateAnalyzer _templateAnalyzer;
+    private readonly IExcelTemplateFiller _templateFiller;
+    private readonly IExcelExporter _excelExporter;
+    private readonly ITextUtility _textUtility;
 
-    // Khởi tạo ExcelReportService dùng để xử lý và định dạng báo cáo Excel
-    public ExcelReportService(RagOrchestrator ragOrchestrator)
+    private static readonly TextUtility _staticTextUtility = new();
+
+    public ExcelReportService(
+        RagOrchestrator ragOrchestrator,
+        IExcelTemplateAnalyzer templateAnalyzer,
+        IExcelTemplateFiller templateFiller,
+        IExcelExporter excelExporter,
+        ITextUtility textUtility)
     {
         _ragOrchestrator = ragOrchestrator;
+        _templateAnalyzer = templateAnalyzer;
+        _templateFiller = templateFiller;
+        _excelExporter = excelExporter;
+        _textUtility = textUtility;
     }
 
-    // Nhận file Excel mẫu, phân tích cấu trúc cột, truy vấn dữ liệu qua RAG và điền dữ liệu đã định dạng vào file
-    public async Task<ExcelReportResult> ProcessExcelTemplateAsync(Stream excelStream, string? additionalQuery, Func<RagStep, Task> onStep, CancellationToken ct)
+    // Xử lý upload template Excel mẫu, chạy RAG query để lấy dữ liệu, điền vào template và xuất file
+    public async Task<ExcelReportResult> ProcessExcelTemplateAsync(Stream stream, string additionalQuery, Func<RagStep, Task> onStep, CancellationToken ct)
     {
-        using var package = new ExcelPackage(excelStream);
+        using var package = new ExcelPackage(stream);
         var worksheet = package.Workbook.Worksheets[0];
 
-        // Gửi step thông báo bắt đầu xử lý
-        await onStep(new RagStep("Excel Template Analysis", "Đang phân tích cấu trúc file template bằng bộ phân tích thông minh..."));
-
         // 1. Phân tích cấu trúc Template thông minh
-        var templateInfo = ExcelTemplateAnalyzer.Analyze(worksheet);
-        var columns = templateInfo.Columns.Select(c => c.UniqueKey).ToList();
-        int headerRowIndex = templateInfo.HeaderRowIndex;
-        int startColumnIndex = templateInfo.StartColumnIndex;
+        var templateInfo = _templateAnalyzer.AnalyzeTemplate(worksheet);
+        
+        var serializeOptions = new JsonSerializerOptions 
+        { 
+            WriteIndented = true, 
+            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping 
+        };
 
-        // Gửi step chi tiết cấu trúc cột và nhãn metadata đã phân tích được từ template Excel
         string excelAnalysisContent = $"Đã phân tích cấu trúc template thành công.\n\n" +
                                      $"* **Loại template**: {(templateInfo.Type == TemplateType.Hierarchical ? "Phân cấp (Hierarchical)" : "Đơn giản (Simple)")}\n" +
-                                     $"* **Dòng tiêu đề chính**: {headerRowIndex}\n" +
-                                     $"* **Cột bắt đầu**: {startColumnIndex}\n\n" +
+                                     $"* **Dòng tiêu đề chính**: {templateInfo.HeaderRowIndex}\n" +
+                                     $"* **Cột bắt đầu**: {templateInfo.StartColumnIndex}\n\n" +
                                      $"**Danh sách {templateInfo.Columns.Count} tiêu đề cột đã nhận diện & làm phẳng:**\n" +
-                                     $"```json\n{JsonSerializer.Serialize(templateInfo.Columns.Select(c => new { c.ColumnIndex, c.ParentHeader, c.ChildHeader, c.UniqueKey, c.FriendlyName }), new JsonSerializerOptions { WriteIndented = true })}\n```";
-        if (templateInfo.MetadataCells.Count > 0)
+                                     $"```json\n{JsonSerializer.Serialize(templateInfo.Columns.Select(c => new { c.ColumnIndex, c.ParentHeader, c.ChildHeader, c.UniqueKey }), serializeOptions)}\n```";
+        
+        if (templateInfo.Metadata.Count > 0)
         {
-            excelAnalysisContent += $"\n\n**Danh sách {templateInfo.MetadataCells.Count} nhãn Metadata (thông tin chung ở đầu trang):**\n" +
-                                   $"```json\n{JsonSerializer.Serialize(templateInfo.MetadataCells.Select(m => m.Label), new JsonSerializerOptions { WriteIndented = true })}\n```";
+            excelAnalysisContent += $"\n\n**Danh sách {templateInfo.Metadata.Count} nhãn Metadata (thông tin chung ở đầu trang):**\n" +
+                                   $"```json\n{JsonSerializer.Serialize(templateInfo.Metadata.Keys, serializeOptions)}\n```";
         }
         await onStep(new RagStep("Excel Template Analysis", excelAnalysisContent));
 
-        // 2. GỘP CÂU QUERY CỦA USER + YÊU CẦU CỘT EXCEL & METADATA
+        // 2. Xây dựng câu query tích hợp các chỉ dẫn mapping cột cho RAG AI
         string combinedQuery;
         string mappingInstructions;
 
@@ -65,237 +84,151 @@ public class ExcelReportService
             var colMappings = string.Join("\n", templateInfo.Columns.Select(col => 
                 $"- Cột vật lý {col.ColumnIndex}: nhóm '{col.ParentHeader}' -> cột con '{col.ChildHeader}' -> Bạn BẮT BUỘC SELECT alias (AS) là [{col.UniqueKey}]"
             ));
-            var metadataLabels = string.Join("\n", templateInfo.MetadataCells.Select(cell => 
-                $"- {cell.Label}"
-            ));
             
             mappingInstructions = $"\n\nYÊU CẦU ĐẶC BIỆT CHO BÁO CÁO EXCEL PHÂN CẤP (HIERARCHICAL TEMPLATE):\n" +
                                   $"- Hệ thống phát hiện đây là mẫu báo cáo có cấu trúc tiêu đề phân cấp hai tầng (Parent-Child).\n" +
                                   $"- Bạn BẮT BUỘC sử dụng ALIAS (AS) để tên cột trong kết quả trả về khớp hoàn toàn với các UniqueKey sau đây:\n" +
                                   $"{colMappings}\n" +
                                   $"- Nếu không tìm thấy cột tương ứng, hãy để trống hoặc dùng NULL, đừng cố đoán bừa.\n";
-            if (templateInfo.MetadataCells.Count > 0)
-            {
-                mappingInstructions += $"- Ngoài ra, bạn BẮT BUỘC phải truy vấn thông tin cho các nhãn thông tin chung (metadata) sau đây từ database và trả về dưới dạng JSON (Key-Value) trong thuộc tính \"metadata\" của kết quả:\n" +
-                                       $"{metadataLabels}\n" +
-                                       $"- Khóa JSON trả về phải khớp hoàn toàn với tên các nhãn trên.";
-            }
         }
         else
         {
-            var columnsStr = string.Join(", ", columns);
-            var metadataLabels = string.Join("\n", templateInfo.MetadataCells.Select(cell => 
-                $"- {cell.Label}"
-            ));
-            
+            var columnsStr = string.Join(", ", templateInfo.Columns.Select(c => c.UniqueKey));
             mappingInstructions = $"\n\nYÊU CẦU ĐẶC BIỆT CHO BÁO CÁO EXCEL:\n" +
                                   $"- Dữ liệu trả về BẮT BUỘC phải có các cột tiêu đề sau: {columnsStr}.\n" +
-                                  $"- Quan trọng: Hãy ánh xạ (map) các tiêu đề này với trường tương ứng trong database (ví dụ: 'TenKhachHang' map với 'KhachHang', 'StepName' map với 'cd_name').\n" +
-                                  $"- Nếu không tìm thấy cột tương ứng, hãy để trống hoặc dùng NULL, đừng cố đoán bừa.\n" +
-                                  $"- BẮT BUỘC sử dụng ALIAS (AS) để tên cột trong kết quả trả về khớp hoàn toàn với tên tiêu đề Excel (ví dụ: SELECT KhachHang AS [TenKhachHang], cd_name AS [StepName] ...).";
-            if (templateInfo.MetadataCells.Count > 0)
-            {
-                mappingInstructions += $"\n- Ngoài ra, bạn BẮT BUỘC phải truy vấn thông tin cho các nhãn thông tin chung (metadata) sau đây từ database và trả về dưới dạng JSON (Key-Value) trong thuộc tính \"metadata\" của kết quả:\n" +
-                                       $"{metadataLabels}\n" +
-                                       $"- Khóa JSON trả về phải khớp hoàn toàn với tên các nhãn trên.";
-            }
+                                  $"- BẮT BUỘC sử dụng ALIAS (AS) để tên cột trong kết quả trả về khớp hoàn toàn với tên tiêu đề Excel (ví dụ: SELECT KhachHang AS [{templateInfo.Columns.FirstOrDefault()?.UniqueKey ?? "ColName"}] ...).";
         }
 
-        // Bổ sung điều kiện giới hạn ngày/nhãn từ hàng dọc
-        if (templateInfo.RowLabels.Count > 0)
+        if (templateInfo.Metadata.Count > 0)
         {
-            var labelsListStr = string.Join(", ", templateInfo.RowLabels.Select(l => $"'{l}'"));
-            mappingInstructions += $"\n- BẮT BUỘC chỉ lọc lấy dữ liệu phát sinh trong các Ngày/Nhãn sau ở điều kiện lọc: {labelsListStr}.\n" +
-                                   $"- Tuyệt đối không lấy thêm bất kỳ ngày nào khác ngoài danh sách này để tránh làm tràn hoặc thừa dữ liệu ngoài bảng của template mẫu.\n";
+            var metadataLabels = string.Join("\n", templateInfo.Metadata.Keys.Select(cell => $"- {cell}"));
+            mappingInstructions += $"\n- Ngoài ra, bạn BẮT BUỘC phải truy vấn thông tin cho các nhãn thông tin chung (metadata) sau đây từ database và trả về dưới dạng JSON (Key-Value) trong thuộc tính \"metadata\" của kết quả:\n" +
+                                   $"{metadataLabels}\n" +
+                                   $"- Khóa JSON trả về phải khớp hoàn toàn với tên các nhãn trên.";
         }
 
-        if (string.IsNullOrWhiteSpace(additionalQuery))
-        {
-            combinedQuery = $"Hãy lấy toàn bộ dữ liệu cần thiết để điền vào báo cáo theo các cột và thông tin được yêu cầu.{mappingInstructions}";
-        }
-        else
-        {
-            combinedQuery = $"{additionalQuery.Trim()}.{mappingInstructions}";
-        }
+        combinedQuery = $"{additionalQuery.Trim()}.{mappingInstructions}";
 
-        // 3. Chạy toàn bộ luồng RAG (Embeddings -> Qdrant Schema -> Vertex SQL -> Execute)
-        var ragResponse = await _ragOrchestrator.ProcessQueryAsync(combinedQuery, null, onStep, ct, isExcelTemplate: true);
+        // 3. Thực thi RAG Orchestrator để lấy dữ liệu từ database
+        var ragResponse = await _ragOrchestrator.ProcessQueryAsync(
+            combinedQuery, 
+            null, 
+            onStep, 
+            ct, 
+            enableFastPath: true, 
+            isExcelTemplate: true, 
+            enableRulesExtraction: true);
 
-        // 4. Lấy kết quả dưới dạng DataTable
+        // 4. Chuyển đổi dữ liệu trả về sang DataTable
         DataTable dataTable = new DataTable();
         if (ragResponse.RawDataTable != null && ragResponse.RawDataTable.Rows.Count > 0)
         {
             // Tạo bản sao DataTable có các cột đúng tên UniqueKey theo thứ tự của Template
             dataTable = new DataTable();
-            foreach (var colName in columns)
+            foreach (var col in templateInfo.Columns)
             {
-                dataTable.Columns.Add(colName, typeof(object));
+                dataTable.Columns.Add(col.UniqueKey, typeof(object));
             }
 
-            // Xây dựng bảng ánh xạ mềm tên cột (normalize Unicode NFC/NFD) để tránh mismatch dấu tiếng Việt
-            var columnMapping = BuildSoftColumnMapping(ragResponse.RawDataTable, columns);
+            // Map tên cột SQL mềm dẻo với UniqueKey trong template
+            var columnMapping = _textUtility.BuildSoftColumnMapping(ragResponse.RawDataTable, templateInfo.Columns);
 
             foreach (DataRow sourceRow in ragResponse.RawDataTable.Rows)
             {
-                // Kiểm tra xem dòng này có phải là dòng Tổng từ SQL không
+                // Bỏ qua dòng tổng từ SQL vì Excel đã có dòng tổng công thức riêng của template
                 var firstColVal = sourceRow[0]?.ToString()?.Trim() ?? "";
                 if (firstColVal.Equals("Tổng", StringComparison.OrdinalIgnoreCase) || 
                     firstColVal.Equals("Total", StringComparison.OrdinalIgnoreCase))
                 {
-                    continue; // Bỏ qua dòng tổng từ SQL vì Excel đã có dòng tổng công thức riêng của template
+                    continue; 
                 }
 
                 var newRow = dataTable.NewRow();
-                foreach (var colName in columns)
+                foreach (var col in templateInfo.Columns)
                 {
-                    if (columnMapping.TryGetValue(colName, out var sourceColName))
+                    if (columnMapping.TryGetValue(col.UniqueKey, out var sourceColName) && 
+                        ragResponse.RawDataTable.Columns.Contains(sourceColName))
                     {
-                        newRow[colName] = sourceRow[sourceColName];
+                        newRow[col.UniqueKey] = sourceRow[sourceColName];
                     }
-                    else 
+                    else
                     {
-                        newRow[colName] = DBNull.Value;
+                        newRow[col.UniqueKey] = DBNull.Value;
                     }
                 }
                 dataTable.Rows.Add(newRow);
             }
         }
-        else 
+        else if (!string.IsNullOrEmpty(ragResponse.RawData))
         {
-            // Fallback về JSON nếu không có DataTable
-            var rawJson = ragResponse.RawData;
-            if (string.IsNullOrWhiteSpace(rawJson) || rawJson.Contains("[ERROR]"))
-            {
-                throw new Exception("AI không thể sinh được dữ liệu hợp lệ.");
-            }
-            dataTable = ExcelTemplateFiller.ConvertJsonToDataTable(rawJson, columns);
+            var columnsKeys = templateInfo.Columns.Select(c => c.UniqueKey).ToList();
+            dataTable = _templateFiller.ConvertJsonToDataTable(ragResponse.RawData, columnsKeys);
         }
 
-        // 5. Điền dữ liệu chính (bảng lỗi) và điền metadata đầu trang
+        // 5. Điền Metadata
+        var metadataValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (ragResponse.Metadata != null)
+        {
+            foreach (var kvp in ragResponse.Metadata)
+            {
+                metadataValues[kvp.Key] = kvp.Value;
+            }
+        }
+        if (ragResponse.Steps != null)
+        {
+            var sqlMetadata = ExtractMetadataFromSqlSteps(ragResponse.Steps);
+            foreach (var kvp in sqlMetadata)
+            {
+                if (!metadataValues.ContainsKey(kvp.Key))
+                {
+                    metadataValues[kvp.Key] = kvp.Value;
+                }
+            }
+        }
+
+        if (metadataValues.Count > 0)
+        {
+            _templateFiller.FillMetadata(worksheet, templateInfo.HeaderRowIndex, metadataValues);
+        }
+
+        // 6. Điền dữ liệu bảng (tự chèn dòng và copy style nếu cần)
         if (templateInfo.Type == TemplateType.Hierarchical)
         {
-            ExcelTemplateFiller.FillHierarchicalTemplate(worksheet, dataTable, headerRowIndex, startColumnIndex, templateInfo.Columns, templateInfo.RowLabels);
+            _templateFiller.FillHierarchicalTemplate(
+                worksheet,
+                dataTable,
+                templateInfo.HeaderRowIndex,
+                templateInfo.StartColumnIndex,
+                templateInfo.Columns,
+                null,
+                templateInfo.FillableRowIndexes,
+                templateInfo.TotalRowIndex,
+                false);
         }
         else
         {
-            ExcelTemplateFiller.FillHorizontalTemplate(worksheet, dataTable, headerRowIndex, startColumnIndex, columns.Count, templateInfo.RowLabels);
+            _templateFiller.FillHorizontalTemplate(
+                worksheet,
+                dataTable,
+                templateInfo.HeaderRowIndex,
+                templateInfo.StartColumnIndex,
+                templateInfo.HeaderRowIndex + 1,
+                null,
+                templateInfo.FillableRowIndexes,
+                templateInfo.TotalRowIndex,
+                false);
         }
 
-        // Điền Metadata nếu AI trả về dữ liệu tương ứng hoặc trích xuất từ dữ liệu truy vấn gốc để làm giàu thông tin
-        if (templateInfo.MetadataCells.Count > 0)
-        {
-            var metadataValues = ragResponse.Metadata != null 
-                ? new Dictionary<string, string>(ragResponse.Metadata, StringComparer.OrdinalIgnoreCase) 
-                : new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-            // Bổ sung dữ liệu từ kết quả truy vấn gốc (RawDataTable) để làm giàu metadata
-            if (ragResponse.RawDataTable != null && ragResponse.RawDataTable.Rows.Count > 0)
-            {
-                var firstRow = ragResponse.RawDataTable.Rows[0];
-                foreach (DataColumn col in ragResponse.RawDataTable.Columns)
-                {
-                    var colName = col.ColumnName;
-                    var valStr = firstRow[colName]?.ToString()?.Trim();
-                    if (!string.IsNullOrEmpty(valStr) && !metadataValues.ContainsKey(colName))
-                    {
-                        metadataValues[colName] = valStr;
-                    }
-                }
-            }
-
-            // Fallback: Trích xuất metadata từ WHERE clause của SQL đã sinh trong RAG steps
-            if (ragResponse.Steps != null)
-            {
-                var sqlMetaFallback = ExtractMetadataFromSqlSteps(ragResponse.Steps);
-                foreach (var kv in sqlMetaFallback)
-                {
-                    if (!metadataValues.ContainsKey(kv.Key))
-                    {
-                        metadataValues[kv.Key] = kv.Value;
-                    }
-                }
-            }
-
-            // Áp dụng so khớp mềm và gán trực tiếp cho các nhãn metadata đầu trang
-            foreach (var cell in templateInfo.MetadataCells)
-            {
-                var label = cell.Label?.Trim() ?? "";
-                if (string.IsNullOrEmpty(label)) continue;
-
-                // Thử tìm trong metadataValues bằng so khớp mềm nâng cao
-                string? matchedValue = null;
-                
-                // 1. So khớp chính xác hoặc chứa từ khóa
-                var match = metadataValues.FirstOrDefault(kv => 
-                    string.Equals(kv.Key.Trim(), label, StringComparison.OrdinalIgnoreCase) ||
-                    label.Contains(kv.Key.Trim(), StringComparison.OrdinalIgnoreCase) ||
-                    kv.Key.Trim().Contains(label, StringComparison.OrdinalIgnoreCase)
-                );
-                
-                if (match.Value != null)
-                {
-                    matchedValue = match.Value;
-                }
-                else
-                {
-                    // 2. So khớp mềm dựa trên các cột cơ sở dữ liệu phổ biến
-                    if (label.Contains("Mã Hàng", StringComparison.OrdinalIgnoreCase) || 
-                        label.Contains("Style", StringComparison.OrdinalIgnoreCase))
-                    {
-                        matchedValue = GetValueFromKeys(metadataValues, "MaHang", "StyleID", "StyleId", "StypeId", "TenLenh", "PoId");
-                    }
-                    else if (label.Contains("Chuyền", StringComparison.OrdinalIgnoreCase) || 
-                             label.Contains("Line", StringComparison.OrdinalIgnoreCase))
-                    {
-                        matchedValue = GetValueFromKeys(metadataValues, "LineX", "Linex", "Line", "Chuyen");
-                    }
-                }
-
-                if (!string.IsNullOrEmpty(matchedValue) && !string.Equals(matchedValue, "N/A", StringComparison.OrdinalIgnoreCase))
-                {
-                    metadataValues[label] = matchedValue;
-                }
-            }
-
-            ExcelTemplateFiller.FillMetadataCells(worksheet, templateInfo.MetadataCells, metadataValues);
-        }
-
-        // Tìm dòng cuối cùng chứa dữ liệu thực tế của bảng
-        int endRowOfData = headerRowIndex + (dataTable?.Rows.Count ?? 0);
-
-        // 6. Áp dụng phong cách làm đẹp thẩm mỹ
-        // Tô màu nền xanh pastel nhẹ cho các Hàng tiêu đề
-        if (templateInfo.Type == TemplateType.Hierarchical && templateInfo.ParentHeaderRowIndex.HasValue)
-        {
-            ExcelStylingHelper.ApplyHierarchicalHeaderStyle(worksheet, templateInfo.ParentHeaderRowIndex.Value, headerRowIndex, startColumnIndex, columns.Count);
-        }
-        else
-        {
-            ExcelStylingHelper.ApplyHeaderStyle(worksheet, headerRowIndex, startColumnIndex, columns.Count);
-        }
-
-        // Áp dụng bộ lọc AutoFilter cho bảng báo cáo
-        ExcelStylingHelper.ApplyAutoFilter(worksheet, headerRowIndex, endRowOfData, startColumnIndex, columns.Count);
-
-        // Dọn dẹp border thừa và thiết lập border xám nhạt tinh tế cho vùng bảng dữ liệu thực tế (Bao gồm cả hàng tiêu đề cha nếu có)
-        int startRowForBorders = templateInfo.ParentHeaderRowIndex ?? headerRowIndex;
-        ExcelStylingHelper.SanitizeBorders(worksheet, startRowForBorders, endRowOfData, startColumnIndex, columns.Count);
-
-        int rowsToFit = Math.Min(50, worksheet.Dimension?.End.Row ?? 1);
-        int colsToFit = worksheet.Dimension?.End.Column ?? 1;
-        worksheet.Cells[1, 1, rowsToFit, colsToFit].AutoFitColumns(12);
-
-        // Kích hoạt tính năng tính toán công thức của EPPlus để tự động điền giá trị cho hàng Tổng
+        // 7. Kích hoạt tính năng tính toán công thức của EPPlus để cập nhật kết quả dòng Tổng cộng
         package.Workbook.Calculate();
 
         var excelBytes = package.GetAsByteArray();
 
-        // 7. Trích xuất TOP 20 dòng làm Preview
+        // 8. Trích xuất TOP 20 dòng làm Preview dữ liệu
         var previewList = new List<Dictionary<string, object>>();
         if (dataTable != null)
         {
             int rowsToPreview = Math.Min(20, dataTable.Rows.Count);
-
             for (int i = 0; i < rowsToPreview; i++)
             {
                 var rowDict = new Dictionary<string, object>();
@@ -311,93 +244,51 @@ public class ExcelReportService
         {
             ExcelBase64 = Convert.ToBase64String(excelBytes),
             PreviewData = previewList,
-            Text = ragResponse.Text ?? string.Empty,
+            Text = ragResponse.Text,
             SuggestedQuestions = ragResponse.SuggestedQuestions ?? new List<string>()
         };
     }
 
-    // Xuất danh sách dữ liệu ra file Excel dạng bảng lưới thông thường (Chuyển sang ExcelExportHelper)
+    // Xuất danh sách dữ liệu ra file Excel dạng bảng lưới thông thường
     public byte[] ExportGenericExcel(List<Dictionary<string, object>> data)
     {
-        return ExcelExportHelper.ExportGenericExcel(data);
+        return _excelExporter.ExportGenericExcel(data);
     }
 
-    // Tự sinh file Excel từ bảng Markdown (Chuyển sang ExcelExportHelper)
+    // Tự sinh file Excel từ bảng Markdown
     public byte[] ExportMarkdownToExcelDynamic(string markdownText)
     {
-        return ExcelExportHelper.ExportMarkdownToExcelDynamic(markdownText);
+        return _excelExporter.ExportMarkdownToExcelDynamic(markdownText);
     }
 
-    private string? GetValueFromKeys(Dictionary<string, string> dict, params string[] keys)
+    // =========================================================
+    // CÁC HÀM REFLECTION ĐƯỢC GỌI TỪ UNIT TEST (DELEGATED TO UTILITY)
+    // =========================================================
+
+    private static Dictionary<string, string> BuildSoftColumnMapping(DataTable source, List<FlattenedColumn> templateColumns)
     {
-        foreach (var key in keys)
-        {
-            if (dict.TryGetValue(key, out var val) && !string.IsNullOrEmpty(val))
-            {
-                return val;
-            }
-            // Thử so khớp mềm không phân biệt hoa thường
-            var softMatch = dict.FirstOrDefault(kv => string.Equals(kv.Key.Trim(), key, StringComparison.OrdinalIgnoreCase));
-            if (softMatch.Value != null && !string.IsNullOrEmpty(softMatch.Value))
-            {
-                return softMatch.Value;
-            }
-        }
-        return null;
+        return _staticTextUtility.BuildSoftColumnMapping(source, templateColumns);
     }
 
-    /// <summary>
-    /// Normalize chuỗi Unicode về dạng NFC và lowercase để so khớp mềm tên cột có dấu tiếng Việt.
-    /// Tránh lỗi khi SQL Server trả về tên cột dạng NFD khác với template dạng NFC.
-    /// </summary>
-    private static string NormalizeColumnName(string name)
+    private static string RemoveDiacriticsKeepSpaces(string text)
     {
-        if (string.IsNullOrEmpty(name)) return string.Empty;
-        return name.Normalize(NormalizationForm.FormC).Trim().ToLowerInvariant();
+        return _staticTextUtility.RemoveDiacriticsKeepSpaces(text);
     }
 
-    /// <summary>
-    /// Xây dựng bảng ánh xạ mềm: TemplateColumnName → ActualSourceColumnName.
-    /// So khớp bằng Unicode normalization NFC + case insensitive.
-    /// </summary>
-    private static Dictionary<string, string> BuildSoftColumnMapping(DataTable source, List<string> templateColumns)
+    private static string? FindBestMetadataValue(Dictionary<string, string> metadata, string key)
     {
-        var mapping = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        var sourceColNames = new List<string>();
-        foreach (DataColumn col in source.Columns)
-        {
-            sourceColNames.Add(col.ColumnName);
-        }
-
-        foreach (var templateCol in templateColumns)
-        {
-            // 1. Khớp chính xác
-            if (source.Columns.Contains(templateCol))
-            {
-                mapping[templateCol] = templateCol;
-                continue;
-            }
-
-            // 2. Khớp mềm bằng Unicode normalization
-            var normalizedTemplate = NormalizeColumnName(templateCol);
-            var match = sourceColNames.FirstOrDefault(sc => NormalizeColumnName(sc) == normalizedTemplate);
-            if (match != null)
-            {
-                mapping[templateCol] = match;
-            }
-        }
-        return mapping;
+        return _staticTextUtility.FindBestMetadataValue(metadata, key);
     }
 
-    /// <summary>
-    /// Trích xuất metadata (StyleID, MaHang, LineX) từ WHERE clause của SQL trong các RAG steps.
-    /// Đây là fallback khi AI không trả về metadata trong JSON response.
-    /// </summary>
+    private static TemplateAnalysisResult MergeTemplateAnalysis(TemplateAnalysisResult llm, TemplateAnalysisResult ruleBased)
+    {
+        return _staticTextUtility.MergeTemplateAnalysis(llm, ruleBased);
+    }
+
     private static Dictionary<string, string> ExtractMetadataFromSqlSteps(List<RagStep> steps)
     {
         var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-        // Regex patterns cho các cột metadata phổ biến trong WHERE clause
         var patterns = new (string Key, string Pattern)[]
         {
             ("StyleID", @"StyleID\s*=\s*N?'([^']+)'"),
@@ -410,7 +301,6 @@ public class ExcelReportService
         {
             if (string.IsNullOrEmpty(step.Content)) continue;
 
-            // Tìm SQL block trong step content (thường nằm trong ```sql ... ```)
             var sqlMatch = Regex.Match(step.Content, @"```sql\s*([\s\S]*?)```");
             if (!sqlMatch.Success) continue;
             var sql = sqlMatch.Groups[1].Value;

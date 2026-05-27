@@ -70,6 +70,13 @@ export class SidebarComponent {
         const rulesCheckbox = document.getElementById('rules-checkbox');
         if (rulesCheckbox) {
             rulesCheckbox.checked = state.isRulesEnabled;
+            // Áp dụng class lên body lúc khởi tạo
+            if (state.isRulesEnabled) {
+                document.body.classList.remove('hide-rules');
+            } else {
+                document.body.classList.add('hide-rules');
+            }
+            
             rulesCheckbox.addEventListener('change', (e) => {
                 state.isRulesEnabled = e.target.checked;
                 if (window.app && window.app.toast) {
@@ -98,8 +105,13 @@ export class SidebarComponent {
             if (key === 'isFastPathEnabled' && fastpathCheckbox) {
                 fastpathCheckbox.checked = value;
             }
-            if (key === 'isRulesEnabled' && rulesCheckbox) {
-                rulesCheckbox.checked = value;
+            if (key === 'isRulesEnabled') {
+                if (rulesCheckbox) rulesCheckbox.checked = value;
+                if (value) {
+                    document.body.classList.remove('hide-rules');
+                } else {
+                    document.body.classList.add('hide-rules');
+                }
             }
         });
 

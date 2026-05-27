@@ -101,7 +101,7 @@ public static class ExcelExportHelper
                 else if (cell.Value is DateTime || cell.Value is DateTimeOffset || headers[colIndex].Contains("Ngay", StringComparison.OrdinalIgnoreCase) || headers[colIndex].Contains("Date", StringComparison.OrdinalIgnoreCase) || headers[colIndex].Contains("Time", StringComparison.OrdinalIgnoreCase))
                 {
                     // Nếu là string dạng ngày, thử chuyển sang DateTime để format chuẩn
-                    if (cell.Value is string strDate && DateTime.TryParse(strDate, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime parsedDate))
+                    if (cell.Value is string strDate && MarkdownTableParser.TryParseDateTime(strDate, out DateTime parsedDate))
                     {
                         cell.Value = parsedDate;
                     }

@@ -32,19 +32,49 @@ if (File.Exists(envPath))
 }
 
 var options = VertexAiOptions.FromEnvironment();
+var qdrantOptions = Backend.Models.QdrantOptions.FromEnvironment();
+var sqlOptions = new Backend.Models.SqlOptions 
+{ 
+    ConnectionString = builder.Configuration["MSSQL_CONNECTION_STRING"] 
+        ?? throw new InvalidOperationException("MSSQL_CONNECTION_STRING is not set in configuration.") 
+};
 
 builder.Services.AddSingleton(options);
+builder.Services.AddSingleton(qdrantOptions);
+builder.Services.AddSingleton(sqlOptions);
+
 builder.Services.AddHttpClient<VertexAiClient>(client => 
 {
     client.DefaultRequestVersion = HttpVersion.Version20;
     client.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
 });
+
+// Infrastructure & Data Services
+builder.Services.AddSingleton<Backend.Services.Security.ISqlSecurityValidator, Backend.Services.Security.SqlSecurityValidator>();
 builder.Services.AddSingleton<SqlService>();
 builder.Services.AddSingleton<QdrantService>();
+builder.Services.AddSingleton<TemplateCacheService>();
+
+// Excel Refactored Services
+builder.Services.AddSingleton<Backend.Services.Excel.ITextUtility, Backend.Services.Excel.TextUtility>();
+builder.Services.AddSingleton<Backend.Services.Excel.IExcelTemplateAnalyzer, Backend.Services.Excel.ExcelTemplateAnalyzer>();
+builder.Services.AddSingleton<Backend.Services.Excel.IExcelTemplateFiller, Backend.Services.Excel.ExcelTemplateFiller>();
+builder.Services.AddSingleton<Backend.Services.Excel.IExcelExporter, Backend.Services.Excel.ExcelExporter>();
+
+// Document Refactored Services
+builder.Services.AddSingleton<Backend.Services.Document.IDbSchemaParser, Backend.Services.Document.DbSchemaParser>();
+builder.Services.AddSingleton<Backend.Services.Document.ITextChunker, Backend.Services.Document.TextChunker>();
+
+// Rag Refactored Services
+builder.Services.AddSingleton<Backend.Services.Rag.ISqlRuleProvider, Backend.Services.Rag.SqlRuleProvider>();
+builder.Services.AddSingleton<Backend.Services.Rag.IQueryClassifier, Backend.Services.Rag.QueryClassifier>();
+builder.Services.AddSingleton<Backend.Services.Rag.IAiResponseParser, Backend.Services.Rag.AiResponseParser>();
+builder.Services.AddSingleton<Backend.Services.Rag.ISqlPlanExecutor, Backend.Services.Rag.SqlPlanExecutor>();
+
+// Orchestrators & Orchestrated Services
 builder.Services.AddSingleton<RagOrchestrator>();
 builder.Services.AddScoped<DocumentProcessor>();
 builder.Services.AddScoped<ExcelReportService>();
-builder.Services.AddSingleton<TemplateCacheService>();
 
 
 var allowedOrigins = Environment.GetEnvironmentVariable("ALLOWED_ORIGINS")?.Split(',') ?? new[] { "http://localhost:3000" };

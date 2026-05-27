@@ -17,6 +17,13 @@
       "rule": "Quy tắc lọc cột TenLenh: TenLenh trong cơ sở dữ liệu thường dùng dấu gạch dưới '_' (ví dụ: 'SA_893_208_133'). Nếu người dùng cung cấp mã có dấu gạch ngang '-' hoặc khoảng trắng (ví dụ: 'SA-893-208-133'), AI phải tự động chuyển đổi chúng sang '_' trước khi so sánh với TenLenh.",
       "correct_example": "WHERE TenLenh = 'SA_893_208_133'",
       "wrong_example": "WHERE TenLenh = 'SA-893-208-133'"
+    },
+    {
+      "id": "T_ERP_003",
+      "severity": "CRITICAL",
+      "rule": "Bảng ERP_LENHSX KHÔNG chứa cột TenKhachHang hay KhachHang. Để lấy tên khách hàng (hoặc TenKhachHang/KhachHang), BẮT BUỘC JOIN với bảng DIC_KHACHHANG (qua ERP_LENHSX.MaKhachHang = DIC_KHACHHANG.MaKhachHang) và chọn cột DIC_KHACHHANG.KhachHang.",
+      "correct_example": "SELECT e.MaLenh, d.KhachHang AS [KhachHang] FROM ERP_LENHSX e JOIN DIC_KHACHHANG d ON e.MaKhachHang = d.MaKhachHang",
+      "wrong_example": "SELECT e.TenKhachHang FROM ERP_LENHSX e"
     }
   ],
   "columns": [

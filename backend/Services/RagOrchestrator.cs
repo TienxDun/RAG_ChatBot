@@ -1,7 +1,13 @@
+using System;
+using System.Collections.Generic;
 using System.Data;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 using Backend.Models;
+using Backend.Services.Rag;
 
 namespace Backend.Services;
 
@@ -9,77 +15,40 @@ public sealed class RagOrchestrator
 {
     private readonly VertexAiClient _aiClient;
     private readonly QdrantService _qdrantService;
-    private readonly SqlService _sqlService;
     private readonly VertexAiOptions _options;
+    
+    private readonly ISqlRuleProvider _ruleProvider;
+    private readonly IQueryClassifier _queryClassifier;
+    private readonly IAiResponseParser _responseParser;
+    private readonly ISqlPlanExecutor _planExecutor;
 
-    // Khởi tạo RagOrchestrator và tiêm các dịch vụ phụ thuộc cần thiết cho luồng xử lý RAG.
-    public RagOrchestrator(VertexAiClient aiClient, QdrantService qdrantService, SqlService sqlService, VertexAiOptions options)
+    public RagOrchestrator(
+        VertexAiClient aiClient,
+        QdrantService qdrantService,
+        VertexAiOptions options,
+        ISqlRuleProvider ruleProvider,
+        IQueryClassifier queryClassifier,
+        IAiResponseParser responseParser,
+        ISqlPlanExecutor planExecutor)
     {
         _aiClient = aiClient;
         _qdrantService = qdrantService;
-        _sqlService = sqlService;
         _options = options;
-    }
-
-    private static string? _cachedGlobalRules;
-    private static DateTime _lastRulesReadTime = DateTime.MinValue;
-    private static readonly object _rulesLock = new();
-
-    private static async Task<string> GetGlobalRulesAsync()
-    {
-        var path = Path.Combine(AppContext.BaseDirectory, "rag_schemas", "_global_rules.json");
-        if (!File.Exists(path))
-        {
-            path = Path.Combine(Directory.GetCurrentDirectory(), "rag_schemas", "_global_rules.json");
-        }
-
-        if (!File.Exists(path))
-        {
-            return string.Empty;
-        }
-
-        try
-        {
-            var lastWrite = File.GetLastWriteTime(path);
-            if (_cachedGlobalRules == null || lastWrite > _lastRulesReadTime)
-            {
-                var content = await File.ReadAllTextAsync(path, Encoding.UTF8);
-                using var doc = JsonDocument.Parse(content);
-                var sb = new StringBuilder();
-                if (doc.RootElement.TryGetProperty("rules", out var rulesProp) && rulesProp.ValueKind == JsonValueKind.Array)
-                {
-                    sb.AppendLine("## QUY TẮC SQL TOÀN CỤC (GLOBAL RULES - BẮT BUỘC TUÂN THỦ):");
-                    foreach (var rule in rulesProp.EnumerateArray())
-                    {
-                        var id = rule.TryGetProperty("id", out var idProp) ? idProp.GetString() ?? "" : "";
-                        var severity = rule.TryGetProperty("severity", out var sevProp) ? sevProp.GetString() ?? "" : "";
-                        var text = rule.TryGetProperty("rule", out var rProp) ? rProp.GetString() ?? "" : "";
-                        var correct = rule.TryGetProperty("correct_example", out var corProp) ? corProp.GetString() ?? "" : "";
-                        var wrong = rule.TryGetProperty("wrong_example", out var wrgProp) ? wrgProp.GetString() ?? "" : "";
-
-                        sb.AppendLine($"- [{id}] [{severity}]: {text}");
-                        if (!string.IsNullOrWhiteSpace(correct)) sb.AppendLine($"  * Ví dụ ĐÚNG: `{correct}`");
-                        if (!string.IsNullOrWhiteSpace(wrong)) sb.AppendLine($"  * Ví dụ SAI: `{wrong}`");
-                    }
-                }
-                
-                lock (_rulesLock)
-                {
-                    _cachedGlobalRules = sb.ToString();
-                    _lastRulesReadTime = lastWrite;
-                }
-            }
-        }
-        catch
-        {
-            return _cachedGlobalRules ?? string.Empty;
-        }
-
-        return _cachedGlobalRules ?? string.Empty;
+        _ruleProvider = ruleProvider;
+        _queryClassifier = queryClassifier;
+        _responseParser = responseParser;
+        _planExecutor = planExecutor;
     }
 
     // Quy trình điều phối RAG chính: Chuyển đổi vector, tìm kiếm schema từ Qdrant, lập kế hoạch, sinh và chạy SQL, tổng hợp câu trả lời cuối cùng.
-    public async Task<ChatResponse> ProcessQueryAsync(string userQuery, string? collectionName, Func<RagStep, Task> onStep, CancellationToken ct, bool enableFastPath = true, bool isExcelTemplate = false, bool enableRulesExtraction = true)
+    public async Task<ChatResponse> ProcessQueryAsync(
+        string userQuery,
+        string? collectionName,
+        Func<RagStep, Task> onStep,
+        CancellationToken ct,
+        bool enableFastPath = true,
+        bool isExcelTemplate = false,
+        bool enableRulesExtraction = true)
     {
         var steps = new List<RagStep>();
 
@@ -150,7 +119,7 @@ public sealed class RagOrchestrator
         var suggestedQuestions = new List<string>();
         string planningReason = string.Empty;
 
-        if (enableFastPath && IsSimpleQuery(userQuery))
+        if (enableFastPath && _queryClassifier.IsSimpleQuery(userQuery))
         {
             await onStep(new RagStep("Execution Planning", "Fast-path: Phát hiện câu hỏi đơn giản, tối ưu hóa bỏ qua bước AI Planning để tăng tốc phản hồi..."));
             stepsToExecute = new List<string> { userQuery };
@@ -159,12 +128,16 @@ public sealed class RagOrchestrator
         {
             await onStep(new RagStep("Execution Planning", "AI đang phân tích câu hỏi và lập kế hoạch truy vấn..."));
             var planningPrompt = $@"Bạn là chuyên gia phân tích yêu cầu và lập kế hoạch truy vấn SQL.
+                Thời gian hệ thống hiện tại: {currentTimeStr} (Việt Nam, UTC+7).
                 Dựa trên CẤU TRÚC DATABASE được cung cấp dưới đây (được trích xuất động từ Qdrant dựa trên ngữ cảnh câu hỏi):
                 {schemaInfo}
 
                 CÂU HỎI CỦA NGƯỜI DÙNG: ""{userQuery}""
 
                 NHIỆM VỤ CỦA BẠN:
+                0. QUAN TRỌNG VỀ THỜI GIAN TRUY VẤN: Nếu người dùng hỏi về các khoảng thời gian tương đối/mơ hồ như ""gần đây"", ""gần nhất"", ""mới nhất"", ""hôm nay"", ""tuần này"", ""tháng này"":
+                   - Hãy kết hợp với 'Thời gian hệ thống hiện tại' ({currentTimeStr}) để xác định khoảng thời gian cụ thể (ví dụ: ""gần đây/gần nhất"" -> tính ngược từ {currentTimeStr} khoảng 7 ngày hoặc 30 ngày tùy loại dữ liệu).
+                   - Nêu rõ mốc thời gian lọc cụ thể này trong phần mô tả bước để bước SQL kế tiếp thực thi đúng.
                 1. Kiểm tra xem câu hỏi có liên quan đến dữ liệu trong các bảng trên hay không. Nếu không liên quan đến database, hãy đặt `isOutOfScope: true`.
                 2. Nếu câu hỏi liên quan đến database, hãy phân tích xem câu hỏi có bị mơ hồ, thiếu thông tin gom nhóm (GROUP BY) hoặc thống kê cụ thể hay không (ví dụ: 'top lỗi', 'sản lượng cao nhất'):
                    - Bạn TUYỆT ĐỐI KHÔNG ĐƯỢC đặt `isAmbiguous: true` và không được yêu cầu người dùng làm rõ.
@@ -276,95 +249,19 @@ public sealed class RagOrchestrator
         }
         else 
         {
-            // 4. Execution Phase: Loop through planned steps
-            workingContext.AppendLine("KẾT QUẢ CÁC BƯỚC TRƯỚC ĐÓ:");
-            
-            for (int i = 0; i < stepsToExecute.Count; i++)
-            {
-                var currentStepDesc = stepsToExecute[i];
-                var stepTitle = $"Step {i + 1}/{stepsToExecute.Count}";
-                await onStep(new RagStep(stepTitle, $"Đang thực hiện: {currentStepDesc}"));
+            // 4. Execution Phase: Delegate steps execution to SqlPlanExecutor
+            var execResult = await _planExecutor.ExecutePlanStepsAsync(
+                stepsToExecute,
+                userQuery,
+                currentTimeStr,
+                schemaInfo,
+                onStep,
+                ct);
 
-                string generatedSql = string.Empty;
-                string lastError = string.Empty;
-                int stepMaxAttempts = 3;
-
-                for (int attempt = 1; attempt <= stepMaxAttempts; attempt++)
-                {
-                    var isMultiStep = stepsToExecute.Count > 1;
-                    var globalRules = await GetGlobalRulesAsync();
-                    var sqlPrompt = $@"Bạn là chuyên gia SQL Server cao cấp.
-                        Cấu trúc database: {schemaInfo}
-                        {workingContext}
-
-                        NHIỆM VỤ HIỆN TẠI: {currentStepDesc}
-                        {(isMultiStep ? "" : $@"CÂU HỎI GỐC: ""{userQuery}""")}
-
-                        {globalRules}
-
-                        QUY TẮC BỔ SUNG & ĐIỀU KIỆN TRUYỀN DỮ LIỆU:
-                        1. CHỈ thực hiện nhiệm vụ trong 'NHIỆM VỤ HIỆN TẠI'. 
-                        {(isMultiStep ? "TUYỆT ĐỐI KHÔNG giải quyết toàn bộ yêu cầu của người dùng nếu nó đòi hỏi nhiều bước xử lý. Chỉ tập trung lấy dữ liệu trung gian cho bước này." : "")}
-                        
-                        2. TRUYỀN THAM SỐ GIỮA CÁC BƯỚC: BẮT BUỘC sử dụng giá trị thực tế lấy từ phần 'KẾT QUẢ CÁC BƯỚC TRƯỚC ĐÓ' bên trên (nhìn vào SampleData) và các TÊN CỘT tương ứng để làm điều kiện lọc (WHERE) cho bước này.
-                           - Nếu bước trước trả về danh sách nhiều ID, hãy sử dụng toán tử IN (ví dụ: WHERE MaKhachHang IN ('KH001', 'KH002')) thay vì chỉ lọc một giá trị.
-
-                        3. Cú pháp phản hồi: Trả về mã SQL thô, không giải thích, không markdown.
-                        {(string.IsNullOrEmpty(lastError) ? "" : $"\nLỖI TRƯỚC ĐÓ: {lastError}\nHãy sửa SQL.")}";
-
-                    generatedSql = await _aiClient.GenerateContentAsync(sqlPrompt, ct);
-                    generatedSql = CleanSql(generatedSql);
-
-                    try 
-                    {
-                        var dt = await _sqlService.ExecuteQueryAsDataTableAsync(generatedSql, ct);
-                        lastDataTable = dt;
-
-                        var rows = new List<Dictionary<string, object>>();
-                        foreach (DataRow row in dt.Rows)
-                        {
-                            var dict = new Dictionary<string, object>();
-                            foreach (DataColumn col in dt.Columns) dict[col.ColumnName] = row[col] == DBNull.Value ? null! : row[col];
-                            rows.Add(dict);
-                        }
-                        var stepJson = JsonSerializer.Serialize(rows, new JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
-                        
-                        lastStepJson = stepJson;
-                        workingContext.AppendLine($"\n--- [Kết quả {stepTitle}: {currentStepDesc}] ---\n{GetCompactContext(stepJson)}");
-
-                        // Logic rút gọn hiển thị kết quả SQL trên UI để tối ưu hiệu năng
-                        const int maxRowsForUi = 10;
-                        string stepUiJson;
-                        string truncationNotice = string.Empty;
-
-                        if (rows.Count > maxRowsForUi)
-                        {
-                            var truncatedRows = rows.Take(maxRowsForUi).ToList();
-                            stepUiJson = JsonSerializer.Serialize(truncatedRows, new JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
-                            truncationNotice = $"\n\n*⚠️ Lưu ý: Dữ liệu quá lớn. Hệ thống đã tự động rút gọn hiển thị {maxRowsForUi} trên tổng số {rows.Count} dòng để tối ưu hiệu năng UI.*";
-                        }
-                        else
-                        {
-                            stepUiJson = stepJson;
-                        }
-
-                        var stepLog = new RagStep(stepTitle, $"Hoàn thành: {currentStepDesc}\n\n```sql\n{generatedSql}\n```\n\nKết quả:\n```json\n{stepUiJson}\n```{truncationNotice}");
-                        steps.Add(stepLog);
-                        await onStep(stepLog);
-                        break; 
-                    }
-                    catch (Exception ex)
-                    {
-                        lastError = ex.Message;
-                        if (attempt == stepMaxAttempts)
-                        {
-                            var failLog = new RagStep(stepTitle, $"Thất bại: {lastError}");
-                            steps.Add(failLog);
-                            await onStep(failLog);
-                        }
-                    }
-                }
-            }
+            lastStepJson = execResult.LastStepJson;
+            lastDataTable = execResult.LastDataTable;
+            workingContext.Append(execResult.WorkingContext);
+            steps.AddRange(execResult.ExecutedSteps);
         }
 
         // 5. Final Generation
@@ -383,11 +280,12 @@ public sealed class RagOrchestrator
             3. Nếu dữ liệu SQL trống hoặc không có dòng nào: Báo cáo rõ ràng cho người dùng rằng không tìm thấy thông tin phù hợp trong hệ thống cho yêu cầu này. TUYỆT ĐỐI KHÔNG tự phỏng đoán số liệu để trả lời.
             4. CẢNH BÁO NÉN DỮ LIỆU: Nếu trong dữ liệu có dòng 'WarningRules: DỮ LIỆU ĐÃ BỊ THU GỌN', bạn phải hiểu rằng danh sách hiển thị chỉ là 5 dòng mẫu. Tuyệt đối không tự đếm số dòng trong danh sách mẫu đó để đưa vào câu trả lời. Hãy sử dụng giá trị tổng số dòng 'TotalRows' hoặc các kết quả tính toán tổng hợp (SUM, COUNT) đã được tính sẵn bởi câu lệnh SQL.
             5. Trình bày câu trả lời chuyên nghiệp bằng Markdown:
-               - Sử dụng ### 💠 Tổng quan: Câu trả lời ngắn gọn, trực diện, nêu rõ ngày tháng.
+               - Sử dụng ### 💠 Tổng quan: Câu trả lời ngắn gọn, trực diện. BẮT BUỘC phải phân tích điều kiện lọc ngày tháng (WHERE) từ các câu lệnh SQL thực tế đã chạy trong phần 'DỮ LIỆU ĐÃ TRUY VẤN ĐƯỢC' ở trên để xác định và ghi rõ khoảng thời gian dữ liệu thực tế (ví dụ: ""Dữ liệu được thống kê trong khoảng thời gian từ ngày 01/01/2025 đến ngày 31/12/2025""). Tuyệt đối KHÔNG sử dụng thời gian hệ thống hiện tại làm khoảng thời gian của dữ liệu nếu dữ liệu đó thuộc về một khoảng thời gian khác trong quá khứ.
                  * ĐẶC BIỆT QUAN TRỌNG: Khi dữ liệu truy vấn được chứa nhiều thông tin chi tiết (ví dụ: danh sách nhiều chuyền sản xuất, nhiều mã hàng, nhiều ngày...), bạn BẮT BUỘC phải tự động tính toán tổng hợp các số liệu toàn cục để người dùng nắm bắt nhanh ngay trong phần này (ví dụ: tổng cộng dồn của tất cả các dòng, giá trị trung bình nếu có ý nghĩa). Tuy nhiên, TUYỆT ĐỐI KHÔNG liệt kê lại tên cụ thể và số liệu chi tiết của từng đối tượng y hệt như trong bảng bên dưới (tránh lặp lại thông tin thừa thãi). Thay vào đó, chỉ nhận xét ngắn gọn xu hướng, tỷ trọng % hoặc chỉ ra đối tượng nổi bật nhất/thấp nhất dưới dạng đúc rút thông tin (insight) nhanh (ví dụ: ""chuyền 109 đóng góp lớn nhất với hơn 30% tổng sản lượng"", hoặc ""lỗi Đứt chỉ chiếm tỷ trọng lớn nhất với hơn 50% tổng số lỗi""). Các phép tính và tỷ lệ phải chính xác 100% dựa trên dữ liệu thực tế.
                  * Nếu câu hỏi ban đầu mơ hồ/thiếu thông tin gom nhóm hoặc thống kê cụ thể, hãy dựa vào phần 'Giả định/Lý do lập kế hoạch ban đầu' để thuyết minh/giải thích rõ ràng cho người dùng biết hệ thống đã tự động quyết định chọn chiều phân tích, bộ lọc hoặc gom nhóm nào để truy xuất dữ liệu.
                - Sử dụng ### 📋 Chi tiết: Dùng bảng Markdown (tiếng Việt) nếu có danh sách.
                - Định dạng số: Phân cách hàng nghìn (ví dụ 1.234.567).
+               - Quy tắc định dạng ngày tháng: Hiển thị đầy đủ thông tin ngày, tháng, năm, giờ, phút, giây một cách rõ ràng và nhất quán theo định dạng Việt Nam (ví dụ: '13/01/2026 14:30:15' hoặc '13/01/2026' nếu không có giờ phút) trên giao diện và trong bảng kết quả.
                - Quy tắc định dạng tỉ lệ lỗi / phần trăm (%): Đối với các giá trị tỉ lệ phần trăm thu được từ kết quả SQL (như cột TyLeLoi), đây là các con số đã được nhân 100 ở câu lệnh SQL (ví dụ: kết quả SQL trả về 0.19 tức là 0.19%, 15.5 tức là 15.5%). Bạn TUYỆT ĐỐI KHÔNG ĐƯỢC nhân thêm 100 hay chia cho 100 một lần nữa khi viết câu trả lời hoặc khi tạo dữ liệu Excel. Hãy giữ nguyên giá trị số đó và chỉ định dạng hiển thị kèm ký tự % (ví dụ: 0,20% hoặc 15,50%).
                - Đưa ra 3 câu hỏi gợi ý liên quan.
 
@@ -431,11 +329,11 @@ public sealed class RagOrchestrator
                 } catch { }
             }
 
-            // ƯU TIÊN 1: Nếu AI cung cấp excelData (thường cho bảng tóm tắt/KPI)
+            // ƯU TIÊN 1: Nếu AI cung cấp excelData
             if (result.TryGetProperty("excelData", out var excelProp) && excelProp.ValueKind == JsonValueKind.Array && excelProp.GetArrayLength() > 0) {
                 rawDataForExport = JsonSerializer.Serialize(excelProp, new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
             }
-            // ƯU TIÊN 2: Nếu AI cung cấp columnMapping (cho danh sách dài)
+            // ƯU TIÊN 2: Nếu AI cung cấp columnMapping
             else if (result.TryGetProperty("columnMapping", out var mappingProp) && lastDataTable != null) {
                 var mapping = JsonSerializer.Deserialize<Dictionary<string, string>>(mappingProp.GetRawText());
                 if (mapping != null && mapping.Count > 0) {
@@ -454,8 +352,8 @@ public sealed class RagOrchestrator
         } 
         catch 
         { 
-            // Fallback: Nếu JSON lỗi do chứa unescaped quotes hoặc sai cú pháp, thử phân tích thủ công bằng Regex
-            if (TryExtractInvalidJsonFields(rawResponse, out var extractedAnswer, out var extractedSuggestions, out var extractedExcelData, out var extractedColumnMapping))
+            // Fallback
+            if (_responseParser.TryExtractInvalidJsonFields(rawResponse, out var extractedAnswer, out var extractedSuggestions, out var extractedExcelData, out var extractedColumnMapping))
             {
                 finalText = extractedAnswer;
                 suggestions = extractedSuggestions;
@@ -506,206 +404,5 @@ public sealed class RagOrchestrator
         }
 
         return new ChatResponse(finalText, steps, suggestions, rawDataForExport, lastDataTable, Metadata: metadata);
-    }
-
-    // Thu gọn dữ liệu JSON thô (chỉ giữ lại 5 dòng mẫu và tổng số dòng) giúp tối ưu hóa bộ nhớ ngữ cảnh và tiết kiệm token cho LLM.
-    // Áp dụng ngưỡng thu gọn động (chỉ nén khi số dòng > 50) và cảnh báo nghiêm ngặt để tránh lỗi ảo giác của AI.
-    private string GetCompactContext(string json, int threshold = 50)
-    {
-        try 
-        {
-            using var doc = JsonDocument.Parse(json);
-            if (doc.RootElement.ValueKind != JsonValueKind.Array) return json;
-
-            var array = doc.RootElement.EnumerateArray().ToList();
-            if (array.Count == 0) return "[]";
-
-            // ĐỀ XUẤT 1: Ngưỡng thu gọn động - Nếu dữ liệu nhỏ hơn hoặc bằng threshold thì giữ nguyên toàn bộ
-            if (array.Count <= threshold) return json;
-
-            // Lấy tối đa 5 dòng mẫu để AI hiểu định dạng dữ liệu
-            var sample = array.Take(5).ToList();
-            
-            // ĐỀ XUẤT 2: Cảnh báo nghiêm ngặt ép AI dùng SQL để tính toán trên database
-            var summary = new {
-                TotalRows = array.Count,
-                SampleData = sample,
-                WarningRules = "DỮ LIỆU ĐÃ BỊ THU GỌN! Tập dữ liệu 'SampleData' phía trên CHỈ là 5 dòng mẫu đại diện để bạn hiểu cấu trúc cột và kiểu dữ liệu. Tuyệt đối KHÔNG sử dụng tập mẫu này để tự tính toán (Min, Max, Sum, Avg, Group) hoặc tạo câu lệnh SQL giả lập bằng UNION ALL. Nếu câu hỏi yêu cầu phân tích tổng hợp trên toàn bộ dữ liệu, bạn BẮT BUỘC phải sinh câu lệnh SQL truy vấn trực tiếp từ bảng gốc trong cơ sở dữ liệu."
-            };
-
-            return JsonSerializer.Serialize(summary, new JsonSerializerOptions { 
-                WriteIndented = true, 
-                Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping 
-            });
-        }
-        catch { return json; }
-    }
-
-    // Làm sạch câu lệnh SQL do AI sinh ra bằng cách loại bỏ các cú pháp định dạng Markdown và ký tự dư thừa.
-    private string CleanSql(string sql)
-    {
-        return sql.Replace("```sql", "").Replace("```", "").Trim(' ', '\n', '\r', '\t', ';');
-    }
-
-    // Xác định nhanh xem câu hỏi có thuộc dạng đơn giản (chỉ cần truy vấn trực tiếp 1 bước) hay không
-    // giúp bỏ qua toàn bộ bước AI Planning kéo dài 2-3 giây.
-    private bool IsSimpleQuery(string query)
-    {
-        if (string.IsNullOrWhiteSpace(query)) return true;
-
-        var q = query.ToLower().Trim();
-
-        // LỚP 1: TỪ CHỐI FAST-PATH 100% NẾU CHỨA TỪ KHÓA THỐNG KÊ/PHÂN TÍCH/SO SÁNH/CỰC TRỊ
-        // Bất kỳ câu hỏi nào mang tính chất tổng hợp số liệu đều phải qua AI Planning để kiểm tra tính mơ hồ
-        string[] analysisKeywords = { 
-            "top", "cao nhất", "thấp nhất", "nhiều nhất", "ít nhất", "tệ nhất", "tốt nhất",
-            "thống kê", "so sánh", "tổng hợp", "báo cáo", "biểu đồ", "trung bình", "tỷ lệ", 
-            "tỉ lệ", "phần trăm", "%", "lũy kế", "luy ke", "biến động", "xu hướng"
-        };
-        foreach (var keyword in analysisKeywords)
-        {
-            if (q.Contains(keyword)) return false; // Ép đi qua AI Planning
-        }
-
-        // LỚP 2: TỪ CHỐI FAST-PATH NẾU LIÊN QUAN ĐẾN LỖI/SẢN LƯỢNG MÀ KHÔNG CHỨA ĐỊNH DANH CỤ THỂ
-        // Ví dụ: "lỗi thế nào", "tình hình lỗi", "sản lượng đạt không" -> Không có mã chuyền/mã hàng cụ thể
-        bool relatesToData = q.Contains("lỗi") || q.Contains("sản lượng") || q.Contains("san luong") || q.Contains("loi");
-        if (relatesToData)
-        {
-            // Kiểm tra xem có chứa định danh chuyền (ví dụ chuyền có dạng số: 101, 102, 105...) 
-            // hoặc mã hàng (thường chứa chữ và số hoặc dấu gạch ngang '-') hay không.
-            bool hasLineIdentifier = System.Text.RegularExpressions.Regex.IsMatch(q, @"\b\d{3,}\b") || q.Contains("chuyền") || q.Contains("chuyen");
-            bool hasStyleIdentifier = System.Text.RegularExpressions.Regex.IsMatch(q, @"[a-zA-Z].*\d|\d.*[a-zA-Z]") || q.Contains("-");
-
-            if (!hasLineIdentifier && !hasStyleIdentifier)
-            {
-                return false; // Thiếu định danh thực thể -> Ép đi qua AI Planning để làm rõ
-            }
-        }
-
-        // LỚP 3: CÁC BỘ LỌC CHÀO HỎI & PHỨC TẠP
-        // Lọc câu chào hỏi/chung chung
-        string[] generalKeywords = { "chào", "hello", "hi", "bạn là ai", "giúp gì", "thời tiết", "cảm ơn", "thank", "tên gì" };
-        foreach (var keyword in generalKeywords)
-        {
-            if (q == keyword || q.StartsWith(keyword + " ") || q.EndsWith(" " + keyword))
-            {
-                return false;
-            }
-        }
-        
-        // Lọc các từ khóa chỉ thứ tự xử lý phức tạp
-        string[] complexKeywords = { "sau đó", "sau khi", "rồi mới", "kết quả của", "tổng hợp từ", "kết hợp cả", "sau đó lọc" };
-        foreach (var keyword in complexKeywords)
-        {
-            if (q.Contains(keyword)) return false;
-        }
-
-        // Mặc định: Chỉ những câu hỏi ngắn tra cứu tĩnh (< 80 ký tự) mới được đi Fast-path
-        return query.Length < 80;
-    }
-
-    private static string UnescapeString(string raw)
-    {
-        try
-        {
-            return System.Text.RegularExpressions.Regex.Unescape(raw);
-        }
-        catch
-        {
-            return raw.Replace("\\n", "\n")
-                      .Replace("\\r", "\r")
-                      .Replace("\\t", "\t")
-                      .Replace("\\\"", "\"")
-                      .Replace("\\\\", "\\");
-        }
-    }
-
-    private static bool TryExtractInvalidJsonFields(string json, out string answer, out List<string> suggestions, out string? excelData, out string? columnMapping)
-    {
-        answer = "";
-        suggestions = new List<string>();
-        excelData = null;
-        columnMapping = null;
-
-        if (string.IsNullOrWhiteSpace(json)) return false;
-
-        // Làm sạch tag markdown code block json nếu AI bọc nó
-        var cleanJson = json.Replace("```json", "").Replace("```", "").Trim();
-
-        try
-        {
-            // 1. Trích xuất answer
-            // Regex này tìm từ "answer" : " đến dấu nháy kép đóng ngay trước dấu phẩy và từ khóa tiếp theo.
-            var answerMatch = System.Text.RegularExpressions.Regex.Match(cleanJson, @"""answer""\s*:\s*""([\s\S]*?)""\s*,\s*""(?:suggestions|excelData|columnMapping)""");
-            if (answerMatch.Success)
-            {
-                answer = UnescapeString(answerMatch.Groups[1].Value);
-            }
-            else
-            {
-                // Fallback trích xuất thủ công nếu regex trên không khớp
-                int answerKeyIdx = cleanJson.IndexOf("\"answer\"");
-                if (answerKeyIdx >= 0)
-                {
-                    int startQuoteIdx = cleanJson.IndexOf('"', answerKeyIdx + 8);
-                    if (startQuoteIdx >= 0)
-                    {
-                        // Tìm vị trí của từ khóa tiếp theo
-                        int nextKeyIdx = cleanJson.IndexOf("\"suggestions\"");
-                        if (nextKeyIdx < 0) nextKeyIdx = cleanJson.IndexOf("\"excelData\"");
-                        if (nextKeyIdx < 0) nextKeyIdx = cleanJson.IndexOf("\"columnMapping\"");
-
-                        if (nextKeyIdx > startQuoteIdx)
-                        {
-                            // Tìm dấu nháy kép đóng cuối cùng ngay trước nextKeyIdx
-                            int endQuoteIdx = cleanJson.LastIndexOf('"', nextKeyIdx);
-                            // Lùi lại để đảm bảo đó là dấu nháy đóng chuỗi (bỏ qua khoảng trắng, dấu phẩy)
-                            while (endQuoteIdx > startQuoteIdx && cleanJson[endQuoteIdx] != '"')
-                            {
-                                endQuoteIdx--;
-                            }
-                            if (endQuoteIdx > startQuoteIdx)
-                            {
-                                string rawAnswer = cleanJson.Substring(startQuoteIdx + 1, endQuoteIdx - startQuoteIdx - 1);
-                                answer = UnescapeString(rawAnswer);
-                            }
-                        }
-                    }
-                }
-            }
-
-            // 2. Trích xuất suggestions
-            var suggestionsMatch = System.Text.RegularExpressions.Regex.Match(cleanJson, @"""suggestions""\s*:\s*\[([\s\S]*?)\]");
-            if (suggestionsMatch.Success)
-            {
-                var sugContent = suggestionsMatch.Groups[1].Value;
-                var matches = System.Text.RegularExpressions.Regex.Matches(sugContent, @"""([\s\S]*?)""");
-                foreach (System.Text.RegularExpressions.Match m in matches)
-                {
-                    suggestions.Add(UnescapeString(m.Groups[1].Value));
-                }
-            }
-
-            // 3. Trích xuất excelData
-            var excelDataMatch = System.Text.RegularExpressions.Regex.Match(cleanJson, @"""excelData""\s*:\s*(\[[\s\S]*?\])");
-            if (excelDataMatch.Success)
-            {
-                excelData = excelDataMatch.Groups[1].Value;
-            }
-
-            // 4. Trích xuất columnMapping
-            var columnMappingMatch = System.Text.RegularExpressions.Regex.Match(cleanJson, @"""columnMapping""\s*:\s*(\{[\s\S]*?\})");
-            if (columnMappingMatch.Success)
-            {
-                columnMapping = columnMappingMatch.Groups[1].Value;
-            }
-
-            return !string.IsNullOrEmpty(answer);
-        }
-        catch
-        {
-            return false;
-        }
     }
 }

@@ -8,7 +8,14 @@ export class ApiClient {
     static _resolveUrl(endpoint) {
         if (endpoint.startsWith('http')) return endpoint;
         const cleanPath = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-        return `${CONFIG.API_BASE_URL}${cleanPath}`;
+        const apiBaseUrl = CONFIG.API_BASE_URL.replace(/\/+$/, '');
+
+        if (cleanPath.startsWith('/api/')) {
+            const baseOrigin = apiBaseUrl.replace(/\/api$/i, '');
+            return `${baseOrigin}${cleanPath}`;
+        }
+
+        return `${apiBaseUrl}${cleanPath}`;
     }
 
     // Helper log theo điều kiện môi trường và tùy chọn silent
@@ -82,6 +89,28 @@ export class ApiClient {
             return result;
         } catch (error) {
             if (!options.silent) console.error('🔴 API Post Error:', error);
+            throw error;
+        } finally {
+            this._groupEnd(options);
+        }
+    }
+
+    static async downloadFile(endpoint, suggestedFileName = null, options = {}) {
+        const url = this._resolveUrl(endpoint);
+        this._group(options, `📥 API DOWNLOAD: ${url}`);
+
+        try {
+            const response = await fetch(url, {
+                method: 'GET'
+            });
+
+            await this._handleResponse(response);
+            const blob = await response.blob();
+            const fileName = suggestedFileName || this._extractFileName(response) || 'download.xlsx';
+            this._triggerBrowserDownload(blob, fileName);
+            return { blob, fileName };
+        } catch (error) {
+            if (!options.silent) console.error('🔴 API Download Error:', error);
             throw error;
         } finally {
             this._groupEnd(options);
@@ -190,5 +219,29 @@ export class ApiClient {
         } catch (e) {
             if (!options.silent) console.warn('❌ Failed to parse SSE JSON:', jsonString);
         }
+    }
+
+    static _extractFileName(response) {
+        const disposition = response.headers.get('Content-Disposition') || response.headers.get('content-disposition');
+        if (!disposition) return null;
+
+        const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+        if (utf8Match?.[1]) {
+            return decodeURIComponent(utf8Match[1]);
+        }
+
+        const basicMatch = disposition.match(/filename="?([^"]+)"?/i);
+        return basicMatch?.[1] || null;
+    }
+
+    static _triggerBrowserDownload(blob, fileName) {
+        const objectUrl = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = objectUrl;
+        anchor.download = fileName;
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
     }
 }
