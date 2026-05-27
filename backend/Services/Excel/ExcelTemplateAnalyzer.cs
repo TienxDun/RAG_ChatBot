@@ -18,6 +18,15 @@ public class ExcelTemplateAnalyzer : IExcelTemplateAnalyzer
 {
     private readonly ITextUtility _textUtility;
 
+    private static readonly HashSet<string> IgnoredMetadataKeys = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Code",
+        "Revision",
+        "Issueddate",
+        "Version",
+        "Form"
+    };
+
     public ExcelTemplateAnalyzer(ITextUtility textUtility)
     {
         _textUtility = textUtility;
@@ -280,7 +289,7 @@ public class ExcelTemplateAnalyzer : IExcelTemplateAnalyzer
                     if (!string.IsNullOrEmpty(key) && !string.IsNullOrEmpty(value))
                     {
                         string cleanKey = _textUtility.RemoveDiacritics(key);
-                        if (!result.Metadata.ContainsKey(cleanKey))
+                        if (!IgnoredMetadataKeys.Contains(cleanKey) && !result.Metadata.ContainsKey(cleanKey))
                         {
                             result.Metadata[cleanKey] = value;
                         }
@@ -303,7 +312,7 @@ public class ExcelTemplateAnalyzer : IExcelTemplateAnalyzer
                              val.Contains("customer", StringComparison.OrdinalIgnoreCase)))
                         {
                             string cleanKey = _textUtility.RemoveDiacritics(val);
-                            if (!result.Metadata.ContainsKey(cleanKey))
+                            if (!IgnoredMetadataKeys.Contains(cleanKey) && !result.Metadata.ContainsKey(cleanKey))
                             {
                                 result.Metadata[cleanKey] = nextVal;
                             }
