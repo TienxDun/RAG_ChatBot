@@ -14,7 +14,7 @@ class State {
             currentConversationId: null,
             isBackendOnline: true,
             isFastPathEnabled: localStorage.getItem('fastpath_enabled') !== 'false',
-            isRulesEnabled: localStorage.getItem('rules_enabled') === 'true'
+            isRulesEnabled: localStorage.getItem('rules_enabled') !== 'false'
         };
         this._listeners = [];
         this._saveDebounceTimer = null;

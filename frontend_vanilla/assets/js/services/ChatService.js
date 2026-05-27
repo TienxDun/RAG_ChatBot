@@ -14,6 +14,7 @@ export class ChatService {
         let aiSteps = [];
         let aiSuggestions = [];
         let aiDownloadUrl = null;
+        let aiDownloadFileName = null;
         let lastRawData = null;
         let aiIsAmbiguous = false;
 
@@ -35,6 +36,7 @@ export class ChatService {
                     aiContent = data.text;
                     aiSuggestions = data.suggestedQuestions || [];
                     aiDownloadUrl = data.downloadUrl;
+                    aiDownloadFileName = data.downloadFileName || null;
                     lastRawData = data.rawData;
                     aiIsAmbiguous = data.isAmbiguous || false;
                     if (onFinal) onFinal(data);
@@ -45,8 +47,8 @@ export class ChatService {
             });
 
             const duration = Math.round((Date.now() - startTime) / 1000);
-            this._saveToHistory(aiContent, aiSteps, aiSuggestions, aiDownloadUrl, lastRawData, duration, aiIsAmbiguous, msgId);
-            return { aiContent, aiSteps, aiSuggestions, aiDownloadUrl, lastRawData, duration, aiIsAmbiguous, msgId };
+            this._saveToHistory(aiContent, aiSteps, aiSuggestions, aiDownloadUrl, aiDownloadFileName, lastRawData, duration, aiIsAmbiguous, msgId);
+            return { aiContent, aiSteps, aiSuggestions, aiDownloadUrl, aiDownloadFileName, lastRawData, duration, aiIsAmbiguous, msgId };
         } catch (error) {
             console.error('ChatService error:', error);
             if (onError) onError(error.message);
@@ -69,7 +71,7 @@ export class ChatService {
         return formData;
     }
 
-    static _saveToHistory(content, steps, suggestions, downloadUrl, rawData, duration, isAmbiguous = false, msgId = null) {
+    static _saveToHistory(content, steps, suggestions, downloadUrl, downloadFileName, rawData, duration, isAmbiguous = false, msgId = null) {
         if (!content && steps.length === 0) return;
         
         state.addMessageToHistory(state.currentConversationId, { 
@@ -79,6 +81,7 @@ export class ChatService {
             steps, 
             suggestions, 
             downloadUrl,
+            downloadFileName,
             rawData,
             duration,
             isAmbiguous

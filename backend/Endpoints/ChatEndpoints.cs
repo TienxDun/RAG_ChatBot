@@ -7,6 +7,12 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace Backend.Endpoints;
 
+public sealed class CachedDownloadFile
+{
+    public required byte[] Content { get; init; }
+    public required string FileName { get; init; }
+}
+
 public static class ChatEndpoints
 {
     private static readonly JsonSerializerOptions _serializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web)
@@ -72,31 +78,9 @@ public static class ChatEndpoints
 
         try 
         {
-            if (file != null && file.FileName.EndsWith(".xlsx"))
+            if (file != null)
             {
-                using var stream = file.OpenReadStream();
-                var result = await excelService.ProcessExcelTemplateAsync(stream, message, async (step) => 
-                {
-                    // Gửi từng bước ngay khi hoàn thành
-                    await SendEventAsync(new { type = "step", step });
-                }, ct);
-
-                // Lưu file vào cache memory để cho phép download (tự động xóa sau 30 phút)
-                var fileId = Guid.NewGuid().ToString() + ".xlsx";
-                var excelBytes = Convert.FromBase64String(result.ExcelBase64);
-                cache.Set(fileId, excelBytes, TimeSpan.FromMinutes(30));
-                var downloadUrl = $"/api/download/{fileId}";
-
-                // Gửi kết quả cuối cùng kèm link tải Excel
-                await SendEventAsync(new { 
-                    type = "final", 
-                    text = result.Text, 
-                    suggestedQuestions = result.SuggestedQuestions,
-                    previewData = result.PreviewData,
-                    excelBase64 = result.ExcelBase64,
-                    rawData = result.PreviewData,
-                    downloadUrl = downloadUrl
-                });
+                return Results.BadRequest(new { error = "Tính năng tải lên file Excel mẫu và xuất báo cáo bằng AI không còn được hỗ trợ." });
             }
             else
             {
@@ -133,10 +117,16 @@ public static class ChatEndpoints
 
     public static IResult HandleDownloadAsync(string id, IMemoryCache cache)
     {
-        if (cache.TryGetValue<byte[]>(id, out var bytes) && bytes != null)
+        if (cache.TryGetValue<CachedDownloadFile>(id, out var file) && file != null)
         {
-            return Results.File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", id);
+            return Results.File(file.Content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", file.FileName);
         }
+
+        if (cache.TryGetValue<byte[]>(id, out var legacyBytes) && legacyBytes != null)
+        {
+            return Results.File(legacyBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", id);
+        }
+
         return Results.NotFound(new { error = "File không tồn tại hoặc đã hết hạn." });
     }
 

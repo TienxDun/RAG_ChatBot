@@ -27,10 +27,10 @@ public sealed class RagOrchestrator
 
     private static async Task<string> GetGlobalRulesAsync()
     {
-        var path = Path.Combine(AppContext.BaseDirectory, "rag_schemas", "_global_rules.json");
+        var path = Path.Combine(Directory.GetCurrentDirectory(), "rag_schemas", "_global_rules.json");
         if (!File.Exists(path))
         {
-            path = Path.Combine(Directory.GetCurrentDirectory(), "rag_schemas", "_global_rules.json");
+            path = Path.Combine(AppContext.BaseDirectory, "rag_schemas", "_global_rules.json");
         }
 
         if (!File.Exists(path))
@@ -159,12 +159,16 @@ public sealed class RagOrchestrator
         {
             await onStep(new RagStep("Execution Planning", "AI đang phân tích câu hỏi và lập kế hoạch truy vấn..."));
             var planningPrompt = $@"Bạn là chuyên gia phân tích yêu cầu và lập kế hoạch truy vấn SQL.
+                Thời gian hệ thống hiện tại: {currentTimeStr} (Việt Nam, UTC+7).
                 Dựa trên CẤU TRÚC DATABASE được cung cấp dưới đây (được trích xuất động từ Qdrant dựa trên ngữ cảnh câu hỏi):
                 {schemaInfo}
 
                 CÂU HỎI CỦA NGƯỜI DÙNG: ""{userQuery}""
 
                 NHIỆM VỤ CỦA BẠN:
+                0. QUAN TRỌNG VỀ THỜI GIAN TRUY VẤN: Nếu người dùng hỏi về các khoảng thời gian tương đối/mơ hồ như ""gần đây"", ""gần nhất"", ""mới nhất"", ""hôm nay"", ""tuần này"", ""tháng này"":
+                   - Hãy kết hợp với 'Thời gian hệ thống hiện tại' ({currentTimeStr}) để xác định khoảng thời gian cụ thể (ví dụ: ""gần đây/gần nhất"" -> tính ngược từ {currentTimeStr} khoảng 7 ngày hoặc 30 ngày tùy loại dữ liệu).
+                   - Nêu rõ mốc thời gian lọc cụ thể này trong phần mô tả bước để bước SQL kế tiếp thực thi đúng.
                 1. Kiểm tra xem câu hỏi có liên quan đến dữ liệu trong các bảng trên hay không. Nếu không liên quan đến database, hãy đặt `isOutOfScope: true`.
                 2. Nếu câu hỏi liên quan đến database, hãy phân tích xem câu hỏi có bị mơ hồ, thiếu thông tin gom nhóm (GROUP BY) hoặc thống kê cụ thể hay không (ví dụ: 'top lỗi', 'sản lượng cao nhất'):
                    - Bạn TUYỆT ĐỐI KHÔNG ĐƯỢC đặt `isAmbiguous: true` và không được yêu cầu người dùng làm rõ.
@@ -294,6 +298,7 @@ public sealed class RagOrchestrator
                     var isMultiStep = stepsToExecute.Count > 1;
                     var globalRules = await GetGlobalRulesAsync();
                     var sqlPrompt = $@"Bạn là chuyên gia SQL Server cao cấp.
+                        Thời gian hệ thống hiện tại: {currentTimeStr} (Việt Nam, UTC+7).
                         Cấu trúc database: {schemaInfo}
                         {workingContext}
 
@@ -303,6 +308,7 @@ public sealed class RagOrchestrator
                         {globalRules}
 
                         QUY TẮC BỔ SUNG & ĐIỀU KIỆN TRUYỀN DỮ LIỆU:
+                        0. XỬ LÝ MỐC THỜI GIAN TƯƠNG ĐỐI: Đối với các khoảng thời gian như ""gần đây"", ""gần nhất"", ""mới nhất"", ""hôm nay"", ""tuần này"", ""tháng này"", bạn BẮT BUỘC phải dựa vào 'Thời gian hệ thống hiện tại' ({currentTimeStr}) để tính toán lùi ngày tháng tương ứng trong câu SQL (ví dụ: lọc từ ({currentTimeStr} - 30 ngày) đến {currentTimeStr} nếu là 30 ngày gần nhất).
                         1. CHỈ thực hiện nhiệm vụ trong 'NHIỆM VỤ HIỆN TẠI'. 
                         {(isMultiStep ? "TUYỆT ĐỐI KHÔNG giải quyết toàn bộ yêu cầu của người dùng nếu nó đòi hỏi nhiều bước xử lý. Chỉ tập trung lấy dữ liệu trung gian cho bước này." : "")}
                         
@@ -324,7 +330,30 @@ public sealed class RagOrchestrator
                         foreach (DataRow row in dt.Rows)
                         {
                             var dict = new Dictionary<string, object>();
-                            foreach (DataColumn col in dt.Columns) dict[col.ColumnName] = row[col] == DBNull.Value ? null! : row[col];
+                            foreach (DataColumn col in dt.Columns)
+                            {
+                                var val = row[col];
+                                if (val == DBNull.Value)
+                                {
+                                    dict[col.ColumnName] = null!;
+                                }
+                                else if (val is DateTime dateTimeVal)
+                                {
+                                    dict[col.ColumnName] = dateTimeVal.TimeOfDay == TimeSpan.Zero
+                                        ? dateTimeVal.ToString("dd/MM/yyyy")
+                                        : dateTimeVal.ToString("dd/MM/yyyy HH:mm:ss");
+                                }
+                                else if (val is DateTimeOffset dateTimeOffsetVal)
+                                {
+                                    dict[col.ColumnName] = dateTimeOffsetVal.TimeOfDay == TimeSpan.Zero
+                                        ? dateTimeOffsetVal.ToString("dd/MM/yyyy")
+                                        : dateTimeOffsetVal.ToString("dd/MM/yyyy HH:mm:ss");
+                                }
+                                else
+                                {
+                                    dict[col.ColumnName] = val;
+                                }
+                            }
                             rows.Add(dict);
                         }
                         var stepJson = JsonSerializer.Serialize(rows, new JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
@@ -383,11 +412,12 @@ public sealed class RagOrchestrator
             3. Nếu dữ liệu SQL trống hoặc không có dòng nào: Báo cáo rõ ràng cho người dùng rằng không tìm thấy thông tin phù hợp trong hệ thống cho yêu cầu này. TUYỆT ĐỐI KHÔNG tự phỏng đoán số liệu để trả lời.
             4. CẢNH BÁO NÉN DỮ LIỆU: Nếu trong dữ liệu có dòng 'WarningRules: DỮ LIỆU ĐÃ BỊ THU GỌN', bạn phải hiểu rằng danh sách hiển thị chỉ là 5 dòng mẫu. Tuyệt đối không tự đếm số dòng trong danh sách mẫu đó để đưa vào câu trả lời. Hãy sử dụng giá trị tổng số dòng 'TotalRows' hoặc các kết quả tính toán tổng hợp (SUM, COUNT) đã được tính sẵn bởi câu lệnh SQL.
             5. Trình bày câu trả lời chuyên nghiệp bằng Markdown:
-               - Sử dụng ### 💠 Tổng quan: Câu trả lời ngắn gọn, trực diện, nêu rõ ngày tháng.
+               - Sử dụng ### 💠 Tổng quan: Câu trả lời ngắn gọn, trực diện. BẮT BUỘC phải phân tích điều kiện lọc ngày tháng (WHERE) từ các câu lệnh SQL thực tế đã chạy trong phần 'DỮ LIỆU ĐÃ TRUY VẤN ĐƯỢC' ở trên để xác định và ghi rõ khoảng thời gian dữ liệu thực tế (ví dụ: ""Dữ liệu được thống kê trong khoảng thời gian từ ngày 01/01/2025 đến ngày 31/12/2025""). Tuyệt đối KHÔNG sử dụng thời gian hệ thống hiện tại làm khoảng thời gian của dữ liệu nếu dữ liệu đó thuộc về một khoảng thời gian khác trong quá khứ.
                  * ĐẶC BIỆT QUAN TRỌNG: Khi dữ liệu truy vấn được chứa nhiều thông tin chi tiết (ví dụ: danh sách nhiều chuyền sản xuất, nhiều mã hàng, nhiều ngày...), bạn BẮT BUỘC phải tự động tính toán tổng hợp các số liệu toàn cục để người dùng nắm bắt nhanh ngay trong phần này (ví dụ: tổng cộng dồn của tất cả các dòng, giá trị trung bình nếu có ý nghĩa). Tuy nhiên, TUYỆT ĐỐI KHÔNG liệt kê lại tên cụ thể và số liệu chi tiết của từng đối tượng y hệt như trong bảng bên dưới (tránh lặp lại thông tin thừa thãi). Thay vào đó, chỉ nhận xét ngắn gọn xu hướng, tỷ trọng % hoặc chỉ ra đối tượng nổi bật nhất/thấp nhất dưới dạng đúc rút thông tin (insight) nhanh (ví dụ: ""chuyền 109 đóng góp lớn nhất với hơn 30% tổng sản lượng"", hoặc ""lỗi Đứt chỉ chiếm tỷ trọng lớn nhất với hơn 50% tổng số lỗi""). Các phép tính và tỷ lệ phải chính xác 100% dựa trên dữ liệu thực tế.
                  * Nếu câu hỏi ban đầu mơ hồ/thiếu thông tin gom nhóm hoặc thống kê cụ thể, hãy dựa vào phần 'Giả định/Lý do lập kế hoạch ban đầu' để thuyết minh/giải thích rõ ràng cho người dùng biết hệ thống đã tự động quyết định chọn chiều phân tích, bộ lọc hoặc gom nhóm nào để truy xuất dữ liệu.
                - Sử dụng ### 📋 Chi tiết: Dùng bảng Markdown (tiếng Việt) nếu có danh sách.
                - Định dạng số: Phân cách hàng nghìn (ví dụ 1.234.567).
+               - Quy tắc định dạng ngày tháng: Hiển thị đầy đủ thông tin ngày, tháng, năm, giờ, phút, giây một cách rõ ràng và nhất quán theo định dạng Việt Nam (ví dụ: '13/01/2026 14:30:15' hoặc '13/01/2026' nếu không có giờ phút) trên giao diện và trong bảng kết quả.
                - Quy tắc định dạng tỉ lệ lỗi / phần trăm (%): Đối với các giá trị tỉ lệ phần trăm thu được từ kết quả SQL (như cột TyLeLoi), đây là các con số đã được nhân 100 ở câu lệnh SQL (ví dụ: kết quả SQL trả về 0.19 tức là 0.19%, 15.5 tức là 15.5%). Bạn TUYỆT ĐỐI KHÔNG ĐƯỢC nhân thêm 100 hay chia cho 100 một lần nữa khi viết câu trả lời hoặc khi tạo dữ liệu Excel. Hãy giữ nguyên giá trị số đó và chỉ định dạng hiển thị kèm ký tự % (ví dụ: 0,20% hoặc 15,50%).
                - Đưa ra 3 câu hỏi gợi ý liên quan.
 

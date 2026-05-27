@@ -1,5 +1,4 @@
 // MessageRenderer.js - Logic for rendering chat messages
-import { CONFIG } from '../core/Config.js';
 
 export class MessageRenderer {
     static renderContent(content) {
@@ -57,8 +56,9 @@ export class MessageRenderer {
             const isRules = step.title.toLowerCase().includes('rules');
             const panelClass = isRules ? 'rag-step__panel rag-step__panel--rules' : 'rag-step__panel';
             const dotClass = isRules ? 'rag-step__dot rag-step__dot--rules' : 'rag-step__dot';
+            const stepClass = isRules ? 'rag-step rag-step--rules animate-fade-in' : 'rag-step animate-fade-in';
             return `
-            <div class="rag-step animate-fade-in" style="animation-delay: ${idx * 0.05}s">
+            <div class="${stepClass}" style="animation-delay: ${idx * 0.05}s">
                 <div class="${dotClass}"></div>
                 <div class="${panelClass}">
                     <div class="rag-step__title">
@@ -160,7 +160,7 @@ export class MessageRenderer {
         return finalHtml;
     }
 
-    static createMessageElement(role, content, steps = [], suggestedQuestions = [], downloadUrl = null, rawData = null, userFile = null, loadingStatus = null, duration = null, isAmbiguous = false) {
+    static createMessageElement(role, content, steps = [], suggestedQuestions = [], downloadUrl = null, downloadFileName = null, rawData = null, userFile = null, loadingStatus = null, duration = null, isAmbiguous = false) {
         const messageEl = document.createElement('div');
         messageEl.className = `message message--${role === 'user' ? 'user' : 'ai'} animate-slide-up`;
         
@@ -183,6 +183,14 @@ export class MessageRenderer {
 
         if (isAmbiguous) {
             messageEl.setAttribute('data-ambiguous', 'true');
+        }
+
+        if (downloadUrl) {
+            messageEl.setAttribute('data-download-url', downloadUrl);
+        }
+
+        if (downloadFileName) {
+            messageEl.setAttribute('data-download-filename', downloadFileName);
         }
 
         // Lưu thông tin file vào attribute nếu là tin nhắn user
@@ -217,7 +225,7 @@ export class MessageRenderer {
                     <div style="flex: 1"></div>
                     <div class="footer-actions-container">
                         ${content ? this._renderCopyButton() : ''}
-                        ${this._renderUnifiedExportButton(downloadUrl, messageEl.getAttribute('data-raw'))}
+                        ${this._renderUnifiedExportButton(downloadUrl, downloadFileName, messageEl.getAttribute('data-raw'))}
                     </div>
                 </div>
             `;
@@ -254,7 +262,7 @@ export class MessageRenderer {
         return messageEl;
     }
 
-    static updateMessage(messageEl, content, steps = [], suggestedQuestions = [], downloadUrl = null, rawData = null, userFile = null, loadingStatus = null, duration = null, isAmbiguous = false) {
+    static updateMessage(messageEl, content, steps = [], suggestedQuestions = [], downloadUrl = null, downloadFileName = null, rawData = null, userFile = null, loadingStatus = null, duration = null, isAmbiguous = false) {
         const contentEl = messageEl.querySelector('.markdown-content');
         const stepsContainer = messageEl.querySelector('.rag-steps-container');
         const footerActionsContainer = messageEl.querySelector('.footer-actions-container');
@@ -274,6 +282,14 @@ export class MessageRenderer {
 
         if (isAmbiguous) {
             messageEl.setAttribute('data-ambiguous', 'true');
+        }
+
+        if (downloadUrl) {
+            messageEl.setAttribute('data-download-url', downloadUrl);
+        }
+
+        if (downloadFileName) {
+            messageEl.setAttribute('data-download-filename', downloadFileName);
         }
 
         if (userFile && bubbleEl && !bubbleEl.querySelector('.message-file-chip')) {
@@ -316,7 +332,7 @@ export class MessageRenderer {
             if (content) actionsHtml += this._renderCopyButton();
             
             // Nút xuất Excel duy nhất (Ưu tiên mẫu, sau đó đến dữ liệu thô)
-            actionsHtml += this._renderUnifiedExportButton(downloadUrl, messageEl.getAttribute('data-raw'));
+            actionsHtml += this._renderUnifiedExportButton(downloadUrl, downloadFileName || messageEl.getAttribute('data-download-filename'), messageEl.getAttribute('data-raw'));
             
             footerActionsContainer.innerHTML = actionsHtml;
         }
@@ -345,20 +361,15 @@ export class MessageRenderer {
      * Nút xuất Excel thông minh: Tự động quyết định dùng link download (mẫu) 
      * hay dùng button export (dữ liệu thô).
      */
-    static _renderUnifiedExportButton(downloadUrl, rawDataStr) {
+    static _renderUnifiedExportButton(downloadUrl, downloadFileName, rawDataStr) {
         if (!downloadUrl && !rawDataStr) return '';
 
         // TRƯỜNG HỢP 1: Có mẫu từ server (Ưu tiên số 1)
         if (downloadUrl) {
-            let absoluteUrl = downloadUrl;
-            if (!downloadUrl.startsWith('http')) {
-                const baseUrl = CONFIG.API_BASE_URL.replace(/\/api$/, '');
-                absoluteUrl = `${baseUrl}${downloadUrl.startsWith('/') ? '' : '/'}${downloadUrl}`;
-            }
             return `
-                <a href="${absoluteUrl}" target="_blank" class="footer-download" title="Tải báo cáo theo mẫu Excel">
+                <button class="footer-download" data-action="download-template-excel" data-url="${downloadUrl}" data-filename="${downloadFileName || ''}" title="Tải báo cáo theo mẫu Excel">
                     <i class="ph-duotone ph-microsoft-excel-logo"></i> Xuất Excel
-                </a>
+                </button>
             `;
         }
 

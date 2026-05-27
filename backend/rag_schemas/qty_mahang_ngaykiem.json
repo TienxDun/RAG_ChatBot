@@ -219,7 +219,7 @@
     },
     {
       "target_table": "SEW_CoefficientSize",
-      "join_on": "QTY_MAHANG_NGAYKIEM.LineX = SEW_CoefficientSize.LineX AND QTY_MAHANG_NGAYKIEM.StyleID = SEW_CoefficientSize.StyleId AND QTY_MAHANG_NGAYKIEM.Size = SEW_CoefficientSize.Size",
+      "join_on": "QTY_MAHANG_NGAYKIEM.LineX = SEW_CoefficientSize.LineX AND QTY_MAHANG_NGAYKIEM.StyleID = SEW_CoefficientSize.StyleId AND QTY_MAHANG_NGAYKIEM.SizeID = SEW_CoefficientSize.SizeId",
       "notes": "JOIN gián tiếp thông qua subquery/CTE để tính tỷ lệ lỗi, áp dụng rule T_QTY_NK_001."
     }
   ]

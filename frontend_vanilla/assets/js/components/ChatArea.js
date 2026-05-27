@@ -47,7 +47,8 @@ export class ChatAreaComponent {
             isLoading: false,
             selectedFile: null,
             lastRawData: null,
-            lastDownloadUrl: null
+            lastDownloadUrl: null,
+            lastDownloadFileName: null
         };
 
         this.minimap = new Minimap(this.elements.minimap, this.elements.chatArea, this.elements.messagesList);
@@ -206,6 +207,7 @@ export class ChatAreaComponent {
             case 'copy-rag-trace': this._copyRagTrace(btn); break;
             case 'copy-rules': this._copyRules(btn); break;
             case 'export-msg-excel': this._handleExportMessageExcel(btn); break;
+            case 'download-template-excel': this._handleTemplateDownload(btn); break;
         }
     }
 
@@ -491,7 +493,7 @@ export class ChatAreaComponent {
         if (!text || this.uiState.isLoading) return;
 
         ChatService.ensureConversationStarted(text);
-        this.appendMessage('user', text, [], [], null, null, this.uiState.selectedFile);
+        this.appendMessage('user', text, [], [], null, null, null, this.uiState.selectedFile);
         
         const currentFile = this.uiState.selectedFile;
         // 🆕 Cache template trống song song và cập nhật danh sách ngầm
@@ -533,7 +535,7 @@ export class ChatAreaComponent {
                     aiSteps.push(step);
                     const status = `Đang xử lý: ${step.title}...`;
                     if (aiMessageEl) {
-                        MessageRenderer.updateMessage(aiMessageEl, "", aiSteps, [], null, null, null, status);
+                        MessageRenderer.updateMessage(aiMessageEl, "", aiSteps, [], null, null, null, null, status);
                     } else {
                         MessageRenderer.updateTypingText(typingIndicator, status);
                     }
@@ -550,7 +552,7 @@ export class ChatAreaComponent {
                     if (!aiMessageEl) {
                         const lastStep = aiSteps[aiSteps.length - 1];
                         const status = lastStep ? `Đang xử lý: ${lastStep.title}...` : 'AI đang suy nghĩ...';
-                        aiMessageEl = MessageRenderer.createMessageElement('ai', '', aiSteps, [], null, null, null, status);
+                        aiMessageEl = MessageRenderer.createMessageElement('ai', '', aiSteps, [], null, null, null, null, status);
                         messagesList.appendChild(aiMessageEl);
                         
                         const timerEl = aiMessageEl.querySelector('.loading-timer');
@@ -561,7 +563,7 @@ export class ChatAreaComponent {
                 },
                 onFinal: (data) => {
                     if (aiMessageEl) {
-                        MessageRenderer.updateMessage(aiMessageEl, data.text, aiSteps, data.suggestedQuestions, data.downloadUrl, data.rawData, null, null, data.duration, data.isAmbiguous);
+                        MessageRenderer.updateMessage(aiMessageEl, data.text, aiSteps, data.suggestedQuestions, data.downloadUrl, data.downloadFileName, data.rawData, null, null, data.duration, data.isAmbiguous);
                         // Cập nhật thời gian tổng kết
                         const timerEl = aiMessageEl.querySelector('.loading-timer');
                         if (timerEl) {
@@ -576,6 +578,7 @@ export class ChatAreaComponent {
                     this.uiState.lastRawData = data.rawData;
                     this.uiState.lastMarkdownText = data.text;
                     this.uiState.lastDownloadUrl = data.downloadUrl;
+                    this.uiState.lastDownloadFileName = data.downloadFileName || null;
                     this.refreshMessageIndices();
                 },
                 onError: (msg) => {
@@ -601,7 +604,7 @@ export class ChatAreaComponent {
     }
 
 
-    appendMessage(role, content, steps, suggestions, downloadUrl, rawData, userFile) {
+    appendMessage(role, content, steps, suggestions, downloadUrl, downloadFileName, rawData, userFile) {
         const { messagesList, landingView, chatArea } = this.elements;
 
         if (messagesList.classList.contains('hidden')) {
@@ -610,7 +613,7 @@ export class ChatAreaComponent {
             chatArea.classList.remove('is-landing');
         }
 
-        const msgEl = MessageRenderer.createMessageElement(role, content, steps, suggestions, downloadUrl, rawData, userFile, null, null);
+        const msgEl = MessageRenderer.createMessageElement(role, content, steps, suggestions, downloadUrl, downloadFileName, rawData, userFile, null, null);
         messagesList.appendChild(msgEl);
         this.scrollToBottom();
 
@@ -644,7 +647,7 @@ export class ChatAreaComponent {
         if (conversation.messages?.length > 0) {
             conversation.messages.forEach(msg => {
                 messagesList.appendChild(
-                    MessageRenderer.createMessageElement(msg.role, msg.content, msg.steps, msg.suggestions, msg.downloadUrl, msg.rawData, msg.userFile, null, msg.duration, msg.isAmbiguous)
+                    MessageRenderer.createMessageElement(msg.role, msg.content, msg.steps, msg.suggestions, msg.downloadUrl, msg.downloadFileName, msg.rawData, msg.userFile, null, msg.duration, msg.isAmbiguous)
                 );
             });
 
@@ -654,6 +657,7 @@ export class ChatAreaComponent {
                 this.uiState.lastRawData = lastAiMsg.rawData;
                 this.uiState.lastMarkdownText = lastAiMsg.content;
                 this.uiState.lastDownloadUrl = lastAiMsg.downloadUrl;
+                this.uiState.lastDownloadFileName = lastAiMsg.downloadFileName || null;
             }
         }
 
@@ -761,12 +765,7 @@ export class ChatAreaComponent {
     async handleExportExcel() {
         // Nếu tin nhắn cuối cùng có link download (file theo mẫu)
         if (this.uiState.lastDownloadUrl) {
-            let absoluteUrl = this.uiState.lastDownloadUrl;
-            if (!absoluteUrl.startsWith('http')) {
-                const baseUrl = CONFIG.API_BASE_URL.replace(/\/api$/, '');
-                absoluteUrl = `${baseUrl}${absoluteUrl.startsWith('/') ? '' : '/'}${absoluteUrl}`;
-            }
-            window.open(absoluteUrl, '_blank');
+            await ApiClient.downloadFile(this.uiState.lastDownloadUrl, this.uiState.lastDownloadFileName);
             return;
         }
 
@@ -848,6 +847,21 @@ export class ChatAreaComponent {
         Toast.warning("Không tìm thấy dữ liệu để xuất!");
     }
 
+    async _handleTemplateDownload(btn) {
+        const downloadUrl = btn.getAttribute('data-url');
+        const downloadFileName = btn.getAttribute('data-filename') || null;
+        if (!downloadUrl) {
+            Toast.warning("Không tìm thấy file để tải.");
+            return;
+        }
+
+        try {
+            await ApiClient.downloadFile(downloadUrl, downloadFileName);
+        } catch (error) {
+            Toast.error("Tải file thất bại.");
+        }
+    }
+
     resetChat() {
         const { messagesList, landingView, chatArea } = this.elements;
         messagesList.innerHTML = '';
@@ -857,6 +871,7 @@ export class ChatAreaComponent {
         this.uiState.lastRawData = null;
         this.uiState.lastMarkdownText = null;
         this.uiState.lastDownloadUrl = null;
+        this.uiState.lastDownloadFileName = null;
         state.currentConversationId = null;
 
         // Cập nhật và ẩn Minimap (trở về Landing)
