@@ -8,8 +8,41 @@ using System.Text.Json;
 
 namespace Backend.Services.Excel;
 
-public static class ExcelTemplateFiller
+public interface IExcelTemplateFiller
 {
+    DataTable ConvertJsonToDataTable(string jsonString, List<string> templateColumns);
+    void FillHorizontalTemplate(
+        ExcelWorksheet worksheet,
+        DataTable data,
+        int headerRowIndex,
+        int startColumnIndex,
+        int dataStartRowIndex,
+        List<string>? rowLabels = null,
+        List<int>? fillableRowIndexes = null,
+        int? totalRowIndex = null,
+        bool isExplicitFillableOnly = false);
+    void FillHierarchicalTemplate(
+        ExcelWorksheet worksheet,
+        DataTable data,
+        int headerRowIndex,
+        int startColumnIndex,
+        List<FlattenedColumn> columns,
+        List<string>? rowLabels = null,
+        List<int>? fillableRowIndexes = null,
+        int? totalRowIndex = null,
+        bool isExplicitFillableOnly = false);
+    void FillMetadata(ExcelWorksheet worksheet, int headerRowIndex, Dictionary<string, string> metadataValues);
+}
+
+public class ExcelTemplateFiller : IExcelTemplateFiller
+{
+    private readonly ITextUtility _textUtility;
+
+    public ExcelTemplateFiller(ITextUtility textUtility)
+    {
+        _textUtility = textUtility;
+    }
+
     private class ColumnMapping
     {
         public string DataTableColumnName { get; set; } = string.Empty;
@@ -17,7 +50,7 @@ public static class ExcelTemplateFiller
     }
 
     // Chuyển đổi JSON sang DataTable case-insensitive theo các cột của template
-    public static DataTable ConvertJsonToDataTable(string jsonString, List<string> templateColumns)
+    public DataTable ConvertJsonToDataTable(string jsonString, List<string> templateColumns)
     {
         var dataTable = new DataTable();
         var normalizedColumns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -100,7 +133,7 @@ public static class ExcelTemplateFiller
     }
 
     // Ghi một dòng dữ liệu vào Excel sheet
-    private static void WriteRowData(ExcelWorksheet worksheet, DataRow dataRow, int excelRowIndex, List<ColumnMapping> mappings)
+    private void WriteRowData(ExcelWorksheet worksheet, DataRow dataRow, int excelRowIndex, List<ColumnMapping> mappings)
     {
         foreach (var map in mappings)
         {
@@ -155,7 +188,7 @@ public static class ExcelTemplateFiller
     }
 
     // Điền dữ liệu dạng Horizontal (Bảng lưới thông thường)
-    public static void FillHorizontalTemplate(
+    public void FillHorizontalTemplate(
         ExcelWorksheet worksheet,
         DataTable data,
         int headerRowIndex,
@@ -175,10 +208,10 @@ public static class ExcelTemplateFiller
             string headerText = worksheet.Cells[headerRowIndex, c].Text?.Trim() ?? "";
             if (string.IsNullOrEmpty(headerText)) continue;
 
-            string cleanHeader = ExcelTemplateAnalyzer.RemoveDiacritics(headerText);
+            string cleanHeader = _textUtility.RemoveDiacritics(headerText);
             foreach (DataColumn dc in data.Columns)
             {
-                string cleanDcName = ExcelTemplateAnalyzer.RemoveDiacritics(dc.ColumnName);
+                string cleanDcName = _textUtility.RemoveDiacritics(dc.ColumnName);
                 if (string.Equals(cleanHeader, cleanDcName, StringComparison.OrdinalIgnoreCase))
                 {
                     mappings.Add(new ColumnMapping
@@ -203,7 +236,7 @@ public static class ExcelTemplateFiller
     }
 
     // Điền dữ liệu dạng Hierarchical (Bảng phân tầng)
-    public static void FillHierarchicalTemplate(
+    public void FillHierarchicalTemplate(
         ExcelWorksheet worksheet,
         DataTable data,
         int headerRowIndex,
@@ -218,10 +251,10 @@ public static class ExcelTemplateFiller
         var mappings = new List<ColumnMapping>();
         foreach (var col in columns)
         {
-            string cleanUniqueKey = ExcelTemplateAnalyzer.RemoveDiacritics(col.UniqueKey);
+            string cleanUniqueKey = _textUtility.RemoveDiacritics(col.UniqueKey);
             foreach (DataColumn dc in data.Columns)
             {
-                string cleanDcName = ExcelTemplateAnalyzer.RemoveDiacritics(dc.ColumnName);
+                string cleanDcName = _textUtility.RemoveDiacritics(dc.ColumnName);
                 if (string.Equals(cleanUniqueKey, cleanDcName, StringComparison.OrdinalIgnoreCase))
                 {
                     mappings.Add(new ColumnMapping
@@ -248,7 +281,7 @@ public static class ExcelTemplateFiller
     }
 
     // Core logic xử lý điền dữ liệu, chèn dòng và copy style
-    private static void FillTemplateCore(
+    private void FillTemplateCore(
         ExcelWorksheet worksheet,
         DataTable data,
         int dataStartRowIndex,
@@ -308,8 +341,8 @@ public static class ExcelTemplateFiller
                         }
 
                         // So khớp mềm
-                        string cleanCellText = ExcelTemplateAnalyzer.RemoveDiacritics(cellText);
-                        string cleanSearchVal = ExcelTemplateAnalyzer.RemoveDiacritics(searchVal);
+                        string cleanCellText = _textUtility.RemoveDiacritics(cellText);
+                        string cleanSearchVal = _textUtility.RemoveDiacritics(searchVal);
                         if (cleanCellText == cleanSearchVal && !string.IsNullOrEmpty(cleanCellText))
                         {
                             targetExcelRow = r;
@@ -401,7 +434,7 @@ public static class ExcelTemplateFiller
     }
 
     // Điền metadata chung vào phần đầu trang Excel
-    public static void FillMetadata(ExcelWorksheet worksheet, int headerRowIndex, Dictionary<string, string> metadataValues)
+    public void FillMetadata(ExcelWorksheet worksheet, int headerRowIndex, Dictionary<string, string> metadataValues)
     {
         if (metadataValues == null || metadataValues.Count == 0) return;
         
@@ -419,7 +452,7 @@ public static class ExcelTemplateFiller
                     int colonIndex = val.IndexOf(':');
                     string label = val.Substring(0, colonIndex).Trim();
                     
-                    string? matchedValue = FindBestMetadataValueInHelper(metadataValues, label);
+                    string? matchedValue = _textUtility.FindBestMetadataValue(metadataValues, label);
                     if (!string.IsNullOrEmpty(matchedValue))
                     {
                         worksheet.Cells[r, c].Value = $"{label}: {matchedValue}";
@@ -438,7 +471,7 @@ public static class ExcelTemplateFiller
                             val.Contains("khách", StringComparison.OrdinalIgnoreCase) ||
                             val.Contains("customer", StringComparison.OrdinalIgnoreCase))
                         {
-                            string? matchedValue = FindBestMetadataValueInHelper(metadataValues, val);
+                            string? matchedValue = _textUtility.FindBestMetadataValue(metadataValues, val);
                             if (!string.IsNullOrEmpty(matchedValue))
                             {
                                 worksheet.Cells[r, c + 1].Value = matchedValue;
@@ -449,52 +482,4 @@ public static class ExcelTemplateFiller
             }
         }
     }
-
-    private static string? FindBestMetadataValueInHelper(Dictionary<string, string> metadata, string key)
-    {
-        if (metadata == null || string.IsNullOrEmpty(key)) return null;
-
-        string cleanSearch = ExcelTemplateAnalyzer.RemoveDiacritics(key).ToLowerInvariant();
-        var searchTokens = cleanSearch.Split(new[] { ' ', '/', '_', '-' }, StringSplitOptions.RemoveEmptyEntries);
-
-        string? bestMatchValue = null;
-        int maxMatchScore = 0;
-
-        foreach (var kvp in metadata)
-        {
-            string cleanMetaKey = ExcelTemplateAnalyzer.RemoveDiacritics(kvp.Key).ToLowerInvariant();
-            var metaTokens = cleanMetaKey.Split(new[] { ' ', '/', '_', '-' }, StringSplitOptions.RemoveEmptyEntries);
-
-            int score = 0;
-            foreach (var sToken in searchTokens)
-            {
-                if (sToken.Length <= 1) continue;
-                foreach (var mToken in metaTokens)
-                {
-                    if (mToken.Length <= 1) continue;
-                    if (sToken == mToken)
-                    {
-                        score += sToken.Length * 3;
-                    }
-                    else if (sToken.Contains(mToken))
-                    {
-                        score += mToken.Length * 2;
-                    }
-                    else if (mToken.Contains(sToken))
-                    {
-                        score += sToken.Length * 2;
-                    }
-                }
-            }
-
-            if (score > maxMatchScore)
-            {
-                maxMatchScore = score;
-                bestMatchValue = kvp.Value;
-            }
-        }
-
-        return maxMatchScore > 0 ? bestMatchValue : null;
-    }
 }
-

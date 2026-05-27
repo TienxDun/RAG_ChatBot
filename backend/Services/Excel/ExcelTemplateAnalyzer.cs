@@ -8,50 +8,23 @@ using System.Text.RegularExpressions;
 
 namespace Backend.Services.Excel;
 
-public static class ExcelTemplateAnalyzer
+public interface IExcelTemplateAnalyzer
 {
-    // Loại bỏ dấu tiếng Việt và ký tự đặc biệt để tạo Unique Key
-    public static string RemoveDiacritics(string text)
+    string GetCellValue(ExcelWorksheet worksheet, int row, int col);
+    TemplateAnalysisResult AnalyzeTemplate(ExcelWorksheet worksheet);
+}
+
+public class ExcelTemplateAnalyzer : IExcelTemplateAnalyzer
+{
+    private readonly ITextUtility _textUtility;
+
+    public ExcelTemplateAnalyzer(ITextUtility textUtility)
     {
-        if (string.IsNullOrWhiteSpace(text)) return string.Empty;
-
-        string normalizedString = text.Normalize(NormalizationForm.FormD);
-        var stringBuilder = new StringBuilder();
-
-        foreach (char c in normalizedString)
-        {
-            var unicodeCategory = System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c);
-            if (unicodeCategory != System.Globalization.UnicodeCategory.NonSpacingMark)
-            {
-                if (c == 'đ') stringBuilder.Append('d');
-                else if (c == 'Đ') stringBuilder.Append('D');
-                else stringBuilder.Append(c);
-            }
-        }
-
-        string result = stringBuilder.ToString().Normalize(NormalizationForm.FormC);
-        
-        // Chỉ giữ lại chữ cái, chữ số và dấu gạch dưới, loại bỏ khoảng trắng và ký tự đặc biệt
-        result = Regex.Replace(result, @"[^a-zA-Z0-9_]", "");
-        return result;
-    }
-
-    public static string GenerateUniqueKey(string parent, string child)
-    {
-        string p = RemoveDiacritics(parent ?? "").Trim();
-        string c = RemoveDiacritics(child ?? "").Trim();
-
-        if (string.IsNullOrEmpty(p)) return c;
-        if (string.IsNullOrEmpty(c)) return p;
-        
-        // Nếu tên cha và tên con trùng nhau sau khi bỏ dấu (ví dụ: Ngay và Ngày)
-        if (string.Equals(p, c, StringComparison.OrdinalIgnoreCase)) return c;
-
-        return $"{p}_{c}";
+        _textUtility = textUtility;
     }
 
     // Đọc giá trị của ô, xử lý trường hợp ô nằm trong vùng gộp (Merged Cells)
-    public static string GetCellValue(ExcelWorksheet worksheet, int row, int col)
+    public string GetCellValue(ExcelWorksheet worksheet, int row, int col)
     {
         if (row <= 0 || col <= 0) return string.Empty;
         
@@ -68,7 +41,7 @@ public static class ExcelTemplateAnalyzer
     }
 
     // Phân tích template Excel
-    public static TemplateAnalysisResult AnalyzeTemplate(ExcelWorksheet worksheet)
+    public TemplateAnalysisResult AnalyzeTemplate(ExcelWorksheet worksheet)
     {
         var result = new TemplateAnalysisResult();
         int totalRows = worksheet.Dimension?.Rows ?? 0;
@@ -201,7 +174,7 @@ public static class ExcelTemplateAnalyzer
                 ColumnIndex = c,
                 ChildHeader = childHeader,
                 ParentHeader = parentHeader,
-                UniqueKey = GenerateUniqueKey(parentHeader, childHeader)
+                UniqueKey = _textUtility.GenerateUniqueKey(parentHeader, childHeader)
             };
             result.Columns.Add(colObj);
         }
@@ -306,7 +279,7 @@ public static class ExcelTemplateAnalyzer
                     string value = val.Substring(colonIndex + 1).Trim();
                     if (!string.IsNullOrEmpty(key) && !string.IsNullOrEmpty(value))
                     {
-                        string cleanKey = RemoveDiacritics(key);
+                        string cleanKey = _textUtility.RemoveDiacritics(key);
                         if (!result.Metadata.ContainsKey(cleanKey))
                         {
                             result.Metadata[cleanKey] = value;
@@ -329,7 +302,7 @@ public static class ExcelTemplateAnalyzer
                              val.Contains("khách", StringComparison.OrdinalIgnoreCase) ||
                              val.Contains("customer", StringComparison.OrdinalIgnoreCase)))
                         {
-                            string cleanKey = RemoveDiacritics(val);
+                            string cleanKey = _textUtility.RemoveDiacritics(val);
                             if (!result.Metadata.ContainsKey(cleanKey))
                             {
                                 result.Metadata[cleanKey] = nextVal;

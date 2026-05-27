@@ -90,21 +90,7 @@ public sealed class VertexAiClient
         return string.Empty;
     }
 
-    // Phân tích và chuyển đổi dữ liệu cấu trúc database dạng JSON thành các mô tả văn bản chi tiết bằng tiếng Việt.
-    public async Task<string> TransformJsonToDescriptionsAsync(string jsonContent, CancellationToken ct)
-    {
-        var prompt = $@"Đây là dữ liệu cấu trúc database dưới dạng JSON:
-        {jsonContent}
 
-        Nhiệm vụ của bạn:
-        1. Phân tích TẤT CẢ các đối tượng (table) trong JSON, không được bỏ sót bất kỳ bảng nào.
-        2. Chuyển đổi mỗi bảng thành một đoạn văn mô tả tiếng Việt chi tiết và đầy đủ.
-        3. Trong mỗi đoạn mô tả, phải liệt kê ĐẦY ĐỦ: Tên bảng, Chức năng, và một bảng Markdown liệt kê toàn bộ các cột kèm kiểu dữ liệu/ý nghĩa.
-        4. QUAN TRỌNG: Phân cách mô tả của mỗi bảng bằng chính xác 3 dấu xuống dòng (\n\n\n).
-        5. Giữ nguyên các thuật ngữ kỹ thuật, không tóm tắt làm mất thông tin. Không thêm lời dẫn.";
-
-        return await GenerateContentAsync(prompt, ct);
-    }
 
     // Gọi API Vertex AI để chuyển đổi đoạn văn bản thành vector (Embedding) phục vụ cho việc tìm kiếm tương đồng.
     public async Task<IReadOnlyList<float>> GetEmbeddingAsync(

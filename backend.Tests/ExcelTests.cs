@@ -41,8 +41,8 @@ public class ExcelTests
 
         var templateColumns = new List<string> { "TenKhachHang", "NgayGiao", "SoLuong" };
 
-        // Act
-        DataTable dataTable = ExcelTemplateFiller.ConvertJsonToDataTable(jsonString, templateColumns);
+        var filler = new ExcelTemplateFiller(new TextUtility());
+        DataTable dataTable = filler.ConvertJsonToDataTable(jsonString, templateColumns);
 
         // Assert
         Assert.Equal(2, dataTable.Rows.Count);
@@ -123,7 +123,8 @@ public class ExcelTests
         table.Rows.Add(new DateTime(2026, 5, 27), 10d);
         table.Rows.Add(new DateTime(2026, 5, 28), 15d);
 
-        ExcelTemplateFiller.FillHorizontalTemplate(worksheet, table, 1, 1, 2, new List<string> { "2026-05-27", "2026-05-28" });
+        var filler = new ExcelTemplateFiller(new TextUtility());
+        filler.FillHorizontalTemplate(worksheet, table, 1, 1, 2, new List<string> { "2026-05-27", "2026-05-28" });
         package.Workbook.Calculate();
 
         Assert.Equal(10d, Convert.ToDouble(worksheet.Cells[2, 2].Value));
@@ -146,7 +147,8 @@ public class ExcelTests
         table.Rows.Add(new DateTime(2026, 5, 27), 10d);
         table.Rows.Add(new DateTime(2026, 5, 28), 15d);
 
-        ExcelTemplateFiller.FillHorizontalTemplate(worksheet, table, 1, 1, 2);
+        var filler = new ExcelTemplateFiller(new TextUtility());
+        filler.FillHorizontalTemplate(worksheet, table, 1, 1, 2);
 
         Assert.Equal(new DateTime(2026, 5, 27), worksheet.Cells[2, 1].GetValue<DateTime>().Date);
         Assert.Equal(10d, Convert.ToDouble(worksheet.Cells[2, 2].Value));
@@ -173,7 +175,8 @@ public class ExcelTests
         table.Rows.Add(new DateTime(2026, 5, 27), 10d);
         table.Rows.Add(new DateTime(2026, 5, 28), 15d);
 
-        ExcelTemplateFiller.FillHorizontalTemplate(
+        var filler = new ExcelTemplateFiller(new TextUtility());
+        filler.FillHorizontalTemplate(
             worksheet,
             table,
             8,
@@ -211,7 +214,8 @@ public class ExcelTests
         table.Rows.Add(new DateTime(2026, 5, 30), 25d);
         table.Rows.Add(new DateTime(2026, 5, 31), 30d);
 
-        ExcelTemplateFiller.FillHorizontalTemplate(
+        var filler = new ExcelTemplateFiller(new TextUtility());
+        filler.FillHorizontalTemplate(
             worksheet,
             table,
             8,
@@ -258,7 +262,8 @@ public class ExcelTests
         table.Rows.Add(new DateTime(2026, 5, 5), 68d, 64d);
         table.Rows.Add(new DateTime(2026, 5, 4), 188d, 177d);
 
-        ExcelTemplateFiller.FillHierarchicalTemplate(
+        var filler = new ExcelTemplateFiller(new TextUtility());
+        filler.FillHierarchicalTemplate(
             worksheet,
             table,
             8,
@@ -302,7 +307,8 @@ public class ExcelTests
         table.Rows.Add(new DateTime(2026, 5, 5), 68, 64);
         table.Rows.Add(new DateTime(2026, 5, 4), 188, 177);
 
-        ExcelTemplateFiller.FillHierarchicalTemplate(
+        var filler = new ExcelTemplateFiller(new TextUtility());
+        filler.FillHierarchicalTemplate(
             worksheet,
             table,
             8,
@@ -348,7 +354,8 @@ public class ExcelTests
         table.Rows.Add(new DateTime(2026, 5, 2), 105, 100);
         table.Rows.Add(new DateTime(2026, 5, 1), 125, 108);
 
-        ExcelTemplateFiller.FillHierarchicalTemplate(
+        var filler = new ExcelTemplateFiller(new TextUtility());
+        filler.FillHierarchicalTemplate(
             worksheet,
             table,
             8,

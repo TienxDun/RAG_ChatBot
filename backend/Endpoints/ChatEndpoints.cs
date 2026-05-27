@@ -22,44 +22,9 @@ public static class ChatEndpoints
 
     public static async Task<IResult> HandleChatAsync(HttpContext context, RagOrchestrator orchestrator, ExcelReportService excelService, IMemoryCache cache, CancellationToken ct)
     {
-        string message = string.Empty;
-        string? collectionName = null;
-        IFormFile? file = null;
-        bool fastPathEnabled = true;
-        bool rulesEnabled = true;
+        var parameters = await ChatRequestParser.ParseAsync(context, ct);
 
-        // Hỗ trợ đọc cả JSON (chat bình thường) và Form (khi có upload file Excel)
-        if (context.Request.HasFormContentType)
-        {
-            var form = await context.Request.ReadFormAsync(ct);
-            message = form.TryGetValue("message", out var m) ? m.ToString() : string.Empty;
-            collectionName = form.TryGetValue("collectionName", out var c) ? c.ToString() : null;
-            file = form.Files.FirstOrDefault();
-            if (form.TryGetValue("fastPath", out var fpStr) && bool.TryParse(fpStr, out var fpVal))
-            {
-                fastPathEnabled = fpVal;
-            }
-            if (form.TryGetValue("rulesEnabled", out var reStr) && bool.TryParse(reStr, out var reVal))
-            {
-                rulesEnabled = reVal;
-            }
-        }
-        else if (context.Request.HasJsonContentType())
-        {
-            var json = await context.Request.ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
-            message = json.TryGetProperty("message", out var m) ? m.GetString() ?? "" : "";
-            collectionName = json.TryGetProperty("collectionName", out var c) ? c.GetString() : null;
-            if (json.TryGetProperty("fastPath", out var fpProp) && (fpProp.ValueKind == JsonValueKind.True || fpProp.ValueKind == JsonValueKind.False))
-            {
-                fastPathEnabled = fpProp.GetBoolean();
-            }
-            if (json.TryGetProperty("rulesEnabled", out var reProp) && (reProp.ValueKind == JsonValueKind.True || reProp.ValueKind == JsonValueKind.False))
-            {
-                rulesEnabled = reProp.GetBoolean();
-            }
-        }
-
-        if (string.IsNullOrWhiteSpace(message))
+        if (string.IsNullOrWhiteSpace(parameters.Message))
         {
             return Results.BadRequest(new { error = "Message is required." });
         }
@@ -78,10 +43,10 @@ public static class ChatEndpoints
 
         try 
         {
-            if (file != null && file.FileName.EndsWith(".xlsx"))
+            if (parameters.File != null && parameters.File.FileName.EndsWith(".xlsx"))
             {
-                using var stream = file.OpenReadStream();
-                var result = await excelService.ProcessExcelTemplateAsync(stream, message, async (step) => 
+                using var stream = parameters.File.OpenReadStream();
+                var result = await excelService.ProcessExcelTemplateAsync(stream, parameters.Message, async (step) => 
                 {
                     await SendEventAsync(new { type = "step", step });
                 }, ct);
@@ -90,7 +55,7 @@ public static class ChatEndpoints
                 cache.Set(fileId, new CachedDownloadFile
                 {
                     Content = Convert.FromBase64String(result.ExcelBase64),
-                    FileName = file.FileName
+                    FileName = parameters.File.FileName
                 }, TimeSpan.FromMinutes(30));
                 var downloadUrl = $"/api/download/{fileId}";
 
@@ -106,10 +71,10 @@ public static class ChatEndpoints
             }
             else
             {
-                var response = await orchestrator.ProcessQueryAsync(message, collectionName, async (step) => 
+                var response = await orchestrator.ProcessQueryAsync(parameters.Message, parameters.CollectionName, async (step) => 
                 {
                     await SendEventAsync(new { type = "step", step });
-                }, ct, fastPathEnabled, false, rulesEnabled);
+                }, ct, parameters.FastPathEnabled, false, parameters.RulesEnabled);
 
                 await SendEventAsync(new { 
                     type = "final", 

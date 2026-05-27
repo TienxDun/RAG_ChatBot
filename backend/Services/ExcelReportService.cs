@@ -25,10 +25,25 @@ public class ExcelReportResult
 public class ExcelReportService
 {
     private readonly RagOrchestrator _ragOrchestrator;
+    private readonly IExcelTemplateAnalyzer _templateAnalyzer;
+    private readonly IExcelTemplateFiller _templateFiller;
+    private readonly IExcelExporter _excelExporter;
+    private readonly ITextUtility _textUtility;
 
-    public ExcelReportService(RagOrchestrator ragOrchestrator)
+    private static readonly TextUtility _staticTextUtility = new();
+
+    public ExcelReportService(
+        RagOrchestrator ragOrchestrator,
+        IExcelTemplateAnalyzer templateAnalyzer,
+        IExcelTemplateFiller templateFiller,
+        IExcelExporter excelExporter,
+        ITextUtility textUtility)
     {
         _ragOrchestrator = ragOrchestrator;
+        _templateAnalyzer = templateAnalyzer;
+        _templateFiller = templateFiller;
+        _excelExporter = excelExporter;
+        _textUtility = textUtility;
     }
 
     // Xử lý upload template Excel mẫu, chạy RAG query để lấy dữ liệu, điền vào template và xuất file
@@ -38,7 +53,7 @@ public class ExcelReportService
         var worksheet = package.Workbook.Worksheets[0];
 
         // 1. Phân tích cấu trúc Template thông minh
-        var templateInfo = ExcelTemplateAnalyzer.AnalyzeTemplate(worksheet);
+        var templateInfo = _templateAnalyzer.AnalyzeTemplate(worksheet);
         
         var serializeOptions = new JsonSerializerOptions 
         { 
@@ -116,7 +131,7 @@ public class ExcelReportService
             }
 
             // Map tên cột SQL mềm dẻo với UniqueKey trong template
-            var columnMapping = BuildSoftColumnMapping(ragResponse.RawDataTable, templateInfo.Columns);
+            var columnMapping = _textUtility.BuildSoftColumnMapping(ragResponse.RawDataTable, templateInfo.Columns);
 
             foreach (DataRow sourceRow in ragResponse.RawDataTable.Rows)
             {
@@ -147,7 +162,7 @@ public class ExcelReportService
         else if (!string.IsNullOrEmpty(ragResponse.RawData))
         {
             var columnsKeys = templateInfo.Columns.Select(c => c.UniqueKey).ToList();
-            dataTable = ExcelTemplateFiller.ConvertJsonToDataTable(ragResponse.RawData, columnsKeys);
+            dataTable = _templateFiller.ConvertJsonToDataTable(ragResponse.RawData, columnsKeys);
         }
 
         // 5. Điền Metadata
@@ -173,13 +188,13 @@ public class ExcelReportService
 
         if (metadataValues.Count > 0)
         {
-            ExcelTemplateFiller.FillMetadata(worksheet, templateInfo.HeaderRowIndex, metadataValues);
+            _templateFiller.FillMetadata(worksheet, templateInfo.HeaderRowIndex, metadataValues);
         }
 
         // 6. Điền dữ liệu bảng (tự chèn dòng và copy style nếu cần)
         if (templateInfo.Type == TemplateType.Hierarchical)
         {
-            ExcelTemplateFiller.FillHierarchicalTemplate(
+            _templateFiller.FillHierarchicalTemplate(
                 worksheet,
                 dataTable,
                 templateInfo.HeaderRowIndex,
@@ -192,7 +207,7 @@ public class ExcelReportService
         }
         else
         {
-            ExcelTemplateFiller.FillHorizontalTemplate(
+            _templateFiller.FillHorizontalTemplate(
                 worksheet,
                 dataTable,
                 templateInfo.HeaderRowIndex,
@@ -237,146 +252,37 @@ public class ExcelReportService
     // Xuất danh sách dữ liệu ra file Excel dạng bảng lưới thông thường
     public byte[] ExportGenericExcel(List<Dictionary<string, object>> data)
     {
-        return ExcelExportHelper.ExportGenericExcel(data);
+        return _excelExporter.ExportGenericExcel(data);
     }
 
     // Tự sinh file Excel từ bảng Markdown
     public byte[] ExportMarkdownToExcelDynamic(string markdownText)
     {
-        return ExcelExportHelper.ExportMarkdownToExcelDynamic(markdownText);
+        return _excelExporter.ExportMarkdownToExcelDynamic(markdownText);
     }
 
-    // ==========================================
-    // CÁC HÀM REFLECTION ĐƯỢC GỌI TỪ UNIT TEST
-    // ==========================================
+    // =========================================================
+    // CÁC HÀM REFLECTION ĐƯỢC GỌI TỪ UNIT TEST (DELEGATED TO UTILITY)
+    // =========================================================
 
     private static Dictionary<string, string> BuildSoftColumnMapping(DataTable source, List<FlattenedColumn> templateColumns)
     {
-        var mapping = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var tc in templateColumns)
-        {
-            string tcClean = ExcelTemplateAnalyzer.RemoveDiacritics(tc.UniqueKey)
-                .Replace("_", "").Replace("-", "").Replace(" ", "")
-                .Replace("y", "i").Replace("Y", "i")
-                .ToLowerInvariant();
-            
-            foreach (DataColumn dc in source.Columns)
-            {
-                string dcClean = ExcelTemplateAnalyzer.RemoveDiacritics(dc.ColumnName)
-                    .Replace("_", "").Replace("-", "").Replace(" ", "")
-                    .Replace("y", "i").Replace("Y", "i")
-                    .ToLowerInvariant();
-                
-                if (string.Equals(tcClean, dcClean, StringComparison.OrdinalIgnoreCase))
-                {
-                    mapping[tc.UniqueKey] = dc.ColumnName;
-                    break;
-                }
-            }
-        }
-        return mapping;
+        return _staticTextUtility.BuildSoftColumnMapping(source, templateColumns);
     }
 
     private static string RemoveDiacriticsKeepSpaces(string text)
     {
-        if (string.IsNullOrWhiteSpace(text)) return string.Empty;
-        string normalized = text.Normalize(NormalizationForm.FormD);
-        var sb = new StringBuilder();
-        foreach (char c in normalized)
-        {
-            var uc = System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c);
-            if (uc != System.Globalization.UnicodeCategory.NonSpacingMark)
-            {
-                if (c == 'đ') sb.Append('d');
-                else if (c == 'Đ') sb.Append('D');
-                else sb.Append(c);
-            }
-        }
-        return sb.ToString().Normalize(NormalizationForm.FormC);
+        return _staticTextUtility.RemoveDiacriticsKeepSpaces(text);
     }
 
     private static string? FindBestMetadataValue(Dictionary<string, string> metadata, string key)
     {
-        if (metadata == null || string.IsNullOrEmpty(key)) return null;
-
-        string cleanSearch = RemoveDiacriticsKeepSpaces(key).ToLowerInvariant();
-        cleanSearch = Regex.Replace(cleanSearch, @"([a-z])([A-Z])", "$1 $2");
-        var searchTokens = cleanSearch.Split(new[] { ' ', '/', '_', '-', ':' }, StringSplitOptions.RemoveEmptyEntries);
-
-        string? bestMatchValue = null;
-        int maxMatchScore = 0;
-
-        foreach (var kvp in metadata)
-        {
-            string cleanMetaKey = RemoveDiacriticsKeepSpaces(kvp.Key).ToLowerInvariant();
-            cleanMetaKey = Regex.Replace(cleanMetaKey, @"([a-z])([A-Z])", "$1 $2");
-            var metaTokens = cleanMetaKey.Split(new[] { ' ', '/', '_', '-', ':' }, StringSplitOptions.RemoveEmptyEntries);
-
-            int score = 0;
-            foreach (var sToken in searchTokens)
-            {
-                if (sToken.Length <= 1) continue;
-                foreach (var mToken in metaTokens)
-                {
-                    if (mToken.Length <= 1) continue;
-                    if (sToken == mToken)
-                    {
-                        score += sToken.Length * 3;
-                    }
-                    else if (sToken.Contains(mToken))
-                    {
-                        score += mToken.Length * 2;
-                    }
-                    else if (mToken.Contains(sToken))
-                    {
-                        score += sToken.Length * 2;
-                    }
-                }
-            }
-
-            if (score > maxMatchScore)
-            {
-                maxMatchScore = score;
-                bestMatchValue = kvp.Value;
-            }
-        }
-
-        return maxMatchScore > 0 ? bestMatchValue : null;
+        return _staticTextUtility.FindBestMetadataValue(metadata, key);
     }
 
     private static TemplateAnalysisResult MergeTemplateAnalysis(TemplateAnalysisResult llm, TemplateAnalysisResult ruleBased)
     {
-        var merged = new TemplateAnalysisResult
-        {
-            Type = llm.Type,
-            HeaderRowIndex = llm.HeaderRowIndex,
-            StartColumnIndex = llm.StartColumnIndex,
-            DataStartRowIndex = llm.DataStartRowIndex,
-            DataEndRowIndex = ruleBased.DataEndRowIndex,
-            TotalRowIndex = ruleBased.TotalRowIndex,
-            FillableRowIndexes = ruleBased.FillableRowIndexes != null 
-                ? new List<int>(ruleBased.FillableRowIndexes) 
-                : new List<int>(),
-            Columns = llm.Columns != null 
-                ? new List<FlattenedColumn>(llm.Columns) 
-                : new List<FlattenedColumn>(),
-            Metadata = llm.Metadata != null 
-                ? new Dictionary<string, string>(llm.Metadata, StringComparer.OrdinalIgnoreCase) 
-                : new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        };
-
-        if (ruleBased.Metadata != null)
-        {
-            foreach (var kvp in ruleBased.Metadata)
-            {
-                if (!merged.Metadata.ContainsKey(kvp.Key))
-                {
-                    merged.Metadata[kvp.Key] = kvp.Value;
-                }
-            }
-        }
-
-        return merged;
+        return _staticTextUtility.MergeTemplateAnalysis(llm, ruleBased);
     }
 
     private static Dictionary<string, string> ExtractMetadataFromSqlSteps(List<RagStep> steps)
