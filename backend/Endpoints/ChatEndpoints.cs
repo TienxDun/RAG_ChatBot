@@ -78,9 +78,31 @@ public static class ChatEndpoints
 
         try 
         {
-            if (file != null)
+            if (file != null && file.FileName.EndsWith(".xlsx"))
             {
-                return Results.BadRequest(new { error = "Tính năng tải lên file Excel mẫu và xuất báo cáo bằng AI không còn được hỗ trợ." });
+                using var stream = file.OpenReadStream();
+                var result = await excelService.ProcessExcelTemplateAsync(stream, message, async (step) => 
+                {
+                    await SendEventAsync(new { type = "step", step });
+                }, ct);
+
+                var fileId = Guid.NewGuid().ToString() + ".xlsx";
+                cache.Set(fileId, new CachedDownloadFile
+                {
+                    Content = Convert.FromBase64String(result.ExcelBase64),
+                    FileName = file.FileName
+                }, TimeSpan.FromMinutes(30));
+                var downloadUrl = $"/api/download/{fileId}";
+
+                await SendEventAsync(new { 
+                    type = "final", 
+                    text = result.Text, 
+                    suggestedQuestions = result.SuggestedQuestions,
+                    previewData = result.PreviewData,
+                    excelBase64 = result.ExcelBase64,
+                    rawData = result.PreviewData,
+                    downloadUrl = downloadUrl
+                });
             }
             else
             {

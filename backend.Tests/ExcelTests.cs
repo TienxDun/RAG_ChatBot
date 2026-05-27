@@ -382,6 +382,7 @@ public class ExcelTests
 
         var result = ChatEndpoints.HandleDownloadAsync(fileId, cache);
         var httpContext = new DefaultHttpContext();
+        httpContext.RequestServices = new TestServiceProvider();
         httpContext.Response.Body = new MemoryStream();
 
         await result.ExecuteAsync(httpContext);
@@ -487,5 +488,17 @@ public class ExcelTests
         Assert.Equal(14, merged.DataEndRowIndex);
         Assert.Equal(15, merged.TotalRowIndex);
         Assert.Equal(new List<int> { 9, 10, 11, 12, 13, 14 }, merged.FillableRowIndexes);
+    }
+}
+
+class TestServiceProvider : IServiceProvider
+{
+    public object? GetService(Type serviceType)
+    {
+        if (serviceType == typeof(Microsoft.Extensions.Logging.ILoggerFactory))
+        {
+            return Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance;
+        }
+        return null;
     }
 }
