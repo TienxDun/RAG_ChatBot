@@ -13,12 +13,42 @@
     }
   ],
   "columns": [
-    { "name": "Id_cd", "type": "uniqueidentifier", "role": "primary_key", "desc": "GUID duy nhất của công đoạn. Được tham chiếu bởi cột StepId trong SEW_* và QTY_*." },
-    { "name": "cd_name", "type": "nvarchar", "role": "filter", "desc": "Tên đầy đủ của công đoạn kỹ thuật (ví dụ: 'VIEN DKTT - Front zipper facing', 'RA CHUYỀN'). Áp dụng rule T_STEPS_001." },
-    { "name": "Id_board", "type": "int", "role": "info", "desc": "ID bảng điều khiển hiển thị trên dashboard." },
-    { "name": "Descriptions", "type": "nvarchar", "role": "info", "desc": "Mô tả chi tiết kỹ thuật công đoạn (Dữ liệu mẫu trống)." },
-    { "name": "StyleID", "type": "uniqueidentifier", "role": "foreign_key", "desc": "Mã kiểu dáng áp dụng công đoạn đặc thù." },
-    { "name": "DisplayName", "type": "nvarchar", "role": "display", "desc": "Tên hiển thị viết tắt (ví dụ: 'V.DKTT')." }
+    {
+      "name": "Id_cd",
+      "type": "uniqueidentifier",
+      "role": "primary_key",
+      "desc": "GUID duy nhất của công đoạn. Được tham chiếu bởi cột StepId trong SEW_* và QTY_*."
+    },
+    {
+      "name": "cd_name",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Tên đầy đủ của công đoạn kỹ thuật (ví dụ: 'VIEN DKTT - Front zipper facing', 'RA CHUYỀN'). Áp dụng rule T_STEPS_001."
+    },
+    {
+      "name": "Id_board",
+      "type": "int",
+      "role": "info",
+      "desc": "ID bảng điều khiển hiển thị trên dashboard."
+    },
+    {
+      "name": "Descriptions",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả chi tiết kỹ thuật công đoạn (Dữ liệu mẫu trống)."
+    },
+    {
+      "name": "StyleID",
+      "type": "uniqueidentifier",
+      "role": "foreign_key",
+      "desc": "Mã kiểu dáng áp dụng công đoạn đặc thù."
+    },
+    {
+      "name": "DisplayName",
+      "type": "nvarchar",
+      "role": "display",
+      "desc": "Tên hiển thị viết tắt (ví dụ: 'V.DKTT')."
+    }
   ],
   "relationships": []
 }

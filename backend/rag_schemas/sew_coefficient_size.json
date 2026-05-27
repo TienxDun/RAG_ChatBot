@@ -1,8 +1,8 @@
 {
   "table": "SEW_CoefficientSize",
-  "purpose": "Lưu trữ sản lượng đạt chi tiết đến từng kích thước (size) của mã hàng theo công đoạn sản xuất.",
-  "when_to_use": "Sử dụng khi câu hỏi yêu cầu lọc/phân tích chi tiết theo kích thước (size) cụ thể, hoặc khi tính toán tỉ lệ lỗi % (bảng này đóng vai trò làm mẫu số).",
-  "when_not_to_use": "KHÔNG sử dụng cho các câu hỏi về sản lượng, năng suất chung không nhắc đến kích thước/size (khi đó phải dùng SEW_CoefficientStyle để tối ưu tốc độ và tránh trùng lặp). Ngoại lệ: Khi tính tỷ lệ lỗi %, bảng này vẫn được khuyên dùng làm mẫu số kể cả khi câu hỏi không đề cập trực tiếp đến kích thước/size.",
+  "purpose": "Lưu trữ sản lượng đạt, năng suất sản xuất, năng suất đạt đỉnh cao nhất của mã hàng chi tiết đến từng kích thước (size, ví dụ: size XL, size L, size M, size S) và theo nhân viên KCS (ví dụ: KCS PANSY, KCS cosmos) hoặc theo mốc thời gian khung giờ (timeline, TimeLineId, khung giờ số mấy) có bao gồm cột sửa đạt (SuaDat).",
+  "when_to_use": "Sử dụng khi câu hỏi hỏi về năng suất/sản lượng liên quan tới KCS (ví dụ: nhân viên KCS PANSY, KCS cosmos, năng suất đạt chuẩn KCS...), hoặc yêu cầu lọc/phân tích chi tiết theo kích thước (size) cụ thể, hoặc mốc thời gian ghi nhận (khung giờ số mấy, timeline, TimeLineId), hoặc khi tính toán tỉ lệ lỗi % (bảng này đóng vai trò làm mẫu số). Năng suất liên quan tới KCS bắt buộc dùng bảng này vì có chứa thông tin size và sản lượng sửa đạt (SuaDat) ghi nhận chất lượng KCS.",
+  "when_not_to_use": "KHÔNG sử dụng cho các câu hỏi về sản lượng, năng suất chung mà KHÔNG liên quan tới KCS VÀ KHÔNG nhắc đến kích thước/size cụ thể (khi đó mặc định phải dùng SEW_CoefficientStyle để tối ưu tốc độ và tránh trùng lặp).",
   "table_rules": [
     {
       "id": "T_SEW_SIZE_001",

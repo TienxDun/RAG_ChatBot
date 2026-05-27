@@ -1,8 +1,8 @@
 {
   "table": "QTY_InLineQC_NgayKiem",
   "purpose": "Lưu trữ thông tin kiểm tra chất lượng tổng hợp theo ngày của bộ phận InLine QC tại chuyền sản xuất.",
-  "when_to_use": "Sử dụng khi câu hỏi yêu cầu thống kê, báo cáo số lượng kiểm tra (SoLuongKiem), số lượng đạt KCS (SoLuongKCS), hoặc số lượng lỗi (SoLuongLoi) theo ngày do bộ phận InLine QC thực hiện.",
-  "when_not_to_use": "Không sử dụng nếu câu hỏi yêu cầu thống kê chi tiết theo từng loại lỗi hoặc mã lỗi cụ thể (khi đó phải dùng QTY_InLineQC_CHITIET).",
+  "when_to_use": "CHỈ sử dụng khi câu hỏi CÓ CHỨA RÕ RÀNG từ khóa 'inline', 'InLine' hoặc 'in line' VÀ yêu cầu thống kê số lượng kiểm tra (SoLuongKiem), số lượng đạt KCS (SoLuongKCS), hoặc số lượng lỗi (SoLuongLoi) theo ngày do bộ phận InLine QC thực hiện. Nếu câu hỏi KHÔNG nhắc 'inline' mà chỉ hỏi về sản phẩm lỗi, tỷ lệ lỗi chung → BẮT BUỘC dùng QTY_MAHANG_NGAYKIEM thay vì bảng này.",
+  "when_not_to_use": "TUYỆT ĐỐI KHÔNG dùng bảng này khi câu hỏi KHÔNG chứa từ khóa 'inline'/'InLine'/'in line'. Khi không nhắc inline, mặc định dùng QTY_MAHANG_NGAYKIEM (cho tổng hợp lỗi) hoặc QTY_MaHang_KiemQC_ChiTiet (cho chi tiết từng lỗi). Cũng không sử dụng nếu câu hỏi yêu cầu thống kê chi tiết theo từng loại lỗi hoặc mã lỗi cụ thể (khi đó phải dùng QTY_InLineQC_CHITIET), hoặc hỏi về năng suất sản xuất, năng suất đạt đỉnh cao nhất, sản lượng đạt, số lượng sản phẩm làm ra/hoàn thành của KCS (khi đó bắt buộc dùng các bảng SEW_*).",
   "table_rules": [
     {
       "id": "T_QTY_IL_NK_001",
@@ -34,41 +34,210 @@
     }
   ],
   "columns": [
-    { "name": "ID", "type": "int", "role": "primary_key", "desc": "Mã định danh duy nhất của lỗi kiểm." },
-    { "name": "Line", "type": "varchar", "role": "filter", "desc": "Mã chuyền kiểm tra. Áp dụng rule T_QTY_IL_NK_002." },
-    { "name": "LenhSX", "type": "varchar", "role": "foreign_key", "desc": "Mã lệnh sản xuất định danh hệ thống. Khóa ngoại liên kết ERP_LENHSX.MaLenh." },
-    { "name": "MaHang", "type": "nvarchar", "role": "filter_primary", "desc": "Mã hàng / mã sản phẩm thực tế (ví dụ: 'SA-893-208-133'). Áp dụng rule T_QTY_IL_NK_001." },
-    { "name": "POID", "type": "nvarchar", "role": "info", "desc": "Mã đơn hàng chi tiết gộp (MaDH|PO)." },
-    { "name": "PO", "type": "nvarchar", "role": "filter", "desc": "Số đơn hàng (Purchase Order)." },
-    { "name": "DauSizeID", "type": "nvarchar", "role": "info", "desc": "Mã đầu size." },
-    { "name": "DauSize", "type": "nvarchar", "role": "info", "desc": "Nhãn đầu size." },
-    { "name": "ColorID", "type": "nvarchar", "role": "info", "desc": "Mã màu sản phẩm." },
-    { "name": "MaMau", "type": "nvarchar", "role": "filter", "desc": "Tên màu sắc sản phẩm (ví dụ: 'BLACK')." },
-    { "name": "SizeID", "type": "nvarchar", "role": "filter", "desc": "Mã size định danh (chứa tiền tố 'SIZE_'). Áp dụng rule T_QTY_IL_NK_004." },
-    { "name": "Size", "type": "nvarchar", "role": "filter", "desc": "Tên nhãn kích thước hiển thị. Áp dụng rule T_QTY_IL_NK_004." },
-    { "name": "MocTgian", "type": "int", "role": "filter", "desc": "Khung giờ kiểm tra." },
-    { "name": "SoLuongKiem", "type": "int", "role": "measure", "desc": "Số lượng sản phẩm được kiểm tra." },
-    { "name": "SoLuongKCS", "type": "int", "role": "measure", "desc": "Số lượng sản phẩm đạt chuẩn KCS." },
-    { "name": "SoLuongLoi", "type": "int", "role": "measure", "desc": "Số lượng sản phẩm lỗi. Áp dụng rule T_QTY_IL_NK_003." },
-    { "name": "SuaDat", "type": "int", "role": "measure", "desc": "Số lượng lỗi đã sửa đạt." },
-    { "name": "HangLoai", "type": "int", "role": "measure", "desc": "Số sản phẩm hàng loại B." },
-    { "name": "NgayKiem", "type": "datetime", "role": "filter", "desc": "Ngày kiểm tra chất lượng. Áp dụng rule toàn cục G001 (cần CAST sang DATE)." },
-    { "name": "NhanVienKiem", "type": "nvarchar", "role": "filter", "desc": "Tên nhân viên kiểm QC inline." },
-    { "name": "IsQC", "type": "int", "role": "filter", "desc": "Flag QC duyệt (0/1)." },
-    { "name": "LanKiem", "type": "int", "role": "filter", "desc": "Số lần kiểm tra." },
-    { "name": "StatusHT", "type": "int", "role": "filter", "desc": "Trạng thái hoàn thành sửa lỗi." },
-    { "name": "NgayHT", "type": "datetime", "role": "filter", "desc": "Ngày hoàn thành sửa lỗi." },
-    { "name": "StatusKiemLai", "type": "int", "role": "filter", "desc": "Trạng thái kiểm tra lại." },
-    { "name": "StatusKiemMau", "type": "int", "role": "filter", "desc": "Trạng thái kiểm mẫu." },
-    { "name": "GhiChu", "type": "nvarchar", "role": "info", "desc": "Ghi chú kiểm tra." },
-    { "name": "SignPTDonVi", "type": "nvarchar", "role": "info", "desc": "Chữ ký phụ trách đơn vị." },
-    { "name": "SignToTruong", "type": "nvarchar", "role": "info", "desc": "Chữ ký tổ trưởng." },
-    { "name": "SignNVKiem", "type": "nvarchar", "role": "info", "desc": "Chữ ký nhân viên kiểm." },
-    { "name": "Module", "type": "int", "role": "filter", "desc": "ID module sản xuất." },
-    { "name": "NguyenNhan", "type": "nvarchar", "role": "display", "desc": "Nguyên nhân gây lỗi (nếu có)." },
-    { "name": "KetQua", "type": "int", "role": "filter", "desc": "Kết quả kiểm tra (đạt/không đạt)." }
+    {
+      "name": "ID",
+      "type": "int",
+      "role": "primary_key",
+      "desc": "Mã định danh duy nhất của lỗi kiểm."
+    },
+    {
+      "name": "Line",
+      "type": "varchar",
+      "role": "filter",
+      "desc": "Mã chuyền kiểm tra. Áp dụng rule T_QTY_IL_NK_002."
+    },
+    {
+      "name": "LenhSX",
+      "type": "varchar",
+      "role": "foreign_key",
+      "desc": "Mã lệnh sản xuất định danh hệ thống. Khóa ngoại liên kết ERP_LENHSX.MaLenh."
+    },
+    {
+      "name": "MaHang",
+      "type": "nvarchar",
+      "role": "filter_primary",
+      "desc": "Mã hàng / mã sản phẩm thực tế (ví dụ: 'SA-893-208-133'). Áp dụng rule T_QTY_IL_NK_001."
+    },
+    {
+      "name": "POID",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mã đơn hàng chi tiết gộp (MaDH|PO)."
+    },
+    {
+      "name": "PO",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Số đơn hàng (Purchase Order)."
+    },
+    {
+      "name": "DauSizeID",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mã đầu size."
+    },
+    {
+      "name": "DauSize",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Nhãn đầu size."
+    },
+    {
+      "name": "ColorID",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mã màu sản phẩm."
+    },
+    {
+      "name": "MaMau",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Tên màu sắc sản phẩm (ví dụ: 'BLACK')."
+    },
+    {
+      "name": "SizeID",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mã size định danh (chứa tiền tố 'SIZE_'). Áp dụng rule T_QTY_IL_NK_004."
+    },
+    {
+      "name": "Size",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Tên nhãn kích thước hiển thị. Áp dụng rule T_QTY_IL_NK_004."
+    },
+    {
+      "name": "MocTgian",
+      "type": "int",
+      "role": "filter",
+      "desc": "Khung giờ kiểm tra."
+    },
+    {
+      "name": "SoLuongKiem",
+      "type": "int",
+      "role": "measure",
+      "desc": "Số lượng sản phẩm được kiểm tra."
+    },
+    {
+      "name": "SoLuongKCS",
+      "type": "int",
+      "role": "measure",
+      "desc": "Số lượng sản phẩm đạt chuẩn KCS."
+    },
+    {
+      "name": "SoLuongLoi",
+      "type": "int",
+      "role": "measure",
+      "desc": "Số lượng sản phẩm lỗi. Áp dụng rule T_QTY_IL_NK_003."
+    },
+    {
+      "name": "SuaDat",
+      "type": "int",
+      "role": "measure",
+      "desc": "Số lượng lỗi đã sửa đạt."
+    },
+    {
+      "name": "HangLoai",
+      "type": "int",
+      "role": "measure",
+      "desc": "Số sản phẩm hàng loại B."
+    },
+    {
+      "name": "NgayKiem",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Ngày kiểm tra chất lượng. Áp dụng rule toàn cục G001 (cần CAST sang DATE)."
+    },
+    {
+      "name": "NhanVienKiem",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Tên nhân viên kiểm QC inline."
+    },
+    {
+      "name": "IsQC",
+      "type": "int",
+      "role": "filter",
+      "desc": "Flag QC duyệt (0/1)."
+    },
+    {
+      "name": "LanKiem",
+      "type": "int",
+      "role": "filter",
+      "desc": "Số lần kiểm tra."
+    },
+    {
+      "name": "StatusHT",
+      "type": "int",
+      "role": "filter",
+      "desc": "Trạng thái hoàn thành sửa lỗi."
+    },
+    {
+      "name": "NgayHT",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Ngày hoàn thành sửa lỗi."
+    },
+    {
+      "name": "StatusKiemLai",
+      "type": "int",
+      "role": "filter",
+      "desc": "Trạng thái kiểm tra lại."
+    },
+    {
+      "name": "StatusKiemMau",
+      "type": "int",
+      "role": "filter",
+      "desc": "Trạng thái kiểm mẫu."
+    },
+    {
+      "name": "GhiChu",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Ghi chú kiểm tra."
+    },
+    {
+      "name": "SignPTDonVi",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Chữ ký phụ trách đơn vị."
+    },
+    {
+      "name": "SignToTruong",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Chữ ký tổ trưởng."
+    },
+    {
+      "name": "SignNVKiem",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Chữ ký nhân viên kiểm."
+    },
+    {
+      "name": "Module",
+      "type": "int",
+      "role": "filter",
+      "desc": "ID module sản xuất."
+    },
+    {
+      "name": "NguyenNhan",
+      "type": "nvarchar",
+      "role": "display",
+      "desc": "Nguyên nhân gây lỗi (nếu có)."
+    },
+    {
+      "name": "KetQua",
+      "type": "int",
+      "role": "filter",
+      "desc": "Kết quả kiểm tra (đạt/không đạt)."
+    }
   ],
   "relationships": [
-    { "target_table": "ERP_LENHSX", "join_on": "QTY_InLineQC_NgayKiem.LenhSX = ERP_LENHSX.MaLenh", "notes": "Để lấy thông tin chi tiết lệnh hoặc StyleID hệ thống." }
+    {
+      "target_table": "ERP_LENHSX",
+      "join_on": "QTY_InLineQC_NgayKiem.LenhSX = ERP_LENHSX.MaLenh",
+      "notes": "Để lấy thông tin chi tiết lệnh hoặc StyleID hệ thống."
+    }
   ]
 }

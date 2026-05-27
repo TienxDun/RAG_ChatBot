@@ -20,40 +20,203 @@
     }
   ],
   "columns": [
-    { "name": "ID", "type": "varchar", "role": "primary_key", "desc": "Mã chuyền sản xuất định danh (ví dụ: '101'). Áp dụng rule T_SET_LX_001." },
-    { "name": "Name", "type": "nvarchar", "role": "filter", "desc": "Tên chuyền sản xuất hiển thị (ví dụ: 'Daisy', N'May mẫu'). Áp dụng rule T_SET_LX_002." },
-    { "name": "IDSub", "type": "varchar", "role": "info", "desc": "Mã ID phụ." },
-    { "name": "AudioName", "type": "nvarchar", "role": "info", "desc": "Tên file âm thanh thông báo lỗi của chuyền (ví dụ: 'Daisy.mp3')." },
-    { "name": "Sort", "type": "int", "role": "info", "desc": "Thứ tự sắp xếp chuyền." },
-    { "name": "Description", "type": "nvarchar", "role": "info", "desc": "Mô tả chuyền." },
-    { "name": "IsLineName", "type": "bit", "role": "filter", "desc": "Đánh dấu đây là chuyền chính thức (0/1)." },
-    { "name": "GroupID", "type": "int", "role": "filter", "desc": "Nhóm chuyền." },
-    { "name": "TimeWorkID", "type": "int", "role": "filter", "desc": "ID ca làm việc." },
-    { "name": "TimeLineID", "type": "int", "role": "filter", "desc": "ID khung giờ làm việc." },
-    { "name": "GroupLightID", "type": "bigint", "role": "filter", "desc": "ID nhóm đèn hiệu cảnh báo." },
-    { "name": "IsOnline", "type": "bit", "role": "filter", "desc": "Trạng thái chuyền đang online hay offline." },
-    { "name": "Rate_Red", "type": "int", "role": "info", "desc": "Ngưỡng tỷ lệ đạt màu Đỏ (Cảnh báo nguy hiểm)." },
-    { "name": "Rate_Yellow", "type": "int", "role": "info", "desc": "Ngưỡng tỷ lệ đạt màu Vàng (Cảnh báo nhẹ)." },
-    { "name": "Rate_Green", "type": "int", "role": "info", "desc": "Ngưỡng tỷ lệ đạt màu Xanh (Đạt chuẩn)." },
-    { "name": "BTP_Red", "type": "int", "role": "info", "desc": "Ngưỡng tồn BTP màu Đỏ." },
-    { "name": "BTP_Yellow", "type": "int", "role": "info", "desc": "Ngưỡng tồn BTP màu Vàng." },
-    { "name": "BTP_Green", "type": "int", "role": "info", "desc": "Ngưỡng tồn BTP màu Xanh." },
-    { "name": "DelayF01", "type": "int", "role": "info", "desc": "Thời gian trễ F01." },
-    { "name": "DelayF02", "type": "int", "role": "info", "desc": "Thời gian trễ F02." },
-    { "name": "DelayF03", "type": "int", "role": "info", "desc": "Thời gian trễ F03." },
-    { "name": "DelayF04", "type": "int", "role": "info", "desc": "Thời gian trễ F04." },
-    { "name": "StyleIdTemp", "type": "uniqueidentifier", "role": "info", "desc": "ID kiểu dáng tạm thời." },
-    { "name": "IsReading", "type": "bit", "role": "filter", "desc": "Flag cho biết hệ thống có đọc thông báo âm thanh không." },
-    { "name": "NKeyboard", "type": "int", "role": "info", "desc": "Số nút bấm bàn phím trên chuyền." },
-    { "name": "CD_RateGreen", "type": "int", "role": "info", "desc": "Ngưỡng tỷ lệ đạt công đoạn màu Xanh." },
-    { "name": "CD_RateYellow", "type": "int", "role": "info", "desc": "Ngưỡng tỷ lệ đạt công đoạn màu Vàng." },
-    { "name": "KeyStatus", "type": "nvarchar", "role": "info", "desc": "Trạng thái phím cấu hình (ví dụ: '0-0-0-0')." },
-    { "name": "IsTerminal", "type": "bit", "role": "filter", "desc": "Flag đánh dấu thiết bị cuối (0/1)." },
-    { "name": "Id_Factory", "type": "varchar", "role": "filter", "desc": "Mã nhà máy/phân xưởng (ví dụ: 'XN01')." },
-    { "name": "ReadAt", "type": "int", "role": "info", "desc": "Chỉ số đọc thông tin." }
+    {
+      "name": "ID",
+      "type": "varchar",
+      "role": "primary_key",
+      "desc": "Mã chuyền sản xuất định danh (ví dụ: '101'). Áp dụng rule T_SET_LX_001."
+    },
+    {
+      "name": "Name",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Tên chuyền sản xuất hiển thị (ví dụ: 'Daisy', N'May mẫu'). Áp dụng rule T_SET_LX_002."
+    },
+    {
+      "name": "IDSub",
+      "type": "varchar",
+      "role": "info",
+      "desc": "Mã ID phụ."
+    },
+    {
+      "name": "AudioName",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Tên file âm thanh thông báo lỗi của chuyền (ví dụ: 'Daisy.mp3')."
+    },
+    {
+      "name": "Sort",
+      "type": "int",
+      "role": "info",
+      "desc": "Thứ tự sắp xếp chuyền."
+    },
+    {
+      "name": "Description",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả chuyền."
+    },
+    {
+      "name": "IsLineName",
+      "type": "bit",
+      "role": "filter",
+      "desc": "Đánh dấu đây là chuyền chính thức (0/1)."
+    },
+    {
+      "name": "GroupID",
+      "type": "int",
+      "role": "filter",
+      "desc": "Nhóm chuyền."
+    },
+    {
+      "name": "TimeWorkID",
+      "type": "int",
+      "role": "filter",
+      "desc": "ID ca làm việc."
+    },
+    {
+      "name": "TimeLineID",
+      "type": "int",
+      "role": "filter",
+      "desc": "ID khung giờ làm việc."
+    },
+    {
+      "name": "GroupLightID",
+      "type": "bigint",
+      "role": "filter",
+      "desc": "ID nhóm đèn hiệu cảnh báo."
+    },
+    {
+      "name": "IsOnline",
+      "type": "bit",
+      "role": "filter",
+      "desc": "Trạng thái chuyền đang online hay offline."
+    },
+    {
+      "name": "Rate_Red",
+      "type": "int",
+      "role": "info",
+      "desc": "Ngưỡng tỷ lệ đạt màu Đỏ (Cảnh báo nguy hiểm)."
+    },
+    {
+      "name": "Rate_Yellow",
+      "type": "int",
+      "role": "info",
+      "desc": "Ngưỡng tỷ lệ đạt màu Vàng (Cảnh báo nhẹ)."
+    },
+    {
+      "name": "Rate_Green",
+      "type": "int",
+      "role": "info",
+      "desc": "Ngưỡng tỷ lệ đạt màu Xanh (Đạt chuẩn)."
+    },
+    {
+      "name": "BTP_Red",
+      "type": "int",
+      "role": "info",
+      "desc": "Ngưỡng tồn BTP màu Đỏ."
+    },
+    {
+      "name": "BTP_Yellow",
+      "type": "int",
+      "role": "info",
+      "desc": "Ngưỡng tồn BTP màu Vàng."
+    },
+    {
+      "name": "BTP_Green",
+      "type": "int",
+      "role": "info",
+      "desc": "Ngưỡng tồn BTP màu Xanh."
+    },
+    {
+      "name": "DelayF01",
+      "type": "int",
+      "role": "info",
+      "desc": "Thời gian trễ F01."
+    },
+    {
+      "name": "DelayF02",
+      "type": "int",
+      "role": "info",
+      "desc": "Thời gian trễ F02."
+    },
+    {
+      "name": "DelayF03",
+      "type": "int",
+      "role": "info",
+      "desc": "Thời gian trễ F03."
+    },
+    {
+      "name": "DelayF04",
+      "type": "int",
+      "role": "info",
+      "desc": "Thời gian trễ F04."
+    },
+    {
+      "name": "StyleIdTemp",
+      "type": "uniqueidentifier",
+      "role": "info",
+      "desc": "ID kiểu dáng tạm thời."
+    },
+    {
+      "name": "IsReading",
+      "type": "bit",
+      "role": "filter",
+      "desc": "Flag cho biết hệ thống có đọc thông báo âm thanh không."
+    },
+    {
+      "name": "NKeyboard",
+      "type": "int",
+      "role": "info",
+      "desc": "Số nút bấm bàn phím trên chuyền."
+    },
+    {
+      "name": "CD_RateGreen",
+      "type": "int",
+      "role": "info",
+      "desc": "Ngưỡng tỷ lệ đạt công đoạn màu Xanh."
+    },
+    {
+      "name": "CD_RateYellow",
+      "type": "int",
+      "role": "info",
+      "desc": "Ngưỡng tỷ lệ đạt công đoạn màu Vàng."
+    },
+    {
+      "name": "KeyStatus",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Trạng thái phím cấu hình (ví dụ: '0-0-0-0')."
+    },
+    {
+      "name": "IsTerminal",
+      "type": "bit",
+      "role": "filter",
+      "desc": "Flag đánh dấu thiết bị cuối (0/1)."
+    },
+    {
+      "name": "Id_Factory",
+      "type": "varchar",
+      "role": "filter",
+      "desc": "Mã nhà máy/phân xưởng (ví dụ: 'XN01')."
+    },
+    {
+      "name": "ReadAt",
+      "type": "int",
+      "role": "info",
+      "desc": "Chỉ số đọc thông tin."
+    }
   ],
   "relationships": [
-    { "target_table": "SEW_CoefficientSize", "join_on": "tbl_SettingLineX.ID = SEW_CoefficientSize.LineX", "notes": "Liên kết lấy sản lượng của từng chuyền." },
-    { "target_table": "QTY_MAHANG_NGAYKIEM", "join_on": "tbl_SettingLineX.ID = QTY_MAHANG_NGAYKIEM.LineX", "notes": "Liên kết lấy thông tin lỗi của từng chuyền." }
+    {
+      "target_table": "SEW_CoefficientSize",
+      "join_on": "tbl_SettingLineX.ID = SEW_CoefficientSize.LineX",
+      "notes": "Liên kết lấy sản lượng của từng chuyền."
+    },
+    {
+      "target_table": "QTY_MAHANG_NGAYKIEM",
+      "join_on": "tbl_SettingLineX.ID = QTY_MAHANG_NGAYKIEM.LineX",
+      "notes": "Liên kết lấy thông tin lỗi của từng chuyền."
+    }
   ]
 }

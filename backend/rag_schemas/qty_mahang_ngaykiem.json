@@ -1,7 +1,7 @@
 {
   "table": "QTY_MAHANG_NGAYKIEM",
   "purpose": "Lưu trữ số liệu lỗi kiểm (SpLoi) tổng hợp của mã hàng theo chuyền, ngày, màu và kích thước.",
-  "when_to_use": "Sử dụng khi cần tính tổng số lỗi (SpLoi) (làm tử số). Khi tính tỷ lệ lỗi (%), số lỗi từ bảng này đóng vai trò làm tử số và được kết hợp (JOIN) với sản lượng từ bảng SEW_CoefficientSize để làm mẫu số (Quantity + SuaDat), hạn chế tính tỷ lệ lỗi bằng các cột sản lượng khác trong bảng này.",
+  "when_to_use": "ĐÂY LÀ BẢNG MẶC ĐỊNH khi hỏi về số lượng sản phẩm lỗi (SpLoi), tỷ lệ lỗi, thống kê lỗi theo chuyền/mã hàng/ngày. Sử dụng khi cần tính tổng số lỗi (SpLoi) (làm tử số). Khi câu hỏi KHÔNG chứa từ khóa 'inline'/'InLine'/'in line', BẮT BUỘC dùng bảng này thay vì các bảng QTY_InLineQC_*. Khi tính tỷ lệ lỗi (%), số lỗi từ bảng này đóng vai trò làm tử số và được kết hợp (JOIN) với sản lượng từ bảng SEW_CoefficientSize để làm mẫu số (Quantity + SuaDat), hạn chế tính tỷ lệ lỗi bằng các cột sản lượng khác trong bảng này.",
   "when_not_to_use": "Tuyệt đối không dùng khi câu hỏi yêu cầu thống kê hoặc lọc theo tên lỗi, mã lỗi, hoặc loại lỗi cụ thể (khi đó phải dùng QTY_MaHang_KiemQC_ChiTiet kết hợp QTY_NHOMLOI_CHITIET).",
   "table_rules": [
     {
@@ -45,6 +45,13 @@
       "rule": "Không dùng cột SLKiem (hoặc biểu thức SLKiem - SpLoi) để tính sản lượng đạt / sản phẩm đạt. Bắt buộc tính sản lượng đạt / sản phẩm đạt (TongDat / TongSanPhamDat) từ bảng SEW_CoefficientSize theo công thức: SUM(ISNULL(Quantity, 0) + ISNULL(SuaDat, 0)).",
       "correct_example": "WITH loi AS (SELECT LineX, SUM(ISNULL(SpLoi, 0)) AS TongLoi FROM QTY_MAHANG_NGAYKIEM WHERE LineX = '101' AND CAST(NgayKiem AS DATE) = '2025-09-16' GROUP BY LineX), dat AS (SELECT sc.LineX, SUM(ISNULL(sc.Quantity, 0) + ISNULL(sc.SuaDat, 0)) AS TongDat FROM SEW_CoefficientSize sc WHERE sc.LineX = '101' AND CAST(sc.DateCreate AS DATE) = '2025-09-16' GROUP BY sc.LineX) SELECT l.LineX, l.TongLoi AS TongSanPhamLoi, d.TongDat AS TongSanPhamDat FROM loi l JOIN dat d ON l.LineX = d.LineX",
       "wrong_example": "SELECT SUM(ISNULL(SpLoi, 0)) AS TongSanPhamLoi, SUM(ISNULL(SLKiem, 0) - ISNULL(SpLoi, 0)) AS TongSanPhamDat FROM QTY_MAHANG_NGAYKIEM WHERE LineX = '101' AND CAST(NgayKiem AS DATE) = '2025-09-16'"
+    },
+    {
+      "id": "T_QTY_NK_007",
+      "severity": "CRITICAL",
+      "rule": "KHI CÂU HỎI LIÊN QUAN ĐẾN KHÁCH HÀNG (customer): Bảng này KHÔNG có cột khách hàng trực tiếp. Bắt buộc JOIN bắc cầu theo lộ trình: QTY_MAHANG_NGAYKIEM → ERP_LENHSX (qua PlanCode = MaLenh) → DIC_KHACHHANG (qua MaKhachHang). Không được dừng lại ở StyleID hay chỉ GROUP BY trên QTY_MAHANG_NGAYKIEM. Phải kéo đến DIC_KHACHHANG để lấy tên khách hàng (KhachHang).",
+      "correct_example": "WITH CustomerDefects AS (SELECT c.MaKhachHang, c.KhachHang, SUM(ISNULL(q.SpLoi, 0)) AS TongLoi, DENSE_RANK() OVER (ORDER BY SUM(ISNULL(q.SpLoi, 0)) DESC) AS Rk FROM QTY_MAHANG_NGAYKIEM q INNER JOIN ERP_LENHSX e ON q.PlanCode = e.MaLenh INNER JOIN DIC_KHACHHANG c ON e.MaKhachHang = c.MaKhachHang GROUP BY c.MaKhachHang, c.KhachHang) SELECT MaKhachHang, KhachHang, TongLoi FROM CustomerDefects WHERE Rk = 1",
+      "wrong_example": "WITH RankedLoi AS (SELECT StyleID, SUM(ISNULL(SpLoi, 0)) AS TongLoi, DENSE_RANK() OVER (ORDER BY SUM(ISNULL(SpLoi, 0)) DESC) as Rk FROM QTY_MAHANG_NGAYKIEM GROUP BY StyleID) SELECT StyleID, TongLoi FROM RankedLoi WHERE Rk = 1"
     }
   ],
   "columns": [
@@ -216,6 +223,11 @@
       "target_table": "ERP_LENHSX",
       "join_on": "QTY_MAHANG_NGAYKIEM.PlanCode = ERP_LENHSX.MaLenh",
       "notes": "JOIN khi cần lọc theo thông tin lệnh sản xuất."
+    },
+    {
+      "target_table": "DIC_KHACHHANG",
+      "join_on": "QTY_MAHANG_NGAYKIEM.PlanCode = ERP_LENHSX.MaLenh AND ERP_LENHSX.MaKhachHang = DIC_KHACHHANG.MaKhachHang",
+      "notes": "JOIN bắc cầu qua ERP_LENHSX khi câu hỏi yêu cầu thống kê số lượng lỗi hoặc phân tích theo Khách hàng (DIC_KHACHHANG)."
     },
     {
       "target_table": "SEW_CoefficientSize",

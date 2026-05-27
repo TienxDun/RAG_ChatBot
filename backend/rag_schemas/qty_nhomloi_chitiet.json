@@ -27,15 +27,54 @@
     }
   ],
   "columns": [
-    { "name": "Pid", "type": "int", "role": "primary_key", "desc": "Mã định danh tự tăng của danh mục lỗi." },
-    { "name": "MaLoi", "type": "varchar", "role": "filter", "desc": "Mã lỗi kỹ thuật viết tắt (ví dụ: A1, C2). Dùng để JOIN với cột Code của QTY_MaHang_KiemQC_ChiTiet." },
-    { "name": "NhomLoi", "type": "int", "role": "filter", "desc": "Nhóm lỗi kỹ thuật (1: Lỗi may/A, 2: Lỗi tape/B, 3: Lỗi phụ liệu/C... Nhóm 'I' là -2147483648). Áp dụng rule T_QTY_NL_001 và T_QTY_NL_002." },
-    { "name": "TenLoi", "type": "nvarchar", "role": "display", "desc": "Tên hiển thị thực tế của lỗi (ví dụ: 'Đứt chỉ', 'Lỗi vải'). Thường dùng để GROUP BY khi tính TOP lỗi. Áp dụng rule T_QTY_NL_003." },
-    { "name": "GhiChu", "type": "nvarchar", "role": "info", "desc": "Mô tả chi tiết hoặc giải thích thêm về lỗi (ví dụ: 'Sai Nhãn', 'Thiếu, Lệch'). Áp dụng rule T_QTY_NL_003." },
-    { "name": "Sort", "type": "int", "role": "info", "desc": "Thứ tự sắp xếp hiển thị." },
-    { "name": "LoaiLoi", "type": "int", "role": "filter", "desc": "Loại lỗi theo mức độ nghiêm trọng (1, 2, 3). Áp dụng rule T_QTY_NL_002." }
+    {
+      "name": "Pid",
+      "type": "int",
+      "role": "primary_key",
+      "desc": "Mã định danh tự tăng của danh mục lỗi."
+    },
+    {
+      "name": "MaLoi",
+      "type": "varchar",
+      "role": "filter",
+      "desc": "Mã lỗi kỹ thuật viết tắt (ví dụ: A1, C2). Dùng để JOIN với cột Code của QTY_MaHang_KiemQC_ChiTiet."
+    },
+    {
+      "name": "NhomLoi",
+      "type": "int",
+      "role": "filter",
+      "desc": "Nhóm lỗi kỹ thuật (1: Lỗi may/A, 2: Lỗi tape/B, 3: Lỗi phụ liệu/C... Nhóm 'I' là -2147483648). Áp dụng rule T_QTY_NL_001 và T_QTY_NL_002."
+    },
+    {
+      "name": "TenLoi",
+      "type": "nvarchar",
+      "role": "display",
+      "desc": "Tên hiển thị thực tế của lỗi (ví dụ: 'Đứt chỉ', 'Lỗi vải'). Thường dùng để GROUP BY khi tính TOP lỗi. Áp dụng rule T_QTY_NL_003."
+    },
+    {
+      "name": "GhiChu",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả chi tiết hoặc giải thích thêm về lỗi (ví dụ: 'Sai Nhãn', 'Thiếu, Lệch'). Áp dụng rule T_QTY_NL_003."
+    },
+    {
+      "name": "Sort",
+      "type": "int",
+      "role": "info",
+      "desc": "Thứ tự sắp xếp hiển thị."
+    },
+    {
+      "name": "LoaiLoi",
+      "type": "int",
+      "role": "filter",
+      "desc": "Loại lỗi theo mức độ nghiêm trọng (1, 2, 3). Áp dụng rule T_QTY_NL_002."
+    }
   ],
   "relationships": [
-    { "target_table": "QTY_MaHang_KiemQC_ChiTiet", "join_on": "QTY_NHOMLOI_CHITIET.MaLoi = QTY_MaHang_KiemQC_ChiTiet.Code", "notes": "Liên kết để lấy chi tiết các lần xuất hiện lỗi." }
+    {
+      "target_table": "QTY_MaHang_KiemQC_ChiTiet",
+      "join_on": "QTY_NHOMLOI_CHITIET.MaLoi = QTY_MaHang_KiemQC_ChiTiet.Code",
+      "notes": "Liên kết để lấy chi tiết các lần xuất hiện lỗi."
+    }
   ]
 }

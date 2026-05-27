@@ -1,8 +1,8 @@
 {
   "table": "SEW_CoefficientStyle",
-  "purpose": "Lưu trữ sản lượng sản xuất (Quantity) của mã hàng theo công đoạn sản xuất tại chuyền. Bảng này không chứa thông tin kích thước (size).",
-  "when_to_use": "Sử dụng cho các câu hỏi về năng suất, sản lượng hoặc số lượng sản phẩm hoàn thành theo chuyền, mã hàng, hoặc công đoạn nói chung mà KHÔNG yêu cầu chi tiết theo kích thước (size) cụ thể.",
-  "when_not_to_use": "KHÔNG sử dụng khi câu hỏi yêu cầu phân tích chi tiết theo kích thước/size cụ thể (khi đó phải dùng SEW_CoefficientSize), hoặc khi tính toán tỉ lệ lỗi % chính xác (phải lấy số lỗi từ QTY_MAHANG_NGAYKIEM).",
+  "purpose": "Lưu trữ sản lượng sản xuất (Quantity) của mã hàng theo công đoạn sản xuất tại chuyền. Đây là bảng mặc định khi truy vấn năng suất/sản lượng chung không liên quan tới KCS. Bảng này không chứa thông tin kích thước (size) hay nhân viên KCS.",
+  "when_to_use": "Sử dụng mặc định cho các câu hỏi về năng suất, năng suất đạt đỉnh cao nhất, sản lượng sản xuất hoặc số lượng sản phẩm hoàn thành mà KHÔNG liên quan tới KCS (nhân viên KCS, công đoạn KCS) VÀ KHÔNG yêu cầu chi tiết theo kích thước (size) cụ thể.",
+  "when_not_to_use": "KHÔNG sử dụng khi câu hỏi hỏi về năng suất liên quan tới KCS (khi đó bắt buộc dùng SEW_CoefficientSize vì có thông tin sửa đạt SuaDat), hoặc khi yêu cầu phân tích chi tiết theo kích thước/size cụ thể (phải dùng SEW_CoefficientSize), hoặc khi tính toán tỉ lệ lỗi % chính xác.",
   "table_rules": [
     {
       "id": "T_SEW_STYLE_001",
@@ -27,22 +27,95 @@
     }
   ],
   "columns": [
-    { "name": "PID", "type": "bigint", "role": "primary_key", "desc": "ID bản ghi sản xuất duy nhất." },
-    { "name": "Linex", "type": "int", "role": "filter", "desc": "Mã chuyền (kiểu INT). Viết chữ 'x' thường. Áp dụng rule T_SEW_STYLE_002." },
-    { "name": "PoId", "type": "varchar", "role": "foreign_key", "desc": "Khóa ngoại liên kết ERP_LENHSX.MaLenh. Chỉ dùng khi nhắc đích danh 'Mã lệnh' hoặc 'Số PO'." },
-    { "name": "StepId", "type": "uniqueidentifier", "role": "foreign_key", "desc": "Khóa ngoại liên kết tbl_Steps.Id_cd. Áp dụng rule T_SEW_STYLE_001." },
-    { "name": "StypeId", "type": "varchar", "role": "filter_primary", "desc": "Mã kiểu dáng / Mã hàng. Viết 'StypeId'. Áp dụng rule T_SEW_STYLE_003." },
-    { "name": "ColorId", "type": "varchar", "role": "info", "desc": "Mã màu sản phẩm (thường rỗng trong dữ liệu mẫu)." },
-    { "name": "SizeTypeID", "type": "varchar", "role": "info", "desc": "Mã size sản phẩm (thường rỗng trong dữ liệu mẫu)." },
-    { "name": "DateCreate", "type": "datetime", "role": "filter", "desc": "Thời điểm ghi nhận sản lượng. Áp dụng rule toàn cục G001." },
-    { "name": "TimeLineId", "type": "int", "role": "filter", "desc": "ID khung giờ sản xuất." },
-    { "name": "Quantity", "type": "int", "role": "measure", "desc": "Sản lượng làm ra tại công đoạn. Dùng SUM(Quantity)." },
-    { "name": "DefectNo", "type": "int", "role": "measure", "desc": "Số lỗi ghi nhận tại khâu (dùng cho báo cáo năng suất). CẤM dùng tính 'Tỉ lệ lỗi %'." },
-    { "name": "FixedNo", "type": "int", "role": "measure", "desc": "Số lượng đã sửa lỗi tại công đoạn." },
-    { "name": "DepDown", "type": "varchar", "role": "info", "desc": "Mã bộ phận nhận hàng tiếp theo." }
+    {
+      "name": "PID",
+      "type": "bigint",
+      "role": "primary_key",
+      "desc": "ID bản ghi sản xuất duy nhất."
+    },
+    {
+      "name": "Linex",
+      "type": "int",
+      "role": "filter",
+      "desc": "Mã chuyền (kiểu INT). Viết chữ 'x' thường. Áp dụng rule T_SEW_STYLE_002."
+    },
+    {
+      "name": "PoId",
+      "type": "varchar",
+      "role": "foreign_key",
+      "desc": "Khóa ngoại liên kết ERP_LENHSX.MaLenh. Chỉ dùng khi nhắc đích danh 'Mã lệnh' hoặc 'Số PO'."
+    },
+    {
+      "name": "StepId",
+      "type": "uniqueidentifier",
+      "role": "foreign_key",
+      "desc": "Khóa ngoại liên kết tbl_Steps.Id_cd. Áp dụng rule T_SEW_STYLE_001."
+    },
+    {
+      "name": "StypeId",
+      "type": "varchar",
+      "role": "filter_primary",
+      "desc": "Mã kiểu dáng / Mã hàng. Viết 'StypeId'. Áp dụng rule T_SEW_STYLE_003."
+    },
+    {
+      "name": "ColorId",
+      "type": "varchar",
+      "role": "info",
+      "desc": "Mã màu sản phẩm (thường rỗng trong dữ liệu mẫu)."
+    },
+    {
+      "name": "SizeTypeID",
+      "type": "varchar",
+      "role": "info",
+      "desc": "Mã size sản phẩm (thường rỗng trong dữ liệu mẫu)."
+    },
+    {
+      "name": "DateCreate",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Thời điểm ghi nhận sản lượng. Áp dụng rule toàn cục G001."
+    },
+    {
+      "name": "TimeLineId",
+      "type": "int",
+      "role": "filter",
+      "desc": "ID khung giờ sản xuất."
+    },
+    {
+      "name": "Quantity",
+      "type": "int",
+      "role": "measure",
+      "desc": "Sản lượng làm ra tại công đoạn. Dùng SUM(Quantity)."
+    },
+    {
+      "name": "DefectNo",
+      "type": "int",
+      "role": "measure",
+      "desc": "Số lỗi ghi nhận tại khâu (dùng cho báo cáo năng suất). CẤM dùng tính 'Tỉ lệ lỗi %'."
+    },
+    {
+      "name": "FixedNo",
+      "type": "int",
+      "role": "measure",
+      "desc": "Số lượng đã sửa lỗi tại công đoạn."
+    },
+    {
+      "name": "DepDown",
+      "type": "varchar",
+      "role": "info",
+      "desc": "Mã bộ phận nhận hàng tiếp theo."
+    }
   ],
   "relationships": [
-    { "target_table": "ERP_LENHSX", "join_on": "SEW_CoefficientStyle.PoId = ERP_LENHSX.MaLenh", "notes": "Chỉ JOIN khi có yêu cầu lọc theo thông tin của lệnh sản xuất." },
-    { "target_table": "tbl_Steps", "join_on": "SEW_CoefficientStyle.StepId = tbl_Steps.Id_cd", "notes": "BẮT BUỘC khi lọc theo tên công đoạn (cd_name)." }
+    {
+      "target_table": "ERP_LENHSX",
+      "join_on": "SEW_CoefficientStyle.PoId = ERP_LENHSX.MaLenh",
+      "notes": "Chỉ JOIN khi có yêu cầu lọc theo thông tin của lệnh sản xuất."
+    },
+    {
+      "target_table": "tbl_Steps",
+      "join_on": "SEW_CoefficientStyle.StepId = tbl_Steps.Id_cd",
+      "notes": "BẮT BUỘC khi lọc theo tên công đoạn (cd_name)."
+    }
   ]
 }

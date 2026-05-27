@@ -1,13 +1,44 @@
 {
   "table": "DIC_KHACHHANG",
-  "purpose": "Danh mục quản lý thông tin khách hàng/đối tác đặt hàng.",
-  "when_to_use": "Sử dụng khi cần chuyển đổi mã khách hàng (MaKhachHang) sang tên hiển thị đầy đủ (KhachHang), hoặc khi người dùng tìm kiếm, lọc dữ liệu theo tên đối tác.",
-  "when_not_to_use": "Không dùng khi câu hỏi không nhắc đến tên khách hàng hay mã đối tác cụ thể.",
+  "purpose": "Danh mục quản lý thông tin khách hàng/đối tác đặt hàng. Là bảng BẮT BUỘC phải JOIN khi câu hỏi hỏi về khách hàng nào có nhiều lỗi nhất, sản lượng lỗi theo khách hàng, thống kê lỗi theo đối tác.",
+  "when_to_use": "Sử dụng khi câu hỏi nhắc đến 'khách hàng', 'đối tác', 'customer', 'buyer', hoặc hỏi 'ai có lỗi nhiều nhất', 'khách hàng nào có sản phẩm lỗi'. Cũng dùng khi cần chuyển đổi mã khách hàng (MaKhachHang) sang tên hiển thị đầy đủ (KhachHang). QUAN TRỌNG: Bảng này không liên kết trực tiếp với dữ liệu lỗi mà phải JOIN bắc cầu qua ERP_LENHSX (qua MaKhachHang) rồi nối tiếp với QTY_MAHANG_NGAYKIEM hoặc QTY_MaHang_KiemQC_ChiTiet (qua PlanCode = MaLenh).",
+  "when_not_to_use": "Không dùng khi câu hỏi hoàn toàn không nhắc đến khách hàng, đối tác, buyer hay customer.",
   "table_rules": [],
   "columns": [
-    { "name": "MaKhachHang", "type": "varchar", "role": "primary_key", "desc": "Mã định danh duy nhất của khách hàng (Primary Key). Dùng liên kết với các cột cùng tên ở các bảng khác." },
-    { "name": "KhachHang", "type": "nvarchar", "role": "display", "desc": "Tên đầy đủ của đơn vị đối tác/khách hàng (ví dụ: 'TEST DU LIEU'). Khi lọc theo tên này, bắt buộc dùng LIKE và tiền tố N." },
-    { "name": "Mota", "type": "nvarchar", "role": "info", "desc": "Ghi chú hoặc thông tin bổ sung liên quan đến khách hàng." }
+    {
+      "name": "MaKhachHang",
+      "type": "varchar",
+      "role": "primary_key",
+      "desc": "Mã định danh duy nhất của khách hàng (Primary Key). Dùng liên kết với các cột cùng tên ở các bảng khác."
+    },
+    {
+      "name": "KhachHang",
+      "type": "nvarchar",
+      "role": "display",
+      "desc": "Tên đầy đủ của đơn vị đối tác/khách hàng (ví dụ: 'TEST DU LIEU'). Khi lọc theo tên này, bắt buộc dùng LIKE và tiền tố N."
+    },
+    {
+      "name": "Mota",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Ghi chú hoặc thông tin bổ sung liên quan đến khách hàng."
+    }
   ],
-  "relationships": []
+  "relationships": [
+    {
+      "target_table": "QTY_MAHANG_NGAYKIEM",
+      "join_on": "DIC_KHACHHANG.MaKhachHang = ERP_LENHSX.MaKhachHang AND ERP_LENHSX.MaLenh = QTY_MAHANG_NGAYKIEM.PlanCode",
+      "notes": "JOIN bắc cầu qua ERP_LENHSX khi cần liên kết thông tin khách hàng với dữ liệu sản lượng lỗi (SpLoi)."
+    },
+    {
+      "target_table": "QTY_MaHang_KiemQC_ChiTiet",
+      "join_on": "DIC_KHACHHANG.MaKhachHang = ERP_LENHSX.MaKhachHang AND ERP_LENHSX.MaLenh = QTY_MaHang_KiemQC_ChiTiet.PlanCode",
+      "notes": "JOIN bắc cầu qua ERP_LENHSX khi cần liên kết thông tin khách hàng với dữ liệu chi tiết lỗi (COUNT(RowID))."
+    },
+    {
+      "target_table": "ERP_LENHSX",
+      "join_on": "DIC_KHACHHANG.MaKhachHang = ERP_LENHSX.MaKhachHang",
+      "notes": "Để lấy thông tin lệnh sản xuất tương ứng với khách hàng."
+    }
+  ]
 }

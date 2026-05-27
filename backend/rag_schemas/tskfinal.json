@@ -1,8 +1,8 @@
 {
   "table": "TskFinal",
   "purpose": "Lưu trữ thông tin và trạng thái của các tác vụ kiểm tra thành phẩm cuối cùng trước khi đóng gói / xuất hàng (Final Inspection Task).",
-  "when_to_use": "Sử dụng khi câu hỏi liên quan đến kiểm tra thành phẩm (final inspection), tìm trạng thái sửa lỗi hoặc nhật ký kiểm tra thành phẩm cuối cùng.",
-  "when_not_to_use": "Không sử dụng nếu câu hỏi hỏi về kiểm tra trong chuyền (InLine QC) hoặc QA.",
+  "when_to_use": "CHỈ sử dụng khi câu hỏi CÓ CHỨA RÕ RÀNG từ khóa 'final', 'Final', 'FINAL' hoặc 'thành phẩm cuối' VÀ liên quan đến trạng thái sửa lỗi (Status, Note, UpdateAt) hoặc nhật ký/tác vụ kiểm tra thành phẩm cuối cùng.",
+  "when_not_to_use": "TUYỆT ĐỐI KHÔNG dùng bảng này khi câu hỏi KHÔNG chứa từ khóa 'final'/'thành phẩm cuối'. Khi không nhắc final, mặc định dùng QTY_MAHANG_NGAYKIEM. Cũng không sử dụng nếu câu hỏi hỏi về số lượng lỗi, số lượng đạt KCS, số lượng kiểm tra của QA/final (dùng QTY_KiemQA_NgayKiem), hoặc hỏi chi tiết mã lỗi, tọa độ lỗi của QA/final (dùng QTY_KiemQA_CHITIET).",
   "table_rules": [
     {
       "id": "T_TSK_FN_001",
@@ -34,19 +34,78 @@
     }
   ],
   "columns": [
-    { "name": "IDF", "type": "int", "role": "primary_key", "desc": "Mã định danh duy nhất của tác vụ kiểm thử thành phẩm. Áp dụng rule T_TSK_FN_001." },
-    { "name": "Line", "type": "varchar", "role": "filter", "desc": "Mã chuyền sản xuất. Áp dụng rule T_TSK_FN_002." },
-    { "name": "Lenh", "type": "varchar", "role": "foreign_key", "desc": "Mã lệnh sản xuất kết nối hệ thống. Khóa ngoại liên kết ERP_LENHSX.MaLenh. Áp dụng rule T_TSK_FN_003." },
-    { "name": "PO", "type": "varchar", "role": "filter", "desc": "Mã đơn hàng chi tiết." },
-    { "name": "IDLoi", "type": "int", "role": "filter", "desc": "Mã ID lỗi thành phẩm ghi nhận." },
-    { "name": "Status", "type": "int", "role": "filter", "desc": "Mã trạng thái tác vụ (ví dụ: 1 - Chờ sửa, 2 - Đã sửa, 0 - Đạt)." },
-    { "name": "Note", "type": "nvarchar", "role": "display", "desc": "Ghi chú hoặc trạng thái thực tế (ví dụ: 'no', 'yes')." },
-    { "name": "NgayCreate", "type": "datetime", "role": "filter", "desc": "Thời điểm khởi tạo tác vụ. Áp dụng rule T_TSK_FN_004." },
-    { "name": "LanKiem", "type": "int", "role": "filter", "desc": "Số lần/Lượt kiểm tra thành phẩm." },
-    { "name": "StatusView", "type": "int", "role": "filter", "desc": "Trạng thái hiển thị." },
-    { "name": "UpdateAt", "type": "datetime", "role": "filter", "desc": "Thời điểm cập nhật tác vụ gần nhất." }
+    {
+      "name": "IDF",
+      "type": "int",
+      "role": "primary_key",
+      "desc": "Mã định danh duy nhất của tác vụ kiểm thử thành phẩm. Áp dụng rule T_TSK_FN_001."
+    },
+    {
+      "name": "Line",
+      "type": "varchar",
+      "role": "filter",
+      "desc": "Mã chuyền sản xuất. Áp dụng rule T_TSK_FN_002."
+    },
+    {
+      "name": "Lenh",
+      "type": "varchar",
+      "role": "foreign_key",
+      "desc": "Mã lệnh sản xuất kết nối hệ thống. Khóa ngoại liên kết ERP_LENHSX.MaLenh. Áp dụng rule T_TSK_FN_003."
+    },
+    {
+      "name": "PO",
+      "type": "varchar",
+      "role": "filter",
+      "desc": "Mã đơn hàng chi tiết."
+    },
+    {
+      "name": "IDLoi",
+      "type": "int",
+      "role": "filter",
+      "desc": "Mã ID lỗi thành phẩm ghi nhận."
+    },
+    {
+      "name": "Status",
+      "type": "int",
+      "role": "filter",
+      "desc": "Mã trạng thái tác vụ (ví dụ: 1 - Chờ sửa, 2 - Đã sửa, 0 - Đạt)."
+    },
+    {
+      "name": "Note",
+      "type": "nvarchar",
+      "role": "display",
+      "desc": "Ghi chú hoặc trạng thái thực tế (ví dụ: 'no', 'yes')."
+    },
+    {
+      "name": "NgayCreate",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Thời điểm khởi tạo tác vụ. Áp dụng rule T_TSK_FN_004."
+    },
+    {
+      "name": "LanKiem",
+      "type": "int",
+      "role": "filter",
+      "desc": "Số lần/Lượt kiểm tra thành phẩm."
+    },
+    {
+      "name": "StatusView",
+      "type": "int",
+      "role": "filter",
+      "desc": "Trạng thái hiển thị."
+    },
+    {
+      "name": "UpdateAt",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Thời điểm cập nhật tác vụ gần nhất."
+    }
   ],
   "relationships": [
-    { "target_table": "ERP_LENHSX", "join_on": "TskFinal.Lenh = ERP_LENHSX.MaLenh", "notes": "Để lấy chi tiết thông tin lệnh sản xuất hoặc StyleID của mã hàng." }
+    {
+      "target_table": "ERP_LENHSX",
+      "join_on": "TskFinal.Lenh = ERP_LENHSX.MaLenh",
+      "notes": "Để lấy chi tiết thông tin lệnh sản xuất hoặc StyleID của mã hàng."
+    }
   ]
 }

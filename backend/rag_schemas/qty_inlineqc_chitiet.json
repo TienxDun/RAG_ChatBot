@@ -1,8 +1,8 @@
 {
   "table": "QTY_InLineQC_CHITIET",
   "purpose": "Lưu trữ chi tiết từng lỗi ghi nhận được trong quá trình kiểm tra chất lượng của bộ phận InLine QC tại chuyền sản xuất.",
-  "when_to_use": "Sử dụng khi câu hỏi yêu cầu liệt kê chi tiết các lỗi, tìm mã lỗi (Code), hình ảnh lỗi (Image), hoặc mô tả lỗi (NoiDungLoi) do bộ phận InLine QC kiểm tra.",
-  "when_not_to_use": "Không sử dụng nếu câu hỏi chỉ yêu cầu thống kê số lượng lỗi tổng hợp theo ngày (khi đó sử dụng QTY_InLineQC_NgayKiem để tối ưu hiệu năng).",
+  "when_to_use": "CHỈ sử dụng khi câu hỏi CÓ CHỨA RÕ RÀNG từ khóa 'inline', 'InLine' hoặc 'in line' VÀ yêu cầu liệt kê chi tiết các lỗi, tìm mã lỗi (Code), hình ảnh lỗi (Image), hoặc mô tả lỗi (NoiDungLoi) do bộ phận InLine QC kiểm tra. Nếu câu hỏi KHÔNG nhắc 'inline' → BẮT BUỘC dùng QTY_MaHang_KiemQC_ChiTiet (cho chi tiết lỗi) hoặc QTY_MAHANG_NGAYKIEM (cho tổng hợp lỗi) thay vì bảng này.",
+  "when_not_to_use": "TUYỆT ĐỐI KHÔNG dùng bảng này khi câu hỏi KHÔNG chứa từ khóa 'inline'/'InLine'/'in line'. Khi không nhắc inline, mặc định dùng QTY_MaHang_KiemQC_ChiTiet (cho chi tiết từng lỗi) hoặc QTY_MAHANG_NGAYKIEM (cho tổng hợp sản phẩm lỗi). Cũng không sử dụng nếu câu hỏi chỉ yêu cầu thống kê số lượng lỗi tổng hợp theo ngày (khi đó sử dụng QTY_InLineQC_NgayKiem nếu có từ inline, hoặc QTY_MAHANG_NGAYKIEM nếu không có).",
   "table_rules": [
     {
       "id": "T_QTY_IL_CD_001",
@@ -34,43 +34,221 @@
     }
   ],
   "columns": [
-    { "name": "ID", "type": "int", "role": "primary_key", "desc": "Mã định danh duy nhất của lỗi kiểm." },
-    { "name": "Line", "type": "varchar", "role": "filter", "desc": "Mã chuyền kiểm tra. Áp dụng rule T_QTY_IL_CD_002." },
-    { "name": "LenhSX", "type": "varchar", "role": "foreign_key", "desc": "Mã lệnh sản xuất định danh hệ thống. Khóa ngoại liên kết ERP_LENHSX.MaLenh." },
-    { "name": "MaHang", "type": "nvarchar", "role": "filter_primary", "desc": "Mã hàng / mã sản phẩm thực tế (ví dụ: 'SA-893-208-133'). Áp dụng rule T_QTY_IL_CD_001." },
-    { "name": "POID", "type": "nvarchar", "role": "info", "desc": "Mã đơn hàng chi tiết gộp (MaDH|PO)." },
-    { "name": "PO", "type": "nvarchar", "role": "filter", "desc": "Số đơn hàng (Purchase Order)." },
-    { "name": "DauSizeID", "type": "nvarchar", "role": "info", "desc": "Mã đầu size." },
-    { "name": "DauSize", "type": "nvarchar", "role": "info", "desc": "Nhãn đầu size." },
-    { "name": "ColorID", "type": "nvarchar", "role": "info", "desc": "Mã màu sản phẩm." },
-    { "name": "MaMau", "type": "nvarchar", "role": "filter", "desc": "Tên màu sắc sản phẩm (ví dụ: 'BLACK')." },
-    { "name": "SizeID", "type": "nvarchar", "role": "filter", "desc": "Mã size định danh (chứa tiền tố 'SIZE_'). Áp dụng rule T_QTY_IL_CD_003." },
-    { "name": "Size", "type": "nvarchar", "role": "filter", "desc": "Tên nhãn kích thước hiển thị. Áp dụng rule T_QTY_IL_CD_003." },
-    { "name": "MocTgian", "type": "int", "role": "filter", "desc": "Khung giờ kiểm tra." },
-    { "name": "SPLoi", "type": "int", "role": "measure", "desc": "Số lượng sản phẩm lỗi. Sử dụng SUM(ISNULL(SPLoi, 0))." },
-    { "name": "MaCongDoan", "type": "nvarchar", "role": "filter", "desc": "Mã công đoạn xảy ra lỗi." },
-    { "name": "Code", "type": "varchar", "role": "foreign_key", "desc": "Mã lỗi kỹ thuật (ví dụ: 'A3', 'A12'). Khóa ngoại liên kết QTY_NHOMLOI_CHITIET.MaLoi." },
-    { "name": "PageX", "type": "float", "role": "info", "desc": "Tọa độ X của vị trí lỗi trên sản phẩm. Áp dụng rule toàn cục G007." },
-    { "name": "PageY", "type": "float", "role": "info", "desc": "Tọa độ Y của vị trí lỗi trên sản phẩm. Áp dụng rule toàn cục G007." },
-    { "name": "NgayKiem", "type": "datetime", "role": "filter", "desc": "Ngày kiểm tra chất lượng. Áp dụng rule toàn cục G001 (cần CAST sang DATE)." },
-    { "name": "IsQC", "type": "int", "role": "filter", "desc": "Flag QC duyệt (0/1)." },
-    { "name": "LanKiem", "type": "int", "role": "filter", "desc": "Số lần kiểm tra (thường là 1)." },
-    { "name": "StatusHT", "type": "int", "role": "filter", "desc": "Trạng thái hoàn thành sửa lỗi." },
-    { "name": "NgayHT", "type": "datetime", "role": "filter", "desc": "Ngày hoàn thành sửa lỗi." },
-    { "name": "StatusKiemLai", "type": "int", "role": "filter", "desc": "Trạng thái kiểm tra lại." },
-    { "name": "Image", "type": "nvarchar", "role": "display", "desc": "Hình ảnh minh họa vị trí lỗi." },
-    { "name": "NoiDungLoi", "type": "nvarchar", "role": "display", "desc": "Mô tả chi tiết lỗi bằng tiếng Việt." },
-    { "name": "StatusKT", "type": "int", "role": "filter", "desc": "Trạng thái kỹ thuật." },
-    { "name": "ImageKiemLai", "type": "nvarchar", "role": "display", "desc": "Hình ảnh kiểm tra lại." },
-    { "name": "NhanVienKiem", "type": "nvarchar", "role": "filter", "desc": "Tên nhân viên kiểm QC inline. Áp dụng rule T_QTY_IL_CD_004." },
-    { "name": "NVKiemLai", "type": "nvarchar", "role": "filter", "desc": "Tên nhân viên kiểm tra lại." },
-    { "name": "NgayKiemlai", "type": "datetime", "role": "filter", "desc": "Ngày kiểm tra lại." },
-    { "name": "CheckKiem", "type": "int", "role": "filter", "desc": "Flag kiểm tra." },
-    { "name": "StatusKiemMau", "type": "int", "role": "filter", "desc": "Trạng thái kiểm mẫu." },
-    { "name": "Module", "type": "int", "role": "filter", "desc": "ID module sản xuất." }
+    {
+      "name": "ID",
+      "type": "int",
+      "role": "primary_key",
+      "desc": "Mã định danh duy nhất của lỗi kiểm."
+    },
+    {
+      "name": "Line",
+      "type": "varchar",
+      "role": "filter",
+      "desc": "Mã chuyền kiểm tra. Áp dụng rule T_QTY_IL_CD_002."
+    },
+    {
+      "name": "LenhSX",
+      "type": "varchar",
+      "role": "foreign_key",
+      "desc": "Mã lệnh sản xuất định danh hệ thống. Khóa ngoại liên kết ERP_LENHSX.MaLenh."
+    },
+    {
+      "name": "MaHang",
+      "type": "nvarchar",
+      "role": "filter_primary",
+      "desc": "Mã hàng / mã sản phẩm thực tế (ví dụ: 'SA-893-208-133'). Áp dụng rule T_QTY_IL_CD_001."
+    },
+    {
+      "name": "POID",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mã đơn hàng chi tiết gộp (MaDH|PO)."
+    },
+    {
+      "name": "PO",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Số đơn hàng (Purchase Order)."
+    },
+    {
+      "name": "DauSizeID",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mã đầu size."
+    },
+    {
+      "name": "DauSize",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Nhãn đầu size."
+    },
+    {
+      "name": "ColorID",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mã màu sản phẩm."
+    },
+    {
+      "name": "MaMau",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Tên màu sắc sản phẩm (ví dụ: 'BLACK')."
+    },
+    {
+      "name": "SizeID",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mã size định danh (chứa tiền tố 'SIZE_'). Áp dụng rule T_QTY_IL_CD_003."
+    },
+    {
+      "name": "Size",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Tên nhãn kích thước hiển thị. Áp dụng rule T_QTY_IL_CD_003."
+    },
+    {
+      "name": "MocTgian",
+      "type": "int",
+      "role": "filter",
+      "desc": "Khung giờ kiểm tra."
+    },
+    {
+      "name": "SPLoi",
+      "type": "int",
+      "role": "measure",
+      "desc": "Số lượng sản phẩm lỗi. Sử dụng SUM(ISNULL(SPLoi, 0))."
+    },
+    {
+      "name": "MaCongDoan",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mã công đoạn xảy ra lỗi."
+    },
+    {
+      "name": "Code",
+      "type": "varchar",
+      "role": "foreign_key",
+      "desc": "Mã lỗi kỹ thuật (ví dụ: 'A3', 'A12'). Khóa ngoại liên kết QTY_NHOMLOI_CHITIET.MaLoi."
+    },
+    {
+      "name": "PageX",
+      "type": "float",
+      "role": "info",
+      "desc": "Tọa độ X của vị trí lỗi trên sản phẩm. Áp dụng rule toàn cục G007."
+    },
+    {
+      "name": "PageY",
+      "type": "float",
+      "role": "info",
+      "desc": "Tọa độ Y của vị trí lỗi trên sản phẩm. Áp dụng rule toàn cục G007."
+    },
+    {
+      "name": "NgayKiem",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Ngày kiểm tra chất lượng. Áp dụng rule toàn cục G001 (cần CAST sang DATE)."
+    },
+    {
+      "name": "IsQC",
+      "type": "int",
+      "role": "filter",
+      "desc": "Flag QC duyệt (0/1)."
+    },
+    {
+      "name": "LanKiem",
+      "type": "int",
+      "role": "filter",
+      "desc": "Số lần kiểm tra (thường là 1)."
+    },
+    {
+      "name": "StatusHT",
+      "type": "int",
+      "role": "filter",
+      "desc": "Trạng thái hoàn thành sửa lỗi."
+    },
+    {
+      "name": "NgayHT",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Ngày hoàn thành sửa lỗi."
+    },
+    {
+      "name": "StatusKiemLai",
+      "type": "int",
+      "role": "filter",
+      "desc": "Trạng thái kiểm tra lại."
+    },
+    {
+      "name": "Image",
+      "type": "nvarchar",
+      "role": "display",
+      "desc": "Hình ảnh minh họa vị trí lỗi."
+    },
+    {
+      "name": "NoiDungLoi",
+      "type": "nvarchar",
+      "role": "display",
+      "desc": "Mô tả chi tiết lỗi bằng tiếng Việt."
+    },
+    {
+      "name": "StatusKT",
+      "type": "int",
+      "role": "filter",
+      "desc": "Trạng thái kỹ thuật."
+    },
+    {
+      "name": "ImageKiemLai",
+      "type": "nvarchar",
+      "role": "display",
+      "desc": "Hình ảnh kiểm tra lại."
+    },
+    {
+      "name": "NhanVienKiem",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Tên nhân viên kiểm QC inline. Áp dụng rule T_QTY_IL_CD_004."
+    },
+    {
+      "name": "NVKiemLai",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Tên nhân viên kiểm tra lại."
+    },
+    {
+      "name": "NgayKiemlai",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Ngày kiểm tra lại."
+    },
+    {
+      "name": "CheckKiem",
+      "type": "int",
+      "role": "filter",
+      "desc": "Flag kiểm tra."
+    },
+    {
+      "name": "StatusKiemMau",
+      "type": "int",
+      "role": "filter",
+      "desc": "Trạng thái kiểm mẫu."
+    },
+    {
+      "name": "Module",
+      "type": "int",
+      "role": "filter",
+      "desc": "ID module sản xuất."
+    }
   ],
   "relationships": [
-    { "target_table": "ERP_LENHSX", "join_on": "QTY_InLineQC_CHITIET.LenhSX = ERP_LENHSX.MaLenh", "notes": "Để lấy thông tin chi tiết lệnh hoặc StyleID hệ thống." },
-    { "target_table": "QTY_NHOMLOI_CHITIET", "join_on": "QTY_InLineQC_CHITIET.Code = QTY_NHOMLOI_CHITIET.MaLoi", "notes": "Để lấy tên lỗi chi tiết (TenLoi)." }
+    {
+      "target_table": "ERP_LENHSX",
+      "join_on": "QTY_InLineQC_CHITIET.LenhSX = ERP_LENHSX.MaLenh",
+      "notes": "Để lấy thông tin chi tiết lệnh hoặc StyleID hệ thống."
+    },
+    {
+      "target_table": "QTY_NHOMLOI_CHITIET",
+      "join_on": "QTY_InLineQC_CHITIET.Code = QTY_NHOMLOI_CHITIET.MaLoi",
+      "notes": "Để lấy tên lỗi chi tiết (TenLoi)."
+    }
   ]
 }
