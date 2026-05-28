@@ -1,8 +1,8 @@
 {
   "table": "ERP_LENHSX",
   "purpose": "Lưu trữ thông tin chi tiết về lệnh sản xuất, thông số kỹ thuật, kế hoạch, trạng thái lệnh và tài chính đơn hàng.",
-  "when_to_use": "Sử dụng khi câu hỏi hỏi về thông tin lệnh sản xuất (TenLenh), ngày tạo, ngày dự kiến bắt đầu/kết thúc (TuNgay, DenNgay), mã khách hàng, đơn giá (VND, USD), tổng số lượng yêu cầu của lệnh (SLTong), trạng thái của lệnh (Status), phân loại dòng sản phẩm (ProductTypeID), mã đơn hàng (MaDH), hoặc mã mùa vụ/năm tài chính (SeaSon).",
-  "when_not_to_use": "KHÔNG sử dụng để tính toán sản lượng may thực tế hoặc số lỗi phát sinh ở chuyền (phải dùng bảng SEW_* hoặc QTY_*).",
+  "when_to_use": "Sử dụng khi câu hỏi hỏi về thông tin lệnh sản xuất (TenLenh), ngày tạo, ngày dự kiến bắt đầu/kết thúc (TuNgay, DenNgay), mã khách hàng, đơn giá (VND, USD), tổng số lượng yêu cầu của lệnh (SLTong), trạng thái của lệnh (Status), phân loại dòng sản phẩm (ProductTypeID), mã đơn hàng (MaDH), hoặc mã mùa vụ/năm tài chính (SeaSon). Chỉ JOIN bảng này khi cần lấy thông tin lệnh hoặc dùng MaLenh/TenLenh làm cầu nối sang bảng khác (ví dụ: sang DIC_KHACHHANG).",
+  "when_not_to_use": "TUYỆT ĐỐI KHÔNG JOIN bảng này khi câu hỏi chỉ cần tính tỉ lệ lỗi, số lỗi, hoặc sản lượng đạt theo chuyền/mã hàng — trong trường hợp đó chỉ dùng QTY_MAHANG_NGAYKIEM và SEW_CoefficientSize trực tiếp. KHÔNG JOIN bảng này vào CTE tính tỉ lệ lỗi khi SEW_CoefficientSize.StyleId hoặc QTY_MAHANG_NGAYKIEM.StyleID đã chứa trực tiếp giá trị TenLenh để lọc (lọc trực tiếp trên cột StyleId/StyleID thay vì đi vòng qua ERP_LENHSX). Việc JOIN không cần thiết vào ERP_LENHSX sẽ gây nhân đôi dữ liệu (duplicate rows) do một TenLenh có thể ứng với nhiều MaLenh. KHÔNG dùng để tính toán sản lượng may thực tế hoặc số lỗi phát sinh ở chuyền (phải dùng bảng SEW_* hoặc QTY_*).",
   "table_rules": [
     {
       "id": "T_ERP_001",
