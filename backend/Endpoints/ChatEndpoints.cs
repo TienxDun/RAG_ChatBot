@@ -71,10 +71,19 @@ public static class ChatEndpoints
             }
             else
             {
-                var response = await orchestrator.ProcessQueryAsync(parameters.Message, parameters.CollectionName, async (step) => 
-                {
-                    await SendEventAsync(new { type = "step", step });
-                }, ct, parameters.FastPathEnabled, false, parameters.RulesEnabled);
+                var response = await orchestrator.ProcessQueryAsync(
+                    parameters.Message, 
+                    parameters.CollectionName, 
+                    async (step) => 
+                    {
+                        await SendEventAsync(new { type = "step", step });
+                    }, 
+                    async (chunk) => 
+                    {
+                        await SendEventAsync(new { type = "chunk", text = chunk });
+                    },
+                    ct, 
+                    false);
 
                 await SendEventAsync(new { 
                     type = "final", 

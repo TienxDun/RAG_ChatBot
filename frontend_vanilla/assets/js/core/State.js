@@ -13,7 +13,6 @@ class State {
             isUploading: false,
             currentConversationId: null,
             isBackendOnline: true,
-            isFastPathEnabled: localStorage.getItem('fastpath_enabled') !== 'false',
             isRulesEnabled: localStorage.getItem('rules_enabled') !== 'false'
         };
         this._listeners = [];
@@ -125,12 +124,7 @@ class State {
         this._notify('isBackendOnline', value);
     }
 
-    get isFastPathEnabled() { return this._state.isFastPathEnabled; }
-    set isFastPathEnabled(value) {
-        this._state.isFastPathEnabled = value;
-        localStorage.setItem('fastpath_enabled', value ? 'true' : 'false');
-        this._notify('isFastPathEnabled', value);
-    }
+        // isFastPathEnabled đã bị loại bỏ
 
     get isRulesEnabled() { return this._state.isRulesEnabled; }
     set isRulesEnabled(value) {

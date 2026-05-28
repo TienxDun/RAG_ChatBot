@@ -50,21 +50,7 @@ export class SidebarComponent {
             });
         }
 
-        // Đăng ký và xử lý checkbox Fast-path
-        const fastpathCheckbox = document.getElementById('fastpath-checkbox');
-        if (fastpathCheckbox) {
-            fastpathCheckbox.checked = state.isFastPathEnabled;
-            fastpathCheckbox.addEventListener('change', (e) => {
-                state.isFastPathEnabled = e.target.checked;
-                if (window.app && window.app.toast) {
-                    window.app.toast.success(
-                        e.target.checked 
-                            ? "Đã kích hoạt chế độ Fast-path siêu tốc!" 
-                            : "Đã tắt chế độ Fast-path!"
-                    );
-                }
-            });
-        }
+        // Logic Fast-path đã bị loại bỏ
 
         // Đăng ký và xử lý checkbox Rules
         const rulesCheckbox = document.getElementById('rules-checkbox');
@@ -102,9 +88,7 @@ export class SidebarComponent {
                 this.updateActiveHistoryItem(value);
             }
             if (key === 'isSidebarOpen') this.applySidebarState();
-            if (key === 'isFastPathEnabled' && fastpathCheckbox) {
-                fastpathCheckbox.checked = value;
-            }
+            // State isFastPathEnabled đã bị loại bỏ
             if (key === 'isRulesEnabled') {
                 if (rulesCheckbox) rulesCheckbox.checked = value;
                 if (value) {

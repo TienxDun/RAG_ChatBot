@@ -380,6 +380,49 @@ export class ChatAreaComponent {
         this._refreshTemplateList(true);
     }
 
+    _handleInputAutoResize() {
+        const { chatInput } = this.elements;
+        if (!chatInput) return;
+
+        chatInput.style.height = '0px';
+        const scrollHeight = chatInput.scrollHeight;
+        
+        if (chatInput.value.trim() === '') {
+            chatInput.style.height = 'auto';
+        } else {
+            chatInput.style.height = scrollHeight + 'px';
+        }
+        
+        this._updateInputUI();
+
+        const suggestions = document.querySelector('.suggestions');
+        if (suggestions) {
+            suggestions.classList.toggle('is-hidden', chatInput.value.trim() !== '');
+        }
+    }
+
+    _updateInputUI() {
+        const { chatInput, sendBtn, inputWrapper, micBtn } = this.elements;
+        if (!chatInput) return;
+        
+        const hasValue = chatInput.value.trim().length > 0;
+        const isFocused = document.activeElement === chatInput;
+        
+        if (sendBtn) sendBtn.disabled = !hasValue;
+        
+        if (inputWrapper) {
+            inputWrapper.classList.toggle('is-expanded', hasValue || isFocused);
+        }
+
+        if (micBtn) {
+            micBtn.style.display = (hasValue || this.uiState.selectedFile) ? 'none' : 'flex';
+        }
+    }
+
+    _handleFileSelect(e) {
+        this._processFile(e.target.files[0]);
+    }
+
     async _refreshTemplateList(force = false) {
         const listContainer = document.getElementById('template-cache-list');
         if (!listContainer) return;
@@ -582,6 +625,14 @@ export class ChatAreaComponent {
                     // Tự động cuộn xuống để theo dõi các step mới
                     this.scrollToBottom();
                 },
+                onChunk: (chunk, accumulatedText) => {
+                    if (aiMessageEl) {
+                        MessageRenderer.updateMessage(aiMessageEl, accumulatedText, aiSteps, [], null, null, null, null, null);
+                        const timerEl = aiMessageEl.querySelector('.loading-timer');
+                        if (timerEl) timerEl.innerText = `(${seconds}s)`;
+                        this.scrollToBottom();
+                    }
+                },
                 onMessageElementCreated: () => {
                     if (typingIndicator.parentNode) messagesList.removeChild(typingIndicator);
                     if (!aiMessageEl) {
@@ -637,7 +688,6 @@ export class ChatAreaComponent {
     _ensureConversationStarted(title) {
         ChatService.ensureConversationStarted(title);
     }
-
 
     appendMessage(role, content, steps, suggestions, downloadUrl, downloadFileName, rawData, userFile) {
         const { messagesList, landingView, chatArea } = this.elements;

@@ -19,6 +19,13 @@ public interface ISqlPlanExecutor
         string schemaInfo,
         Func<RagStep, Task> onStep,
         CancellationToken ct);
+
+    Task<SqlExecutionResult> ExecuteDirectSqlAsync(
+        string directSql,
+        string userQuery,
+        string currentTimeStr,
+        Func<RagStep, Task> onStep,
+        CancellationToken ct);
 }
 
 public class SqlExecutionResult
@@ -178,6 +185,94 @@ public class SqlPlanExecutor : ISqlPlanExecutor
                     }
                 }
             }
+        }
+
+        result.WorkingContext = workingContextBuilder.ToString();
+        return result;
+    }
+
+    public async Task<SqlExecutionResult> ExecuteDirectSqlAsync(
+        string directSql,
+        string userQuery,
+        string currentTimeStr,
+        Func<RagStep, Task> onStep,
+        CancellationToken ct)
+    {
+        var result = new SqlExecutionResult();
+        var workingContextBuilder = new StringBuilder();
+
+        var stepTitle = "Step 1/1";
+        await onStep(new RagStep(stepTitle, "Đang thực thi câu lệnh SQL trực tiếp từ kế hoạch..."));
+
+        // Clean SQL
+        directSql = _responseParser.CleanSql(directSql);
+
+        try
+        {
+            var dt = await _sqlService.ExecuteQueryAsDataTableAsync(directSql, ct);
+            result.LastDataTable = dt;
+
+            var rows = new List<Dictionary<string, object>>();
+            foreach (DataRow row in dt.Rows)
+            {
+                var dict = new Dictionary<string, object>();
+                foreach (DataColumn col in dt.Columns)
+                {
+                    var val = row[col];
+                    if (val == DBNull.Value)
+                    {
+                        dict[col.ColumnName] = null!;
+                    }
+                    else if (val is DateTime dateTimeVal)
+                    {
+                        dict[col.ColumnName] = dateTimeVal.TimeOfDay == TimeSpan.Zero
+                            ? dateTimeVal.ToString("dd/MM/yyyy")
+                            : dateTimeVal.ToString("dd/MM/yyyy HH:mm:ss");
+                    }
+                    else if (val is DateTimeOffset dateTimeOffsetVal)
+                    {
+                        dict[col.ColumnName] = dateTimeOffsetVal.TimeOfDay == TimeSpan.Zero
+                            ? dateTimeOffsetVal.ToString("dd/MM/yyyy")
+                            : dateTimeOffsetVal.ToString("dd/MM/yyyy HH:mm:ss");
+                    }
+                    else
+                    {
+                        dict[col.ColumnName] = val;
+                    }
+                }
+                rows.Add(dict);
+            }
+            var stepJson = JsonSerializer.Serialize(rows, new JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
+            
+            result.LastStepJson = stepJson;
+            workingContextBuilder.AppendLine($"\n--- [Kết quả {stepTitle}: SQL trực tiếp] ---\n{GetCompactContext(stepJson)}");
+
+            // Logic rút gọn hiển thị kết quả SQL trên UI để tối ưu hiệu năng
+            const int maxRowsForUi = 10;
+            string stepUiJson;
+            string truncationNotice = string.Empty;
+
+            if (rows.Count > maxRowsForUi)
+            {
+                var truncatedRows = rows.Take(maxRowsForUi).ToList();
+                stepUiJson = JsonSerializer.Serialize(truncatedRows, new JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
+                truncationNotice = $"\n\n*⚠️ Lưu ý: Dữ liệu quá lớn. Hệ thống đã tự động rút gọn hiển thị {maxRowsForUi} trên tổng số {rows.Count} dòng để tối ưu hiệu năng UI.*";
+            }
+            else
+            {
+                stepUiJson = stepJson;
+            }
+
+            var stepLog = new RagStep(stepTitle, $"Hoàn thành: Truy vấn SQL trực tiếp\n\n```sql\n{directSql}\n```\n\nKết quả:\n```json\n{stepUiJson}\n```{truncationNotice}");
+            result.ExecutedSteps.Add(stepLog);
+            await onStep(stepLog);
+        }
+        catch (Exception ex)
+        {
+            var failLog = new RagStep(stepTitle, $"Thất bại khi thực thi SQL trực tiếp: {ex.Message}");
+            result.ExecutedSteps.Add(failLog);
+            await onStep(failLog);
+            throw; // ném ngoại lệ lên để RagOrchestrator biết và fallback
         }
 
         result.WorkingContext = workingContextBuilder.ToString();
