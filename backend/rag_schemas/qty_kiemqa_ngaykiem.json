@@ -1,8 +1,8 @@
 {
   "table": "QTY_KiemQA_NgayKiem",
   "purpose": "Lưu trữ thông tin kiểm tra chất lượng tổng hợp theo ngày của bộ phận QA (Quality Assurance).",
-  "when_to_use": "Sử dụng khi câu hỏi CÓ chứa từ khóa 'final', 'QA', hoặc 'thành phẩm cuối' VÀ yêu cầu thống kê, báo cáo số lượng kiểm tra (SoLuongKiem), số lượng lỗi (SoLuongLoi), số lượng đạt KCS (SoLuongKCS), hoặc số lượng thùng kiểm (SLThungKiem).",
-  "when_not_to_use": "Không sử dụng nếu câu hỏi KHÔNG có từ khóa 'final', 'QA', hoặc 'thành phẩm cuối' (mặc định dùng QTY_MAHANG_NGAYKIEM). Không sử dụng nếu câu hỏi yêu cầu thống kê chi tiết theo từng loại lỗi hoặc mã lỗi cụ thể (khi đó phải dùng QTY_KiemQA_CHITIET), hoặc hỏi về trạng thái sửa lỗi, tác vụ kiểm tra final (dùng TskFinal).",
+  "when_to_use": "Sử dụng khi câu hỏi CÓ chứa từ khóa 'final', 'QA', hoặc 'thành phẩm cuối' VÀ yêu cầu thống kê, báo cáo số lượng kiểm tra (SoLuongKiem), số lượng lỗi (SoLuongLoi), số lượng đạt KCS (SoLuongKCS), hoặc số lượng thùng kiểm (SLThungKiem). Ngoài ra, dùng để kiểm tra xem một mã hàng/size/ngày có phát sinh lỗi hay không trước khi quyết định truy vấn chi tiết lỗi.",
+  "when_not_to_use": "Không sử dụng nếu câu hỏi KHÔNG có từ khóa 'final', 'QA', hoặc 'thành phẩm cuối' (mặc định dùng QTY_MAHANG_NGAYKIEM). Không sử dụng nếu câu hỏi yêu cầu thống kê chi tiết theo từng loại lỗi hoặc mã lỗi cụ thể (khi đó phải dùng QTY_KiemQA_CHITIET - trừ khi SoLuongLoi trong bảng này bằng 0 hoặc NULL thì kết luận ngay không có lỗi mà không cần dùng chi tiết), hoặc hỏi về trạng thái sửa lỗi, tác vụ kiểm tra final (dùng TskFinal).",
   "table_rules": [
     {
       "id": "T_QTY_QA_NK_001",
@@ -38,6 +38,13 @@
       "rule": "Tên cột đơn hàng chi tiết gộp là SPOID (có chữ S ở đầu), không phải POID.",
       "correct_example": "SELECT SPOID FROM QTY_KiemQA_NgayKiem",
       "wrong_example": "SELECT POID FROM QTY_KiemQA_NgayKiem"
+    },
+    {
+      "id": "T_QTY_QA_NK_006",
+      "severity": "CRITICAL",
+      "rule": "Khi cần tra cứu chi tiết mã lỗi (Code) hoặc tên lỗi (TenLoi) của QA theo Style/Size/Ngày, hãy thực hiện JOIN bảng QTY_KiemQA_NgayKiem (q) với QTY_KiemQA_CHITIET (c) qua các cột: LenhSX, LineX, MaHang, Size và ép kiểu DATE cho cột NgayKiem, sau đó JOIN tiếp với QTY_NHOMLOI_CHITIET (n) qua c.Code = n.MaLoi.",
+      "correct_example": "SELECT DISTINCT c.Code, n.TenLoi, c.NoiDung FROM QTY_KiemQA_NgayKiem q JOIN QTY_KiemQA_CHITIET c ON c.LenhSX = q.LenhSX AND c.LineX = q.LineX AND c.MaHang = q.MaHang AND c.Size = q.Size AND CAST(c.NgayKiem AS DATE) = CAST(q.NgayKiem AS DATE) JOIN QTY_NHOMLOI_CHITIET n ON c.Code = n.MaLoi JOIN ERP_LENHSX e ON q.LenhSX = e.MaLenh WHERE e.TenLenh = 'TEA25_Y_XR20R' AND q.Size = N'LGE' AND CAST(q.NgayKiem AS DATE) = '2026-01-31'",
+      "wrong_example": "SELECT c.Code FROM QTY_KiemQA_CHITIET c JOIN ERP_LENHSX e ON c.LenhSX = e.MaLenh WHERE e.TenLenh = 'TEA25_Y_XR20R'"
     }
   ],
   "columns": [
@@ -287,6 +294,11 @@
       "target_table": "ERP_LENHSX",
       "join_on": "QTY_KiemQA_NgayKiem.LenhSX = ERP_LENHSX.MaLenh",
       "notes": "Để lấy thông tin chi tiết lệnh hoặc StyleID hệ thống."
+    },
+    {
+      "target_table": "QTY_KiemQA_CHITIET",
+      "join_on": "QTY_KiemQA_NgayKiem.LenhSX = QTY_KiemQA_CHITIET.LenhSX AND QTY_KiemQA_NgayKiem.LineX = QTY_KiemQA_CHITIET.LineX AND QTY_KiemQA_NgayKiem.MaHang = QTY_KiemQA_CHITIET.MaHang AND QTY_KiemQA_NgayKiem.Size = QTY_KiemQA_CHITIET.Size AND CAST(QTY_KiemQA_NgayKiem.NgayKiem AS DATE) = CAST(QTY_KiemQA_CHITIET.NgayKiem AS DATE)",
+      "notes": "Để liên kết lấy chi tiết mã lỗi (Code), hình ảnh lỗi, nội dung lỗi từ bảng chi tiết của ngày đó."
     }
   ]
 }

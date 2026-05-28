@@ -7,9 +7,9 @@
     {
       "id": "T_QTY_IL_NK_001",
       "severity": "CRITICAL",
-      "rule": "Bảng này KHÔNG có cột StyleID. Khi lọc theo mã kiểu dáng có dấu gạch dưới '_' (ví dụ: 'SA_893_208_133'), BẮT BUỘC JOIN với ERP_LENHSX (qua LenhSX = MaLenh) và lọc trên cột ERP_LENHSX.TenLenh, HOẶC tự động chuyển đổi '_' thành '-' (ví dụ: 'SA-893-208-133') để lọc trên cột MaHang.",
-      "correct_example": "SELECT SUM(q.SoLuongLoi) FROM QTY_InLineQC_NgayKiem q JOIN ERP_LENHSX e ON q.LenhSX = e.MaLenh WHERE e.TenLenh = 'SA_893_208_133'",
-      "wrong_example": "SELECT SUM(SoLuongLoi) FROM QTY_InLineQC_NgayKiem WHERE StyleID = 'SA_893_208_133'"
+      "rule": "Bảng này KHÔNG có cột StyleID. Quy tắc lọc theo mã hàng/tên sản phẩm gồm 3 trường hợp dựa trên định dạng giá trị người dùng cung cấp: (A) Giá trị chứa dấu gạch dưới '_' (ví dụ: 'SA_893_208_133') → BẮT BUỘC JOIN với ERP_LENHSX (qua LenhSX = MaLenh) và lọc trên ERP_LENHSX.TenLenh. (B) Giá trị chứa dấu gạch ngang '-', dấu chấm '.', hoặc dấu cách kèm số (ví dụ: 'SA-893-208-133', '0088 342 29 V0.3') → lọc trực tiếp trên cột MaHang với tiền tố N. (C) Giá trị là tên sản phẩm chỉ gồm chữ cái và dấu cách, không chứa số/mã (ví dụ: 'KAIJI JUMPSUIT', 'FLEX PANT') → cột MaHang trong bảng này đã chứa tên sản phẩm đó, lọc trực tiếp bằng MaHang LIKE với tiền tố N, TUYỆT ĐỐI KHÔNG JOIN ERP_LENHSX.",
+      "correct_example": "-- Case A (gạch dưới): SELECT SUM(q.SoLuongLoi) FROM QTY_InLineQC_NgayKiem q JOIN ERP_LENHSX e ON q.LenhSX = e.MaLenh WHERE e.TenLenh = 'SA_893_208_133' | -- Case B (gạch ngang/chấm): WHERE q.MaHang = N'SA-893-208-133' | -- Case C (tên sản phẩm): SELECT SUM(q.SoLuongLoi) FROM QTY_InLineQC_NgayKiem q WHERE q.MaHang LIKE N'%KAIJI JUMPSUIT%'",
+      "wrong_example": "SELECT SUM(SoLuongLoi) FROM QTY_InLineQC_NgayKiem WHERE StyleID = 'SA_893_208_133' -- SAI: không có cột StyleID | SELECT SUM(q.SoLuongLoi) FROM QTY_InLineQC_NgayKiem q JOIN ERP_LENHSX e ON q.LenhSX = e.MaLenh WHERE e.TenLenh LIKE N'%KAIJI JUMPSUIT%' -- SAI: tên sản phẩm lấy từ MaHang trực tiếp, không JOIN ERP_LENHSX"
     },
     {
       "id": "T_QTY_IL_NK_002",

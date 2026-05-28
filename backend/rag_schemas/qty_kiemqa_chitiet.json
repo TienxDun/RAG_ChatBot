@@ -1,15 +1,15 @@
 {
   "table": "QTY_KiemQA_CHITIET",
   "purpose": "Lưu trữ chi tiết từng lỗi ghi nhận được trong quá trình kiểm tra chất lượng của bộ phận QA (Quality Assurance).",
-  "when_to_use": "Sử dụng khi câu hỏi CÓ chứa từ khóa 'final', 'QA', hoặc 'thành phẩm cuối' VÀ yêu cầu liệt kê chi tiết các lỗi, mã lỗi (Code), hình ảnh lỗi (Image), nội dung lỗi (NoiDung), hoặc hành động xử lý (HanhDong) của bộ phận QA.",
-  "when_not_to_use": "Không sử dụng nếu câu hỏi KHÔNG có từ khóa 'final', 'QA', hoặc 'thành phẩm cuối' (mặc định dùng QTY_MaHang_KiemQC_ChiTiet). Không sử dụng nếu câu hỏi chỉ yêu cầu thống kê số lượng lỗi tổng hợp theo ngày (khi đó dùng QTY_KiemQA_NgayKiem để tối ưu hiệu năng), hoặc hỏi về trạng thái sửa lỗi, tác vụ kiểm tra final (dùng TskFinal).",
+  "when_to_use": "Sử dụng khi câu hỏi CÓ chứa từ khóa 'final', 'QA', 'thành phẩm cuối' hoặc 'nhật ký kiểm' VÀ yêu cầu liệt kê chi tiết các lỗi, mã lỗi (Code), hình ảnh lỗi (Image), nội dung lỗi (NoiDung), hoặc hành động xử lý (HanhDong) của bộ phận QA.",
+  "when_not_to_use": "Không sử dụng nếu câu hỏi KHÔNG có từ khóa 'final', 'QA', hoặc 'thành phẩm cuối' (mặc định dùng QTY_MaHang_KiemQC_ChiTiet). Không sử dụng nếu câu hỏi chỉ yêu cầu thống kê số lượng lỗi tổng hợp theo ngày (khi đó dùng QTY_KiemQA_NgayKiem để tối ưu hiệu năng), hoặc hỏi về trạng thái sửa lỗi, tác vụ kiểm tra final (dùng TskFinal). Bảng này thường được dùng qua JOIN từ QTY_KiemQA_NgayKiem khi cần chi tiết mã lỗi cụ thể. LƯU Ý: Nếu bản ghi trong QTY_KiemQA_NgayKiem cho thấy SoLuongLoi là NULL hoặc bằng 0 (không có lỗi), không cần JOIN với bảng chi tiết này mà chỉ cần truy vấn QTY_KiemQA_NgayKiem để kết luận không có lỗi.",
   "table_rules": [
     {
       "id": "T_QTY_QA_CD_001",
       "severity": "CRITICAL",
-      "rule": "Bảng này KHÔNG có cột StyleID. Khi lọc theo mã kiểu dáng có dấu gạch dưới '_' (ví dụ: 'SA_893_208_133'), BẮT BUỘC JOIN với ERP_LENHSX (qua LenhSX = MaLenh) và lọc trên cột ERP_LENHSX.TenLenh, HOẶC tự động chuyển đổi '_' thành '-' (ví dụ: 'SA-893-208-133') để lọc trên cột MaHang.",
-      "correct_example": "SELECT q.Code FROM QTY_KiemQA_CHITIET q JOIN ERP_LENHSX e ON q.LenhSX = e.MaLenh WHERE e.TenLenh = 'SA_893_208_133'",
-      "wrong_example": "SELECT Code FROM QTY_KiemQA_CHITIET WHERE StyleID = 'SA_893_208_133'"
+      "rule": "Bảng này KHÔNG có cột StyleID. Quy tắc lọc theo mã hàng/tên sản phẩm gồm 3 trường hợp: (A) Giá trị chứa dấu gạch dưới '_' (ví dụ: 'TEA25_Y_XR20R') → BẮT BUỘC JOIN ERP_LENHSX (qua LenhSX = MaLenh) và lọc ERP_LENHSX.TenLenh. (B) Giá trị chứa dấu gạch ngang '-', dấu chấm '.', hoặc dấu cách kèm số (ví dụ: 'SA-893-208-133') → lọc trực tiếp trên MaHang với tiền tố N. (C) Giá trị là tên sản phẩm chỉ gồm chữ cái và dấu cách (ví dụ: 'KAIJI JUMPSUIT') → MaHang LIKE trực tiếp, TUYỆT ĐỐI KHÔNG JOIN ERP_LENHSX.",
+      "correct_example": "-- Case A: SELECT q.Code FROM QTY_KiemQA_CHITIET q JOIN ERP_LENHSX e ON q.LenhSX = e.MaLenh WHERE e.TenLenh = 'TEA25_Y_XR20R' | -- Case B: WHERE q.MaHang = N'SA-893-208-133' | -- Case C: WHERE q.MaHang LIKE N'%KAIJI JUMPSUIT%'",
+      "wrong_example": "WHERE q.MaHang = N'TEA25-Y-XR20R' -- SAI: dấu gạch dưới phải JOIN ERP_LENHSX.TenLenh, không tự chuyển sang gạch ngang"
     },
     {
       "id": "T_QTY_QA_CD_002",
@@ -31,6 +31,13 @@
       "rule": "Tên cột đơn hàng chi tiết gộp là SPOID (có chữ S ở đầu), không phải POID.",
       "correct_example": "SELECT SPOID FROM QTY_KiemQA_CHITIET",
       "wrong_example": "SELECT POID FROM QTY_KiemQA_CHITIET"
+    },
+    {
+      "id": "T_QTY_QA_CD_005",
+      "severity": "CRITICAL",
+      "rule": "Khi cần liên kết dữ liệu lỗi chi tiết QA với thông tin tổng hợp của QA, hãy JOIN bảng QTY_KiemQA_CHITIET (c) với QTY_KiemQA_NgayKiem (q) qua các cột: LenhSX, LineX, MaHang, Size và ép kiểu DATE cho NgayKiem. Đồng thời, liên kết với QTY_NHOMLOI_CHITIET (n) qua c.Code = n.MaLoi để lấy tên lỗi.",
+      "correct_example": "SELECT DISTINCT c.Code, n.TenLoi, c.NoiDung FROM QTY_KiemQA_CHITIET c JOIN QTY_KiemQA_NgayKiem q ON c.LenhSX = q.LenhSX AND c.LineX = q.LineX AND c.MaHang = q.MaHang AND c.Size = q.Size AND CAST(c.NgayKiem AS DATE) = CAST(q.NgayKiem AS DATE) JOIN QTY_NHOMLOI_CHITIET n ON c.Code = n.MaLoi",
+      "wrong_example": "SELECT c.Code, n.TenLoi FROM QTY_KiemQA_CHITIET c JOIN QTY_NHOMLOI_CHITIET n ON c.Code = n.MaLoi JOIN ERP_LENHSX e ON c.LenhSX = e.MaLenh"
     }
   ],
   "columns": [
@@ -237,6 +244,11 @@
       "target_table": "QTY_NHOMLOI_CHITIET",
       "join_on": "QTY_KiemQA_CHITIET.Code = QTY_NHOMLOI_CHITIET.MaLoi",
       "notes": "Để lấy tên lỗi chi tiết (TenLoi)."
+    },
+    {
+      "target_table": "QTY_KiemQA_NgayKiem",
+      "join_on": "QTY_KiemQA_CHITIET.LenhSX = QTY_KiemQA_NgayKiem.LenhSX AND QTY_KiemQA_CHITIET.LineX = QTY_KiemQA_NgayKiem.LineX AND QTY_KiemQA_CHITIET.MaHang = QTY_KiemQA_NgayKiem.MaHang AND QTY_KiemQA_CHITIET.Size = QTY_KiemQA_NgayKiem.Size AND CAST(QTY_KiemQA_CHITIET.NgayKiem AS DATE) = CAST(QTY_KiemQA_NgayKiem.NgayKiem AS DATE)",
+      "notes": "Để liên kết với bảng tổng hợp QA theo ngày."
     }
   ]
 }

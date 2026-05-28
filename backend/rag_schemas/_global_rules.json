@@ -23,9 +23,9 @@
       "id": "G003",
       "category": "identifier_routing",
       "severity": "CRITICAL",
-      "rule": "Quy tắc phân biệt Mã Kiểu dáng/Mã Hàng: Nếu mã cần tìm chứa dấu gạch dưới '_' (ví dụ: '111143_181_H2Z9'), đó là mã kiểu dáng hệ thống, BẮT BUỘC dùng cột StyleID (hoặc StyleId / StypeId tùy bảng) làm điều kiện lọc. Chỉ dùng cột MaHang khi mã chứa khoảng trắng hoặc dấu gạch ngang '-' (ví dụ: 'SA-893-208-133'). TUYỆT ĐỐI CẤM lọc cột MaHang với chuỗi chứa dấu gạch dưới '_'.",
-      "correct_example": "WHERE StypeId = '111143_181_H2Z9' hoặc WHERE MaHang = 'SA-893-208-133'",
-      "wrong_example": "WHERE MaHang = '111143_181_H2Z9'"
+      "rule": "Quy tắc phân biệt Mã Kiểu dáng/Mã Hàng theo định dạng ký tự: (A) Nếu mã chứa dấu gạch dưới '_' (ví dụ: '0088_521_04_V0_0', 'SA_893_208_133') → đó là mã kiểu dáng hệ thống, BẮT BUỘC dùng cột StyleID (hoặc StyleId/StypeId tùy bảng). (B) Nếu mã chứa dấu cách ' ', dấu gạch ngang '-', hoặc dấu chấm '.' (ví dụ: '0088 342 29 V0.3', 'SA-893-208-133', '0088 521 04 V0.0') → đó là mã hàng hiển thị, BẮT BUỘC dùng cột MaHang với tiền tố N. TUYỆT ĐỐI CẤM lọc cột MaHang với chuỗi chứa dấu gạch dưới '_', và CẤM lọc cột StyleID với chuỗi chứa dấu cách, dấu chấm hoặc dấu gạch ngang.",
+      "correct_example": "WHERE StyleID = '0088_521_04_V0_0' -- mã có gạch dưới → dùng StyleID | WHERE MaHang = N'0088 342 29 V0.3' -- mã có dấu cách/chấm → dùng MaHang | WHERE MaHang = N'SA-893-208-133' -- mã có gạch ngang → dùng MaHang",
+      "wrong_example": "WHERE StyleID = '0088 342 29 V0.3' -- SAI: dấu cách/chấm phải dùng MaHang | WHERE MaHang = '0088_521_04_V0_0' -- SAI: gạch dưới phải dùng StyleID"
     },
     {
       "id": "G004",

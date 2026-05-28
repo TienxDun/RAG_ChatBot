@@ -7,9 +7,9 @@
     {
       "id": "T_QTY_NK_001",
       "severity": "CRITICAL",
-      "rule": "Tránh nhân đôi dữ liệu khi JOIN với bảng sản lượng SEW. Tuyệt đối KHÔNG JOIN trực tiếp bảng QTY và SEW trước khi thực hiện SUM. Bắt buộc phải tính tổng số lỗi (SUM(SpLoi)) và tổng sản lượng đạt (SUM(Quantity+SuaDat)) trong hai subquery (hoặc CTE) riêng biệt được GROUP BY theo các chiều tương tự nhau (ví dụ: LineX, StyleID/StyleId), sau đó JOIN hai kết quả đã aggregate đó lại với nhau. Mặc định không tự ý JOIN với tbl_Steps trừ khi câu hỏi có nhắc tới công đoạn.",
-      "correct_example": "WITH QtyLoi AS (SELECT LineX, StyleID, SUM(ISNULL(SpLoi,0)) as TongLoi FROM QTY_MAHANG_NGAYKIEM GROUP BY LineX, StyleID), SewDat AS (SELECT sc.LineX, sc.StyleId, SUM(sc.Quantity+sc.SuaDat) as TongDat FROM SEW_CoefficientSize sc GROUP BY sc.LineX, sc.StyleId) SELECT q.LineX, q.StyleID, CAST(q.TongLoi AS FLOAT) / NULLIF(q.TongLoi + s.TongDat, 0) * 100 as TyLeLoi FROM QtyLoi q JOIN SewDat s ON q.LineX = s.LineX AND q.StyleID = s.StyleId",
-      "wrong_example": "SELECT q.LineX, q.StyleID, CAST(SUM(ISNULL(q.SpLoi,0)) AS FLOAT) / NULLIF(SUM(ISNULL(q.SpLoi,0)) + SUM(s.Quantity+s.SuaDat), 0) * 100 as TyLeLoi FROM QTY_MAHANG_NGAYKIEM q JOIN SEW_CoefficientSize s ON q.LineX = s.LineX AND q.StyleID = s.StyleId GROUP BY q.LineX, q.StyleID"
+      "rule": "Tránh nhân đôi dữ liệu khi JOIN với bảng sản lượng SEW. Tuyệt đối KHÔNG JOIN trực tiếp bảng QTY và SEW trước khi thực hiện SUM. Bắt buộc phải tính tổng số lỗi (SUM(SpLoi)) và tổng sản lượng đạt (SUM(Quantity+SuaDat)) trong hai subquery (hoặc CTE) riêng biệt được GROUP BY theo các chiều tương tự nhau (ví dụ: LineX, StyleID/StyleId), sau đó JOIN hai kết quả đã aggregate đó lại với nhau. Mặc định không tự ý JOIN với tbl_Steps trừ khi câu hỏi có nhắc tới công đoạn. KHÔNG JOIN ERP_LENHSX để lọc theo TenLenh khi StyleID đã chứa sẵn giá trị đó (xem rule T_QTY_NK_008).",
+      "correct_example": "WITH QtyLoi AS (SELECT LineX, StyleID, SUM(ISNULL(SpLoi,0)) AS TongLoi FROM QTY_MAHANG_NGAYKIEM WHERE StyleID = '0088_521_04_V0_0' AND LineX IN ('101','102') GROUP BY LineX, StyleID), SewDat AS (SELECT sc.LineX, sc.StyleId, SUM(ISNULL(sc.Quantity,0)+ISNULL(sc.SuaDat,0)) AS TongDat FROM SEW_CoefficientSize sc WHERE sc.StyleId = '0088_521_04_V0_0' AND sc.LineX IN ('101','102') GROUP BY sc.LineX, sc.StyleId) SELECT q.LineX, CAST(q.TongLoi AS FLOAT) / NULLIF(q.TongLoi + s.TongDat, 0) * 100 AS TyLeLoi FROM QtyLoi q JOIN SewDat s ON q.LineX = s.LineX AND q.StyleID = s.StyleId",
+      "wrong_example": "WITH QtyLoi AS (SELECT q.LineX, SUM(ISNULL(q.SpLoi,0)) AS TongLoi FROM QTY_MAHANG_NGAYKIEM q JOIN ERP_LENHSX e ON q.PlanCode = e.MaLenh WHERE e.TenLenh = '0088_521_04_V0_0' GROUP BY q.LineX), SewDat AS (SELECT sc.LineX, SUM(ISNULL(sc.Quantity,0)+ISNULL(sc.SuaDat,0)) AS TongDat FROM SEW_CoefficientSize sc JOIN ERP_LENHSX e ON sc.StyleId = e.TenLenh WHERE e.TenLenh = '0088_521_04_V0_0' GROUP BY sc.LineX) SELECT q.LineX, CAST(q.TongLoi AS FLOAT) / NULLIF(q.TongLoi + s.TongDat, 0) * 100 AS TyLeLoi FROM QtyLoi q JOIN SewDat s ON q.LineX = s.LineX"
     },
     {
       "id": "T_QTY_NK_002",
@@ -52,6 +52,13 @@
       "rule": "KHI CÂU HỎI LIÊN QUAN ĐẾN KHÁCH HÀNG (customer): Bảng này KHÔNG có cột khách hàng trực tiếp. Bắt buộc JOIN bắc cầu theo lộ trình: QTY_MAHANG_NGAYKIEM → ERP_LENHSX (qua PlanCode = MaLenh) → DIC_KHACHHANG (qua MaKhachHang). Không được dừng lại ở StyleID hay chỉ GROUP BY trên QTY_MAHANG_NGAYKIEM. Phải kéo đến DIC_KHACHHANG để lấy tên khách hàng (KhachHang).",
       "correct_example": "WITH CustomerDefects AS (SELECT c.MaKhachHang, c.KhachHang, SUM(ISNULL(q.SpLoi, 0)) AS TongLoi, DENSE_RANK() OVER (ORDER BY SUM(ISNULL(q.SpLoi, 0)) DESC) AS Rk FROM QTY_MAHANG_NGAYKIEM q INNER JOIN ERP_LENHSX e ON q.PlanCode = e.MaLenh INNER JOIN DIC_KHACHHANG c ON e.MaKhachHang = c.MaKhachHang GROUP BY c.MaKhachHang, c.KhachHang) SELECT MaKhachHang, KhachHang, TongLoi FROM CustomerDefects WHERE Rk = 1",
       "wrong_example": "WITH RankedLoi AS (SELECT StyleID, SUM(ISNULL(SpLoi, 0)) AS TongLoi, DENSE_RANK() OVER (ORDER BY SUM(ISNULL(SpLoi, 0)) DESC) as Rk FROM QTY_MAHANG_NGAYKIEM GROUP BY StyleID) SELECT StyleID, TongLoi FROM RankedLoi WHERE Rk = 1"
+    },
+    {
+      "id": "T_QTY_NK_008",
+      "severity": "CRITICAL",
+      "rule": "KHI LỌC THEO MÃ LỆNH (TenLenh): Cột StyleID trong bảng này đã chứa trực tiếp giá trị TenLenh (ví dụ: '0088_521_04_V0_0'). TUYỆT ĐỐI KHÔNG JOIN ERP_LENHSX chỉ để lọc theo TenLenh — lọc thẳng trên cột StyleID. Tương tự, SEW_CoefficientSize.StyleId cũng chứa sẵn TenLenh, không cần JOIN. JOIN ERP_LENHSX chỉ cần thiết khi câu hỏi yêu cầu lấy thông tin từ ERP_LENHSX (ngày, khách hàng, trạng thái...) hoặc phải đi tiếp sang DIC_KHACHHANG.",
+      "correct_example": "SELECT q.LineX, SUM(ISNULL(q.SpLoi, 0)) AS TongLoi FROM QTY_MAHANG_NGAYKIEM q WHERE q.StyleID = '0088_521_04_V0_0' AND q.LineX IN ('101', '102') GROUP BY q.LineX",
+      "wrong_example": "SELECT q.LineX, SUM(ISNULL(q.SpLoi, 0)) AS TongLoi FROM QTY_MAHANG_NGAYKIEM q JOIN ERP_LENHSX e ON q.PlanCode = e.MaLenh WHERE e.TenLenh = '0088_521_04_V0_0' AND q.LineX IN ('101', '102') GROUP BY q.LineX"
     }
   ],
   "columns": [
@@ -138,12 +145,6 @@
       "type": "nvarchar",
       "role": "filter",
       "desc": "Tên hiển thị của kích thước. Áp dụng rule T_QTY_NK_004."
-    },
-    {
-      "name": "SLKiem",
-      "type": "int",
-      "role": "measure",
-      "desc": "Số lượng sản phẩm được kiểm tra. Tuyệt đối không dùng cột này hoặc biểu thức (SLKiem - SpLoi) để tính sản phẩm đạt / sản lượng đạt. Sản lượng đạt (TongDat / TongSanPhamDat) phải lấy từ bảng SEW_CoefficientSize theo công thức: SUM(ISNULL(Quantity, 0) + ISNULL(SuaDat, 0))."
     },
     {
       "name": "SLKCS",
