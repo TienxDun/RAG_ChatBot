@@ -1,5 +1,7 @@
 /**
  * ChatService.js - Handles streaming chat logic and history persistence
+/**
+ * ChatService.js - Handles streaming chat logic and history persistence
  */
 import { ApiClient } from '../core/ApiClient.js';
 import { ENDPOINTS } from '../core/Config.js';
@@ -7,7 +9,7 @@ import { state } from '../core/State.js';
 
 export class ChatService {
     static async sendMessage(text, file, collectionName, callbacks = {}) {
-        const { onStep, onFinal, onError, onMessageElementCreated, msgId } = callbacks;
+        const { onStep, onChunk, onFinal, onError, onMessageElementCreated, msgId } = callbacks;
         const body = this._prepareBody(text, file, collectionName);
         
         let aiContent = "";
@@ -27,7 +29,12 @@ export class ChatService {
                     if (onStep) onStep(data.step);
                 }
 
-                if (['step', 'final', 'error'].includes(data.type) && onMessageElementCreated && !elementCreated) {
+                if (data.type === 'chunk') {
+                    aiContent += data.text;
+                    if (onChunk) onChunk(data.text, aiContent);
+                }
+
+                if (['step', 'chunk', 'final', 'error'].includes(data.type) && onMessageElementCreated && !elementCreated) {
                     onMessageElementCreated();
                     elementCreated = true;
                 }
@@ -57,15 +64,13 @@ export class ChatService {
     }
 
     static _prepareBody(text, file, collectionName) {
-        const isFastPath = state.isFastPathEnabled;
         const isRulesEnabled = state.isRulesEnabled;
         if (!file) {
-            return JSON.stringify({ message: text, collectionName, fastPath: isFastPath, rulesEnabled: isRulesEnabled });
+            return JSON.stringify({ message: text, collectionName, rulesEnabled: isRulesEnabled });
         }
         const formData = new FormData();
         formData.append('message', text);
         formData.append('file', file);
-        formData.append('fastPath', isFastPath.toString());
         formData.append('rulesEnabled', isRulesEnabled.toString());
         if (collectionName) formData.append('collectionName', collectionName);
         return formData;

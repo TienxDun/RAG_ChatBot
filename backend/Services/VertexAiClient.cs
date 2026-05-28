@@ -90,6 +90,140 @@ public sealed class VertexAiClient
         return string.Empty;
     }
 
+    // Gửi yêu cầu sinh nội dung văn bản dưới dạng stream từ mô hình Gemini của Vertex AI.
+    public async IAsyncEnumerable<string> GenerateContentStreamAsync(
+        string message,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct)
+    {
+        var url = _options.ApiUrlTemplate
+            .Replace("{modelId}", _options.LlmModelId)
+            .Replace("{action}", "streamGenerateContent") + $"?key={_options.ApiKey}";
+
+        var payload = new
+        {
+            contents = new[]
+            {
+                new
+                {
+                    role = "user",
+                    parts = new[]
+                    {
+                        new { text = message }
+                    }
+                }
+            },
+            generationConfig = new
+            {
+                temperature = 0.0,
+                topP = 0.95,
+                topK = 40,
+                maxOutputTokens = 1024,
+                responseMimeType = "text/plain"
+            }
+        };
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, url)
+        {
+            Content = new StringContent(JsonSerializer.Serialize(payload, _jsonOptions), Encoding.UTF8, "application/json")
+        };
+
+        using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var body = await response.Content.ReadAsStringAsync(ct);
+            throw new InvalidOperationException($"Vertex AI error ({(int)response.StatusCode}): {body}");
+        }
+
+        using var responseStream = await response.Content.ReadAsStreamAsync(ct);
+        using var reader = new StreamReader(responseStream, Encoding.UTF8);
+
+        var charBuffer = new char[4096];
+        var jsonAccumulator = new StringBuilder();
+        int braceCount = 0;
+        bool inString = false;
+        bool isEscaped = false;
+
+        while (true)
+        {
+            int readCount = await reader.ReadAsync(charBuffer, 0, charBuffer.Length);
+            if (readCount == 0) break;
+
+            for (int i = 0; i < readCount; i++)
+            {
+                char c = charBuffer[i];
+                jsonAccumulator.Append(c);
+
+                if (c == '"' && !isEscaped)
+                {
+                    inString = !inString;
+                }
+                
+                if (c == '\\' && inString)
+                {
+                    isEscaped = !isEscaped;
+                }
+                else
+                {
+                    isEscaped = false;
+                }
+
+                if (!inString)
+                {
+                    if (c == '{')
+                    {
+                        braceCount++;
+                    }
+                    else if (c == '}')
+                    {
+                        braceCount--;
+                        if (braceCount == 0 && jsonAccumulator.Length > 0)
+                        {
+                            var jsonObjectStr = jsonAccumulator.ToString().Trim();
+                            
+                            // Làm sạch các ký tự dư thừa như dấu phẩy hoặc ngoặc vuông ở đầu/cuối của chunk
+                            if (jsonObjectStr.StartsWith(",")) jsonObjectStr = jsonObjectStr.Substring(1).Trim();
+                            if (jsonObjectStr.StartsWith("[")) jsonObjectStr = jsonObjectStr.Substring(1).Trim();
+                            if (jsonObjectStr.EndsWith("]")) jsonObjectStr = jsonObjectStr.Substring(0, jsonObjectStr.Length - 1).Trim();
+                            
+                            string? extractedText = null;
+                            if (jsonObjectStr.StartsWith("{") && jsonObjectStr.EndsWith("}"))
+                            {
+                                try
+                                {
+                                    using var doc = JsonDocument.Parse(jsonObjectStr);
+                                    if (doc.RootElement.TryGetProperty("candidates", out var candidates) && candidates.GetArrayLength() > 0)
+                                    {
+                                        var candidate = candidates[0];
+                                        if (candidate.TryGetProperty("content", out var content) &&
+                                            content.TryGetProperty("parts", out var parts) &&
+                                            parts.GetArrayLength() > 0 &&
+                                            parts[0].TryGetProperty("text", out var textElement))
+                                        {
+                                            extractedText = textElement.GetString();
+                                        }
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    Console.WriteLine($"⚠️ Failed to parse accumulated JSON chunk: {ex.Message}");
+                                }
+                            }
+
+                            if (!string.IsNullOrEmpty(extractedText))
+                            {
+                                yield return extractedText;
+                            }
+                            
+                            jsonAccumulator.Clear();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
 
 
     // Gọi API Vertex AI để chuyển đổi đoạn văn bản thành vector (Embedding) phục vụ cho việc tìm kiếm tương đồng.

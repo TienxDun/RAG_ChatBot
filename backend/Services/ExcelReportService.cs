@@ -144,10 +144,9 @@ public class ExcelReportService
             combinedQuery,
             null,
             onStep,
+            _ => Task.CompletedTask,
             ct,
-            enableFastPath: true,
-            isExcelTemplate: true,
-            enableRulesExtraction: true);
+            isExcelTemplate: true);
 
         // 4. Chuyển đổi dữ liệu trả về sang DataTable
         DataTable dataTable = new DataTable();

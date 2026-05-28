@@ -250,14 +250,7 @@ export class MessageRenderer {
 
         messageEl.innerHTML = html;
 
-        if (role === 'ai' && suggestedQuestions?.length > 0) {
-            const checkAmbiguous = isAmbiguous || messageEl.getAttribute('data-ambiguous') === 'true';
-            if (checkAmbiguous) {
-                this.renderClarificationOptions(messageEl, suggestedQuestions);
-            } else {
-                this.renderSuggestions(messageEl, suggestedQuestions);
-            }
-        }
+        // Đã loại bỏ hiển thị câu hỏi gợi ý (suggestions) theo yêu cầu
 
         return messageEl;
     }
@@ -337,14 +330,6 @@ export class MessageRenderer {
             footerActionsContainer.innerHTML = actionsHtml;
         }
 
-        if (suggestedQuestions?.length > 0) {
-            const checkAmbiguous = isAmbiguous || messageEl.getAttribute('data-ambiguous') === 'true';
-            if (checkAmbiguous) {
-                this.renderClarificationOptions(messageEl, suggestedQuestions);
-            } else {
-                this.renderSuggestions(messageEl, suggestedQuestions);
-            }
-        }
     }
 
     static _renderFileChip(file) {
