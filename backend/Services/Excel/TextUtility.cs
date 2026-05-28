@@ -74,9 +74,19 @@ public class TextUtility : ITextUtility
         return $"{p}_{c}";
     }
 
+    private static readonly Dictionary<string, string[]> _synonymGroups = new(StringComparer.OrdinalIgnoreCase)
+    {
+        { "lsx", new[] { "plancode", "poid", "malenh", "so lenh", "solenh", "po", "lsx" } },
+        { "mahang", new[] { "style", "styleid", "stypeid", "mahang", "ma hang", "hang", "mã hàng", "style/ mã hàng", "mã hàng/ style" } },
+        { "chuyen", new[] { "line", "chuyen", "chuyenline", "linex", "chuyen/ line" } },
+        { "ngay", new[] { "date", "ngay", "createddate", "checkeddate" } }
+    };
+
     public string? FindBestMetadataValue(Dictionary<string, string> metadata, string key)
     {
         if (metadata == null || string.IsNullOrEmpty(key)) return null;
+
+        string keyNorm = RemoveDiacritics(key).ToLowerInvariant().Replace(" ", "").Replace("/", "").Replace("-", "").Replace("_", "");
 
         string cleanSearch = RemoveDiacriticsKeepSpaces(key).ToLowerInvariant();
         cleanSearch = System.Text.RegularExpressions.Regex.Replace(cleanSearch, @"([a-z])([A-Z])", "$1 $2");
@@ -87,28 +97,56 @@ public class TextUtility : ITextUtility
 
         foreach (var kvp in metadata)
         {
+            string metaKeyNorm = RemoveDiacritics(kvp.Key).ToLowerInvariant().Replace(" ", "").Replace("/", "").Replace("-", "").Replace("_", "");
+
             string cleanMetaKey = RemoveDiacriticsKeepSpaces(kvp.Key).ToLowerInvariant();
             cleanMetaKey = System.Text.RegularExpressions.Regex.Replace(cleanMetaKey, @"([a-z])([A-Z])", "$1 $2");
             var metaTokens = cleanMetaKey.Split(new[] { ' ', '/', '_', '-', ':' }, StringSplitOptions.RemoveEmptyEntries);
 
             int score = 0;
-            foreach (var sToken in searchTokens)
+            if (string.Equals(keyNorm, metaKeyNorm, StringComparison.OrdinalIgnoreCase))
             {
-                if (sToken.Length <= 1) continue;
-                foreach (var mToken in metaTokens)
+                score = 1000;
+            }
+            else
+            {
+                bool sameSynonymGroup = false;
+                foreach (var group in _synonymGroups)
                 {
-                    if (mToken.Length <= 1) continue;
-                    if (sToken == mToken)
+                    bool keyMatches = group.Value.Any(s => keyNorm.Contains(s) || s.Contains(keyNorm));
+                    bool metaMatches = group.Value.Any(s => metaKeyNorm.Contains(s) || s.Contains(metaKeyNorm));
+                    if (keyMatches && metaMatches)
                     {
-                        score += sToken.Length * 3;
+                        sameSynonymGroup = true;
+                        break;
                     }
-                    else if (sToken.Contains(mToken))
+                }
+
+                if (sameSynonymGroup)
+                {
+                    score = 500;
+                }
+                else
+                {
+                    foreach (var sToken in searchTokens)
                     {
-                        score += mToken.Length * 2;
-                    }
-                    else if (mToken.Contains(sToken))
-                    {
-                        score += sToken.Length * 2;
+                        if (sToken.Length <= 1) continue;
+                        foreach (var mToken in metaTokens)
+                        {
+                            if (mToken.Length <= 1) continue;
+                            if (sToken == mToken)
+                            {
+                                score += sToken.Length * 3;
+                            }
+                            else if (sToken.Contains(mToken))
+                            {
+                                score += mToken.Length * 2;
+                            }
+                            else if (mToken.Contains(sToken))
+                            {
+                                score += sToken.Length * 2;
+                            }
+                        }
                     }
                 }
             }
