@@ -44,6 +44,16 @@ public static class TemplateCacheEndpoints
         // GET /api/templates/cache/stats - Xem thông số bộ nhớ đệm
         group.MapGet("/stats", (TemplateCacheService cacheService) => Results.Ok(cacheService.GetCacheStats()))
             .WithName("GetCacheStats");
+
+        // POST /api/templates/analyze - Phân tích tệp Excel trả về các cột
+        app.MapPost("/api/templates/analyze", HandleAnalyzeAsync)
+            .WithName("AnalyzeTemplate")
+            .DisableAntiforgery();
+
+        // POST /api/templates/save-mapping - Lưu chú thích cột Excel
+        app.MapPost("/api/templates/save-mapping", HandleSaveMappingAsync)
+            .WithName("SaveTemplateMapping")
+            .DisableAntiforgery();
     }
 
     /// <summary>
@@ -152,5 +162,86 @@ public static class TemplateCacheEndpoints
     {
         cacheService.ClearAll();
         return Results.Ok(new { message = "Đã làm sạch toàn bộ bộ nhớ đệm template." });
+    }
+
+    /// <summary>
+    /// Xử lý phân tích cấu trúc template Excel trả về danh sách các cột tiêu đề
+    /// </summary>
+    public static async Task<IResult> HandleAnalyzeAsync(HttpRequest request, Backend.Services.Excel.IExcelTemplateAnalyzer analyzer, Backend.Services.Excel.IExcelMappingService mappingService)
+    {
+        if (!request.HasFormContentType)
+        {
+            return Results.BadRequest(new { error = "Content-Type phải là multipart/form-data" });
+        }
+
+        var form = await request.ReadFormAsync();
+        var file = form.Files.GetFile("file");
+
+        if (file == null || file.Length == 0)
+        {
+            return Results.BadRequest(new { error = "Không tìm thấy file upload với key 'file'" });
+        }
+
+        if (!file.FileName.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase))
+        {
+            return Results.BadRequest(new { error = "Chỉ hỗ trợ file Excel định dạng .xlsx" });
+        }
+
+        try
+        {
+            using var stream = file.OpenReadStream();
+            using var package = new OfficeOpenXml.ExcelPackage(stream);
+            var worksheet = package.Workbook.Worksheets[0];
+            var result = analyzer.AnalyzeTemplate(worksheet);
+
+            var savedMappings = mappingService.GetMapping(file.FileName);
+
+            return Results.Ok(new
+            {
+                type = result.Type.ToString(),
+                headerRowIndex = result.HeaderRowIndex,
+                startColumnIndex = result.StartColumnIndex,
+                columns = result.Columns.Select(c => new
+                {
+                    columnIndex = c.ColumnIndex,
+                    parentHeader = c.ParentHeader,
+                    childHeader = c.ChildHeader,
+                    uniqueKey = c.UniqueKey
+                }).ToList(),
+                metadata = result.Metadata,
+                savedMappings = savedMappings
+            });
+        }
+        catch (Exception ex)
+        {
+            return Results.Problem($"Lỗi khi phân tích template: {ex.Message}");
+        }
+    }
+
+    public sealed class SaveMappingRequest
+    {
+        public string FileName { get; set; } = string.Empty;
+        public Dictionary<string, string> Mappings { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Xử lý lưu các chú thích/ánh xạ cột Excel của người dùng
+    /// </summary>
+    public static async Task<IResult> HandleSaveMappingAsync(SaveMappingRequest request, Backend.Services.Excel.IExcelMappingService mappingService)
+    {
+        if (request == null || string.IsNullOrWhiteSpace(request.FileName))
+        {
+            return Results.BadRequest(new { error = "Dữ liệu yêu cầu không hợp lệ hoặc thiếu tên file." });
+        }
+
+        try
+        {
+            mappingService.SaveMapping(request.FileName, request.Mappings);
+            return Results.Ok(new { message = "Đã lưu thông tin ánh xạ cột Excel thành công." });
+        }
+        catch (Exception ex)
+        {
+            return Results.Problem($"Lỗi khi lưu cấu hình ánh xạ: {ex.Message}");
+        }
     }
 }

@@ -46,7 +46,7 @@ public static class ChatEndpoints
             if (parameters.File != null && parameters.File.FileName.EndsWith(".xlsx"))
             {
                 using var stream = parameters.File.OpenReadStream();
-                var result = await excelService.ProcessExcelTemplateAsync(stream, parameters.Message, async (step) => 
+                var result = await excelService.ProcessExcelTemplateAsync(stream, parameters.File.FileName, parameters.Message, async (step) => 
                 {
                     await SendEventAsync(new { type = "step", step });
                 }, ct);

@@ -93,13 +93,20 @@ public class SqlPlanExecutor : ISqlPlanExecutor
                     2. TRUYỀN THAM SỐ GIỮA CÁC BƯỚC: BẮT BUỘC sử dụng giá trị thực tế lấy từ phần 'KẾT QUẢ CÁC BƯỚC TRƯỚC ĐÓ' bên trên (nhìn vào SampleData) và các TÊN CỘT tương ứng để làm điều kiện lọc (WHERE) cho bước này.
                        - Nếu bước trước trả về danh sách nhiều ID, hãy sử dụng toán tử IN (ví dụ: WHERE MaKhachHang IN ('KH001', 'KH002')) thay vì chỉ lọc một giá trị.
 
-                    3. Cú pháp phản hồi: Trả về mã SQL thô, không giải thích, không markdown.
+                    3. QUY TẮC ÁNH XẠ NGHIỆP VỤ THÔNG MINH (BẮT BUỘC TUÂN THỦ):
+                       - Hãy đọc kỹ phần 'DANH SÁCH Ý NGHĨA & CÔNG THỨC CỘT EXCEL TỰ ĐỊNH NGHĨA BỞI NGƯỜI DÙNG' trong Câu hỏi gốc.
+                       - Bạn BẮT BUỘC phải phân tích kỹ mô tả ý nghĩa/công thức của từng cột (UniqueKey) do người dùng cung cấp và đối chiếu ngữ nghĩa (semantic matching) với các cột/bảng thực tế có trong Database để tìm ra trường dữ liệu tương ứng chính xác nhất.
+                       - TUYỆT ĐỐI không được gán cột SQL một cách máy móc theo tên UniqueKey kỹ thuật nếu mô tả ý nghĩa của người dùng khác biệt hoặc mâu thuẫn với tên UniqueKey đó.
+                       - Ví dụ minh họa: Nếu UniqueKey là `..._SLkiemQuantity` (tên hiển thị là SL kiểm) nhưng người dùng định nghĩa ý nghĩa cột này là 'Số lượng đạt' (lượng sản phẩm đạt tiêu chuẩn), bạn phải tìm cột biểu diễn số lượng đạt thực tế trong database (như `TongDat`, `Quantity`...) để gán cho cột này, TUYỆT ĐỐI không được cộng thêm số lượng sản phẩm lỗi (`SpLoi`) vào đây.
+                       - Nếu người dùng cung cấp ghi chú chứa công thức toán học (ví dụ: 'Tỉ lệ lỗi = Số lượng lỗi / (số lượng lỗi + số lượng đạt)' hoặc tương tự), bạn BẮT BUỘC phải chuyển đổi chính xác công thức đó thành biểu thức SQL tương ứng dựa trên các cột database đã ánh xạ ở trên.
+
+                    4. Cú pháp phản hồi: Trả về mã SQL thô, không giải thích, không markdown.
                     {(string.IsNullOrEmpty(lastError) ? "" : $"\nLỖI TRƯỚC ĐÓ: {lastError}\nHãy sửa SQL.")}";
 
                 generatedSql = await _aiClient.GenerateContentAsync(sqlPrompt, ct);
                 generatedSql = _responseParser.CleanSql(generatedSql);
 
-                try 
+                try
                 {
                     var dt = await _sqlService.ExecuteQueryAsDataTableAsync(generatedSql, ct);
                     result.LastDataTable = dt;
@@ -135,7 +142,7 @@ public class SqlPlanExecutor : ISqlPlanExecutor
                         rows.Add(dict);
                     }
                     var stepJson = JsonSerializer.Serialize(rows, new JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
-                    
+
                     result.LastStepJson = stepJson;
                     workingContextBuilder.AppendLine($"\n--- [Kết quả {stepTitle}: {currentStepDesc}] ---\n{GetCompactContext(stepJson)}");
 
@@ -158,7 +165,7 @@ public class SqlPlanExecutor : ISqlPlanExecutor
                     var stepLog = new RagStep(stepTitle, $"Hoàn thành: {currentStepDesc}\n\n```sql\n{generatedSql}\n```\n\nKết quả:\n```json\n{stepUiJson}\n```{truncationNotice}");
                     result.ExecutedSteps.Add(stepLog);
                     await onStep(stepLog);
-                    break; 
+                    break;
                 }
                 catch (Exception ex)
                 {
@@ -179,7 +186,7 @@ public class SqlPlanExecutor : ISqlPlanExecutor
 
     private string GetCompactContext(string json, int threshold = 50)
     {
-        try 
+        try
         {
             using var doc = JsonDocument.Parse(json);
             if (doc.RootElement.ValueKind != JsonValueKind.Array) return json;
@@ -190,16 +197,18 @@ public class SqlPlanExecutor : ISqlPlanExecutor
             if (array.Count <= threshold) return json;
 
             var sample = array.Take(5).ToList();
-            
-            var summary = new {
+
+            var summary = new
+            {
                 TotalRows = array.Count,
                 SampleData = sample,
                 WarningRules = "DỮ LIỆU ĐÃ BỊ THU GỌN! Tập dữ liệu 'SampleData' phía trên CHỈ là 5 dòng mẫu đại diện để bạn hiểu cấu trúc cột và kiểu dữ liệu. Tuyệt đối KHÔNG sử dụng tập mẫu này để tự tính toán (Min, Max, Sum, Avg, Group) hoặc tạo câu lệnh SQL giả lập bằng UNION ALL. Nếu câu hỏi yêu cầu phân tích tổng hợp trên toàn bộ dữ liệu, bạn BẮT BUỘC phải sinh câu lệnh SQL truy vấn trực tiếp từ bảng gốc trong cơ sở dữ liệu."
             };
 
-            return JsonSerializer.Serialize(summary, new JsonSerializerOptions { 
-                WriteIndented = true, 
-                Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping 
+            return JsonSerializer.Serialize(summary, new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
             });
         }
         catch { return json; }

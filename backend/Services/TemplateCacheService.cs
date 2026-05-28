@@ -21,9 +21,69 @@ public class TemplateCacheService
     private readonly object _lock = new();
     private const int MaxCacheItems = 20; // Giới hạn tối đa 20 templates
     private const long MaxFileSizeBytes = 10 * 1024 * 1024; // Giới hạn 10MB mỗi file
+    private readonly string _templatesDir;
 
-    // Lưu template vào bộ nhớ đệm. 
-    // Nếu cache đầy (20 items), sẽ xóa item cũ nhất (FIFO).
+    public TemplateCacheService()
+    {
+        // 1. Xác định thư mục templates bền vững nằm tại data/templates ở thư mục gốc hoặc backend
+        var rootDir = AppContext.BaseDirectory;
+        var projectDir = Path.GetFullPath(Path.Combine(rootDir, "..", "..", "..", ".."));
+        var dataDir = Path.Combine(projectDir, "data");
+
+        if (!Directory.Exists(dataDir))
+        {
+            var backendDir = Path.GetFullPath(Path.Combine(rootDir, "..", "..", ".."));
+            dataDir = Path.Combine(backendDir, "data");
+            if (!Directory.Exists(dataDir))
+            {
+                dataDir = Path.Combine(Directory.GetCurrentDirectory(), "data");
+                if (!Directory.Exists(dataDir))
+                {
+                    Directory.CreateDirectory(dataDir);
+                }
+            }
+        }
+
+        _templatesDir = Path.Combine(dataDir, "templates");
+        if (!Directory.Exists(_templatesDir))
+        {
+            Directory.CreateDirectory(_templatesDir);
+        }
+
+        LoadTemplatesFromDisk();
+    }
+
+    private void LoadTemplatesFromDisk()
+    {
+        lock (_lock)
+        {
+            try
+            {
+                if (Directory.Exists(_templatesDir))
+                {
+                    var files = Directory.GetFiles(_templatesDir, "*.xlsx");
+                    foreach (var file in files)
+                    {
+                        var fileInfo = new FileInfo(file);
+                        var bytes = File.ReadAllBytes(file);
+                        var template = new CachedTemplate
+                        {
+                            Id = Guid.NewGuid().ToString(),
+                            FileName = fileInfo.Name,
+                            FileBytes = bytes,
+                            CachedAt = fileInfo.LastWriteTimeUtc,
+                            FileSize = fileInfo.Length
+                        };
+                        _cache.Add(template);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠️ Lỗi khi nạp danh sách template từ đĩa: {ex.Message}");
+            }
+        }
+    }
     public CachedTemplate StoreTemplate(byte[] bytes, string fileName)
     {
         if (bytes == null || bytes.Length == 0)
@@ -52,7 +112,31 @@ public class TemplateCacheService
             // Thực hiện FIFO nếu cache đầy
             if (_cache.Count >= MaxCacheItems)
             {
+                var oldest = _cache[0];
+                try
+                {
+                    var oldestPath = Path.Combine(_templatesDir, oldest.FileName);
+                    if (File.Exists(oldestPath))
+                    {
+                        File.Delete(oldestPath);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"⚠️ Lỗi khi xóa template cũ nhất theo cơ chế FIFO: {ex.Message}");
+                }
                 _cache.RemoveAt(0);
+            }
+
+            // Ghi file vật lý xuống đĩa
+            try
+            {
+                var filePath = Path.Combine(_templatesDir, fileName);
+                File.WriteAllBytes(filePath, bytes);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠️ Không thể ghi file template xuống đĩa: {ex.Message}");
             }
 
             var template = new CachedTemplate
@@ -96,6 +180,18 @@ public class TemplateCacheService
             var item = _cache.FirstOrDefault(t => t.Id == id);
             if (item != null)
             {
+                try
+                {
+                    var filePath = Path.Combine(_templatesDir, item.FileName);
+                    if (File.Exists(filePath))
+                    {
+                        File.Delete(filePath);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"⚠️ Không thể xóa file template vật lý: {ex.Message}");
+                }
                 return _cache.Remove(item);
             }
             return false;
@@ -107,6 +203,21 @@ public class TemplateCacheService
     {
         lock (_lock)
         {
+            try
+            {
+                if (Directory.Exists(_templatesDir))
+                {
+                    var files = Directory.GetFiles(_templatesDir, "*.xlsx");
+                    foreach (var file in files)
+                    {
+                        File.Delete(file);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠️ Không thể làm sạch thư mục template vật lý: {ex.Message}");
+            }
             _cache.Clear();
         }
     }

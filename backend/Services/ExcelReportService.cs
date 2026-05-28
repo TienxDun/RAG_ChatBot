@@ -29,6 +29,7 @@ public class ExcelReportService
     private readonly IExcelTemplateFiller _templateFiller;
     private readonly IExcelExporter _excelExporter;
     private readonly ITextUtility _textUtility;
+    private readonly IExcelMappingService _mappingService;
 
     private static readonly TextUtility _staticTextUtility = new();
 
@@ -37,28 +38,30 @@ public class ExcelReportService
         IExcelTemplateAnalyzer templateAnalyzer,
         IExcelTemplateFiller templateFiller,
         IExcelExporter excelExporter,
-        ITextUtility textUtility)
+        ITextUtility textUtility,
+        IExcelMappingService mappingService)
     {
         _ragOrchestrator = ragOrchestrator;
         _templateAnalyzer = templateAnalyzer;
         _templateFiller = templateFiller;
         _excelExporter = excelExporter;
         _textUtility = textUtility;
+        _mappingService = mappingService;
     }
 
     // Xử lý upload template Excel mẫu, chạy RAG query để lấy dữ liệu, điền vào template và xuất file
-    public async Task<ExcelReportResult> ProcessExcelTemplateAsync(Stream stream, string additionalQuery, Func<RagStep, Task> onStep, CancellationToken ct)
+    public async Task<ExcelReportResult> ProcessExcelTemplateAsync(Stream stream, string fileName, string additionalQuery, Func<RagStep, Task> onStep, CancellationToken ct)
     {
         using var package = new ExcelPackage(stream);
         var worksheet = package.Workbook.Worksheets[0];
 
         // 1. Phân tích cấu trúc Template thông minh
         var templateInfo = _templateAnalyzer.AnalyzeTemplate(worksheet);
-        
-        var serializeOptions = new JsonSerializerOptions 
-        { 
-            WriteIndented = true, 
-            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping 
+
+        var serializeOptions = new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
         };
 
         string excelAnalysisContent = $"Đã phân tích cấu trúc template thành công.\n\n" +
@@ -67,7 +70,7 @@ public class ExcelReportService
                                      $"* **Cột bắt đầu**: {templateInfo.StartColumnIndex}\n\n" +
                                      $"**Danh sách {templateInfo.Columns.Count} tiêu đề cột đã nhận diện & làm phẳng:**\n" +
                                      $"```json\n{JsonSerializer.Serialize(templateInfo.Columns.Select(c => new { c.ColumnIndex, c.ParentHeader, c.ChildHeader, c.UniqueKey }), serializeOptions)}\n```";
-        
+
         if (templateInfo.Metadata.Count > 0)
         {
             excelAnalysisContent += $"\n\n**Danh sách {templateInfo.Metadata.Count} nhãn Metadata (thông tin chung ở đầu trang):**\n" +
@@ -81,22 +84,25 @@ public class ExcelReportService
 
         if (templateInfo.Type == TemplateType.Hierarchical)
         {
-            var colMappings = string.Join("\n", templateInfo.Columns.Select(col => 
+            var colMappings = string.Join("\n", templateInfo.Columns.Select(col =>
                 $"- Cột vật lý {col.ColumnIndex}: nhóm '{col.ParentHeader}' -> cột con '{col.ChildHeader}' -> Bạn BẮT BUỘC SELECT alias (AS) là [{col.UniqueKey}]"
             ));
-            
+
             mappingInstructions = $"\n\nYÊU CẦU ĐẶC BIỆT CHO BÁO CÁO EXCEL PHÂN CẤP (HIERARCHICAL TEMPLATE):\n" +
                                   $"- Hệ thống phát hiện đây là mẫu báo cáo có cấu trúc tiêu đề phân cấp hai tầng (Parent-Child).\n" +
-                                  $"- Bạn BẮT BUỘC sử dụng ALIAS (AS) để tên cột trong kết quả trả về khớp hoàn toàn với các UniqueKey sau đây:\n" +
+                                  $"- Bạn BẮT BUỘC sử dụng ALIAS (AS) để tên cột trong kết quả SQL SELECT cuối cùng khớp hoàn toàn với các UniqueKey sau đây:\n" +
                                   $"{colMappings}\n" +
-                                  $"- Nếu không tìm thấy cột tương ứng, hãy để trống hoặc dùng NULL, đừng cố đoán bừa.\n";
+                                  $"- CẢNH BÁO BẮT BUỘC: Bạn TUYỆT ĐỐI KHÔNG ĐƯỢC bỏ sót bất kỳ cột nào trong danh sách UniqueKey trên! Câu SELECT cuối cùng của bạn phải chứa ĐẦY ĐỦ tất cả các cột UniqueKey đã liệt kê theo đúng thứ tự. Nếu thiếu dù chỉ 1 cột, file Excel sẽ không thể điền dữ liệu và hệ thống sẽ bị lỗi!\n" +
+                                  $"- Nếu không tìm thấy cột tương ứng trong database, hãy trả về NULL (ví dụ: NULL AS [UniqueKey]), tuyệt đối không được tự ý xóa cột khỏi câu SELECT.\n";
         }
         else
         {
             var columnsStr = string.Join(", ", templateInfo.Columns.Select(c => c.UniqueKey));
             mappingInstructions = $"\n\nYÊU CẦU ĐẶC BIỆT CHO BÁO CÁO EXCEL:\n" +
-                                  $"- Dữ liệu trả về BẮT BUỘC phải có các cột tiêu đề sau: {columnsStr}.\n" +
-                                  $"- BẮT BUỘC sử dụng ALIAS (AS) để tên cột trong kết quả trả về khớp hoàn toàn với tên tiêu đề Excel (ví dụ: SELECT KhachHang AS [{templateInfo.Columns.FirstOrDefault()?.UniqueKey ?? "ColName"}] ...).";
+                                  $"- Dữ liệu SQL SELECT trả về BẮT BUỘC phải có đầy đủ các cột tiêu đề sau: {columnsStr}.\n" +
+                                  $"- CẢNH BÁO BẮT BUỘC: Bạn TUYỆT ĐỐI KHÔNG ĐƯỢC bỏ sót bất kỳ cột nào! Câu SELECT cuối cùng phải chứa ĐẦY ĐỦ tất cả các cột UniqueKey theo đúng thứ tự. Nếu thiếu dù chỉ 1 cột, hệ thống sẽ lỗi.\n" +
+                                  $"- BẮT BUỘC sử dụng ALIAS (AS) để tên cột trong kết quả trả về khớp hoàn toàn với tên tiêu đề Excel (ví dụ: SELECT KhachHang AS [{templateInfo.Columns.FirstOrDefault()?.UniqueKey ?? "ColName"}] ...).\n" +
+                                  $"- Nếu không tìm thấy cột tương ứng trong database, hãy trả về NULL (ví dụ: NULL AS [UniqueKey]).\n";
         }
 
         if (templateInfo.Metadata.Count > 0)
@@ -107,16 +113,38 @@ public class ExcelReportService
                                    $"- Khóa JSON trả về phải khớp hoàn toàn với tên các nhãn trên.";
         }
 
-        combinedQuery = $"{additionalQuery.Trim()}.{mappingInstructions}";
+        // Lấy ghi chú cột Excel được lưu trữ lâu dài của người dùng
+        var savedMappings = _mappingService.GetMapping(fileName);
+        string userNotes = "";
+        if (savedMappings.Count > 0)
+        {
+            var notesList = new List<string>();
+            foreach (var col in templateInfo.Columns)
+            {
+                if (savedMappings.TryGetValue(col.UniqueKey, out var note) && !string.IsNullOrWhiteSpace(note))
+                {
+                    string colName = string.IsNullOrEmpty(col.ParentHeader) ? col.ChildHeader : $"{col.ParentHeader} -> {col.ChildHeader}";
+                    notesList.Add($"- Cột có UniqueKey là '{col.UniqueKey}' (Tên hiển thị: '{colName}'): Có ý nghĩa/Công thức tính là \"{note}\"");
+                }
+            }
+            if (notesList.Count > 0)
+            {
+                userNotes = $"\n\nDANH SÁCH Ý NGHĨA & CÔNG THỨC CỘT EXCEL TỰ ĐỊNH NGHĨA BỞI NGƯỜI DÙNG (BẮT BUỘC TUÂN THỦ KHI VIẾT SQL):\n" +
+                            $"- Khi viết SQL, bạn BẮT BUỘC phải tính toán giá trị của các cột (UniqueKey) tương ứng theo đúng mô tả ý nghĩa/công thức dưới đây:\n" +
+                            string.Join("\n", notesList) + "\n";
+            }
+        }
+
+        combinedQuery = $"{additionalQuery.Trim()}.{userNotes}{mappingInstructions}";
 
         // 3. Thực thi RAG Orchestrator để lấy dữ liệu từ database
         var ragResponse = await _ragOrchestrator.ProcessQueryAsync(
-            combinedQuery, 
-            null, 
-            onStep, 
-            ct, 
-            enableFastPath: true, 
-            isExcelTemplate: true, 
+            combinedQuery,
+            null,
+            onStep,
+            ct,
+            enableFastPath: true,
+            isExcelTemplate: true,
             enableRulesExtraction: true);
 
         // 4. Chuyển đổi dữ liệu trả về sang DataTable
@@ -137,16 +165,16 @@ public class ExcelReportService
             {
                 // Bỏ qua dòng tổng từ SQL vì Excel đã có dòng tổng công thức riêng của template
                 var firstColVal = sourceRow[0]?.ToString()?.Trim() ?? "";
-                if (firstColVal.Equals("Tổng", StringComparison.OrdinalIgnoreCase) || 
+                if (firstColVal.Equals("Tổng", StringComparison.OrdinalIgnoreCase) ||
                     firstColVal.Equals("Total", StringComparison.OrdinalIgnoreCase))
                 {
-                    continue; 
+                    continue;
                 }
 
                 var newRow = dataTable.NewRow();
                 foreach (var col in templateInfo.Columns)
                 {
-                    if (columnMapping.TryGetValue(col.UniqueKey, out var sourceColName) && 
+                    if (columnMapping.TryGetValue(col.UniqueKey, out var sourceColName) &&
                         ragResponse.RawDataTable.Columns.Contains(sourceColName))
                     {
                         newRow[col.UniqueKey] = sourceRow[sourceColName];
@@ -182,6 +210,20 @@ public class ExcelReportService
                 if (!metadataValues.ContainsKey(kvp.Key))
                 {
                     metadataValues[kvp.Key] = kvp.Value;
+                }
+            }
+        }
+
+        // Tự động bổ sung metadata từ dòng đầu tiên của dữ liệu truy vấn thực tế (DataTable)
+        if (ragResponse.RawDataTable != null && ragResponse.RawDataTable.Rows.Count > 0)
+        {
+            var firstRow = ragResponse.RawDataTable.Rows[0];
+            foreach (DataColumn col in ragResponse.RawDataTable.Columns)
+            {
+                var val = firstRow[col]?.ToString()?.Trim();
+                if (!string.IsNullOrEmpty(val) && !metadataValues.ContainsKey(col.ColumnName))
+                {
+                    metadataValues[col.ColumnName] = val;
                 }
             }
         }
@@ -295,6 +337,9 @@ public class ExcelReportService
             ("StypeId", @"StypeId\s*=\s*N?'([^']+)'"),
             ("MaHang", @"MaHang\s*(?:=|LIKE)\s*N?'%?([^'%]+)%?'"),
             ("LineX", @"LineX\s*=\s*N?'?([^'\s,)]+)'?"),
+            ("PlanCode", @"PlanCode\s*=\s*N?'?([^'\s,)]+)'?"),
+            ("PoId", @"PoId\s*=\s*N?'?([^'\s,)]+)'?"),
+            ("MaLenh", @"MaLenh\s*=\s*N?'?([^'\s,)]+)'?"),
         };
 
         foreach (var step in steps)

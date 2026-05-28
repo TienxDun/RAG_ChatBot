@@ -167,18 +167,25 @@
             </div>
             
             <div class="header__right">
-                <div class="header__actions-group glass-panel shadow-sm">
-                    <button id="open-search" class="header-action-btn" title="Tìm kiếm tin nhắn">
-                        <i class="ph-bold ph-magnifying-glass"></i>
+                <div class="header__dropdown-container">
+                    <button id="header-dropdown-trigger" class="header-action-btn glass-panel shadow-sm" title="Tiện ích nhanh">
+                        <i class="ph-bold ph-gear-six"></i>
                     </button>
-                    <div class="header-separator"></div>
-                    <button id="open-upload" class="header-action-btn" title="Tải lên tài liệu">
-                        <i class="ph-bold ph-upload-simple"></i>
-                    </button>
-                    <div class="header-separator"></div>
-                    <button id="header-new-chat" class="header-action-btn" title="Chat mới">
-                        <i class="ph-bold ph-plus"></i>
-                    </button>
+                    <div id="header-dropdown-menu" class="header__dropdown-menu glass-panel shadow-lg hidden">
+                        <button id="open-search" class="dropdown-item" title="Tìm kiếm tin nhắn">
+                            <i class="ph-bold ph-magnifying-glass"></i>
+                        </button>
+                        <button id="open-upload" class="dropdown-item" title="Tải lên tài liệu">
+                            <i class="ph-bold ph-upload-simple"></i>
+                        </button>
+                        <button id="attach-btn" class="dropdown-item" title="Đính kèm file Excel">
+                            <i class="ph-bold ph-paperclip"></i>
+                        </button>
+                        <input type="file" id="chat-file" hidden accept=".xlsx">
+                        <button id="header-new-chat" class="dropdown-item" title="Chat mới">
+                            <i class="ph-bold ph-plus"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </header>
@@ -219,10 +226,6 @@
 
                     <div id="input-container" class="input-container glass-panel shadow-2xl">
                         <div class="input-actions-left">
-                            <button id="attach-btn" class="attach-btn" title="Đính kèm file Excel">
-                                <i class="ph-bold ph-paperclip"></i>
-                            </button>
-                            <input type="file" id="chat-file" hidden accept=".xlsx">
                         </div>
 
                         <textarea id="chat-input" placeholder="Hỏi về cơ sở dữ liệu của bạn..." rows="1"></textarea>

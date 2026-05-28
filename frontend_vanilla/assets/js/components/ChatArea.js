@@ -1,5 +1,5 @@
 // ChatArea.js - Chat area interactions & Messaging
-import { SELECTORS, ENDPOINTS } from '../core/Config.js';
+import { SELECTORS, ENDPOINTS, CONFIG } from '../core/Config.js';
 import { MessageRenderer } from './MessageRenderer.js';
 import { ApiClient } from '../core/ApiClient.js';
 import { state } from '../core/State.js';
@@ -302,6 +302,7 @@ export class ChatAreaComponent {
         if (FileHandler.validateExcel(file)) {
             this.uiState.selectedFile = file;
             this._renderFilePreview();
+            this._loadExcelTemplateDetails(file);
             this._updateInputUI();
             this.elements.chatInput.focus();
         } else {
@@ -330,8 +331,8 @@ export class ChatAreaComponent {
     }
 
     _initTemplateCacheUI() {
-        const leftActions = this.elements.inputContainer.querySelector('.input-actions-left');
-        if (!leftActions) return;
+        const attachBtn = this.elements.attachBtn;
+        if (!attachBtn) return;
 
         this.templatePopup = document.createElement('div');
         this.templatePopup.className = 'template-cache-popup';
@@ -346,13 +347,37 @@ export class ChatAreaComponent {
                 </div>
             </div>
         `;
-        leftActions.appendChild(this.templatePopup);
+        
+        const dropdownContainer = document.querySelector('.header__dropdown-container');
+        if (dropdownContainer) {
+            dropdownContainer.appendChild(this.templatePopup);
+
+            // Handle hover entry
+            attachBtn.addEventListener('mouseenter', () => {
+                this._refreshTemplateList();
+                this.templatePopup.classList.add('visible');
+            });
+
+            // Handle hover exit with small delay to allow moving between button and popup
+            attachBtn.addEventListener('mouseleave', () => {
+                setTimeout(() => {
+                    if (!this.templatePopup.matches(':hover') && !attachBtn.matches(':hover')) {
+                        this.templatePopup.classList.remove('visible');
+                    }
+                }, 100);
+            });
+
+            this.templatePopup.addEventListener('mouseleave', () => {
+                setTimeout(() => {
+                    if (!attachBtn.matches(':hover') && !this.templatePopup.matches(':hover')) {
+                        this.templatePopup.classList.remove('visible');
+                    }
+                }, 100);
+            });
+        }
         
         // 1. Tải danh sách lần đầu ngay khi khởi tạo
         this._refreshTemplateList(true);
-
-        // 2. Dự phòng: Khi hover, chỉ fetch lại nếu dữ liệu đã quá cũ (30 giây)
-        leftActions.addEventListener('mouseenter', () => this._refreshTemplateList());
     }
 
     async _refreshTemplateList(force = false) {
@@ -467,7 +492,6 @@ export class ChatAreaComponent {
 
     async _selectTemplateFromCache(id, fileName) {
         try {
-            Toast.info(`Đang lấy file: ${fileName}...`);
             const blob = await TemplateCacheService.downloadTemplate(id);
             if (!blob) {
                 Toast.error("Không thể tải file từ bộ nhớ đệm.");
@@ -478,9 +502,18 @@ export class ChatAreaComponent {
             
             this.uiState.selectedFile = file;
             this._renderFilePreview();
+            this._loadExcelTemplateDetails(file);
             this._updateInputUI();
             
             Toast.success(`Đã chọn: ${fileName}`);
+
+            // Close popups and dropdowns
+            if (this.templatePopup) {
+                this.templatePopup.classList.remove('visible');
+            }
+            if (window.app && window.app.header) {
+                window.app.header.close();
+            }
         } catch (error) {
             console.error('Failed to select template from cache', error);
             Toast.error("Đã xảy ra lỗi.");
@@ -491,6 +524,8 @@ export class ChatAreaComponent {
         const { chatInput, chatArea, messagesList, chatFile, collectionSelect } = this.elements;
         const text = chatInput.value.trim();
         if (!text || this.uiState.isLoading) return;
+
+
 
         ChatService.ensureConversationStarted(text);
         this.appendMessage('user', text, [], [], null, null, null, this.uiState.selectedFile);
@@ -914,5 +949,161 @@ export class ChatAreaComponent {
         messages.forEach((msgEl, index) => {
             msgEl.setAttribute('data-msg-index', index);
         });
+    }
+
+    async _loadExcelTemplateDetails(file) {
+        const notesContainer = document.getElementById('excel-column-notes');
+        if (!notesContainer) return;
+
+        // Render loading state inside the notes container
+        notesContainer.innerHTML = `
+            <div class="excel-notes-loading">
+                <i class="ph-bold ph-spinner animate-spin"></i>
+                <span>Đang phân tích cấu trúc tiêu đề cột...</span>
+            </div>
+        `;
+
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch(`${CONFIG.API_BASE_URL}/templates/analyze`, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to analyze Excel template');
+            }
+
+            const data = await response.json();
+            this._renderExcelColumnNotesUI(notesContainer, data, file);
+        } catch (err) {
+            console.error('Error analyzing template:', err);
+            notesContainer.innerHTML = `
+                <div class="excel-notes-loading" style="color: #ef4444;">
+                    <i class="ph-bold ph-warning"></i>
+                    <span>Không thể tự động phân tích cột Excel. Bạn vẫn có thể gửi tệp bình thường.</span>
+                </div>
+            `;
+        }
+    }
+
+    _renderExcelColumnNotesUI(container, data, file) {
+        if (!data.columns || data.columns.length === 0) {
+            container.innerHTML = '';
+            return;
+        }
+
+        const savedMappings = data.savedMappings || {};
+
+        const columnsHtml = data.columns.map(col => {
+            const displayName = col.childHeader;
+            const parentName = col.parentHeader ? `${col.parentHeader} / ` : '';
+            const savedValue = savedMappings[col.uniqueKey] || '';
+            
+            return `
+                <div class="excel-column-note-row animate-in fade-in duration-300">
+                    <div class="excel-column-info">
+                        <span class="excel-column-name" title="${displayName}">${displayName}</span>
+                        <span class="excel-column-parent">${parentName}Cột ${col.columnIndex}</span>
+                    </div>
+                    <div class="excel-column-input-wrapper">
+                        <input type="text" class="column-note-input" 
+                               data-column="${col.uniqueKey}" 
+                               data-column-name="${col.parentHeader ? col.parentHeader + ' -> ' + col.childHeader : col.childHeader}" 
+                               value="${savedValue}"
+                               placeholder="Ghi chú ý nghĩa (ví dụ: mã hàng)...">
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        container.innerHTML = `
+            <div class="excel-column-notes-container collapsed" id="excel-notes-accordion">
+                <div class="excel-notes-header" id="excel-notes-accordion-header">
+                    <h4>
+                        <i class="ph-fill ph-note-pencil"></i>
+                        <span>Chú thích cột Excel (${data.columns.length} cột)</span>
+                    </h4>
+                    <i class="ph-bold ph-caret-down toggle-icon"></i>
+                </div>
+                <div class="excel-notes-content">
+                    ${columnsHtml}
+                    <div class="excel-notes-actions">
+                        <button id="excel-notes-save-btn" class="excel-notes-save-btn">
+                            <i class="ph-bold ph-floppy-disk"></i>
+                            <span>Lưu & Đóng file</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Thêm sự kiện toggle cho accordion
+        const accordion = document.getElementById('excel-notes-accordion');
+        const header = document.getElementById('excel-notes-accordion-header');
+        if (header && accordion) {
+            header.addEventListener('click', () => {
+                accordion.classList.toggle('collapsed');
+            });
+        }
+
+        // Thêm sự kiện click nút Save & Close
+        const saveBtn = document.getElementById('excel-notes-save-btn');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                
+                const mappings = {};
+                const noteInputs = container.querySelectorAll('.column-note-input');
+                noteInputs.forEach(input => {
+                    const val = input.value.trim();
+                    if (val) {
+                        const colKey = input.getAttribute('data-column');
+                        mappings[colKey] = val;
+                    }
+                });
+
+                const payload = {
+                    fileName: file.name,
+                    mappings: mappings
+                };
+
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<i class="ph-bold ph-spinner animate-spin"></i> <span>Đang lưu...</span>';
+
+                try {
+                    // Chạy song song việc lưu cấu hình ghi chú và đẩy file Excel trống vào bộ nhớ đệm bền vững
+                    const [resMapping, resCache] = await Promise.all([
+                        fetch(`${CONFIG.API_BASE_URL}/templates/save-mapping`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(payload)
+                        }),
+                        TemplateCacheService.cacheTemplate(file)
+                    ]);
+
+                    if (!resMapping.ok) throw new Error('Failed to save mapping');
+                    if (!resCache) throw new Error('Failed to cache Excel template');
+                    
+                    Toast.success("Đã lưu file template Excel và cấu hình ghi chú thành công!");
+                    
+                    // Đóng/gỡ bỏ file Excel khỏi thanh chat sau khi đã lưu xong
+                    document.getElementById('remove-file-btn')?.click();
+
+                    // Cập nhật lại danh sách template ở dropdown menu
+                    this._refreshTemplateList(true);
+                } catch (err) {
+                    console.error('Error saving mapping or caching file:', err);
+                    Toast.error("Lỗi khi lưu cấu hình và file Excel.");
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = '<i class="ph-bold ph-floppy-disk"></i> <span>Lưu & Đóng file</span>';
+                }
+            });
+        }
     }
 }
