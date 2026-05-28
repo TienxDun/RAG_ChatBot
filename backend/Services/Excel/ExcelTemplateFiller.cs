@@ -399,29 +399,36 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
                 // Cần chèn thêm dòng
                 int rowsToInsert = dataRowsCount - availableRowsCount;
                 int lastRowInTemplate = targetRows.Last();
-                int insertAt = lastRowInTemplate + 1;
+                int insertAt = lastRowInTemplate; // Chèn bên TRONG dải công thức (tại dòng template cuối cùng) để Excel tự động mở rộng công thức SUM/AVERAGE
 
                 // Thực hiện chèn dòng trống trong EPPlus
                 worksheet.InsertRow(insertAt, rowsToInsert);
 
-                // Copy style từ dòng template cuối cùng xuống các dòng mới được chèn
+                // Sau khi chèn, dòng lastRowInTemplate cũ bị dịch chuyển xuống vị trí: lastRowInTemplate + rowsToInsert
+                int shiftedSourceRow = lastRowInTemplate + rowsToInsert;
+
+                // Copy style từ dòng template bị dịch chuyển (shiftedSourceRow) lên các dòng mới chèn
                 int totalCols = worksheet.Dimension?.Columns ?? 0;
                 for (int i = 0; i < rowsToInsert; i++)
                 {
                     int newRowIndex = insertAt + i;
-                    worksheet.Row(newRowIndex).Height = worksheet.Row(lastRowInTemplate).Height;
+                    worksheet.Row(newRowIndex).Height = worksheet.Row(shiftedSourceRow).Height;
 
                     for (int col = 1; col <= totalCols; col++)
                     {
-                        var sourceCell = worksheet.Cells[lastRowInTemplate, col];
+                        var sourceCell = worksheet.Cells[shiftedSourceRow, col];
                         var destCell = worksheet.Cells[newRowIndex, col];
 
                         destCell.StyleID = sourceCell.StyleID;
                         destCell.Value = null; // Đảm bảo ô trống
                     }
+                }
 
-                    // Thêm dòng mới vào danh sách ghi
-                    targetRows.Add(newRowIndex);
+                // Tái cấu trúc danh sách targetRows tuần tự từ dòng bắt đầu để điền đầy đủ dữ liệu
+                targetRows.Clear();
+                for (int i = 0; i < dataRowsCount; i++)
+                {
+                    targetRows.Add(dataStartRowIndex + i);
                 }
 
                 // Ghi dữ liệu tuần tự vào toàn bộ các dòng

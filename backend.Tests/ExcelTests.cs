@@ -229,7 +229,7 @@ public class ExcelTests
         Assert.Equal("31/05/2026", worksheet.Cells[13, 1].Text);
         Assert.Equal(30d, Convert.ToDouble(worksheet.Cells[13, 2].Value));
         Assert.Equal("Tổng", worksheet.Cells[14, 1].Text);
-        Assert.Equal("SUM(B9:B11)", worksheet.Cells[14, 2].Formula);
+        Assert.Equal("SUM(B9:B13)", worksheet.Cells[14, 2].Formula);
     }
 
     [Fact]
@@ -370,7 +370,7 @@ public class ExcelTests
         Assert.Equal(125d, Convert.ToDouble(worksheet.Cells[13, 2].Value));
         Assert.Equal(108d, Convert.ToDouble(worksheet.Cells[13, 3].Value));
         Assert.Equal("Tổng", worksheet.Cells[14, 1].Text);
-        Assert.Equal("SUM(B9:B11)", worksheet.Cells[14, 2].Formula);
+        Assert.Equal("SUM(B9:B13)", worksheet.Cells[14, 2].Formula);
     }
 
     [Fact]

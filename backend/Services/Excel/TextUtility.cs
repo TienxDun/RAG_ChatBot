@@ -36,7 +36,7 @@ public class TextUtility : ITextUtility
         }
 
         string result = stringBuilder.ToString().Normalize(NormalizationForm.FormC);
-        
+
         // Chỉ giữ lại chữ cái, chữ số và dấu gạch dưới, loại bỏ khoảng trắng và ký tự đặc biệt
         result = System.Text.RegularExpressions.Regex.Replace(result, @"[^a-zA-Z0-9_]", "");
         return result;
@@ -67,7 +67,7 @@ public class TextUtility : ITextUtility
 
         if (string.IsNullOrEmpty(p)) return c;
         if (string.IsNullOrEmpty(c)) return p;
-        
+
         // Nếu tên cha và tên con trùng nhau sau khi bỏ dấu (ví dụ: Ngay và Ngày)
         if (string.Equals(p, c, StringComparison.OrdinalIgnoreCase)) return c;
 
@@ -132,14 +132,14 @@ public class TextUtility : ITextUtility
                 .Replace("_", "").Replace("-", "").Replace(" ", "")
                 .Replace("y", "i").Replace("Y", "i")
                 .ToLowerInvariant();
-            
+
             foreach (DataColumn dc in source.Columns)
             {
                 string dcClean = RemoveDiacritics(dc.ColumnName)
                     .Replace("_", "").Replace("-", "").Replace(" ", "")
                     .Replace("y", "i").Replace("Y", "i")
                     .ToLowerInvariant();
-                
+
                 if (string.Equals(tcClean, dcClean, StringComparison.OrdinalIgnoreCase))
                 {
                     mapping[tc.UniqueKey] = dc.ColumnName;
@@ -160,14 +160,14 @@ public class TextUtility : ITextUtility
             DataStartRowIndex = llm.DataStartRowIndex,
             DataEndRowIndex = ruleBased.DataEndRowIndex,
             TotalRowIndex = ruleBased.TotalRowIndex,
-            FillableRowIndexes = ruleBased.FillableRowIndexes != null 
-                ? new List<int>(ruleBased.FillableRowIndexes) 
+            FillableRowIndexes = ruleBased.FillableRowIndexes != null
+                ? new List<int>(ruleBased.FillableRowIndexes)
                 : new List<int>(),
-            Columns = llm.Columns != null 
-                ? new List<FlattenedColumn>(llm.Columns) 
+            Columns = llm.Columns != null
+                ? new List<FlattenedColumn>(llm.Columns)
                 : new List<FlattenedColumn>(),
-            Metadata = llm.Metadata != null 
-                ? new Dictionary<string, string>(llm.Metadata, StringComparer.OrdinalIgnoreCase) 
+            Metadata = llm.Metadata != null
+                ? new Dictionary<string, string>(llm.Metadata, StringComparer.OrdinalIgnoreCase)
                 : new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         };
 

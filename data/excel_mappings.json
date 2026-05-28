@@ -1,0 +1,13 @@
+{
+  "BCEndlineNgay (22)_Empty.xlsx": {
+    "ThanhPhamFinished_SLkiemQuantity": "Tuyệt đối lấy cột SuaDat+Quantity từ bảng SEW_CoefficientSize",
+    "ThanhPhamFinished_TileloiDefectrate": "Tỉ lệ lỗi = Số lượng lỗi / (số lượng lỗi + số lượng đạt)",
+    "ThanhPhamFinished_GhichuNotes": "Nối tất cả tên các lỗi (TenLoi) xuất hiện trong ngày, chuyền và bộ phận này từ bảng QTY_MaHang_KiemQC_ChiTiet (JOIN với QTY_NHOMLOI_CHITIET qua Code = MaLoi), ngăn cách nhau bởi dấu '|'. Sử dụng hàm STRING_AGG(TenLoi, '| ').",
+    "VoShell_SLkiemQuantity": "Tuyệt đối lấy cột SuaDat+Quantity từ bảng SEW_CoefficientSize",
+    "VoShell_GhichuNotes": "Nối tất cả tên các lỗi (TenLoi) xuất hiện trong ngày, chuyền và bộ phận này từ bảng QTY_MaHang_KiemQC_ChiTiet (JOIN với QTY_NHOMLOI_CHITIET qua Code = MaLoi), ngăn cách nhau bởi dấu '|'. Sử dụng hàm STRING_AGG(TenLoi, '| ').",
+    "LotthuongLining_SLkiemQuantity": "Tuyệt đối lấy cột SuaDat+Quantity từ bảng SEW_CoefficientSize",
+    "LotthuongLining_TileloiDefectrate": "Tỉ lệ lỗi = Số lượng lỗi / (số lượng lỗi + số lượng đạt)",
+    "LotthuongLining_GhichuNotes": "Nối tất cả tên các lỗi (TenLoi) xuất hiện trong ngày, chuyền và bộ phận này từ bảng QTY_MaHang_KiemQC_ChiTiet (JOIN với QTY_NHOMLOI_CHITIET qua Code = MaLoi), ngăn cách nhau bởi dấu '|'. Sử dụng hàm STRING_AGG(TenLoi, '| ').",
+    "LotlanLining_GhichuNotes": "Nối tất cả tên các lỗi (TenLoi) xuất hiện trong ngày, chuyền và bộ phận này từ bảng QTY_MaHang_KiemQC_ChiTiet (JOIN với QTY_NHOMLOI_CHITIET qua Code = MaLoi), ngăn cách nhau bởi dấu '|'. Sử dụng hàm STRING_AGG(TenLoi, '| ')."
+  }
+}

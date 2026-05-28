@@ -54,8 +54,36 @@ public sealed class RagOrchestrator
 
         // 0. Khởi tạo & 1. Get Embeddings song song
         var initTask = onStep(new RagStep("System Initialization", "Đang khởi tạo luồng xử lý và chuẩn bị kết nối tới AI Engine..."));
+
+        string embeddingText = userQuery;
+        if (isExcelTemplate)
+        {
+            // Trích xuất phần câu hỏi gốc (nằm trước phần danh sách ý nghĩa và yêu cầu đặc biệt)
+            int idxNotes = userQuery.IndexOf("DANH SÁCH Ý NGHĨA");
+            int idxReq = userQuery.IndexOf("YÊU CẦU ĐẶC BIỆT");
+            
+            int cutIdx = -1;
+            if (idxNotes >= 0 && idxReq >= 0) cutIdx = Math.Min(idxNotes, idxReq);
+            else if (idxNotes >= 0) cutIdx = idxNotes;
+            else if (idxReq >= 0) cutIdx = idxReq;
+            
+            if (cutIdx > 0)
+            {
+                embeddingText = userQuery.Substring(0, cutIdx).Trim();
+                if (embeddingText.EndsWith('.'))
+                {
+                    embeddingText = embeddingText.Substring(0, embeddingText.Length - 1).Trim();
+                }
+            }
+        }
         
-        var vectorTask = _aiClient.GetEmbeddingAsync(userQuery, "RETRIEVAL_QUERY", 3072, ct);
+        // Giới hạn ký tự an toàn dự phòng (~400-500 tokens), bảo vệ 100% khỏi giới hạn 2048 tokens của Vertex AI
+        if (embeddingText.Length > 2000)
+        {
+            embeddingText = embeddingText.Substring(0, 2000);
+        }
+
+        var vectorTask = _aiClient.GetEmbeddingAsync(embeddingText, "RETRIEVAL_QUERY", 3072, ct);
         
         await initTask;
         var vector = await vectorTask;

@@ -60,6 +60,7 @@ builder.Services.AddSingleton<Backend.Services.Excel.ITextUtility, Backend.Servi
 builder.Services.AddSingleton<Backend.Services.Excel.IExcelTemplateAnalyzer, Backend.Services.Excel.ExcelTemplateAnalyzer>();
 builder.Services.AddSingleton<Backend.Services.Excel.IExcelTemplateFiller, Backend.Services.Excel.ExcelTemplateFiller>();
 builder.Services.AddSingleton<Backend.Services.Excel.IExcelExporter, Backend.Services.Excel.ExcelExporter>();
+builder.Services.AddSingleton<Backend.Services.Excel.IExcelMappingService, Backend.Services.Excel.ExcelMappingService>();
 
 // Document Refactored Services
 builder.Services.AddSingleton<Backend.Services.Document.IDbSchemaParser, Backend.Services.Document.DbSchemaParser>();

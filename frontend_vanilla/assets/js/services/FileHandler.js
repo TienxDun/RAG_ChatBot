@@ -29,6 +29,7 @@ export class FileHandler {
                     <i class="ph-bold ph-x"></i>
                 </button>
             </div>
+            <div id="excel-column-notes" style="width: 100%;"></div>
         `;
 
         document.getElementById('remove-file-btn').addEventListener('click', () => {

@@ -544,4 +544,205 @@ textarea::placeholder {
     }
 }
 
+/* Excel Column Notes Styling */
+.excel-column-notes-container {
+    width: 100%;
+    margin-top: 0.5rem;
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(124, 58, 237, 0.15);
+    border-radius: 1rem;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.excel-notes-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    background: rgba(124, 58, 237, 0.05);
+    user-select: none;
+    transition: background 0.2s ease;
+}
+
+.excel-notes-header:hover {
+    background: rgba(124, 58, 237, 0.08);
+}
+
+.excel-notes-header h4 {
+    margin: 0;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.excel-notes-header .toggle-icon {
+    font-size: 1rem;
+    color: var(--muted-foreground);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.excel-column-notes-container.collapsed .excel-notes-header .toggle-icon {
+    transform: rotate(-90deg);
+}
+
+.excel-notes-content {
+    max-height: 280px;
+    overflow-y: auto;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    transition: max-height 0.3s ease;
+}
+
+.excel-column-notes-container.collapsed .excel-notes-content {
+    max-height: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+.excel-column-note-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    gap: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="dark"] .excel-column-note-row {
+    border-bottom-color: rgba(255, 255, 255, 0.05);
+}
+
+.excel-column-note-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.excel-column-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.excel-column-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--foreground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.excel-column-parent {
+    font-size: 0.7rem;
+    color: var(--muted-foreground);
+    opacity: 0.7;
+}
+
+.excel-column-input-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.column-note-input {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+    color: var(--foreground);
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+[data-theme="dark"] .column-note-input {
+    background: rgba(15, 23, 42, 0.3);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.column-note-input:focus {
+    border-color: var(--primary);
+    background: var(--background);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 15%, transparent);
+}
+
+/* Loading state for notes */
+.excel-notes-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 2rem;
+    color: var(--muted-foreground);
+    font-size: 0.85rem;
+}
+
+.excel-notes-loading i {
+    font-size: 1.25rem;
+    color: var(--primary);
+}
+
+@media (max-width: 640px) {
+    .excel-column-note-row {
+        grid-template-columns: 1fr;
+        gap: 0.35rem;
+    }
+}
+
+.excel-notes-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    margin-top: 0.5rem;
+}
+
+[data-theme="dark"] .excel-notes-actions {
+    border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+.excel-notes-save-btn {
+    background: var(--primary);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 0.5rem 1.25rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+.excel-notes-save-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px color-mix(in srgb, var(--primary) 35%, transparent);
+    filter: brightness(1.05);
+}
+
+.excel-notes-save-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.excel-notes-save-btn:disabled {
+    background: #e5e7eb;
+    color: #9ca3af;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
 
