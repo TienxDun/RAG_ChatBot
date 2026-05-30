@@ -1,8 +1,8 @@
 {
   "table": "QTY_KiemQA_NgayKiem",
-  "purpose": "Lưu trữ thông tin kiểm tra chất lượng tổng hợp theo ngày của bộ phận QA (Quality Assurance).",
-  "when_to_use": "Sử dụng khi câu hỏi CÓ chứa từ khóa 'final', 'QA', hoặc 'thành phẩm cuối' VÀ yêu cầu thống kê, báo cáo số lượng kiểm tra (SoLuongKiem), số lượng lỗi (SoLuongLoi), số lượng đạt KCS (SoLuongKCS), hoặc số lượng thùng kiểm (SLThungKiem). Ngoài ra, dùng để kiểm tra xem một mã hàng/size/ngày có phát sinh lỗi hay không trước khi quyết định truy vấn chi tiết lỗi.",
-  "when_not_to_use": "Không sử dụng nếu câu hỏi KHÔNG có từ khóa 'final', 'QA', hoặc 'thành phẩm cuối' (mặc định dùng QTY_MAHANG_NGAYKIEM). Không sử dụng nếu câu hỏi yêu cầu thống kê chi tiết theo từng loại lỗi hoặc mã lỗi cụ thể (khi đó phải dùng QTY_KiemQA_CHITIET - trừ khi SoLuongLoi trong bảng này bằng 0 hoặc NULL thì kết luận ngay không có lỗi mà không cần dùng chi tiết), hoặc hỏi về trạng thái sửa lỗi, tác vụ kiểm tra final (dùng TskFinal).",
+  "purpose": "Lưu trữ thông tin kiểm tra AQL (Acceptable Quality Level) tổng hợp theo ngày của bộ phận QA (Final QA). Mỗi bản ghi = 1 lần kiểm AQL 1 mã hàng/size/màu. TỈ LỆ LỖI = SoLuongLoi / SoLuongKiem * 100 (SoLuongKiem là số SP mẫu AQL lấy kiểm, KHÔNG phải tổng lô). Đây là checkpoint xuất hàng — khác hoàn toàn với InLine QC kiểm tại chuyền.",
+  "when_to_use": "CHỈ sử dụng khi câu hỏi CÓ CHỨA rõ ràng từ khóa 'final', 'QA', 'thành phẩm cuối' hoặc 'AQL' VÀ yêu cầu thống kê số lượng mẫu kiểm (SoLuongKiem), số lượng lỗi QA (SoLuongLoi).",
+  "when_not_to_use": "TUYỆT ĐỐI CẤM sử dụng bảng này nếu câu hỏi KHÔNG nhắc tới 'final', 'QA', 'thành phẩm cuối', hoặc 'AQL'. Nếu câu hỏi chỉ hỏi về 'tỉ lệ lỗi', 'sản phẩm lỗi', 'thống kê lỗi' chung chung của mã hàng hoặc chuyền (ví dụ: 'tỉ lệ sản phẩm lỗi của mã hàng XF_MY_XA7YG'), BẮT BUỘC dùng bảng QTY_MAHANG_NGAYKIEM làm tử số và JOIN với SEW_CoefficientSize làm mẫu số.",
   "table_rules": [
     {
       "id": "T_QTY_QA_NK_001",
@@ -21,9 +21,9 @@
     {
       "id": "T_QTY_QA_NK_003",
       "severity": "CRITICAL",
-      "rule": "CÔNG THỨC TÍNH SỐ LƯỢNG LỖI CỦA QA: Sử dụng SUM(ISNULL(SoLuongLoi, 0)). Tuyệt đối không nhầm lẫn với cột SLKiem hay SoLuongKiem.",
-      "correct_example": "SELECT SUM(ISNULL(SoLuongLoi, 0)) AS TongLoi FROM QTY_KiemQA_NgayKiem",
-      "wrong_example": "SELECT SUM(SoLuongKiem) FROM QTY_KiemQA_NgayKiem"
+      "rule": "CÔNG THỨC TÍNH TỈ LỆ LỖI FINAL QA: Tỉ lệ lỗi = SoLuongLoi / SoLuongKiem * 100. SoLuongKiem ở bảng này là số SP mẫu AQL lấy kiểm (không phải tổng lô). SoLuongKCS là tổng SP đã KCS duyệt (= SLTong, không liên quan đến số lỗi). TUYỆT ĐỐI KHÔNG dùng SoLuongKCS để tính số đạt hay tỉ lệ. Khi tính tổng lỗi: SUM(ISNULL(SoLuongLoi, 0)). Khi tính tỉ lệ: CAST(SUM(...SoLuongLoi...) AS FLOAT) / NULLIF(SUM(...SoLuongKiem...), 0) * 100.",
+      "correct_example": "SELECT SUM(ISNULL(SoLuongLoi,0)) AS TongLoi, CAST(SUM(ISNULL(SoLuongLoi,0)) AS FLOAT)/NULLIF(SUM(ISNULL(SoLuongKiem,0)),0)*100 AS TiLeLoi FROM QTY_KiemQA_NgayKiem",
+      "wrong_example": "SELECT SUM(SoLuongKiem) FROM QTY_KiemQA_NgayKiem -- SAI: SoLuongKiem là số mẫu AQL, không phải tổng lô | SELECT (SoLuongKCS - SoLuongLoi) AS SoDat -- SAI: SoLuongKCS là tổng KCS duyệt"
     },
     {
       "id": "T_QTY_QA_NK_004",
@@ -45,6 +45,20 @@
       "rule": "Khi cần tra cứu chi tiết mã lỗi (Code) hoặc tên lỗi (TenLoi) của QA theo Style/Size/Ngày, hãy thực hiện JOIN bảng QTY_KiemQA_NgayKiem (q) với QTY_KiemQA_CHITIET (c) qua các cột: LenhSX, LineX, MaHang, Size và ép kiểu DATE cho cột NgayKiem, sau đó JOIN tiếp với QTY_NHOMLOI_CHITIET (n) qua c.Code = n.MaLoi.",
       "correct_example": "SELECT DISTINCT c.Code, n.TenLoi, c.NoiDung FROM QTY_KiemQA_NgayKiem q JOIN QTY_KiemQA_CHITIET c ON c.LenhSX = q.LenhSX AND c.LineX = q.LineX AND c.MaHang = q.MaHang AND c.Size = q.Size AND CAST(c.NgayKiem AS DATE) = CAST(q.NgayKiem AS DATE) JOIN QTY_NHOMLOI_CHITIET n ON c.Code = n.MaLoi JOIN ERP_LENHSX e ON q.LenhSX = e.MaLenh WHERE e.TenLenh = 'TEA25_Y_XR20R' AND q.Size = N'LGE' AND CAST(q.NgayKiem AS DATE) = '2026-01-31'",
       "wrong_example": "SELECT c.Code FROM QTY_KiemQA_CHITIET c JOIN ERP_LENHSX e ON c.LenhSX = e.MaLenh WHERE e.TenLenh = 'TEA25_Y_XR20R'"
+    },
+    {
+      "id": "T_QTY_QA_NK_007",
+      "severity": "CRITICAL",
+      "rule": "MỐI QUAN HỆ 4 CỘT SỐ LƯỢNG TRONG QA — HIỂU ĐÚNG ĐỂ TÍNH ĐÚNG: (1) SLTong = Tổng sản phẩm trong lô hàng QA quản lý (ví dụ: 100, 35, 50...). (2) SoLuongKCS = Số SP đã được KCS duyệt trước khi đưa QA kiểm — luôn bằng SLTong trong thực tế, KHÔNG phải số đạt sau kiểm. (3) SoLuongKiem = Số SP mẫu AQL QA thực tế lấy ra kiểm (thường bằng 1/5–1/6 SLTong: lô 100 SP lấy 20 mẫu, lô 30 SP lấy 5 mẫu...) — ĐÂY LÀ MẪu SỐ ĐỂ TÍNH TỈ LỆ LỖI. (4) SoLuongLoi = Số lỗi tìm thấy TRONG MẪu AQL — có thể lớn hơn SoLuongKiem vì 1 SP có thể nhiều lỗi (ví dụ: SLTong=30, SoLuongKiem=5, SoLuongLoi=6 là hợp lệ). CÔNG THỨC ĐÚNG DUY NHẤT: TỈ lệ lỗi = CAST(SUM(ISNULL(SoLuongLoi,0)) AS FLOAT) / NULLIF(SUM(ISNULL(SoLuongKiem,0)),0) * 100. TUYỆT ĐỐI KHÔNG dùng SLTong hay SoLuongKCS làm mẫu số.",
+      "correct_example": "-- Lô 30 SP: SLTong=30, SoLuongKCS=30, SoLuongKiem=5, SoLuongLoi=6 \n-- Tỉ lệ lỗi = 6/5*100 = 120% (vượt ngưỡng, có SP mẫu mấy lỗi chồng)\nSELECT MaHang, CAST(SUM(ISNULL(SoLuongLoi,0)) AS FLOAT)/NULLIF(SUM(ISNULL(SoLuongKiem,0)),0)*100 AS TiLeLoi FROM QTY_KiemQA_NgayKiem GROUP BY MaHang",
+      "wrong_example": "SELECT SUM(SoLuongLoi)/SUM(SLTong)*100 -- SAI: mẫu số phải là SoLuongKiem (số mẫu AQL), không phải SLTong (tổng lô) | SELECT SUM(SoLuongKCS - SoLuongLoi) -- SAI: SoLuongKCS ≠ số đạt"
+    },
+    {
+      "id": "T_QTY_QA_NK_008",
+      "severity": "CRITICAL",
+      "rule": "TUYỆT ĐỐI CẤM SỬ DỤNG BẢNG NÀY KHI CÂU HỎI KHÔNG CÓ TỪ KHÓA 'FINAL', 'QA', 'AQL' HOẶC 'THÀNH PHẨM CUỐI': Nếu câu hỏi không nhắc đến các từ khóa này (ví dụ: chỉ hỏi 'So sánh tỉ lệ lỗi giữa chuyền Daisy và chuyền Cherry đối với mã lệnh 0088_521_04_V0_0'), TUYỆT ĐỐI CẤM dùng bảng QTY_KiemQA_NgayKiem này. Bạn bắt buộc phải chuyển sang dùng bảng mặc định QTY_MAHANG_NGAYKIEM làm tử số và JOIN với SEW_CoefficientSize làm mẫu số.",
+      "correct_example": "-- ĐÚNG: Khi không có chữ 'final/QA', dùng QTY_MAHANG_NGAYKIEM\nWITH loi AS (SELECT LineX, SUM(SpLoi) AS L FROM QTY_MAHANG_NGAYKIEM GROUP BY LineX), dat AS (SELECT LineX, SUM(Quantity+SuaDat) AS D FROM SEW_CoefficientSize GROUP BY LineX) SELECT * FROM loi l JOIN dat d ON l.LineX = d.LineX",
+      "wrong_example": "-- SAI: Dùng QTY_KiemQA_NgayKiem khi câu hỏi không nhắc 'final' hay 'QA'\nSELECT * FROM QTY_KiemQA_NgayKiem"
     }
   ],
   "columns": [
@@ -124,7 +138,7 @@
       "name": "SLTong",
       "type": "int",
       "role": "measure",
-      "desc": "Tổng số lượng sản phẩm QA phụ trách."
+      "desc": "Tổng số SP trong lô hàng QA quản lý (toàn bộ lô chưa liên quan đến kiểm mẫu). Thường bằng SoLuongKCS. TUYỆT ĐỐI KHÔNG dùng làm mẫu số tính tỉ lệ lỗi. Xem rule T_QTY_QA_NK_007."
     },
     {
       "name": "SLThungKiem",
@@ -136,19 +150,19 @@
       "name": "SoLuongKCS",
       "type": "int",
       "role": "measure",
-      "desc": "Số lượng sản phẩm đạt chuẩn KCS."
+      "desc": "Số SP đã được KCS duyệt trước khi QA kiểm — luôn bằng SLTong trong thực tế. KHÔNG phải số SP đạt sau kiểm. TUYỆT ĐỐI KHÔNG dùng làm mẫu số tính tỉ lệ. Xem rule T_QTY_QA_NK_007."
     },
     {
       "name": "SoLuongKiem",
       "type": "int",
       "role": "measure",
-      "desc": "Số lượng sản phẩm thực tế được kiểm tra."
+      "desc": "Số SP mẫu AQL QA thực tế lấy kiểm (thường = 1/5–1/6 SLTong, ví dụ: lô 100 lấy 20 mẫu, lô 30 lấy 5 mẫu). ĐÂY LÀ MẪU SỐ ĐỂ TÍNH TỈ LỆ LỖI. Áp dụng rule T_QTY_QA_NK_003 và T_QTY_QA_NK_007."
     },
     {
       "name": "SoLuongLoi",
       "type": "int",
       "role": "measure",
-      "desc": "Số lượng sản phẩm lỗi QA ghi nhận. Áp dụng rule T_QTY_QA_NK_003."
+      "desc": "Số lỗi tìm thấy trong mẫu AQL. Có thể lớn hơn SoLuongKiem (vì 1 SP có thể mắc nhiều lỗi). NULL = không có lỗi (đạt). Dùng ISNULL(SoLuongLoi, 0) khi tính toán. Áp dụng rule T_QTY_QA_NK_003 và T_QTY_QA_NK_007."
     },
     {
       "name": "SuaDat",
@@ -178,7 +192,7 @@
       "name": "NhanVienKiem",
       "type": "nvarchar",
       "role": "filter",
-      "desc": "Tên nhân viên QA thực hiện kiểm tra."
+      "desc": "Tên nhân viên QA thực hiện kiểm tra. Trong dữ liệu thực tế luôn = 'QA' (không gọi theo tên riêng như InLine). TUYỆT ĐỐI KHÔNG lọc theo tên nhân viên cá nhân ở bảng này."
     },
     {
       "name": "IsQC",
@@ -196,7 +210,7 @@
       "name": "StatusHT",
       "type": "int",
       "role": "filter",
-      "desc": "Trạng thái hoàn thành sửa lỗi."
+      "desc": "Trạng thái kết quả lần kiểm QA: 0 = có lỗi, đang chờ xử lý (lỗi chưa sửa); 1 = lỗi đang được sửa/tái chế; 2 = đã sửa xong, chờ kiểm lại; 3 = PASS (lần kiểm đạt). Lọc StatusHT = 3 để lấy các phiếu QA đạt."
     },
     {
       "name": "Module",
@@ -299,6 +313,11 @@
       "target_table": "QTY_KiemQA_CHITIET",
       "join_on": "QTY_KiemQA_NgayKiem.LenhSX = QTY_KiemQA_CHITIET.LenhSX AND QTY_KiemQA_NgayKiem.LineX = QTY_KiemQA_CHITIET.LineX AND QTY_KiemQA_NgayKiem.MaHang = QTY_KiemQA_CHITIET.MaHang AND QTY_KiemQA_NgayKiem.Size = QTY_KiemQA_CHITIET.Size AND CAST(QTY_KiemQA_NgayKiem.NgayKiem AS DATE) = CAST(QTY_KiemQA_CHITIET.NgayKiem AS DATE)",
       "notes": "Để liên kết lấy chi tiết mã lỗi (Code), hình ảnh lỗi, nội dung lỗi từ bảng chi tiết của ngày đó."
+    },
+    {
+      "target_table": "tbl_SettingLineX",
+      "join_on": "QTY_KiemQA_NgayKiem.LineX = tbl_SettingLineX.ID",
+      "notes": "BẮT BUỘC kết nối (JOIN) khi cần lấy tên chuyền hiển thị (Name) thay vì mã ID."
     }
   ]
 }

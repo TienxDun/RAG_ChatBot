@@ -31,6 +31,13 @@
       "rule": "Cột thời gian tạo là NgayCreate (kiểu datetime). Áp dụng rule toàn cục G001 (cần CAST sang DATE).",
       "correct_example": "WHERE CAST(NgayCreate AS DATE) = '2026-04-15'",
       "wrong_example": "WHERE NgayCreate = '2026-04-15'"
+    },
+    {
+      "id": "T_TSK_FN_005",
+      "severity": "CRITICAL",
+      "rule": "LOGIC ĐẶC BIỆT CỦA IDLoi 34 VÀ 35 ĐỂ GHI NHẬN KẾT QUẢ KIỂM TRA FINAL: (1) PASS (Đạt) được ghi nhận bằng dòng có IDLoi = 34 và Status = 1. (2) FAIL (Lỗi/Không đạt) được ghi nhận bằng dòng có IDLoi = 35 và Status = 0. TUYỆT ĐỐI CẤM lọc WHERE IDLoi = 34 để đếm cả Pass/Fail vì dòng IDLoi = 34 không chứa trạng thái Fail. Khi muốn truy vấn hoặc đếm cả số lượt Pass và Fail, BẮT BUỘC dùng điều kiện WHERE IDLoi IN (34, 35) và dùng CASE WHEN để đếm riêng biệt.",
+      "correct_example": "-- Đếm số lượt Pass và Fail của từng lệnh SX:\nSELECT t.Lenh,\n  SUM(CASE WHEN t.IDLoi = 34 AND t.Status = 1 THEN 1 ELSE 0 END) AS [Số lượt Pass],\n  SUM(CASE WHEN t.IDLoi = 35 AND t.Status = 0 THEN 1 ELSE 0 END) AS [Số lượt Fail]\nFROM TskFinal t\nWHERE t.IDLoi IN (34, 35)\nGROUP BY t.Lenh",
+      "wrong_example": "-- SAI: Chỉ lọc IDLoi = 34 dẫn đến Số lượt Fail luôn bằng 0 do dòng IDLoi=35 bị loại bỏ\nSELECT t.Lenh, SUM(CASE WHEN t.Status = 1 THEN 1 ELSE 0 END) AS [Pass], SUM(CASE WHEN t.Status = 0 THEN 1 ELSE 0 END) AS [Fail] FROM TskFinal t WHERE t.IDLoi = 34 GROUP BY t.Lenh"
     }
   ],
   "columns": [
@@ -62,13 +69,13 @@
       "name": "IDLoi",
       "type": "int",
       "role": "filter",
-      "desc": "Mã ID lỗi thành phẩm ghi nhận."
+      "desc": "Mã ID loại lỗi. ĐẶC BIỆT: IDLoi = 34 là dòng ghi nhận trạng thái ĐẠT (Status=1 → Pass). IDLoi = 35 là dòng ghi nhận trạng thái lỗi/LÔ KHÔNG ĐẠT (Status=0 → Fail). Các IDLoi khác (1–33, 36+) là các loại lỗi kỹ thuật thông thường. Áp dụng rule T_TSK_FN_005."
     },
     {
       "name": "Status",
       "type": "int",
       "role": "filter",
-      "desc": "Mã trạng thái tác vụ (ví dụ: 1 - Chờ sửa, 2 - Đã sửa, 0 - Đạt)."
+      "desc": "Trạng thái tác vụ — ý nghĩa phụ thuộc vào IDLoi: Với IDLoi thông thường (không phải 34/35): Status=1 = lỗi đang chờ sửa, Status=2 = đã sửa xong, NULL = chưa xử lý. Với IDLoi=34: Status=1 là PASS. Với IDLoi=35: Status=0 là FAIL. Áp dụng rule T_TSK_FN_005."
     },
     {
       "name": "Note",
@@ -106,6 +113,11 @@
       "target_table": "ERP_LENHSX",
       "join_on": "TskFinal.Lenh = ERP_LENHSX.MaLenh",
       "notes": "Để lấy chi tiết thông tin lệnh sản xuất hoặc StyleID của mã hàng."
+    },
+    {
+      "target_table": "tbl_SettingLineX",
+      "join_on": "TskFinal.Line = tbl_SettingLineX.ID",
+      "notes": "BẮT BUỘC kết nối (JOIN) khi cần lấy tên chuyền hiển thị (Name) thay vì mã ID."
     }
   ]
 }

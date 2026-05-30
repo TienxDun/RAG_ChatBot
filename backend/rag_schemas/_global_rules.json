@@ -47,9 +47,9 @@
       "id": "G006",
       "category": "string_comparison",
       "severity": "CRITICAL",
-      "rule": "Khi so sánh các thông tin chuỗi văn bản như tên công đoạn (cd_name), tên lỗi (TenLoi), ghi chú (GhiChu, MoTa) có nguy cơ chứa khoảng trắng hoặc định dạng khác nhau: TUYỆT ĐỐI CẤM dùng toán tử '='. Bắt buộc dùng toán tử LIKE kết hợp tiền tố N (ví dụ: LIKE N'KCS%'). Tuy nhiên, hãy đọc kỹ quy định đặt '%' trong schema của từng cột cụ thể để tránh lọc nhầm dữ liệu.",
-      "correct_example": "WHERE s.cd_name LIKE N'KCS%'",
-      "wrong_example": "WHERE s.cd_name = N'KCS'"
+      "rule": "BẮT BUỘC DÙNG LIKE KHI SO SÁNH TÊN CÔNG ĐOẠN (cd_name), TÊN LỖI (TenLoi), GHI CHÚ: Đối với các trường chuỗi ký tự tự do như tên công đoạn (cd_name), tên lỗi (TenLoi, TenNhomLoi), nội dung ghi chú: TUYỆT ĐỐI CẤM sử dụng toán tử bằng '='. Bắt buộc phải sử dụng toán tử LIKE kết hợp tiền tố N và dấu '%' ở cuối (ví dụ: cd_name LIKE N'dieu tp ao%') để đảm bảo tìm đúng kể cả khi có khoảng trắng thừa hoặc ký tự phát sinh.",
+      "correct_example": "WHERE s.cd_name LIKE N'dieu tp ao%' hoặc WHERE n.TenLoi LIKE N'đứt chỉ%'",
+      "wrong_example": "WHERE s.cd_name = N'dieu tp ao' hoặc WHERE n.TenLoi = N'đứt chỉ'"
     },
     {
       "id": "G007",
@@ -119,17 +119,25 @@
       "id": "G015",
       "category": "table_routing_defect",
       "severity": "CRITICAL",
-      "rule": "ĐỊNH TUYẾN BẢNG LỖI (DEFECT TABLE ROUTING): Khi câu hỏi liên quan đến sản phẩm lỗi, tỷ lệ lỗi, thống kê lỗi, phải xác định từ khóa trong câu hỏi để chọn đúng bảng. (A) MẶC ĐỊNH: Nếu câu hỏi KHÔNG chứa từ khóa 'inline' hoặc 'final'/'QA', BẮT BUỘC dùng QTY_MAHANG_NGAYKIEM (tổng hợp lỗi) hoặc QTY_MaHang_KiemQC_ChiTiet (chi tiết từng loại lỗi). (B) Nếu câu hỏi CÓ CHỨA từ khóa 'final', 'QA' hoặc 'thành phẩm cuối': Dùng QTY_KiemQA_NgayKiem (thống kê tổng hợp số lượng lỗi, số lượng kiểm, đạt KCS của QA), hoặc QTY_KiemQA_CHITIET (liệt kê chi tiết lỗi, mã lỗi, tọa độ lỗi của QA), hoặc TskFinal (chỉ dùng khi hỏi về trạng thái sửa lỗi, tác vụ kiểm tra final). (C) Nếu câu hỏi CÓ CHỨA từ khóa 'inline' hoặc 'in line', dùng QTY_InLineQC_NgayKiem (tổng hợp) hoặc QTY_InLineQC_CHITIET (chi tiết). TUYỆT ĐỐI CẤM dùng sai nhóm bảng khi không có từ khóa tương ứng.",
-      "correct_example": "SELECT SUM(ISNULL(SpLoi, 0)) FROM QTY_MAHANG_NGAYKIEM WHERE LineX = '...' hoặc SELECT SUM(ISNULL(SoLuongLoi, 0)) FROM QTY_KiemQA_NgayKiem WHERE LineX = '...' hoặc SELECT COUNT(*) FROM TskFinal WHERE Line = '...'",
-      "wrong_example": "SELECT SUM(ISNULL(SPLoi, 0)) FROM QTY_InLineQC_CHITIET WHERE NhanVienKiem = N'...' (khi câu hỏi không nhắc 'inline') hoặc SELECT SUM(ISNULL(SoLuongLoi, 0)) FROM QTY_KiemQA_NgayKiem WHERE LineX = '...' (khi câu hỏi không nhắc 'final' hoặc 'QA')"
+      "rule": "ĐỊNH TUYẾN BẢNG LỖI (DEFECT TABLE ROUTING) — QUY TẮC CHỐNG LỰA CHỌN LƯỜI BIẾNG: Khi câu hỏi liên quan đến sản phẩm lỗi, tỷ lệ lỗi, thống kê lỗi, phải xác định từ khóa trong câu hỏi để chọn đúng bảng. (A) MẶC ĐỊNH: Nếu câu hỏi KHÔNG chứa từ khóa 'inline' hoặc 'final'/'QA'/'AQL', BẮT BUỘC dùng QTY_MAHANG_NGAYKIEM (tổng hợp lỗi) hoặc QTY_MaHang_KiemQC_ChiTiet (chi tiết từng loại lỗi). TUYỆT ĐỐI CẤM sử dụng bảng QTY_InLineQC_NgayKiem hoặc QTY_KiemQA_NgayKiem chỉ để né tránh việc viết câu lệnh JOIN phức tạp với bảng sản lượng (SEW). (B) Nếu câu hỏi CÓ CHỨA từ khóa 'final', 'QA', 'AQL' hoặc 'thành phẩm cuối': Dùng QTY_KiemQA_NgayKiem (thống kê tổng hợp số lượng lỗi, số lượng kiểm, đạt KCS của QA), hoặc QTY_KiemQA_CHITIET (liệt kê chi tiết lỗi, mã lỗi, tọa độ lỗi của QA), hoặc TskFinal (chỉ dùng khi hỏi về trạng thái sửa lỗi, tác vụ kiểm tra final). (C) Nếu câu hỏi CÓ CHỨA từ khóa 'inline' hoặc 'in line', dùng QTY_InLineQC_NgayKiem (tổng hợp) hoặc QTY_InLineQC_CHITIET (chi tiết). TUYỆT ĐỐI CẤM dùng sai nhóm bảng khi không có từ khóa tương ứng.",
+      "correct_example": "SELECT SUM(ISNULL(SpLoi, 0)) FROM QTY_MAHANG_NGAYKIEM WHERE LineX = '...' -- Đúng: mặc định dùng khi không nhắc inline/QA | SELECT SUM(ISNULL(SoLuongLoi, 0)) FROM QTY_KiemQA_NgayKiem WHERE LineX = '...' -- Đúng: chỉ dùng khi câu hỏi nhắc 'final' hoặc 'QA'",
+      "wrong_example": "SELECT CAST(SUM(q.SoLuongLoi) AS FLOAT)/NULLIF(SUM(q.SoLuongKiem), 0)*100 FROM QTY_InLineQC_NgayKiem q WHERE e.TenLenh = '...' -- SAI NGHIÊM TRỌNG: Câu hỏi hỏi tỉ lệ lỗi chung chung không có từ 'inline' nhưng cố tình dùng bảng InLine để né việc JOIN phức tạp với bảng SEW."
     },
     {
       "id": "G016",
       "category": "table_routing_productivity",
       "severity": "CRITICAL",
-      "rule": "ĐỊNH TUYẾN BẢNG NĂNG SUẤT / SẢN LƯỢNG (PRODUCTIVITY & OUTPUT ROUTING): Khi câu hỏi hỏi về năng suất, sản lượng sản xuất, năng suất đạt đỉnh, số lượng sản phẩm làm ra/hoàn thành. (A) CÓ LIÊN QUAN TỚI KCS (ví dụ: nhắc đến 'nhân viên KCS', 'KCS PANSY', 'KCS cosmos', 'công đoạn KCS'...): BẮT BUỘC dùng bảng SEW_CoefficientSize (bảng size) vì dữ liệu KCS ghi nhận năng suất có liên quan tới kích thước (size) và có phần sản lượng sửa đạt (SuaDat). Khi đó, tổng sản phẩm đạt (năng suất) BẮT BUỘC tính bằng công thức SUM(ISNULL(Quantity, 0) + ISNULL(SuaDat, 0)) và cột nhân viên KCS là NVKiemKCS. (B) KHÔNG LIÊN QUAN TỚI KCS: Mặc định dùng bảng SEW_CoefficientStyle (bảng style) để truy vấn năng suất/sản lượng chung. Khi đó, năng suất đạt chuẩn chỉ tính bằng công thức SUM(Quantity).",
-      "correct_example": "SELECT SUM(ISNULL(Quantity, 0) + ISNULL(SuaDat, 0)) FROM SEW_CoefficientSize WHERE SizeId = 'SIZE_XL' AND NVKiemKCS = N'KCS PANSY' hoặc SELECT SUM(Quantity) FROM SEW_CoefficientStyle",
+      "rule": "ĐỊNH TUYẾN BẢNG NĂNG SUẤT / SẢN LƯỢNG (PRODUCTIVITY & OUTPUT ROUTING): Khi câu hỏi hỏi về năng suất, sản lượng sản xuất, năng suất đạt đỉnh, số lượng sản phẩm làm ra/hoàn thành. (A) CÓ LIÊN QUAN TỚI KCS (ví dụ: nhắc đến 'nhân viên KCS', 'KCS PANSY', 'KCS cosmos', 'công đoạn KCS'...): BẮT BUỘC dùng bảng SEW_CoefficientSize (bảng size) vì dữ liệu KCS ghi nhận năng suất có liên quan tới kích thước (size) và có phần sản lượng sửa đạt (SuaDat). Khi đó, tổng sản phẩm đạt (năng suất) BẮT BUỘC tính bằng công thức SUM(ISNULL(Quantity, 0) + ISNULL(SuaDat, 0)) và cột nhân viên KCS là NVKiemKCS. (B) KHÔNG LIÊN QUAN TỚI KCS (Kể cả các câu hỏi về năng suất/sản lượng theo ngày hoặc theo khung giờ TimeLineId/timeline/giờ): Mặc định dùng bảng SEW_CoefficientStyle (bảng style) để truy vấn năng suất/sản lượng chung. Khi đó, năng suất đạt chuẩn chỉ tính bằng công thức SUM(Quantity). Bảng style chứa đầy đủ thông tin năng suất của mọi công đoạn sản xuất, không bị giới hạn chỉ ở khâu kiểm KCS như bảng size. LƯU Ý VỀ TỪ KHÓA 'NHÂN CÔNG'/'CÔNG NHÂN' nói chung: Nếu câu hỏi chỉ hỏi về năng suất của nhân công nói chung mà không yêu cầu tên người hoặc nhân viên KCS cụ thể, BẮT BUỘC dùng bảng mặc định SEW_CoefficientStyle và tính năng suất chung SUM(Quantity) trên toàn bảng mà không lọc theo nhân viên nào. CẤM tự ý lọc theo công đoạn nếu câu hỏi không nhắc đến công đoạn cụ thể.",
+      "correct_example": "SELECT SUM(Quantity) FROM SEW_CoefficientStyle sc WHERE sc.StypeId = '0088_342_29_V0_2' AND CAST(sc.DateCreate AS DATE) = '2025-09-16'",
       "wrong_example": "SELECT COUNT(RowID) FROM QTY_MaHang_KiemQC_ChiTiet WHERE Size = N'XL' (khi câu hỏi hỏi về năng suất/sản lượng đạt chuẩn)"
+    },
+    {
+      "id": "G017",
+      "category": "line_name_mapping",
+      "severity": "CRITICAL",
+      "rule": "BẢN ĐỒ/ÁNH XẠ TÊN CHUYỀN (LINE NAME TO ID MAPPING): Trong mọi câu hỏi truy vấn dữ liệu liên quan đến chuyền (cho dù là lọc theo tên chuyền cụ thể như 'Daisy', lọc theo mã số chuyền như '101', '102', hay truy vấn tổng hợp tất cả các chuyền): Cột LineX hoặc Line trong các bảng nghiệp vụ (QTY_*, SEW_*, TskFinal) luôn chứa mã ID chuyền (ví dụ: '101'), KHÔNG chứa tên hiển thị trực tiếp. BẮT BUỘC kết nối (JOIN) với bảng tbl_SettingLineX qua LineX = tbl_SettingLineX.ID. Để kết quả hiển thị thân thiện với người dùng, BẮT BUỘC hiển thị tên chuyền (cột tbl_SettingLineX.Name đặt tên bí danh là [Tên chuyền]) ở câu lệnh SELECT thay vì dùng mã ID.",
+      "correct_example": "SELECT l.Name AS [Tên chuyền], SUM(q.SpLoi) FROM QTY_MAHANG_NGAYKIEM q JOIN tbl_SettingLineX l ON q.LineX = l.ID GROUP BY l.Name",
+      "wrong_example": "SELECT q.LineX, SUM(q.SpLoi) FROM QTY_MAHANG_NGAYKIEM q GROUP BY q.LineX"
     }
   ]
 }

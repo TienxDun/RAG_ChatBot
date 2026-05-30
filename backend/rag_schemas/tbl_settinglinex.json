@@ -17,6 +17,13 @@
       "rule": "Lọc theo tên chuyền (cột Name): Sử dụng so sánh bằng tuyệt đối (=) chuỗi có dấu. (ví dụ: Name = N'May mẫu' hoặc Name = 'Daisy').",
       "correct_example": "WHERE Name = N'May mẫu' hoặc WHERE Name = 'Daisy'",
       "wrong_example": "WHERE Name LIKE N'%Daisy%'"
+    },
+    {
+      "id": "T_SET_LX_003",
+      "severity": "CRITICAL",
+      "rule": "KHI LỌC VÀ TRUY VẤN THEO CHUYỀN SẢN XUẤT: Trong mọi câu hỏi truy vấn dữ liệu liên quan đến chuyền (cho dù là lọc theo tên chuyền cụ thể, lọc theo mã số chuyền như '101', '102', hay truy vấn tất cả các chuyền): Cột LineX/Line trong các bảng nghiệp vụ (QTY_*, SEW_*, TskFinal) luôn chứa mã ID chuyền (ví dụ: '101'), không chứa tên hiển thị trực tiếp. Bắt buộc phải kết nối (JOIN) với bảng tbl_SettingLineX qua LineX = tbl_SettingLineX.ID. Để hiển thị thân thiện trong kết quả, BẮT BUỘC hiển thị tên chuyền (cột tbl_SettingLineX.Name đặt bí danh là [Tên chuyền]) ở câu lệnh SELECT thay vì dùng mã ID.",
+      "correct_example": "SELECT l.Name AS [Tên chuyền], SUM(q.SpLoi) FROM QTY_MAHANG_NGAYKIEM q JOIN tbl_SettingLineX l ON q.LineX = l.ID GROUP BY l.Name",
+      "wrong_example": "SELECT q.LineX, SUM(q.SpLoi) FROM QTY_MAHANG_NGAYKIEM q GROUP BY q.LineX"
     }
   ],
   "columns": [

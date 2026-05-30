@@ -1,6 +1,6 @@
 {
   "table": "QTY_KiemQA_CHITIET",
-  "purpose": "Lưu trữ chi tiết từng lỗi ghi nhận được trong quá trình kiểm tra chất lượng của bộ phận QA (Quality Assurance).",
+  "purpose": "Lưu trữ chi tiết TỪNG LỖI CỤ THỂ ghi nhận trong lần kiểm Final QA. Mỗi bản ghi = 1 loại lỗi trên 1 SP, bao gồm mã lỗi (Code), công đoạn (MaCongDoan), hành động xử lý (HanhDong: 'Trả chuyền', 'Yêu cầu tái chế'...) và kết quả kiểm lại (Results). SPLoi là SỐ THỨ TỰ SP lỗi, SLLoi là số lượng lỗi thực tế của SP đó.",
   "when_to_use": "Sử dụng khi câu hỏi CÓ chứa từ khóa 'final', 'QA', 'thành phẩm cuối' hoặc 'nhật ký kiểm' VÀ yêu cầu liệt kê chi tiết các lỗi, mã lỗi (Code), hình ảnh lỗi (Image), nội dung lỗi (NoiDung), hoặc hành động xử lý (HanhDong) của bộ phận QA.",
   "when_not_to_use": "Không sử dụng nếu câu hỏi KHÔNG có từ khóa 'final', 'QA', hoặc 'thành phẩm cuối' (mặc định dùng QTY_MaHang_KiemQC_ChiTiet). Không sử dụng nếu câu hỏi chỉ yêu cầu thống kê số lượng lỗi tổng hợp theo ngày (khi đó dùng QTY_KiemQA_NgayKiem để tối ưu hiệu năng), hoặc hỏi về trạng thái sửa lỗi, tác vụ kiểm tra final (dùng TskFinal). Bảng này thường được dùng qua JOIN từ QTY_KiemQA_NgayKiem khi cần chi tiết mã lỗi cụ thể. LƯU Ý: Nếu bản ghi trong QTY_KiemQA_NgayKiem cho thấy SoLuongLoi là NULL hoặc bằng 0 (không có lỗi), không cần JOIN với bảng chi tiết này mà chỉ cần truy vấn QTY_KiemQA_NgayKiem để kết luận không có lỗi.",
   "table_rules": [
@@ -38,6 +38,13 @@
       "rule": "Khi cần liên kết dữ liệu lỗi chi tiết QA với thông tin tổng hợp của QA, hãy JOIN bảng QTY_KiemQA_CHITIET (c) với QTY_KiemQA_NgayKiem (q) qua các cột: LenhSX, LineX, MaHang, Size và ép kiểu DATE cho NgayKiem. Đồng thời, liên kết với QTY_NHOMLOI_CHITIET (n) qua c.Code = n.MaLoi để lấy tên lỗi.",
       "correct_example": "SELECT DISTINCT c.Code, n.TenLoi, c.NoiDung FROM QTY_KiemQA_CHITIET c JOIN QTY_KiemQA_NgayKiem q ON c.LenhSX = q.LenhSX AND c.LineX = q.LineX AND c.MaHang = q.MaHang AND c.Size = q.Size AND CAST(c.NgayKiem AS DATE) = CAST(q.NgayKiem AS DATE) JOIN QTY_NHOMLOI_CHITIET n ON c.Code = n.MaLoi",
       "wrong_example": "SELECT c.Code, n.TenLoi FROM QTY_KiemQA_CHITIET c JOIN QTY_NHOMLOI_CHITIET n ON c.Code = n.MaLoi JOIN ERP_LENHSX e ON c.LenhSX = e.MaLenh"
+    },
+    {
+      "id": "T_QTY_QA_CD_006",
+      "severity": "CRITICAL",
+      "rule": "TỔNG HỢP VÀ ĐẾM SỐ LỖI QA CHI TIẾT CHÍNH XÁC: (1) BẮT BUỘC dùng SUM(ISNULL(c.SLLoi, 0)) thay vì COUNT(*) hay COUNT(ID) để tính tổng số lỗi (vì cột SLLoi lưu số lượng lỗi thực tế của sản phẩm lỗi đó, có thể lớn hơn 1). (2) Cột LoaiLoi đã có sẵn trong QTY_KiemQA_CHITIET (c.LoaiLoi). TUYỆT ĐỐI KHÔNG JOIN với QTY_NHOMLOI_CHITIET chỉ để lọc hoặc nhóm theo loại lỗi (Major=2, Critical=3) trừ khi cần lấy tên hiển thị của nhóm lỗi.",
+      "correct_example": "SELECT c.LoaiLoi, SUM(ISNULL(c.SLLoi, 0)) AS SoLuongLoi FROM QTY_KiemQA_CHITIET c WHERE c.LoaiLoi IN (2, 3) GROUP BY c.LoaiLoi",
+      "wrong_example": "SELECT n.LoaiLoi, COUNT(c.ID) FROM QTY_KiemQA_CHITIET c JOIN QTY_NHOMLOI_CHITIET n ON c.Code = n.MaLoi WHERE n.LoaiLoi IN (2, 3) GROUP BY n.LoaiLoi"
     }
   ],
   "columns": [
@@ -116,8 +123,8 @@
     {
       "name": "SPLoi",
       "type": "int",
-      "role": "measure",
-      "desc": "Số lượng sản phẩm lỗi. Sử dụng SUM(ISNULL(SPLoi, 0))."
+      "role": "info",
+      "desc": "SỐ THỨ TỰ của SP lỗi trong lần kiểm (1, 2, 3...) — KHÔNG phải số lượng lỗi. TUYỆT ĐỐI KHÔNG dùng SUM(SPLoi). Để đếm lỗi, dùng SUM(ISNULL(SLLoi, 0)) hoặc COUNT(*)."
     },
     {
       "name": "IdNhomSPLoi",
@@ -129,7 +136,7 @@
       "name": "SLLoi",
       "type": "int",
       "role": "measure",
-      "desc": "Số lượng lỗi chi tiết."
+      "desc": "Số lượng lỗi thực tế của SP đó. Đây mới là số dùng để đếm lỗi. Dùng SUM(ISNULL(SLLoi, 0)) để tổng hợp số lượng lỗi."
     },
     {
       "name": "MaCongDoan",
@@ -147,7 +154,7 @@
       "name": "LoaiLoi",
       "type": "int",
       "role": "filter",
-      "desc": "Phân loại mức độ nghiêm trọng của lỗi (1, 2, 3)."
+      "desc": "Mức độ nghiêm trọng của lỗi: 2 = Major (lỗi nghiêm trọng vừa, cần sửa/tái chế), 3 = Critical (lỗi nghiêm trọng cao, thường trả chuyền). Dùng WHERE LoaiLoi = 3 để lấy các lỗi Critical."
     },
     {
       "name": "PageX",
@@ -219,7 +226,7 @@
       "name": "HanhDong",
       "type": "nvarchar",
       "role": "display",
-      "desc": "Hành động xử lý hoặc khắc phục lỗi (ví dụ: 'Yêu cầu tái chế')."
+      "desc": "Hành động xử lý lỗi. Các giá trị thường gặp: 'Trả chuyền' (trả lại chuyền sản xuất sửa), 'Yêu cầu tái chế' (làm lại hoàn toàn), 'Yêu cầu ktra lại' (kiểm tra lại sau khi sửa), 'Trả chuyền xử lý'. Dùng LIKE N'%Trả chuyền%' hoặc LIKE N'%tái chế%' khi tìm kiếm."
     },
     {
       "name": "Image",
@@ -231,7 +238,7 @@
       "name": "Results",
       "type": "int",
       "role": "filter",
-      "desc": "Kết quả đánh giá chất lượng."
+      "desc": "Kết quả kiểm tra lại sau khi sửa: 1 = Pass (đạt sau kiểm lại), 0 = Fail (vẫn không đạt), NULL = chưa kiểm lại."
     }
   ],
   "relationships": [
@@ -249,6 +256,11 @@
       "target_table": "QTY_KiemQA_NgayKiem",
       "join_on": "QTY_KiemQA_CHITIET.LenhSX = QTY_KiemQA_NgayKiem.LenhSX AND QTY_KiemQA_CHITIET.LineX = QTY_KiemQA_NgayKiem.LineX AND QTY_KiemQA_CHITIET.MaHang = QTY_KiemQA_NgayKiem.MaHang AND QTY_KiemQA_CHITIET.Size = QTY_KiemQA_NgayKiem.Size AND CAST(QTY_KiemQA_CHITIET.NgayKiem AS DATE) = CAST(QTY_KiemQA_NgayKiem.NgayKiem AS DATE)",
       "notes": "Để liên kết với bảng tổng hợp QA theo ngày."
+    },
+    {
+      "target_table": "tbl_SettingLineX",
+      "join_on": "QTY_KiemQA_CHITIET.LineX = tbl_SettingLineX.ID",
+      "notes": "BẮT BUỘC kết nối (JOIN) khi cần lấy tên chuyền hiển thị (Name) thay vì mã ID."
     }
   ]
 }
