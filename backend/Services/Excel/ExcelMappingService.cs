@@ -42,7 +42,7 @@ public class ExcelMappingService : IExcelMappingService
             }
         }
 
-        _filePath = Path.Combine(dataDir, "excel_mappings.json");
+        _filePath = Path.Combine(dataDir, "templates", "excel_mappings.json");
         LoadFromFile();
     }
 

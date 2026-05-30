@@ -117,7 +117,7 @@ public sealed class VertexAiClient
                 temperature = 0.0,
                 topP = 0.95,
                 topK = 40,
-                maxOutputTokens = 1024,
+                maxOutputTokens = 8192,
                 responseMimeType = "text/plain"
             }
         };
