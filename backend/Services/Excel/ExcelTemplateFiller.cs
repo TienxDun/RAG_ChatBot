@@ -464,6 +464,10 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
                     {
                         worksheet.Cells[r, c].Value = $"{label}: {matchedValue}";
                     }
+                    else if (val.Contains("N/A", StringComparison.OrdinalIgnoreCase))
+                    {
+                        worksheet.Cells[r, c].Value = $"{label}: ";
+                    }
                 }
                 else
                 {
@@ -482,6 +486,14 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
                             if (!string.IsNullOrEmpty(matchedValue))
                             {
                                 worksheet.Cells[r, c + 1].Value = matchedValue;
+                            }
+                            else
+                            {
+                                string nextVal = worksheet.Cells[r, c + 1].Text?.Trim() ?? "";
+                                if (nextVal.Equals("N/A", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    worksheet.Cells[r, c + 1].Value = "";
+                                }
                             }
                         }
                     }

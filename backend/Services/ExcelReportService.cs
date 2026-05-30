@@ -107,10 +107,12 @@ public class ExcelReportService
 
         if (templateInfo.Metadata.Count > 0)
         {
-            var metadataLabels = string.Join("\n", templateInfo.Metadata.Keys.Select(cell => $"- {cell}"));
-            mappingInstructions += $"\n- Ngoài ra, bạn BẮT BUỘC phải truy vấn thông tin cho các nhãn thông tin chung (metadata) sau đây từ database và trả về dưới dạng JSON (Key-Value) trong thuộc tính \"metadata\" của kết quả:\n" +
-                                   $"{metadataLabels}\n" +
-                                   $"- Khóa JSON trả về phải khớp hoàn toàn với tên các nhãn trên.";
+            var metadataList = templateInfo.Metadata.Keys.Select(m => $"- Nhãn '{m}' -> Bạn BẮT BUỘC SELECT cột tương ứng từ database trong câu SELECT cuối cùng và đặt ALIAS (AS) khớp hoàn toàn với tên nhãn này (Dùng MAX/MIN nếu có GROUP BY, ví dụ: MAX(StyleID) AS [{m}] hoặc MAX(PlanCode) AS [{m}]).");
+            var metadataInstructions = string.Join("\n", metadataList);
+            mappingInstructions += $"\n\nYÊU CẦU BẮT BUỘC TRUY VẤN THÔNG TIN CHUNG (METADATA):\n" +
+                                   $"- File Excel template có {templateInfo.Metadata.Count} nhãn thông tin chung ở đầu trang cần được điền dữ liệu:\n" +
+                                   $"{metadataInstructions}\n" +
+                                   $"- CẢNH BÁO BẮT BUỘC: Trong câu lệnh SQL SELECT cuối cùng, bạn BẮT BUỘC phải truy vấn và trả về các cột này cùng với dữ liệu chi tiết của bảng để hệ thống có thể tự động bóc tách và điền vào đầu trang Excel. Nếu không có dữ liệu phù hợp, hãy trả về NULL (ví dụ: NULL AS [{templateInfo.Metadata.Keys.First()}]).";
         }
 
         // Lấy ghi chú cột Excel được lưu trữ lâu dài của người dùng
