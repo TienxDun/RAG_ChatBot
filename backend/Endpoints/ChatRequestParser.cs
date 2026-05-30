@@ -18,32 +18,12 @@ public static class ChatRequestParser
             parameters.Message = form.TryGetValue("message", out var m) ? m.ToString() : string.Empty;
             parameters.CollectionName = form.TryGetValue("collectionName", out var c) ? c.ToString() : null;
             parameters.File = form.Files.FirstOrDefault();
-            
-            if (form.TryGetValue("fastPath", out var fpStr) && bool.TryParse(fpStr, out var fpVal))
-            {
-                parameters.FastPathEnabled = fpVal;
-            }
-            
-            if (form.TryGetValue("rulesEnabled", out var reStr) && bool.TryParse(reStr, out var reVal))
-            {
-                parameters.RulesEnabled = reVal;
-            }
         }
         else if (context.Request.HasJsonContentType())
         {
             var json = await context.Request.ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
-            parameters.Message = json.TryGetProperty("message", out var m) ? m.GetString() ?? "" : "";
-            parameters.CollectionName = json.TryGetProperty("collectionName", out var c) ? c.GetString() : null;
-            
-            if (json.TryGetProperty("fastPath", out var fpProp) && (fpProp.ValueKind == JsonValueKind.True || fpProp.ValueKind == JsonValueKind.False))
-            {
-                parameters.FastPathEnabled = fpProp.GetBoolean();
-            }
-            
-            if (json.TryGetProperty("rulesEnabled", out var reProp) && (reProp.ValueKind == JsonValueKind.True || reProp.ValueKind == JsonValueKind.False))
-            {
-                parameters.RulesEnabled = reProp.GetBoolean();
-            }
+            parameters.Message = json.TryGetProperty("message", out var m) && m.ValueKind == JsonValueKind.String ? m.GetString() ?? "" : "";
+            parameters.CollectionName = json.TryGetProperty("collectionName", out var c) && c.ValueKind == JsonValueKind.String ? c.GetString() : null;
         }
 
         return parameters;

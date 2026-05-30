@@ -1,6 +1,6 @@
 {
   "table": "QTY_InLineQC_NgayKiem",
-  "purpose": "Lưu trữ thông tin kiểm tra chất lượng tổng hợp theo ngày của bộ phận InLine QC tại chuyền sản xuất.",
+  "purpose": "Lưu trữ thông tin kiểm tra chất lượng tổng hợp theo ngày của bộ phận InLine QC tại chuyền sản xuất. Mỗi bản ghi là 1 phiếu kiểm (1 lần kiểm 1 mã hàng/size/màu trong 1 khung giờ). TỈ LỆ LỖI = SoLuongLoi / SoLuongKiem * 100 (KHÔNG dùng SuaDat hay SoLuongKCS để tính đạt).",
   "when_to_use": "CHỈ sử dụng khi câu hỏi CÓ CHỨA RÕ RÀNG từ khóa 'inline', 'InLine' hoặc 'in line' VÀ yêu cầu thống kê số lượng kiểm tra (SoLuongKiem), số lượng đạt KCS (SoLuongKCS), hoặc số lượng lỗi (SoLuongLoi) theo ngày do bộ phận InLine QC thực hiện. Nếu câu hỏi KHÔNG nhắc 'inline' mà chỉ hỏi về sản phẩm lỗi, tỷ lệ lỗi chung → BẮT BUỘC dùng QTY_MAHANG_NGAYKIEM thay vì bảng này.",
   "when_not_to_use": "TUYỆT ĐỐI KHÔNG dùng bảng này khi câu hỏi KHÔNG chứa từ khóa 'inline'/'InLine'/'in line'. Khi không nhắc inline, mặc định dùng QTY_MAHANG_NGAYKIEM (cho tổng hợp lỗi) hoặc QTY_MaHang_KiemQC_ChiTiet (cho chi tiết từng lỗi). Cũng không sử dụng nếu câu hỏi yêu cầu thống kê chi tiết theo từng loại lỗi hoặc mã lỗi cụ thể (khi đó phải dùng QTY_InLineQC_CHITIET), hoặc hỏi về năng suất sản xuất, năng suất đạt đỉnh cao nhất, sản lượng đạt, số lượng sản phẩm làm ra/hoàn thành của KCS (khi đó bắt buộc dùng các bảng SEW_*).",
   "table_rules": [
@@ -21,9 +21,9 @@
     {
       "id": "T_QTY_IL_NK_003",
       "severity": "CRITICAL",
-      "rule": "CÔNG THỨC TÍNH SỐ LƯỢNG LỖI: Sử dụng SUM(ISNULL(SoLuongLoi, 0)). Tuyệt đối không nhầm lẫn với cột SPLoi hay SoLuongKiem.",
-      "correct_example": "SELECT SUM(ISNULL(SoLuongLoi, 0)) AS TongLoi FROM QTY_InLineQC_NgayKiem",
-      "wrong_example": "SELECT SUM(SPLoi) FROM QTY_InLineQC_NgayKiem"
+      "rule": "CÔNG THỨC TÍNH TỈ LỆ LỖI INLINE: Tỉ lệ lỗi = SoLuongLoi / SoLuongKiem * 100. TUYỆT ĐỐI KHÔNG tính SP đạt bằng (SoLuongKiem - SoLuongLoi) hay dùng SuaDat. SoLuongKCS trong bảng này KHÔNG phải số SP đạt — nó là số SP đã qua tay KCS review (thường = SoLuongKiem). Khi tính tổng lỗi dùng SUM(ISNULL(SoLuongLoi, 0)), khi tính tỉ lệ dùng CAST(SUM(...SoLuongLoi...) AS FLOAT) / NULLIF(SUM(...SoLuongKiem...), 0) * 100.",
+      "correct_example": "SELECT SUM(ISNULL(SoLuongLoi,0)) AS TongLoi, CAST(SUM(ISNULL(SoLuongLoi,0)) AS FLOAT)/NULLIF(SUM(ISNULL(SoLuongKiem,0)),0)*100 AS TiLeLoi FROM QTY_InLineQC_NgayKiem",
+      "wrong_example": "SELECT SUM(SPLoi) FROM QTY_InLineQC_NgayKiem -- SAI: cột SPLoi chỉ có ở bảng CHITIET | SELECT SoLuongKCS - SoLuongLoi AS SoDat -- SAI: SoLuongKCS không phải số đạt"
     },
     {
       "id": "T_QTY_IL_NK_004",
@@ -31,6 +31,13 @@
       "rule": "Quy tắc định dạng Size: Cột SizeID chứa tiền tố 'SIZE_' (ví dụ: 'SIZE_L', 'SIZE_85'). Cột Size chỉ chứa nhãn hiển thị trực tiếp (ví dụ: 'L', '85'). Áp dụng rule toàn cục G004.",
       "correct_example": "WHERE SizeID = 'SIZE_L' hoặc WHERE Size = 'L'",
       "wrong_example": "WHERE SizeID = 'L' hoặc WHERE Size = 'SIZE_L'"
+    },
+    {
+      "id": "T_QTY_IL_NK_005",
+      "severity": "CRITICAL",
+      "rule": "TUYỆT ĐỐI CẤM SỬ DỤNG BẢNG NÀY KHI CÂU HỎI KHÔNG CÓ CHỮ 'INLINE' HOẶC 'IN LINE': Nếu câu hỏi không nhắc đến 'inline' (ví dụ: chỉ hỏi 'So sánh tỉ lệ lỗi giữa chuyền Daisy và chuyền Cherry đối với mã lệnh 0088_521_04_V0_0'), TUYỆT ĐỐI CẤM dùng bảng QTY_InLineQC_NgayKiem này. Bạn bắt buộc phải chuyển sang dùng bảng QTY_MAHANG_NGAYKIEM làm tử số và JOIN với SEW_CoefficientSize làm mẫu số.",
+      "correct_example": "-- ĐÚNG: Khi không có chữ 'inline', dùng QTY_MAHANG_NGAYKIEM\nWITH loi AS (SELECT LineX, SUM(SpLoi) AS L FROM QTY_MAHANG_NGAYKIEM GROUP BY LineX), dat AS (SELECT LineX, SUM(Quantity+SuaDat) AS D FROM SEW_CoefficientSize GROUP BY LineX) SELECT * FROM loi l JOIN dat d ON l.LineX = d.LineX",
+      "wrong_example": "-- SAI: Dùng QTY_InLineQC_NgayKiem khi câu hỏi không nhắc 'inline'\nSELECT * FROM QTY_InLineQC_NgayKiem"
     }
   ],
   "columns": [
@@ -122,13 +129,13 @@
       "name": "SoLuongKCS",
       "type": "int",
       "role": "measure",
-      "desc": "Số lượng sản phẩm đạt chuẩn KCS."
+      "desc": "Số SP đã qua tay KCS review — KHÔNG phải số đạt. Trong thực tế thường = SoLuongKiem. TUYỆT ĐỐI KHÔNG dùng cột này để tính số SP đạt hay tỉ lệ đạt."
     },
     {
       "name": "SoLuongLoi",
       "type": "int",
       "role": "measure",
-      "desc": "Số lượng sản phẩm lỗi. Áp dụng rule T_QTY_IL_NK_003."
+      "desc": "Số lượng sản phẩm lỗi phát hiện trong lần kiểm. Có thể NULL → dùng ISNULL(SoLuongLoi, 0). Áp dụng rule T_QTY_IL_NK_003."
     },
     {
       "name": "SuaDat",
@@ -170,13 +177,13 @@
       "name": "StatusHT",
       "type": "int",
       "role": "filter",
-      "desc": "Trạng thái hoàn thành sửa lỗi."
+      "desc": "Trạng thái hoàn thành sửa lỗi: 0 = chưa sửa/chờ sửa, 1 = đã sửa xong. Lọc StatusHT = 1 để lấy các phiếu đã hoàn thành sửa."
     },
     {
       "name": "NgayHT",
       "type": "datetime",
       "role": "filter",
-      "desc": "Ngày hoàn thành sửa lỗi."
+      "desc": "Ngày hoàn thành sửa lỗi. NULL nếu chưa sửa xong. Áp dụng rule G001 khi lọc theo ngày."
     },
     {
       "name": "StatusKiemLai",
@@ -230,7 +237,7 @@
       "name": "KetQua",
       "type": "int",
       "role": "filter",
-      "desc": "Kết quả kiểm tra (đạt/không đạt)."
+      "desc": "Kết quả kiểm tra của phiếu inline: 1 = Pass (đạt), 0 = Fail (không đạt). Dùng WHERE KetQua = 1 để lọc phiếu đạt, KetQua = 0 để lọc phiếu fail."
     }
   ],
   "relationships": [
@@ -238,6 +245,11 @@
       "target_table": "ERP_LENHSX",
       "join_on": "QTY_InLineQC_NgayKiem.LenhSX = ERP_LENHSX.MaLenh",
       "notes": "Để lấy thông tin chi tiết lệnh hoặc StyleID hệ thống."
+    },
+    {
+      "target_table": "tbl_SettingLineX",
+      "join_on": "QTY_InLineQC_NgayKiem.Line = tbl_SettingLineX.ID",
+      "notes": "BẮT BUỘC kết nối (JOIN) khi cần lấy tên chuyền hiển thị (Name) thay vì mã ID."
     }
   ]
 }

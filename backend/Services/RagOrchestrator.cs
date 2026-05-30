@@ -18,7 +18,6 @@ public sealed class RagOrchestrator
     private readonly VertexAiOptions _options;
     
     private readonly ISqlRuleProvider _ruleProvider;
-    private readonly IQueryClassifier _queryClassifier;
     private readonly IAiResponseParser _responseParser;
     private readonly ISqlPlanExecutor _planExecutor;
 
@@ -27,7 +26,6 @@ public sealed class RagOrchestrator
         QdrantService qdrantService,
         VertexAiOptions options,
         ISqlRuleProvider ruleProvider,
-        IQueryClassifier queryClassifier,
         IAiResponseParser responseParser,
         ISqlPlanExecutor planExecutor)
     {
@@ -35,7 +33,6 @@ public sealed class RagOrchestrator
         _qdrantService = qdrantService;
         _options = options;
         _ruleProvider = ruleProvider;
-        _queryClassifier = queryClassifier;
         _responseParser = responseParser;
         _planExecutor = planExecutor;
     }
@@ -122,8 +119,6 @@ public sealed class RagOrchestrator
         // 3. Planning Phase: AI đánh giá phạm vi và lập kế hoạch
         var stepsToExecute = new List<string>();
         bool isOutOfScope = false;
-        bool isAmbiguous = false;
-        string clarificationMessage = string.Empty;
         var suggestedQuestions = new List<string>();
         string planningReason = string.Empty;
         string? directSql = null;
@@ -140,28 +135,28 @@ public sealed class RagOrchestrator
 
                 CÂU HỎI CỦA NGƯỜI DÙNG: ""{userQuery}""
 
-                NHIỆM VỤ CỦA BẠN:
+                NHIỆM VỤ BẠN:
                 0. QUAN TRỌNG VỀ THỜI GIAN TRUY VẤN: Nếu người dùng hỏi về các khoảng thời gian tương đối/mơ hồ như ""gần đây"", ""gần nhất"", ""mới nhất"", ""hôm nay"", ""tuần này"", ""tháng này"":
                    - Hãy kết hợp với 'Thời gian hệ thống hiện tại' ({currentTimeStr}) để xác định khoảng thời gian cụ thể (ví dụ: ""gần đây/gần nhất"" -> tính ngược từ {currentTimeStr} khoảng 7 ngày hoặc 30 ngày tùy loại dữ liệu).
                    - Nêu rõ mốc thời gian lọc cụ thể này trong phần mô tả bước để bước SQL kế tiếp thực thi đúng.
                 1. Kiểm tra xem câu hỏi có liên quan đến dữ liệu trong các bảng trên hay không. Nếu không liên quan đến database, hãy đặt `isOutOfScope: true`.
                 2. Nếu câu hỏi liên quan đến database, hãy phân tích xem câu hỏi có bị mơ hồ, thiếu thông tin gom nhóm (GROUP BY) hoặc thống kê cụ thể hay không (ví dụ: 'top lỗi', 'sản lượng cao nhất'):
-                   - Bạn TUYỆT ĐỐI KHÔNG ĐƯỢC đặt `isAmbiguous: true` và không được yêu cầu người dùng làm rõ.
-                   - Hãy tự động đưa ra quyết định hoặc giả định hợp lý nhất dựa trên cấu trúc CSDL thực tế được cung cấp bên trên (ví dụ: tự động chọn cột phân tích thích hợp như StyleID hoặc LineX từ các bảng liên quan làm đối tượng gom nhóm GROUP BY).
-                   - Đặt `isAmbiguous: false` và `clarificationMessage: ""` (để trống).
+                   - Hãy tự động đưa ra quyết định hoặc giả định hợp lý nhất dựa trên cấu trúc CSDL thực tế được cung cấp bên trên 
+                   (ví dụ: tự động chọn cột phân tích thích hợp như StyleID hoặc LineX từ các bảng liên quan làm đối tượng gom nhóm GROUP BY).
                    - Lập kế hoạch sinh câu truy vấn SQL để thực thi theo giả định mặc định đó ngay lập tức.
                    - Giải trình rõ lý do tự động quyết định và giả định bạn đã chọn trong trường ""reason"".
                    - **TUYỆT ĐỐI CẤM:** Không được sử dụng hoặc tự bịa ra bất kỳ tên bảng hay tên cột nào không xuất hiện trong cấu trúc database được cung cấp phía trên.
-                3. Nếu câu hỏi hợp lệ, hãy đặt `isOutOfScope: false`, `isAmbiguous: false` và chia nhỏ câu hỏi thành các bước truy vấn SQL logic.
-                   - BẮT BUỘC GỘP THÀNH 1 BƯỚC DUY NHẤT đối với các câu hỏi thống kê, so sánh, xếp hạng (Ví dụ: Top lỗi, Top chuyền, Chênh lệch sản lượng, Xếp hạng lỗi của chuyền...). TUYỆT ĐỐI CẤM chia nhỏ việc JOIN bảng, GROUP BY gom nhóm, hay dùng DENSE_RANK() xếp hạng thành các bước truy vấn riêng lẻ. Một câu SQL duy nhất có thể giải quyết đồng thời các tác vụ này.
-                   - CHỈ ĐƯỢC PHÉP CHIA LÀM NHIỀU BƯỚC (tối đa 3 bước) khi và chỉ khi: Bước sau bắt buộc phải sử dụng giá trị dữ liệu động trả về từ bước trước làm tham số điều kiện lọc (Ví dụ: Bước 1 tìm MaLenh của một mã hàng, Bước 2 dùng MaLenh đó làm tham số lọc để truy vấn sản lượng).
-                4. Mỗi bước phải là một nhiệm vụ TRUY VẤN dữ liệu thực tế. TUYỆT ĐỐI KHÔNG tạo bước chỉ để kết hợp (UNION), định dạng hoặc thực hiện các phép tính so sánh/xếp hạng (RANK, CASE WHEN) mà AI có thể tự suy luận từ kết quả bước trước.
+                3. Nếu câu hỏi hợp lệ, hãy đặt `isOutOfScope: false` và chia nhỏ câu hỏi thành các bước truy vấn SQL logic.
+                   - BẮT BUỘC GỘP THÀNH 1 BƯỚC DUY NHẤT đối với các câu hỏi thống kê, so sánh, xếp hạng (Ví dụ: Top lỗi, Top chuyền, Chênh lệch sản lượng, Xếp hạng lỗi của chuyền...). 
+                   TUYỆT ĐỐI CẤM chia nhỏ việc JOIN bảng, GROUP BY gom nhóm, hay dùng DENSE_RANK() xếp hạng thành các bước truy vấn riêng lẻ. Tạo 1 câu SQL duy nhất có thể giải quyết đồng thời các tác vụ này.
+                   - CHỈ ĐƯỢC PHÉP CHIA LÀM NHIỀU BƯỚC (tối đa 3 bước) khi và chỉ khi: Bước sau bắt buộc phải sử dụng giá trị dữ liệu động trả về từ bước trước làm tham số điều kiện lọc 
+                   (Ví dụ: Bước 1 tìm MaLenh của một mã hàng, Bước 2 dùng MaLenh đó làm tham số lọc để truy vấn sản lượng).
+                4. Mỗi bước phải là một nhiệm vụ TRUY VẤN dữ liệu thực tế. TUYỆT ĐỐI KHÔNG tạo bước chỉ để kết hợp (UNION), định dạng hoặc thực hiện các phép tính so sánh/xếp hạng (RANK, CASE WHEN) 
+                mà AI có thể tự suy luận từ kết quả bước trước.
 
                 YÊU CẦU ĐỊNH DẠNG (BẮT BUỘC TRẢ VỀ JSON):
                 {{
-                    ""isOutOfScope"": false,
-                    ""isAmbiguous"": false,
-                    ""clarificationMessage"": """",
+                    ""isOutOfScope"": true/false,
                     ""reason"": ""Giải thích lý do lập kế hoạch hoặc giả định/quyết định ngầm định được chọn khi gặp câu mơ hồ"",
                     ""steps"": [""Mô tả bước 1"", ""Mô tả bước 2""],
                     ""directSql"": ""Câu lệnh SQL Server duy nhất nếu câu hỏi chỉ cần 1 bước truy vấn duy nhất để trả về kết quả, ngược lại để trống """" ""
@@ -179,29 +174,12 @@ public sealed class RagOrchestrator
                     planningReason = reasonProp.GetString() ?? string.Empty;
                 }
 
-                if (planObj.TryGetProperty("isAmbiguous", out var ambProp))
-                {
-                    isAmbiguous = ambProp.GetBoolean();
-                }
-
                 if (planObj.TryGetProperty("directSql", out var sqlProp))
                 {
                     directSql = sqlProp.GetString();
                 }
 
-                if (isAmbiguous)
-                {
-                    if (isExcelTemplate)
-                    {
-                        isAmbiguous = false;
-                        stepsToExecute = new List<string> { userQuery };
-                    }
-                    else
-                    {
-                        clarificationMessage = planObj.GetProperty("clarificationMessage").GetString() ?? string.Empty;
-                    }
-                }
-                else if (!isOutOfScope)
+                if (!isOutOfScope)
                 {
                     stepsToExecute = planObj.GetProperty("steps").EnumerateArray().Select(x => x.GetString()!).ToList();
                 }
@@ -213,26 +191,10 @@ public sealed class RagOrchestrator
 
 
 
-        // Nếu ngoài phạm vi hoặc mơ hồ, bỏ qua bước thực thi SQL
+        // Nếu ngoài phạm vi, bỏ qua bước thực thi SQL
         var workingContext = new StringBuilder();
         string lastStepJson = string.Empty;
         DataTable? lastDataTable = null;
-
-        if (isAmbiguous)
-        {
-            var clarificationStep = new RagStep("Clarification Requested", clarificationMessage);
-            steps.Add(clarificationStep);
-            await onStep(clarificationStep);
-
-            return new ChatResponse(
-                Text: clarificationMessage,
-                Steps: steps,
-                SuggestedQuestions: suggestedQuestions,
-                RawData: string.Empty,
-                RawDataTable: null,
-                IsAmbiguous: true
-            );
-        }
         if (isOutOfScope)
         {
             var outOfScopeStep = new RagStep("Scope Guarding", "Rất tiếc, câu hỏi của bạn nằm ngoài phạm vi dữ liệu mà tôi có thể truy cập.");
@@ -314,9 +276,13 @@ public sealed class RagOrchestrator
                  * ĐẶC BIỆT QUAN TRỌNG: Khi dữ liệu truy vấn được chứa nhiều thông tin chi tiết (ví dụ: danh sách nhiều chuyền sản xuất, nhiều mã hàng, nhiều ngày...), bạn BẮT BUỘC phải tự động tính toán tổng hợp các số liệu toàn cục để người dùng nắm bắt nhanh ngay trong phần này. Thay vào đó, chỉ nhận xét ngắn gọn xu hướng, tỷ trọng % hoặc chỉ ra đối tượng nổi bật nhất/thấp nhất dưới dạng đúc rút thông tin (insight) nhanh. Các phép tính và tỷ lệ phải chính xác 100% dựa trên dữ liệu thực tế.
                  * Nếu câu hỏi ban đầu mơ hồ/thiếu thông tin gom nhóm hoặc thống kê cụ thể, hãy dựa vào phần 'Giả định/Lý do lập kế hoạch ban đầu' để thuyết minh/giải thích rõ ràng cho người dùng biết hệ thống đã tự động quyết định chọn chiều phân tích, bộ lọc hoặc gom nhóm nào để truy xuất dữ liệu.
                - Sử dụng ### 📋 Chi tiết: Dùng bảng Markdown (tiếng Việt) nếu có danh sách.
-               - Định dạng số: Phân cách hàng nghìn (ví dụ 1.234.567).
+               - Định dạng số: Phân cách hàng nghìn (ví dụ: 1.234.567). Đối với số tiền, doanh thu, sản lượng, số lượng, tỷ lệ (%) hoặc các số thập phân khác: Chỉ hiển thị phần thập phân khi con số thực sự có phần lẻ (lẻ thực tế). TUYỆT ĐỐI không thêm phần thập phân rỗng (như .000, ,000 hoặc .00) cho các số nguyên hoặc số tròn. Đối với số lẻ thực tế, chỉ làm tròn tối đa 3 chữ số sau dấu phẩy và không ghi các số 0 thừa ở cuối (ví dụ: 25.71428 -> hiển thị 25,714; 27.5 -> hiển thị 27,5%).
                - Quy tắc định dạng ngày tháng: Hiển thị đầy đủ thông tin ngày, tháng, năm, giờ, phút, giây một cách rõ ràng và nhất quán theo định dạng Việt Nam (ví dụ: '13/01/2026 14:30:15' hoặc '13/01/2026' nếu không có giờ phút) trên giao diện và trong bảng kết quả.
-               - Quy tắc định dạng tỉ lệ lỗi / phần trăm (%): Đối với các giá trị tỉ lệ phần trăm thu được từ kết quả SQL (như cột TyLeLoi), đây là các con số đã được nhân 100 ở câu lệnh SQL. Hãy giữ nguyên giá trị số đó và chỉ định dạng hiển thị kèm ký tự % (ví dụ: 0,20% hoặc 15,50%).
+                - Quy tắc nhất quán hiển thị tỷ lệ (BẮT BUỘC):
+                    * Nếu kết quả SQL đã có cột tỷ lệ như `TiLeLoi`/`TyLeLoi`, bạn PHẢI dùng đúng giá trị gốc trong cột đó để hiển thị. TUYỆT ĐỐI KHÔNG tự nhân 100, không tự chia 100.
+                    * Khi đã có `TiLeLoi`/`TyLeLoi`, TUYỆT ĐỐI KHÔNG được tính lại tỷ lệ từ `TongLoi`, `TongDat` hoặc bất kỳ cột nào khác.
+                    * Nếu thêm ký hiệu `%`, vẫn phải giữ nguyên đơn vị gốc từ SQL, làm tròn tối đa 3 chữ số sau dấu phẩy và TUYỆT ĐỐI KHÔNG viết thêm các số 0 vô nghĩa ở cuối phần thập phân (ví dụ: SQL trả 0.196335 -> hiển thị 0,196%; SQL trả 19.63 -> hiển thị 19,63% chứ không viết 19,630%; SQL trả 40 -> hiển thị 40% chứ không viết 40,000%).
+                    * Số liệu trong phần `### 💠 Tổng quan` và bảng `### 📋 Chi tiết` phải đồng nhất tuyệt đối với `DỮ LIỆU ĐÃ TRUY VẤN ĐƯỢC`.
 
             QUY TẮC QUAN TRỌNG VỀ DỮ LIỆU EXCEL:
             - Nếu dữ liệu đã truy vấn được là một danh sách dài/bảng dữ liệu gốc từ database:

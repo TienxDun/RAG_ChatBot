@@ -21,7 +21,7 @@
     {
       "id": "T_QTY_NL_003",
       "severity": "HIGH",
-      "rule": "Quy tắc lọc theo TenLoi và GhiChu: Khi tìm kiếm lỗi theo tên hoặc ghi chú, bắt buộc chỉ đặt dấu '%' ở CUỐI từ khóa (Ví dụ: LIKE N'không đối xứng%'). TUYỆT ĐỐI không đặt '%' ở đầu để tránh gom nhầm lỗi. Đồng thời, giữ nguyên dấu tiếng Việt từ từ khóa người dùng nhập (ví dụ: người dùng gõ 'loi vai' thì dùng N'loi vai%', không tự động sửa thành N'lỗi vải%').",
+      "rule": "Quy tắc lọc theo TenLoi và GhiChu: Khi tìm kiếm lỗi theo tên hoặc ghi chú, bắt buộc sử dụng LIKE kết hợp dấu '%' ở CUỐI từ khóa (ví dụ: LIKE N'Đứt chỉ%') để lấy nốt các ký tự còn thiếu ở phía sau (như 'Đứt chỉ kim', 'Đứt chỉ móc'). TUYỆT ĐỐI không đặt '%' ở đầu để tránh gom nhầm lỗi. Đồng thời, giữ nguyên dấu tiếng Việt từ từ khóa người dùng nhập (ví dụ: người dùng gõ 'loi vai' thì dùng N'loi vai%', không tự động sửa thành N'lỗi vải%').",
       "correct_example": "WHERE TenLoi LIKE N'đứt chỉ%' hoặc WHERE TenLoi LIKE N'loi vai%'",
       "wrong_example": "WHERE TenLoi LIKE N'%đứt chỉ%' hoặc WHERE TenLoi = N'lỗi vải'"
     }
@@ -49,7 +49,7 @@
       "name": "TenLoi",
       "type": "nvarchar",
       "role": "display",
-      "desc": "Tên hiển thị thực tế của lỗi (ví dụ: 'Đứt chỉ', 'Lỗi vải'). Thường dùng để GROUP BY khi tính TOP lỗi. Áp dụng rule T_QTY_NL_003."
+      "desc": "Tên hiển thị thực tế của lỗi (ví dụ: 'Đứt chỉ', 'Lỗi vải'). Khi tìm kiếm/lọc theo tên lỗi, bắt buộc dùng LIKE với dấu '%' ở cuối (ví dụ: TenLoi LIKE N'Đứt chỉ%') để lấy hết các ký tự còn thiếu ở phía sau. Áp dụng rule T_QTY_NL_003."
     },
     {
       "name": "GhiChu",

@@ -74,6 +74,29 @@
     opacity: 0.8;
 }
 
+.sidebar__header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.sidebar__clear {
+    opacity: 0.4;
+    transition: all 0.2s ease;
+}
+
+.sidebar__clear:hover {
+    opacity: 1;
+    color: #ff4d4d;
+    background: rgba(255, 0, 0, 0.05);
+    transform: scale(1.1);
+}
+
+[data-theme="dark"] .sidebar__clear:hover {
+    background: rgba(255, 80, 80, 0.1);
+}
+/* Clear all history button has been moved to storage info popover */
+
 .sidebar__close {
     opacity: 0.4;
     transition: all 0.2s ease;
@@ -233,21 +256,36 @@
     flex-shrink: 0;
 }
 
-.storage-info__clean-btn {
-    display: inline-flex;
+/* Storage Info Actions block inside popover */
+.storage-info__actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    width: 100%;
+}
+
+.storage-info__clean-btn,
+.sidebar__clear-all-btn {
+    display: flex;
     align-items: center;
-    gap: 0.35rem;
-    padding: 0.35rem 0.65rem;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
     border-radius: 8px;
-    border: 1px solid rgba(124, 58, 237, 0.2);
-    background: rgba(124, 58, 237, 0.05);
-    color: var(--primary);
-    font-size: 0.68rem;
+    font-size: 0.75rem;
     font-weight: 700;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 100%;
     white-space: nowrap;
     flex-shrink: 0;
+}
+
+.storage-info__clean-btn {
+    border: 1px solid rgba(124, 58, 237, 0.2);
+    background: rgba(124, 58, 237, 0.05);
+    color: var(--primary);
 }
 
 .storage-info__clean-btn:hover {
@@ -256,6 +294,46 @@
     border-color: var(--primary);
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(124, 58, 237, 0.15);
+}
+
+.sidebar__clear-all-btn {
+    border: 1px solid rgba(239, 68, 68, 0.15);
+    background: rgba(239, 68, 68, 0.04);
+    color: rgba(239, 68, 68, 0.9);
+}
+
+[data-theme="dark"] .sidebar__clear-all-btn {
+    border-color: rgba(248, 113, 113, 0.2);
+    background: rgba(248, 113, 113, 0.05);
+    color: rgba(248, 113, 113, 0.9);
+}
+
+.sidebar__clear-all-btn:hover {
+    color: #ffffff;
+    background: #ef4444;
+    border-color: #ef4444;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.20);
+    transform: translateY(-1px);
+}
+
+[data-theme="dark"] .sidebar__clear-all-btn:hover {
+    background: #ef4444;
+    border-color: #ef4444;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.30);
+}
+
+.sidebar__clear-all-btn:hover i {
+    transform: scale(1.1);
+}
+
+.storage-info__clean-btn i,
+.sidebar__clear-all-btn i {
+    font-size: 0.95rem;
+    transition: transform 0.2s ease;
+}
+
+.sidebar__clear-all-btn.hidden {
+    display: none !important;
 }
 
 /* Settings Button in Sidebar Footer */
@@ -347,121 +425,6 @@
     visibility: hidden;
 }
 
-/* Settings Panel (unified controls) */
-.sidebar__settings-panel {
-    padding: 0.85rem 1rem;
-    border-radius: 16px;
-    background: rgba(255, 255, 255, 0.45);
-    border: 1px solid rgba(0, 0, 0, 0.06);
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.03);
-    backdrop-filter: blur(10px);
-    transition: all 0.3s ease;
-}
-
-[data-theme="dark"] .sidebar__settings-panel {
-    background: rgba(17, 24, 39, 0.55);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.settings-panel__row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 0.75rem;
-    padding: 0.25rem 0;
-}
-
-.settings-panel__title {
-    font-weight: 700;
-    color: var(--foreground);
-    display: flex;
-    align-items: center;
-    gap: 0.45rem;
-    letter-spacing: 0.02em;
-    opacity: 0.9;
-}
-
-.settings-panel__title i {
-    font-size: 0.95rem;
-}
-
-.settings-panel__title .ph-lightning {
-    color: #eab308; /* Amber yellow for lightning */
-}
-
-.settings-panel__title .ph-shield-warning {
-    color: var(--accent); /* Cyan for database rules */
-}
-
-.settings-panel__divider {
-    height: 1px;
-    background: rgba(0, 0, 0, 0.06);
-    margin: 0.5rem 0;
-}
-
-[data-theme="dark"] .settings-panel__divider {
-    background: rgba(255, 255, 255, 0.08);
-}
-
-/* Switch styling (iOS style) */
-.switch {
-    position: relative;
-    display: inline-block;
-    width: 38px;
-    height: 22px;
-}
-
-.switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
-.slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.12);
-    transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-[data-theme="dark"] .slider {
-    background-color: rgba(255, 255, 255, 0.15);
-}
-
-.slider:before {
-    position: absolute;
-    content: "";
-    height: 16px;
-    width: 16px;
-    left: 3px;
-    bottom: 3px;
-    background-color: white;
-    transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-}
-
-input:checked + .slider {
-    background-color: #10b981; /* beautiful emerald green */
-}
-
-input:checked + .slider:before {
-    transform: translateX(16px);
-}
-
-.slider.round {
-    border-radius: 22px;
-}
-
-.slider.round:before {
-    border-radius: 50%;
-}
 /* Right Sidebar Modifier */
 .sidebar--right {
     left: auto;

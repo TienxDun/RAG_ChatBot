@@ -1,15 +1,15 @@
 {
   "table": "SEW_CoefficientStyle",
   "purpose": "Lưu trữ sản lượng sản xuất (Quantity) của mã hàng theo công đoạn sản xuất tại chuyền. Đây là bảng mặc định khi truy vấn năng suất/sản lượng chung không liên quan tới KCS. Bảng này không chứa thông tin kích thước (size) hay nhân viên KCS.",
-  "when_to_use": "Sử dụng mặc định cho các câu hỏi về năng suất, năng suất đạt đỉnh cao nhất, sản lượng sản xuất hoặc số lượng sản phẩm hoàn thành mà KHÔNG liên quan tới KCS (nhân viên KCS, công đoạn KCS) VÀ KHÔNG yêu cầu chi tiết theo kích thước (size) cụ thể.",
+  "when_to_use": "Sử dụng mặc định cho các câu hỏi về năng suất, năng suất đạt đỉnh cao nhất, sản lượng sản xuất hoặc số lượng sản phẩm hoàn thành (bao gồm cả phân tích theo khung giờ TimeLineId/ngày) mà KHÔNG liên quan tới KCS (nhân viên KCS, công đoạn KCS) VÀ KHÔNG yêu cầu chi tiết theo kích thước (size) cụ thể.",
   "when_not_to_use": "KHÔNG sử dụng khi câu hỏi hỏi về năng suất liên quan tới KCS (khi đó bắt buộc dùng SEW_CoefficientSize vì có thông tin sửa đạt SuaDat), hoặc khi yêu cầu phân tích chi tiết theo kích thước/size cụ thể (phải dùng SEW_CoefficientSize), hoặc khi tính toán tỉ lệ lỗi % chính xác.",
   "table_rules": [
     {
       "id": "T_SEW_STYLE_001",
       "severity": "CRITICAL",
-      "rule": "Bảng này chứa sản lượng của tất cả các công đoạn. Khi người dùng hỏi về năng suất hoặc sản lượng của một công đoạn cụ thể (ví dụ: 'KCS', 'RA CHUYỀN'), BẮT BUỘC phải JOIN với bảng tbl_Steps (qua StepId = Id_cd) và lọc theo tên công đoạn ở cột cd_name (ví dụ: s.cd_name LIKE N'KCS%' hoặc s.cd_name LIKE N'RA CHUYỀN%'). Nếu không lọc, dữ liệu sẽ bị cộng dồn trùng lặp của toàn bộ các khâu.",
+      "rule": "Bảng này chứa sản lượng của tất cả các công đoạn. Khi người dùng hỏi về năng suất hoặc sản lượng của một công đoạn cụ thể (ví dụ: 'KCS', 'RA CHUYỀN'), BẮT BUỘC phải JOIN với bảng tbl_Steps (qua StepId = Id_cd) và lọc theo tên công đoạn ở cột cd_name (ví dụ: s.cd_name LIKE N'KCS%' hoặc s.cd_name LIKE N'RA CHUYỀN%'). Khi câu hỏi KHÔNG nhắc đến công đoạn cụ thể nào, TUYỆT ĐỐI KHÔNG tự ý JOIN với tbl_Steps và KHÔNG lọc theo công đoạn, cứ truy vấn bình thường (tính tổng Quantity trên toàn bảng).",
       "correct_example": "SELECT SUM(Quantity) FROM SEW_CoefficientStyle sc JOIN tbl_Steps s ON sc.StepId = s.Id_cd WHERE s.cd_name LIKE N'KCS%'",
-      "wrong_example": "SELECT SUM(Quantity) FROM SEW_CoefficientStyle -- không join tbl_Steps và không lọc cd_name"
+      "wrong_example": "SELECT SUM(Quantity) FROM SEW_CoefficientStyle sc JOIN tbl_Steps s ON sc.StepId = s.Id_cd WHERE s.cd_name LIKE N'KCS%' -- Sai vì câu hỏi không nhắc đến công đoạn nhưng vẫn JOIN và lọc công đoạn"
     },
     {
       "id": "T_SEW_STYLE_002",
@@ -116,6 +116,11 @@
       "target_table": "tbl_Steps",
       "join_on": "SEW_CoefficientStyle.StepId = tbl_Steps.Id_cd",
       "notes": "BẮT BUỘC khi lọc theo tên công đoạn (cd_name)."
+    },
+    {
+      "target_table": "tbl_SettingLineX",
+      "join_on": "CAST(tbl_SettingLineX.ID AS INT) = SEW_CoefficientStyle.Linex",
+      "notes": "BẮT BUỘC kết nối (JOIN) khi cần lấy tên chuyền hiển thị (Name) thay vì mã ID."
     }
   ]
 }

@@ -117,7 +117,7 @@ public sealed class VertexAiClient
                 temperature = 0.0,
                 topP = 0.95,
                 topK = 40,
-                maxOutputTokens = 1024,
+                maxOutputTokens = 8192,
                 responseMimeType = "text/plain"
             }
         };
@@ -233,7 +233,15 @@ public sealed class VertexAiClient
         int? outputDimensionality,
         CancellationToken ct)
     {
-        var url = _options.ApiUrlTemplate
+        var baseUrl = _options.ApiUrlTemplate;
+        // Nếu đang dùng Global Express Endpoint, tự động chuyển sang Regional Endpoint (mặc định asia-east1 - Taiwan) để giảm độ trễ từ 12s xuống ~1.5s
+        if (baseUrl.Contains("https://aiplatform.googleapis.com"))
+        {
+            var region = !string.IsNullOrWhiteSpace(_options.Region) ? _options.Region : "asia-east1";
+            baseUrl = baseUrl.Replace("https://aiplatform.googleapis.com", $"https://{region}-aiplatform.googleapis.com");
+        }
+
+        var url = baseUrl
             .Replace("{modelId}", _options.EmbeddingModelId)
             .Replace("{action}", "predict") + $"?key={_options.ApiKey}";
         var resolvedTaskType = string.IsNullOrWhiteSpace(taskType) ? "RETRIEVAL_QUERY" : taskType;

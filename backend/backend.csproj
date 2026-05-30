@@ -12,9 +12,9 @@
     <Watch Remove="temp_debug\**\*" />
     <Watch Remove=".temp_debug\**\*" />
     <Watch Remove="data\**\*" />
-    <Watch Remove="data\excel_mappings.json" />
+    <Watch Remove="data\templates\excel_mappings.json" />
     <Watch Remove="..\data\**\*" />
-    <Watch Remove="..\data\excel_mappings.json" />
+    <Watch Remove="..\data\templates\excel_mappings.json" />
     <PackageReference Include="DotNetEnv" Version="3.1.1" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.26" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />

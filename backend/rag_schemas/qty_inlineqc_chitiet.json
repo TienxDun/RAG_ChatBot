@@ -1,6 +1,6 @@
 {
   "table": "QTY_InLineQC_CHITIET",
-  "purpose": "Lưu trữ chi tiết từng lỗi ghi nhận được trong quá trình kiểm tra chất lượng của bộ phận InLine QC tại chuyền sản xuất.",
+  "purpose": "Lưu trữ chi tiết TỪNG LỖI CỤ THỂ phát hiện trong quá trình kiểm InLine QC. Mỗi bản ghi = 1 lỗi trên 1 sản phẩm cụ thể, bao gồm mã lỗi (Code), công đoạn (MaCongDoan), ảnh minh chứng (Image) và mô tả lỗi (NoiDungLoi). Cột SPLoi là SỐ THỨ TỰ của sản phẩm trong lần kiểm (1, 2, 3...) — KHÔNG phải số lượng lỗi.",
   "when_to_use": "CHỈ sử dụng khi câu hỏi CÓ CHỨA RÕ RÀNG từ khóa 'inline', 'InLine' hoặc 'in line' VÀ yêu cầu liệt kê chi tiết các lỗi, tìm mã lỗi (Code), hình ảnh lỗi (Image), hoặc mô tả lỗi (NoiDungLoi) do bộ phận InLine QC kiểm tra. Nếu câu hỏi KHÔNG nhắc 'inline' → BẮT BUỘC dùng QTY_MaHang_KiemQC_ChiTiet (cho chi tiết lỗi) hoặc QTY_MAHANG_NGAYKIEM (cho tổng hợp lỗi) thay vì bảng này.",
   "when_not_to_use": "TUYỆT ĐỐI KHÔNG dùng bảng này khi câu hỏi KHÔNG chứa từ khóa 'inline'/'InLine'/'in line'. Khi không nhắc inline, mặc định dùng QTY_MaHang_KiemQC_ChiTiet (cho chi tiết từng lỗi) hoặc QTY_MAHANG_NGAYKIEM (cho tổng hợp sản phẩm lỗi). Cũng không sử dụng nếu câu hỏi chỉ yêu cầu thống kê số lượng lỗi tổng hợp theo ngày (khi đó sử dụng QTY_InLineQC_NgayKiem nếu có từ inline, hoặc QTY_MAHANG_NGAYKIEM nếu không có).",
   "table_rules": [
@@ -115,8 +115,8 @@
     {
       "name": "SPLoi",
       "type": "int",
-      "role": "measure",
-      "desc": "Số lượng sản phẩm lỗi. Sử dụng SUM(ISNULL(SPLoi, 0))."
+      "role": "info",
+      "desc": "SỐ THỨ TỰ của sản phẩm lỗi trong lần kiểm (1, 2, 3...) — KHÔNG phải số lượng lỗi. TUYỆT ĐỐI KHÔNG dùng SUM(SPLoi) để đếm lỗi. Để đếm số lỗi, dùng COUNT(*) hoặc tham chiếu sang QTY_InLineQC_NgayKiem.SoLuongLoi."
     },
     {
       "name": "MaCongDoan",
@@ -164,13 +164,13 @@
       "name": "StatusHT",
       "type": "int",
       "role": "filter",
-      "desc": "Trạng thái hoàn thành sửa lỗi."
+      "desc": "Trạng thái hoàn thành sửa lỗi của lỗi này: 0 = chưa sửa, 3 = đã sửa xong (sửa đạt). NULL = chưa xử lý."
     },
     {
       "name": "NgayHT",
       "type": "datetime",
       "role": "filter",
-      "desc": "Ngày hoàn thành sửa lỗi."
+      "desc": "Ngày hoàn thành sửa lỗi. NULL nếu chưa sửa. Áp dụng rule G001 khi lọc theo ngày."
     },
     {
       "name": "StatusKiemLai",
@@ -249,6 +249,11 @@
       "target_table": "QTY_NHOMLOI_CHITIET",
       "join_on": "QTY_InLineQC_CHITIET.Code = QTY_NHOMLOI_CHITIET.MaLoi",
       "notes": "Để lấy tên lỗi chi tiết (TenLoi)."
+    },
+    {
+      "target_table": "tbl_SettingLineX",
+      "join_on": "QTY_InLineQC_CHITIET.Line = tbl_SettingLineX.ID",
+      "notes": "BẮT BUỘC kết nối (JOIN) khi cần lấy tên chuyền hiển thị (Name) thay vì mã ID."
     }
   ]
 }

@@ -12,8 +12,7 @@ class State {
             selectedFiles: [],
             isUploading: false,
             currentConversationId: null,
-            isBackendOnline: true,
-            isRulesEnabled: localStorage.getItem('rules_enabled') !== 'false'
+            isBackendOnline: true
         };
         this._listeners = [];
         this._saveDebounceTimer = null;
@@ -126,12 +125,7 @@ class State {
 
         // isFastPathEnabled đã bị loại bỏ
 
-    get isRulesEnabled() { return this._state.isRulesEnabled; }
-    set isRulesEnabled(value) {
-        this._state.isRulesEnabled = value;
-        localStorage.setItem('rules_enabled', value ? 'true' : 'false');
-        this._notify('isRulesEnabled', value);
-    }
+
 
     get selectedFiles() { return this._state.selectedFiles; }
     set selectedFiles(value) {

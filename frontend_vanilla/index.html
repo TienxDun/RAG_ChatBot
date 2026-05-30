@@ -38,13 +38,15 @@
     <!-- Sidebar -->
     <aside id="sidebar" class="sidebar glass">
         <div class="sidebar__header">
-            <button id="theme-toggle" class="icon-btn sidebar__theme">
+            <button id="theme-toggle" class="icon-btn sidebar__theme" title="Chuyển giao diện">
                 <i class="ph-duotone ph-moon-stars"></i>
             </button>
             <h2 class="sidebar__title-main">HISTORY</h2>
-            <button id="close-sidebar" class="icon-btn sidebar__close">
-                <i class="ph-bold ph-x"></i>
-            </button>
+            <div class="sidebar__header-actions">
+                <button id="close-sidebar" class="icon-btn sidebar__close">
+                    <i class="ph-bold ph-x"></i>
+                </button>
+            </div>
         </div>
         
         <div class="sidebar__content">
@@ -62,22 +64,6 @@
 
             <!-- Settings Popover -->
             <div id="sidebar-settings-popover" class="sidebar__settings-popover hidden">
-                <!-- Settings Panel -->
-                <div class="sidebar__settings-panel">
-                    <!-- Tối ưu Fast-path đã bị loại bỏ -->
-                    <div class="settings-panel__divider hidden"></div>
-                    <div class="settings-panel__row hidden">
-                        <span class="settings-panel__title">
-                            <i class="ph-bold ph-shield-warning"></i>
-                            <span>Hiện quy tắc CSDL</span>
-                        </span>
-                        <label class="switch">
-                            <input type="checkbox" id="rules-checkbox">
-                            <span class="slider round"></span>
-                        </label>
-                    </div>
-                </div>
-                
                 <div class="sidebar__storage-info">
                     <div class="storage-info__header">
                         <span class="storage-info__title">
@@ -93,9 +79,16 @@
                     
                     <div class="storage-info__footer">
                         <span id="storage-quota" class="storage-info__quota">Tối đa: 250 MB</span>
+                    </div>
+
+                    <div class="storage-info__actions">
                         <button id="clean-storage" class="storage-info__clean-btn" title="Giải phóng các RAG steps cũ để tăng tốc độ duyệt web">
                             <i class="ph-bold ph-broom"></i>
                             <span>Dọn dẹp</span>
+                        </button>
+                        <button id="clear-all-history-sidebar" class="sidebar__clear-all-btn hidden" title="Xóa toàn bộ lịch sử cuộc trò chuyện">
+                            <i class="ph-bold ph-trash-simple"></i>
+                            <span>Xóa toàn bộ lịch sử</span>
                         </button>
                     </div>
                 </div>
@@ -158,9 +151,12 @@
             </div>
             
             <div class="header__right">
+                <button id="header-new-chat" class="header-action-btn glass-panel shadow-sm" title="Chat mới">
+                    <i class="ph-bold ph-plus"></i>
+                </button>
                 <div class="header__dropdown-container">
                     <button id="header-dropdown-trigger" class="header-action-btn glass-panel shadow-sm" title="Tiện ích nhanh">
-                        <i class="ph-bold ph-gear-six"></i>
+                        <i class="ph-bold ph-dots-three-vertical"></i>
                     </button>
                     <div id="header-dropdown-menu" class="header__dropdown-menu glass-panel shadow-lg hidden">
                         <button id="open-search" class="dropdown-item" title="Tìm kiếm tin nhắn">
@@ -173,9 +169,6 @@
                             <i class="ph-bold ph-paperclip"></i>
                         </button>
                         <input type="file" id="chat-file" hidden accept=".xlsx">
-                        <button id="header-new-chat" class="dropdown-item" title="Chat mới">
-                            <i class="ph-bold ph-plus"></i>
-                        </button>
                     </div>
                 </div>
             </div>

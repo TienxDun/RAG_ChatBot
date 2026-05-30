@@ -64,14 +64,12 @@ export class ChatService {
     }
 
     static _prepareBody(text, file, collectionName) {
-        const isRulesEnabled = state.isRulesEnabled;
         if (!file) {
-            return JSON.stringify({ message: text, collectionName, rulesEnabled: isRulesEnabled });
+            return JSON.stringify({ message: text, collectionName });
         }
         const formData = new FormData();
         formData.append('message', text);
         formData.append('file', file);
-        formData.append('rulesEnabled', isRulesEnabled.toString());
         if (collectionName) formData.append('collectionName', collectionName);
         return formData;
     }

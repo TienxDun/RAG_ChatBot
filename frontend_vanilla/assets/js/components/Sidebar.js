@@ -22,6 +22,9 @@ export class SidebarComponent {
         const cleanBtn = document.getElementById('clean-storage');
         if (cleanBtn) cleanBtn.addEventListener('click', () => this.handleStorageCleanup());
 
+        const clearAllSidebarBtn = document.getElementById('clear-all-history-sidebar');
+        if (clearAllSidebarBtn) clearAllSidebarBtn.addEventListener('click', () => this.handleClearAllHistory());
+
         // Xử lý đóng/mở Settings Popover
         const settingsToggleBtn = document.getElementById('sidebar-settings-toggle');
         const settingsPopover = document.getElementById('sidebar-settings-popover');
@@ -52,28 +55,7 @@ export class SidebarComponent {
 
         // Logic Fast-path đã bị loại bỏ
 
-        // Đăng ký và xử lý checkbox Rules
-        const rulesCheckbox = document.getElementById('rules-checkbox');
-        if (rulesCheckbox) {
-            rulesCheckbox.checked = state.isRulesEnabled;
-            // Áp dụng class lên body lúc khởi tạo
-            if (state.isRulesEnabled) {
-                document.body.classList.remove('hide-rules');
-            } else {
-                document.body.classList.add('hide-rules');
-            }
-            
-            rulesCheckbox.addEventListener('change', (e) => {
-                state.isRulesEnabled = e.target.checked;
-                if (window.app && window.app.toast) {
-                    window.app.toast.success(
-                        e.target.checked 
-                            ? "Đã hiển thị phần trích xuất quy tắc CSDL!" 
-                            : "Đã tắt phần trích xuất quy tắc CSDL!"
-                    );
-                }
-            });
-        }
+
 
         // Khởi tạo trạng thái ban đầu từ State
         this.applySidebarState();
@@ -88,15 +70,7 @@ export class SidebarComponent {
                 this.updateActiveHistoryItem(value);
             }
             if (key === 'isSidebarOpen') this.applySidebarState();
-            // State isFastPathEnabled đã bị loại bỏ
-            if (key === 'isRulesEnabled') {
-                if (rulesCheckbox) rulesCheckbox.checked = value;
-                if (value) {
-                    document.body.classList.remove('hide-rules');
-                } else {
-                    document.body.classList.add('hide-rules');
-                }
-            }
+
         });
 
         this.renderHistory();
@@ -138,8 +112,10 @@ export class SidebarComponent {
         if (!this.historyContainer) return;
         const history = state.chatHistory;
         const currentId = state.currentConversationId;
+        const clearAllSidebarBtn = document.getElementById('clear-all-history-sidebar');
 
         if (history.length > 0) {
+            if (clearAllSidebarBtn) clearAllSidebarBtn.classList.remove('hidden');
             this.historyContainer.innerHTML = history.map(item => {
                 const isActive = String(item.id) === String(currentId);
                 const formattedDate = this.formatDate(item.date, item.id);
@@ -159,6 +135,7 @@ export class SidebarComponent {
             
             this.bindItemClicks();
         } else {
+            if (clearAllSidebarBtn) clearAllSidebarBtn.classList.add('hidden');
             this.historyContainer.innerHTML = '<div class="empty-state">Chưa có cuộc trò chuyện nào</div>';
         }
     }
@@ -189,6 +166,21 @@ export class SidebarComponent {
 
     handleDelete(id) {
         state.chatHistory = state.chatHistory.filter(item => String(item.id) !== String(id));
+    }
+
+    async handleClearAllHistory() {
+        const choice = confirm("Bạn có chắc chắn muốn xóa toàn bộ lịch sử cuộc trò chuyện không?\nHành động này sẽ xóa vĩnh viễn dữ liệu và không thể khôi phục.");
+        if (choice) {
+            state.clearAllHistory();
+            if (window.app && window.app.chatArea) {
+                window.app.chatArea.resetChat(); // Trở về màn hình landing ban đầu
+            }
+            if (window.app && window.app.toast) {
+                window.app.toast.success("Đã xóa toàn bộ lịch sử cuộc trò chuyện!");
+            } else {
+                alert("Đã xóa toàn bộ lịch sử cuộc trò chuyện!");
+            }
+        }
     }
 
     async handleStorageCleanup() {

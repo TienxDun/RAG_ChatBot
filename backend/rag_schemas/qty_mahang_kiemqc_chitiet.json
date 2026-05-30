@@ -72,6 +72,7 @@
   ],
   "relationships": [
     { "target_table": "ERP_LENHSX", "join_on": "QTY_MaHang_KiemQC_ChiTiet.PlanCode = ERP_LENHSX.MaLenh", "notes": "JOIN khi cần lọc theo thông tin lệnh sản xuất." },
-    { "target_table": "QTY_NHOMLOI_CHITIET", "join_on": "QTY_MaHang_KiemQC_ChiTiet.Code = QTY_NHOMLOI_CHITIET.MaLoi", "notes": "BẮT BUỘC khi cần lấy tên lỗi (TenLoi) hoặc lọc theo loại lỗi (LoaiLoi) / nhóm lỗi (NhomLoi)." }
+    { "target_table": "QTY_NHOMLOI_CHITIET", "join_on": "QTY_MaHang_KiemQC_ChiTiet.Code = QTY_NHOMLOI_CHITIET.MaLoi", "notes": "BẮT BUỘC khi cần lấy tên lỗi (TenLoi) hoặc lọc theo loại lỗi (LoaiLoi) / nhóm lỗi (NhomLoi)." },
+    { "target_table": "tbl_SettingLineX", "join_on": "QTY_MaHang_KiemQC_ChiTiet.LineX = tbl_SettingLineX.ID", "notes": "BẮT BUỘC kết nối (JOIN) khi cần lấy tên chuyền hiển thị (Name) thay vì mã ID." }
   ]
 }

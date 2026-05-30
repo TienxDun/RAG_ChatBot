@@ -358,8 +358,5 @@
     top: -0.1rem;
 }
 
-/* Hide database rules step when hide-rules class is active on body */
-body.hide-rules .rag-step--rules {
-    display: none;
-}
+
 
