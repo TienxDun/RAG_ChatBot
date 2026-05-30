@@ -130,6 +130,30 @@
       "rule": "ĐỊNH TUYẾN BẢNG NĂNG SUẤT / SẢN LƯỢNG (PRODUCTIVITY & OUTPUT ROUTING): Khi câu hỏi hỏi về năng suất, sản lượng sản xuất, năng suất đạt đỉnh, số lượng sản phẩm làm ra/hoàn thành. (A) CÓ LIÊN QUAN TỚI KCS (ví dụ: nhắc đến 'nhân viên KCS', 'KCS PANSY', 'KCS cosmos', 'công đoạn KCS'...): BẮT BUỘC dùng bảng SEW_CoefficientSize (bảng size) vì dữ liệu KCS ghi nhận năng suất có liên quan tới kích thước (size) và có phần sản lượng sửa đạt (SuaDat). Khi đó, tổng sản phẩm đạt (năng suất) BẮT BUỘC tính bằng công thức SUM(ISNULL(Quantity, 0) + ISNULL(SuaDat, 0)) và cột nhân viên KCS là NVKiemKCS. (B) KHÔNG LIÊN QUAN TỚI KCS: Mặc định dùng bảng SEW_CoefficientStyle (bảng style) để truy vấn năng suất/sản lượng chung. Khi đó, năng suất đạt chuẩn chỉ tính bằng công thức SUM(Quantity).",
       "correct_example": "SELECT SUM(ISNULL(Quantity, 0) + ISNULL(SuaDat, 0)) FROM SEW_CoefficientSize WHERE SizeId = 'SIZE_XL' AND NVKiemKCS = N'KCS PANSY' hoặc SELECT SUM(Quantity) FROM SEW_CoefficientStyle",
       "wrong_example": "SELECT COUNT(RowID) FROM QTY_MaHang_KiemQC_ChiTiet WHERE Size = N'XL' (khi câu hỏi hỏi về năng suất/sản lượng đạt chuẩn)"
+    },
+    {
+      "id": "G017",
+      "category": "database_prefix_ban",
+      "severity": "CRITICAL",
+      "rule": "TUYỆT ĐỐI CẤM thêm bất kỳ tiền tố tên cơ sở dữ liệu hoặc schema nào (như `DataBase.dbo.`, `Database.dbo.`, `XuongMay.dbo.`, `dbo.`) trước tên bảng. Chỉ viết tên bảng trực tiếp (ví dụ: `QTY_MAHANG_NGAYKIEM`, `SEW_CoefficientSize`). Việc sử dụng tiền tố `DataBase.dbo.` sẽ gây ra lỗi cú pháp nghiêm trọng do 'DataBase' là từ khóa hệ thống (Reserved Keyword) của SQL Server.",
+      "correct_example": "SELECT SUM(SpLoi) FROM QTY_MAHANG_NGAYKIEM",
+      "wrong_example": "SELECT SUM(SpLoi) FROM DataBase.dbo.QTY_MAHANG_NGAYKIEM"
+    },
+    {
+      "id": "G018",
+      "category": "group_by_correctness",
+      "severity": "CRITICAL",
+      "rule": "CÚ PHÁP GROUP BY BẮT BUỘC: Khi câu lệnh SQL sử dụng mệnh đề `GROUP BY`, mọi cột xuất hiện trong danh sách `SELECT` mà không nằm trong các hàm gộp (như `SUM`, `COUNT`, `AVG`, `MAX`, `MIN`) BẮT BUỘC phải xuất hiện đầy đủ trong mệnh đề `GROUP BY`. TUYỆT ĐỐI KHÔNG để sót bất kỳ cột nào để tránh lỗi cú pháp 'is invalid in the select list because it is not contained in either an aggregate function or the GROUP BY clause' của SQL Server.",
+      "correct_example": "SELECT LineX, NgayKiem, SUM(SpLoi) FROM QTY_MAHANG_NGAYKIEM GROUP BY LineX, NgayKiem",
+      "wrong_example": "SELECT LineX, NgayKiem, SUM(SpLoi) FROM QTY_MAHANG_NGAYKIEM GROUP BY LineX"
+    },
+    {
+      "id": "G019",
+      "category": "string_aggregation_distinct",
+      "severity": "HIGH",
+      "rule": "LOẠI BỎ TRÙNG LẶP KHI GỘP CHUỖI (STRING_AGG DISTINCT): Khi cần gộp danh sách chuỗi (như gộp tên lỗi, ghi chú) và loại bỏ các giá trị trùng lặp: TUYỆT ĐỐI CẤM sử dụng cú pháp `STRING_AGG(DISTINCT TenLoi, ' | ')` vì SQL Server không hỗ trợ và sẽ báo lỗi. BẮT BUỘC dùng CTE hoặc Subquery để SELECT DISTINCT (lấy danh sách không trùng lặp) trước, sau đó mới dùng `STRING_AGG` gom nhóm trên tập kết quả trung gian đó.",
+      "correct_example": "WITH UniqueLoi AS (SELECT DISTINCT LineX, TenLoi FROM QTY_MaHang_KiemQC_ChiTiet) SELECT LineX, STRING_AGG(TenLoi, ' | ') AS DanhSachLoi FROM UniqueLoi GROUP BY LineX",
+      "wrong_example": "SELECT LineX, STRING_AGG(DISTINCT TenLoi, ' | ') FROM QTY_MaHang_KiemQC_ChiTiet GROUP BY LineX"
     }
   ]
 }

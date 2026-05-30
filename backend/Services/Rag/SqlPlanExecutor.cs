@@ -79,6 +79,22 @@ public class SqlPlanExecutor : ISqlPlanExecutor
             string lastError = string.Empty;
             int stepMaxAttempts = 3;
 
+            string excelInstructions = "";
+            if (isMultiStep && !string.IsNullOrEmpty(userQuery))
+            {
+                int idxNotes = userQuery.IndexOf("DANH SÁCH Ý NGHĨA");
+                int idxReq = userQuery.IndexOf("YÊU CẦU ĐẶC BIỆT");
+                int cutIdx = -1;
+                if (idxNotes >= 0 && idxReq >= 0) cutIdx = Math.Min(idxNotes, idxReq);
+                else if (idxNotes >= 0) cutIdx = idxNotes;
+                else if (idxReq >= 0) cutIdx = idxReq;
+
+                if (cutIdx >= 0)
+                {
+                    excelInstructions = $"\n\nCHỈ DẪN ÁNH XẠ EXCEL & QUY TẮC NGHIỆP VỤ (BẮT BUỘC TUÂN THỦ):\n{userQuery.Substring(cutIdx)}\n";
+                }
+            }
+
             for (int attempt = 1; attempt <= stepMaxAttempts; attempt++)
             {
                 var globalRules = await _ruleProvider.GetGlobalRulesAsync();
@@ -89,6 +105,7 @@ public class SqlPlanExecutor : ISqlPlanExecutor
 
                     NHIỆM VỤ HIỆN TẠI: {currentStepDesc}
                     {(isMultiStep ? "" : $@"CÂU HỎI GỐC: ""{userQuery}""")}
+                    {excelInstructions}
 
                     {globalRules}
 

@@ -443,7 +443,10 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
     // Điền metadata chung vào phần đầu trang Excel
     public void FillMetadata(ExcelWorksheet worksheet, int headerRowIndex, Dictionary<string, string> metadataValues)
     {
-        if (metadataValues == null || metadataValues.Count == 0) return;
+        if (metadataValues == null)
+        {
+            metadataValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        }
         
         int totalCols = worksheet.Dimension?.Columns ?? 0;
         
@@ -464,9 +467,22 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
                     {
                         worksheet.Cells[r, c].Value = $"{label}: {matchedValue}";
                     }
-                    else if (val.Contains("N/A", StringComparison.OrdinalIgnoreCase))
+                    else
                     {
+                        // Xóa các giá trị placeholder cũ, chỉ giữ lại phần nhãn và dấu hai chấm
                         worksheet.Cells[r, c].Value = $"{label}: ";
+                    }
+
+                    // Đồng thời, nếu ô bên phải liền kề (c + 1) có chứa giá trị (ví dụ: chữ "Daisy" dư thừa trong template)
+                    // và ô đó không phải là một nhãn khác (không chứa dấu hai chấm ":"), ta cũng tiến hành dọn dẹp sạch ô đó.
+                    if (c + 1 <= totalCols)
+                    {
+                        var nextCell = worksheet.Cells[r, c + 1];
+                        string nextText = nextCell.Text?.Trim() ?? "";
+                        if (!string.IsNullOrEmpty(nextText) && !nextText.Contains(":"))
+                        {
+                            nextCell.Value = "";
+                        }
                     }
                 }
                 else
@@ -489,11 +505,8 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
                             }
                             else
                             {
-                                string nextVal = worksheet.Cells[r, c + 1].Text?.Trim() ?? "";
-                                if (nextVal.Equals("N/A", StringComparison.OrdinalIgnoreCase))
-                                {
-                                    worksheet.Cells[r, c + 1].Value = "";
-                                }
+                                // Xóa các giá trị placeholder cũ ở ô kế bên liền kề
+                                worksheet.Cells[r, c + 1].Value = "";
                             }
                         }
                     }

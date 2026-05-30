@@ -36,7 +36,7 @@ public class ExcelTemplateAnalyzer : IExcelTemplateAnalyzer
     public string GetCellValue(ExcelWorksheet worksheet, int row, int col)
     {
         if (row <= 0 || col <= 0) return string.Empty;
-        
+
         // Tìm xem ô này có thuộc vùng gộp nào không
         var mergedRangeAddress = worksheet.MergedCells[row, col];
         if (string.IsNullOrEmpty(mergedRangeAddress))
@@ -64,17 +64,17 @@ public class ExcelTemplateAnalyzer : IExcelTemplateAnalyzer
         // Bước 1: Phát hiện HeaderRowIndex và TemplateType
         int headerRowIndex = 1;
         bool isHierarchical = false;
-        
+
         // Quét các dòng từ 1 đến tối đa 30 để tìm dòng tiêu đề
         int maxScanRows = Math.Min(totalRows, 30);
         int maxHeaderCandidateCols = 0;
-        
+
         for (int r = 1; r <= maxScanRows; r++)
         {
             int nonEmtpyCount = 0;
             int boldCount = 0;
             bool containsHeaderKeywords = false;
-            
+
             for (int c = 1; c <= totalCols; c++)
             {
                 string val = worksheet.Cells[r, c].Text?.Trim() ?? "";
@@ -85,13 +85,13 @@ public class ExcelTemplateAnalyzer : IExcelTemplateAnalyzer
                     {
                         boldCount++;
                     }
-                    
-                    if (val.Contains("ngày", StringComparison.OrdinalIgnoreCase) || 
-                        val.Contains("mã", StringComparison.OrdinalIgnoreCase) || 
-                        val.Contains("tên", StringComparison.OrdinalIgnoreCase) || 
-                        val.Contains("số lượng", StringComparison.OrdinalIgnoreCase) || 
-                        val.Contains("sl", StringComparison.OrdinalIgnoreCase) || 
-                        val.Contains("line", StringComparison.OrdinalIgnoreCase) || 
+
+                    if (val.Contains("ngày", StringComparison.OrdinalIgnoreCase) ||
+                        val.Contains("mã", StringComparison.OrdinalIgnoreCase) ||
+                        val.Contains("tên", StringComparison.OrdinalIgnoreCase) ||
+                        val.Contains("số lượng", StringComparison.OrdinalIgnoreCase) ||
+                        val.Contains("sl", StringComparison.OrdinalIgnoreCase) ||
+                        val.Contains("line", StringComparison.OrdinalIgnoreCase) ||
                         val.Contains("style", StringComparison.OrdinalIgnoreCase) ||
                         val.Contains("date", StringComparison.OrdinalIgnoreCase) ||
                         val.Contains("qty", StringComparison.OrdinalIgnoreCase))
@@ -117,7 +117,7 @@ public class ExcelTemplateAnalyzer : IExcelTemplateAnalyzer
         {
             int parentRow = headerRowIndex - 1;
             bool hasMergeInParent = false;
-            
+
             for (int c = 1; c <= totalCols; c++)
             {
                 var mergedAddr = worksheet.MergedCells[parentRow, c];
@@ -155,7 +155,7 @@ public class ExcelTemplateAnalyzer : IExcelTemplateAnalyzer
         for (int c = startCol; c <= totalCols; c++)
         {
             string childHeader = GetCellValue(worksheet, headerRowIndex, c);
-            
+
             // Dừng lại nếu gặp 3 cột trống liên tiếp trên dòng header
             if (string.IsNullOrEmpty(childHeader))
             {
@@ -195,13 +195,13 @@ public class ExcelTemplateAnalyzer : IExcelTemplateAnalyzer
         for (int r = result.DataStartRowIndex; r <= totalRows; r++)
         {
             bool isTotalRow = false;
-            
+
             // 1. Kiểm tra từ khóa "Tổng", "Cộng", "Total" ở các cột đầu tiên
             for (int c = startCol; c <= Math.Min(startCol + 2, totalCols); c++)
             {
                 string val = GetCellValue(worksheet, r, c);
-                if (val.Contains("tổng", StringComparison.OrdinalIgnoreCase) || 
-                    val.Contains("cộng", StringComparison.OrdinalIgnoreCase) || 
+                if (val.Contains("tổng", StringComparison.OrdinalIgnoreCase) ||
+                    val.Contains("cộng", StringComparison.OrdinalIgnoreCase) ||
                     val.Contains("total", StringComparison.OrdinalIgnoreCase) ||
                     val.Contains("grand total", StringComparison.OrdinalIgnoreCase))
                 {
@@ -236,7 +236,7 @@ public class ExcelTemplateAnalyzer : IExcelTemplateAnalyzer
         }
 
         result.TotalRowIndex = totalRowIndex;
-        
+
         if (totalRowIndex.HasValue)
         {
             result.DataEndRowIndex = totalRowIndex.Value - 1;
@@ -301,10 +301,10 @@ public class ExcelTemplateAnalyzer : IExcelTemplateAnalyzer
                     if (c + 1 <= totalCols)
                     {
                         string nextVal = worksheet.Cells[r, c + 1].Text?.Trim() ?? "";
-                        if (!string.IsNullOrEmpty(nextVal) && 
-                            (val.Contains("mã", StringComparison.OrdinalIgnoreCase) || 
-                             val.Contains("chuyền", StringComparison.OrdinalIgnoreCase) || 
-                             val.Contains("style", StringComparison.OrdinalIgnoreCase) || 
+                        if (!string.IsNullOrEmpty(nextVal) &&
+                            (val.Contains("mã", StringComparison.OrdinalIgnoreCase) ||
+                             val.Contains("chuyền", StringComparison.OrdinalIgnoreCase) ||
+                             val.Contains("style", StringComparison.OrdinalIgnoreCase) ||
                              val.Contains("line", StringComparison.OrdinalIgnoreCase) ||
                              val.Contains("ngày", StringComparison.OrdinalIgnoreCase) ||
                              val.Contains("tên", StringComparison.OrdinalIgnoreCase) ||

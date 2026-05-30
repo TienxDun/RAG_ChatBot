@@ -1047,6 +1047,38 @@ export class ChatAreaComponent {
 
         const savedMappings = data.savedMappings || {};
 
+        // 1. Phân tích và tạo giao diện chú thích cho Metadata (thông tin chung)
+        let metadataHtml = '';
+        const metadataKeys = Object.keys(data.metadata || {});
+        if (metadataKeys.length > 0) {
+            const metadataRows = metadataKeys.map(key => {
+                const savedValue = savedMappings[`metadata:${key}`] || '';
+                return `
+                    <div class="excel-column-note-row animate-in fade-in duration-300">
+                        <div class="excel-column-info">
+                            <span class="excel-column-name" title="${key}">${key} (Metadata)</span>
+                            <span class="excel-column-parent">Giá trị mẫu: ${data.metadata[key]}</span>
+                        </div>
+                        <div class="excel-column-input-wrapper">
+                            <input type="text" class="column-note-input metadata-note-input" 
+                                   data-metadata-key="${key}" 
+                                   value="${savedValue}"
+                                   placeholder="Ghi chú ý nghĩa (ví dụ: StyleID)...">
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            metadataHtml = `
+                <div class="excel-metadata-notes-section">
+                    <h5 style="margin: 4px 0 12px 0; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.85;">Chú thích Metadata</h5>
+                    ${metadataRows}
+                </div>
+                <div style="height: 1px; background: var(--border-color); margin: 16px 0; opacity: 0.5;"></div>
+            `;
+        }
+
+        // 2. Tạo giao diện chú thích cho các Cột tiêu đề
         const columnsHtml = data.columns.map(col => {
             const displayName = col.childHeader;
             const parentName = col.parentHeader ? `${col.parentHeader} / ` : '';
@@ -1079,7 +1111,11 @@ export class ChatAreaComponent {
                     <i class="ph-bold ph-caret-down toggle-icon"></i>
                 </div>
                 <div class="excel-notes-content">
-                    ${columnsHtml}
+                    ${metadataHtml}
+                    <div class="excel-columns-notes-section">
+                        <h5 style="margin: 4px 0 12px 0; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.85;">Chú thích Cột dữ liệu</h5>
+                        ${columnsHtml}
+                    </div>
                     <div class="excel-notes-actions">
                         <button id="excel-notes-save-btn" class="excel-notes-save-btn">
                             <i class="ph-bold ph-floppy-disk"></i>
@@ -1113,6 +1149,15 @@ export class ChatAreaComponent {
                     if (val) {
                         const colKey = input.getAttribute('data-column');
                         mappings[colKey] = val;
+                    }
+                });
+
+                const metadataInputs = container.querySelectorAll('.metadata-note-input');
+                metadataInputs.forEach(input => {
+                    const val = input.value.trim();
+                    if (val) {
+                        const mKey = input.getAttribute('data-metadata-key');
+                        mappings[`metadata:${mKey}`] = val;
                     }
                 });
 

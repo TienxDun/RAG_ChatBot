@@ -135,6 +135,22 @@ public class ExcelReportService
                             $"- Khi viết SQL, bạn BẮT BUỘC phải tính toán giá trị của các cột (UniqueKey) tương ứng theo đúng mô tả ý nghĩa/công thức dưới đây:\n" +
                             string.Join("\n", notesList) + "\n";
             }
+
+            var metadataNotesList = new List<string>();
+            foreach (var mKey in templateInfo.Metadata.Keys)
+            {
+                string savedMetaKey = $"metadata:{mKey}";
+                if (savedMappings.TryGetValue(savedMetaKey, out var note) && !string.IsNullOrWhiteSpace(note))
+                {
+                    metadataNotesList.Add($"- Nhãn Metadata '{mKey}': Có ý nghĩa/Quy tắc gán giá trị là \"{note}\"");
+                }
+            }
+            if (metadataNotesList.Count > 0)
+            {
+                userNotes += $"\nDANH SÁCH QUY TẮC GÁN GIÁ TRỊ METADATA TỰ ĐỊNH NGHĨA BỞI NGƯỜI DÙNG (BẮT BUỘC TUÂN THỦ KHI VIẾT SQL):\n" +
+                             $"- Khi viết SQL, bạn BẮT BUỘC phải gán hoặc tính toán giá trị cho các nhãn metadata này theo đúng chỉ định dưới đây:\n" +
+                             string.Join("\n", metadataNotesList) + "\n";
+            }
         }
 
         combinedQuery = $"{additionalQuery.Trim()}.{userNotes}{mappingInstructions}";
@@ -229,10 +245,8 @@ public class ExcelReportService
             }
         }
 
-        if (metadataValues.Count > 0)
-        {
-            _templateFiller.FillMetadata(worksheet, templateInfo.HeaderRowIndex, metadataValues);
-        }
+        // Luôn gọi FillMetadata để dọn dẹp các giá trị placeholder cũ (ví dụ: "Daisy", "Cherry") trong template
+        _templateFiller.FillMetadata(worksheet, templateInfo.HeaderRowIndex, metadataValues);
 
         // 6. Điền dữ liệu bảng (tự chèn dòng và copy style nếu cần)
         if (templateInfo.Type == TemplateType.Hierarchical)
