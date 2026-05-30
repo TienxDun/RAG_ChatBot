@@ -119,8 +119,6 @@ public sealed class RagOrchestrator
         // 3. Planning Phase: AI đánh giá phạm vi và lập kế hoạch
         var stepsToExecute = new List<string>();
         bool isOutOfScope = false;
-        bool isAmbiguous = false;
-        string clarificationMessage = string.Empty;
         var suggestedQuestions = new List<string>();
         string planningReason = string.Empty;
         string? directSql = null;
@@ -137,7 +135,7 @@ public sealed class RagOrchestrator
 
                 CÂU HỎI CỦA NGƯỜI DÙNG: ""{userQuery}""
 
-                NHIỆM VỤ CỦA BẠN:
+                NHIỆM VỤ BẠN:
                 0. QUAN TRỌNG VỀ THỜI GIAN TRUY VẤN: Nếu người dùng hỏi về các khoảng thời gian tương đối/mơ hồ như ""gần đây"", ""gần nhất"", ""mới nhất"", ""hôm nay"", ""tuần này"", ""tháng này"":
                    - Hãy kết hợp với 'Thời gian hệ thống hiện tại' ({currentTimeStr}) để xác định khoảng thời gian cụ thể (ví dụ: ""gần đây/gần nhất"" -> tính ngược từ {currentTimeStr} khoảng 7 ngày hoặc 30 ngày tùy loại dữ liệu).
                    - Nêu rõ mốc thời gian lọc cụ thể này trong phần mô tả bước để bước SQL kế tiếp thực thi đúng.
@@ -145,11 +143,10 @@ public sealed class RagOrchestrator
                 2. Nếu câu hỏi liên quan đến database, hãy phân tích xem câu hỏi có bị mơ hồ, thiếu thông tin gom nhóm (GROUP BY) hoặc thống kê cụ thể hay không (ví dụ: 'top lỗi', 'sản lượng cao nhất'):
                    - Hãy tự động đưa ra quyết định hoặc giả định hợp lý nhất dựa trên cấu trúc CSDL thực tế được cung cấp bên trên 
                    (ví dụ: tự động chọn cột phân tích thích hợp như StyleID hoặc LineX từ các bảng liên quan làm đối tượng gom nhóm GROUP BY).
-                   - Đặt `isAmbiguous: false`.
                    - Lập kế hoạch sinh câu truy vấn SQL để thực thi theo giả định mặc định đó ngay lập tức.
                    - Giải trình rõ lý do tự động quyết định và giả định bạn đã chọn trong trường ""reason"".
                    - **TUYỆT ĐỐI CẤM:** Không được sử dụng hoặc tự bịa ra bất kỳ tên bảng hay tên cột nào không xuất hiện trong cấu trúc database được cung cấp phía trên.
-                3. Nếu câu hỏi hợp lệ, hãy đặt `isOutOfScope: false`, `isAmbiguous: false` và chia nhỏ câu hỏi thành các bước truy vấn SQL logic.
+                3. Nếu câu hỏi hợp lệ, hãy đặt `isOutOfScope: false` và chia nhỏ câu hỏi thành các bước truy vấn SQL logic.
                    - BẮT BUỘC GỘP THÀNH 1 BƯỚC DUY NHẤT đối với các câu hỏi thống kê, so sánh, xếp hạng (Ví dụ: Top lỗi, Top chuyền, Chênh lệch sản lượng, Xếp hạng lỗi của chuyền...). 
                    TUYỆT ĐỐI CẤM chia nhỏ việc JOIN bảng, GROUP BY gom nhóm, hay dùng DENSE_RANK() xếp hạng thành các bước truy vấn riêng lẻ. Tạo 1 câu SQL duy nhất có thể giải quyết đồng thời các tác vụ này.
                    - CHỈ ĐƯỢC PHÉP CHIA LÀM NHIỀU BƯỚC (tối đa 3 bước) khi và chỉ khi: Bước sau bắt buộc phải sử dụng giá trị dữ liệu động trả về từ bước trước làm tham số điều kiện lọc 
@@ -160,7 +157,6 @@ public sealed class RagOrchestrator
                 YÊU CẦU ĐỊNH DẠNG (BẮT BUỘC TRẢ VỀ JSON):
                 {{
                     ""isOutOfScope"": true/false,
-                    ""isAmbiguous"": true/false,
                     ""reason"": ""Giải thích lý do lập kế hoạch hoặc giả định/quyết định ngầm định được chọn khi gặp câu mơ hồ"",
                     ""steps"": [""Mô tả bước 1"", ""Mô tả bước 2""],
                     ""directSql"": ""Câu lệnh SQL Server duy nhất nếu câu hỏi chỉ cần 1 bước truy vấn duy nhất để trả về kết quả, ngược lại để trống """" ""
@@ -178,29 +174,12 @@ public sealed class RagOrchestrator
                     planningReason = reasonProp.GetString() ?? string.Empty;
                 }
 
-                if (planObj.TryGetProperty("isAmbiguous", out var ambProp))
-                {
-                    isAmbiguous = ambProp.GetBoolean();
-                }
-
                 if (planObj.TryGetProperty("directSql", out var sqlProp))
                 {
                     directSql = sqlProp.GetString();
                 }
 
-                if (isAmbiguous)
-                {
-                    if (isExcelTemplate)
-                    {
-                        isAmbiguous = false;
-                        stepsToExecute = new List<string> { userQuery };
-                    }
-                    else
-                    {
-                        clarificationMessage = planObj.GetProperty("clarificationMessage").GetString() ?? string.Empty;
-                    }
-                }
-                else if (!isOutOfScope)
+                if (!isOutOfScope)
                 {
                     stepsToExecute = planObj.GetProperty("steps").EnumerateArray().Select(x => x.GetString()!).ToList();
                 }
@@ -212,26 +191,10 @@ public sealed class RagOrchestrator
 
 
 
-        // Nếu ngoài phạm vi hoặc mơ hồ, bỏ qua bước thực thi SQL
+        // Nếu ngoài phạm vi, bỏ qua bước thực thi SQL
         var workingContext = new StringBuilder();
         string lastStepJson = string.Empty;
         DataTable? lastDataTable = null;
-
-        if (isAmbiguous)
-        {
-            var clarificationStep = new RagStep("Clarification Requested", clarificationMessage);
-            steps.Add(clarificationStep);
-            await onStep(clarificationStep);
-
-            return new ChatResponse(
-                Text: clarificationMessage,
-                Steps: steps,
-                SuggestedQuestions: suggestedQuestions,
-                RawData: string.Empty,
-                RawDataTable: null,
-                IsAmbiguous: true
-            );
-        }
         if (isOutOfScope)
         {
             var outOfScopeStep = new RagStep("Scope Guarding", "Rất tiếc, câu hỏi của bạn nằm ngoài phạm vi dữ liệu mà tôi có thể truy cập.");
