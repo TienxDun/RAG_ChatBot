@@ -146,6 +146,15 @@
       "rule": "TUYỆT ĐỐI CẤM sử dụng hàm MAX(NULL) hoặc MIN(NULL) trong T-SQL (SQL Server) vì sẽ gây ra lỗi nghiêm trọng 'Operand data type NULL is invalid for max operator'. Khi truy vấn cột metadata hoặc cột bất kỳ mà không có dữ liệu phù hợp cần trả về giá trị NULL (kể cả khi câu truy vấn có GROUP BY), hãy SELECT giá trị NULL trực tiếp có ép kiểu: CAST(NULL AS VARCHAR(100)) AS [Tên Cột] hoặc NULL AS [Tên Cột] trực tiếp mà KHÔNG ĐƯỢC bọc trong hàm MAX() hay MIN(). SQL Server cho phép SELECT hằng số hoặc biểu thức NULL trực tiếp trong câu lệnh GROUP BY mà không cần đưa vào hàm gộp hay mệnh đề GROUP BY.",
       "correct_example": "SELECT NgayKiem, SUM(SpLoi) AS TongLoi, CAST(NULL AS VARCHAR(100)) AS [Mã Hàng/ Style], MAX(LineX) AS LineX FROM QTY_MAHANG_NGAYKIEM GROUP BY NgayKiem",
       "wrong_example": "SELECT NgayKiem, SUM(SpLoi) AS TongLoi, MAX(NULL) AS [Mã Hàng/ Style], MAX(LineX) AS LineX FROM QTY_MAHANG_NGAYKIEM GROUP BY NgayKiem"
+    },
+    {
+      "id": "G019",
+      "category": "defect_anomaly_handling",
+      "severity": "CRITICAL",
+      "rule": "QUY TẮC XỬ LÝ LỖI DỮ LIỆU QA CHITIET (DEFECT DATA ANOMALY): Đối với bảng QTY_KiemQA_CHITIET, mã lỗi 'A33' (Bo tay ngược) bị lỗi nhập liệu nghiêm trọng ghi nhận cột SLLoi = 570 cho tất cả 570 bản ghi của ngày 29/01/2026. Để không bị sai lệch số liệu thành 324.900, khi tính số lượng lỗi của mã lỗi 'A33' (hoặc khi so sánh/thống kê lỗi chi tiết trong bảng QTY_KiemQA_CHITIET), BẮT BUỘC dùng biểu thức điều kiện `CASE WHEN c.Code = 'A33' THEN 1 ELSE ISNULL(c.SLLoi, 0) END` thay cho `c.SLLoi`. Quy tắc này đảm bảo số lượng lỗi được phản ánh chính xác 100% về giá trị thực tế (mỗi bản ghi chi tiết lỗi tương ứng với 1 lỗi).",
+      "correct_example": "SELECT SUM(CASE WHEN c.Code = 'A33' THEN 1 ELSE ISNULL(c.SLLoi, 0) END) AS TongSoLuongLoi FROM QTY_KiemQA_CHITIET c JOIN QTY_NHOMLOI_CHITIET n ON c.Code = n.MaLoi GROUP BY c.Code, n.TenLoi",
+      "wrong_example": "SELECT SUM(ISNULL(c.SLLoi, 0)) AS TongSoLuongLoi FROM QTY_KiemQA_CHITIET c JOIN QTY_NHOMLOI_CHITIET n ON c.Code = n.MaLoi GROUP BY c.Code, n.TenLoi"
     }
+
   ]
 }
