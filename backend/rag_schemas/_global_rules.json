@@ -138,6 +138,14 @@
       "rule": "BẢN ĐỒ/ÁNH XẠ TÊN CHUYỀN (LINE NAME TO ID MAPPING): Trong mọi câu hỏi truy vấn dữ liệu liên quan đến chuyền (cho dù là lọc theo tên chuyền cụ thể như 'Daisy', lọc theo mã số chuyền như '101', '102', hay truy vấn tổng hợp tất cả các chuyền): Cột LineX hoặc Line trong các bảng nghiệp vụ (QTY_*, SEW_*, TskFinal) luôn chứa mã ID chuyền (ví dụ: '101'), KHÔNG chứa tên hiển thị trực tiếp. BẮT BUỘC kết nối (JOIN) với bảng tbl_SettingLineX qua LineX = tbl_SettingLineX.ID. Để kết quả hiển thị thân thiện với người dùng, BẮT BUỘC hiển thị tên chuyền (cột tbl_SettingLineX.Name đặt tên bí danh là [Tên chuyền]) ở câu lệnh SELECT thay vì dùng mã ID.",
       "correct_example": "SELECT l.Name AS [Tên chuyền], SUM(q.SpLoi) FROM QTY_MAHANG_NGAYKIEM q JOIN tbl_SettingLineX l ON q.LineX = l.ID GROUP BY l.Name",
       "wrong_example": "SELECT q.LineX, SUM(q.SpLoi) FROM QTY_MAHANG_NGAYKIEM q GROUP BY q.LineX"
+    },
+    {
+      "id": "G018",
+      "category": "tsql_max_null_ban",
+      "severity": "CRITICAL",
+      "rule": "TUYỆT ĐỐI CẤM sử dụng hàm MAX(NULL) hoặc MIN(NULL) trong T-SQL (SQL Server) vì sẽ gây ra lỗi nghiêm trọng 'Operand data type NULL is invalid for max operator'. Khi truy vấn cột metadata hoặc cột bất kỳ mà không có dữ liệu phù hợp cần trả về giá trị NULL (kể cả khi câu truy vấn có GROUP BY), hãy SELECT giá trị NULL trực tiếp có ép kiểu: CAST(NULL AS VARCHAR(100)) AS [Tên Cột] hoặc NULL AS [Tên Cột] trực tiếp mà KHÔNG ĐƯỢC bọc trong hàm MAX() hay MIN(). SQL Server cho phép SELECT hằng số hoặc biểu thức NULL trực tiếp trong câu lệnh GROUP BY mà không cần đưa vào hàm gộp hay mệnh đề GROUP BY.",
+      "correct_example": "SELECT NgayKiem, SUM(SpLoi) AS TongLoi, CAST(NULL AS VARCHAR(100)) AS [Mã Hàng/ Style], MAX(LineX) AS LineX FROM QTY_MAHANG_NGAYKIEM GROUP BY NgayKiem",
+      "wrong_example": "SELECT NgayKiem, SUM(SpLoi) AS TongLoi, MAX(NULL) AS [Mã Hàng/ Style], MAX(LineX) AS LineX FROM QTY_MAHANG_NGAYKIEM GROUP BY NgayKiem"
     }
   ]
 }
