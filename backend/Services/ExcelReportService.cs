@@ -93,7 +93,7 @@ public class ExcelReportService
                                   $"- Bạn BẮT BUỘC sử dụng ALIAS (AS) để tên cột trong kết quả SQL SELECT cuối cùng khớp hoàn toàn với các UniqueKey sau đây:\n" +
                                   $"{colMappings}\n" +
                                   $"- CẢNH BÁO BẮT BUỘC: Bạn TUYỆT ĐỐI KHÔNG ĐƯỢC bỏ sót bất kỳ cột nào trong danh sách UniqueKey trên! Câu SELECT cuối cùng của bạn phải chứa ĐẦY ĐỦ tất cả các cột UniqueKey đã liệt kê theo đúng thứ tự. Nếu thiếu dù chỉ 1 cột, file Excel sẽ không thể điền dữ liệu và hệ thống sẽ bị lỗi!\n" +
-                                  $"- Nếu không tìm thấy cột tương ứng trong database, hãy trả về NULL (ví dụ: NULL AS [UniqueKey]), tuyệt đối không được tự ý xóa cột khỏi câu SELECT.\n";
+                                  $"- Nếu không tìm thấy cột tương ứng trong database, hãy trả về NULL có ép kiểu để tránh lỗi SQL (ví dụ: CAST(NULL AS VARCHAR(100)) AS [UniqueKey]), tuyệt đối không được tự ý xóa cột khỏi câu SELECT.\n";
         }
         else
         {
@@ -102,7 +102,7 @@ public class ExcelReportService
                                   $"- Dữ liệu SQL SELECT trả về BẮT BUỘC phải có đầy đủ các cột tiêu đề sau: {columnsStr}.\n" +
                                   $"- CẢNH BÁO BẮT BUỘC: Bạn TUYỆT ĐỐI KHÔNG ĐƯỢC bỏ sót bất kỳ cột nào! Câu SELECT cuối cùng phải chứa ĐẦY ĐỦ tất cả các cột UniqueKey theo đúng thứ tự. Nếu thiếu dù chỉ 1 cột, hệ thống sẽ lỗi.\n" +
                                   $"- BẮT BUỘC sử dụng ALIAS (AS) để tên cột trong kết quả trả về khớp hoàn toàn với tên tiêu đề Excel (ví dụ: SELECT KhachHang AS [{templateInfo.Columns.FirstOrDefault()?.UniqueKey ?? "ColName"}] ...).\n" +
-                                  $"- Nếu không tìm thấy cột tương ứng trong database, hãy trả về NULL (ví dụ: NULL AS [UniqueKey]).\n";
+                                  $"- Nếu không tìm thấy cột tương ứng trong database, hãy trả về NULL có ép kiểu để tránh lỗi SQL (ví dụ: CAST(NULL AS VARCHAR(100)) AS [UniqueKey]).\n";
         }
 
         if (templateInfo.Metadata.Count > 0)
@@ -112,7 +112,7 @@ public class ExcelReportService
             mappingInstructions += $"\n\nYÊU CẦU BẮT BUỘC TRUY VẤN THÔNG TIN CHUNG (METADATA):\n" +
                                    $"- File Excel template có {templateInfo.Metadata.Count} nhãn thông tin chung ở đầu trang cần được điền dữ liệu:\n" +
                                    $"{metadataInstructions}\n" +
-                                   $"- CẢNH BÁO BẮT BUỘC: Trong câu lệnh SQL SELECT cuối cùng, bạn BẮT BUỘC phải truy vấn và trả về các cột này cùng với dữ liệu chi tiết của bảng để hệ thống có thể tự động bóc tách và điền vào đầu trang Excel. Nếu không có dữ liệu phù hợp, hãy trả về NULL (ví dụ: NULL AS [{templateInfo.Metadata.Keys.First()}]).";
+                                   $"- CẢNH BÁO BẮT BUỘC: Trong câu lệnh SQL SELECT cuối cùng, bạn BẮT BUỘC phải truy vấn và trả về các cột này cùng với dữ liệu chi tiết của bảng để hệ thống có thể tự động bóc tách và điền vào đầu trang Excel. Nếu không có dữ liệu phù hợp, hãy trả về NULL có ép kiểu rõ ràng để tránh lỗi MAX(NULL) trong T-SQL (ví dụ: CAST(NULL AS VARCHAR(100)) AS [{templateInfo.Metadata.Keys.First()}]).";
         }
 
         // Lấy ghi chú cột Excel được lưu trữ lâu dài của người dùng

@@ -130,10 +130,13 @@ public sealed class RagOrchestrator
 
         {
             await onStep(new RagStep("Execution Planning", "AI đang phân tích câu hỏi và lập kế hoạch truy vấn..."));
+            var globalRules = await _ruleProvider.GetGlobalRulesAsync();
             var planningPrompt = $@"Bạn là chuyên gia phân tích yêu cầu và lập kế hoạch truy vấn SQL.
                 Thời gian hệ thống hiện tại: {currentTimeStr} (Việt Nam, UTC+7).
                 Dựa trên CẤU TRÚC DATABASE được cung cấp dưới đây (được trích xuất động từ Qdrant dựa trên ngữ cảnh câu hỏi):
                 {schemaInfo}
+
+                {globalRules}
 
                 CÂU HỎI CỦA NGƯỜI DÙNG: ""{userQuery}""
 
