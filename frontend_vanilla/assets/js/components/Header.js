@@ -15,6 +15,7 @@ export class HeaderComponent {
 
         // Toggle click event
         this.trigger.addEventListener('click', (e) => {
+            if (window.innerWidth > 768) return;
             e.stopPropagation();
             if (this.isOpen) {
                 this.close();
@@ -25,28 +26,31 @@ export class HeaderComponent {
 
         // Click outside event
         document.addEventListener('click', (e) => {
-            if (this.isOpen && !this.container.contains(e.target)) {
+            if (window.innerWidth <= 768 && this.isOpen && !this.container.contains(e.target)) {
                 this.close();
             }
         });
 
         // Close on ESC key press
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && this.isOpen) {
+            if (window.innerWidth <= 768 && e.key === 'Escape' && this.isOpen) {
                 this.close();
             }
         });
 
-        // Close dropdown when any item inside is clicked
+        // Close dropdown when any item inside is clicked (mobile only)
         this.items.forEach(item => {
             item.addEventListener('click', () => {
-                // Đóng menu sau một khoảng delay nhỏ để người dùng thấy feedback click
-                setTimeout(() => this.close(), 150);
+                if (window.innerWidth <= 768) {
+                    // Đóng menu sau một khoảng delay nhỏ để người dùng thấy feedback click
+                    setTimeout(() => this.close(), 150);
+                }
             });
         });
     }
 
     open() {
+        if (window.innerWidth > 768) return;
         if (this.isOpen) return;
         this.isOpen = true;
 
@@ -60,6 +64,7 @@ export class HeaderComponent {
     }
 
     close() {
+        if (window.innerWidth > 768) return;
         if (!this.isOpen) return;
         this.isOpen = false;
 

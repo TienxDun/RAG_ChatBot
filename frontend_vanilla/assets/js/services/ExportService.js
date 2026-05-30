@@ -36,8 +36,8 @@ export class ExportService {
             if (!response.ok) throw new Error("Xuất file thất bại");
 
             const blob = await response.blob();
-            this.downloadBlob(blob, `export_${Date.now()}.xlsx`);
-            Toast.success("Xuất Excel thành công!");
+            this.downloadBlob(blob, `export_${this._getTimestamp()}.xlsx`);
+            Toast.success("Export Excel thành công!");
         } catch (error) {
             console.error('Export error:', error);
             Toast.error("Lỗi khi xuất file Excel");
@@ -45,6 +45,12 @@ export class ExportService {
             triggerBtn.disabled = false;
             triggerBtn.innerHTML = defaultLabel;
         }
+    }
+
+    static _getTimestamp() {
+        const now = new Date();
+        const pad = (num) => String(num).padStart(2, '0');
+        return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
     }
 
     static downloadBlob(blob, filename) {

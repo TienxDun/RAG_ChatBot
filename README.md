@@ -16,10 +16,9 @@
 * **Lập chỉ mục cấu trúc (Schema Indexing):** Hệ thống tự động phân tích các tệp đặc tả schema JSON (trong thư mục `rag_schemas`), tạo vector embedding qua model `gemini-embedding-001` và lưu trữ vào **Qdrant Vector Database**.
 * **Tìm kiếm ngữ cảnh (Context Retrieval):** Khi nhận câu hỏi, hệ thống truy xuất các bảng và quy tắc liên quan nhất từ Qdrant để làm thông tin nền đầu vào cho mô hình ngôn ngữ lớn (LLM).
 
-### 2. Bộ Định Tuyến Tối Ưu Hóa "Fast-path"
-* Tự động phân loại câu hỏi thông qua bộ lọc thông minh (`QueryClassifier.cs`):
-  * **Fast-path:** Đối với các câu hỏi tra cứu tĩnh, ngắn gọn (dưới 80 ký tự) không chứa từ khóa thống kê hoặc phân tích, hệ thống sẽ bỏ qua bước lập kế hoạch AI để tối ưu hóa tốc độ phản hồi tối đa.
-  * **AI Planning:** Đối với câu hỏi phức tạp (cần thống kê, gom nhóm, so sánh thời gian tương đối), hệ thống sử dụng LLM để lập kế hoạch đa bước, sinh câu truy vấn SQL chuẩn xác, ngăn ngừa hiện tượng ảo giác (hallucination).
+### 2. Công cụ Lập Kế Hoạch & Sinh SQL (AI Planning)
+* Đối với mọi truy vấn dữ liệu, hệ thống sử dụng LLM để phân tích cấu trúc database được trích xuất động từ Vector DB.
+* AI tự động lập kế hoạch đa bước và sinh ra một câu lệnh SQL Server chuẩn xác nhất để thực thi trực tiếp trên database, giúp ngăn ngừa hoàn toàn hiện tượng ảo giác (hallucination).
 
 ### 3. Động Cơ Xuất Excel Động Thông Minh
 * **Phân tích Template tự động:** Nhận diện và phân loại biểu mẫu Excel tải lên thành 2 dạng:

@@ -52,28 +52,7 @@ export class SidebarComponent {
 
         // Logic Fast-path đã bị loại bỏ
 
-        // Đăng ký và xử lý checkbox Rules
-        const rulesCheckbox = document.getElementById('rules-checkbox');
-        if (rulesCheckbox) {
-            rulesCheckbox.checked = state.isRulesEnabled;
-            // Áp dụng class lên body lúc khởi tạo
-            if (state.isRulesEnabled) {
-                document.body.classList.remove('hide-rules');
-            } else {
-                document.body.classList.add('hide-rules');
-            }
-            
-            rulesCheckbox.addEventListener('change', (e) => {
-                state.isRulesEnabled = e.target.checked;
-                if (window.app && window.app.toast) {
-                    window.app.toast.success(
-                        e.target.checked 
-                            ? "Đã hiển thị phần trích xuất quy tắc CSDL!" 
-                            : "Đã tắt phần trích xuất quy tắc CSDL!"
-                    );
-                }
-            });
-        }
+
 
         // Khởi tạo trạng thái ban đầu từ State
         this.applySidebarState();
@@ -88,15 +67,7 @@ export class SidebarComponent {
                 this.updateActiveHistoryItem(value);
             }
             if (key === 'isSidebarOpen') this.applySidebarState();
-            // State isFastPathEnabled đã bị loại bỏ
-            if (key === 'isRulesEnabled') {
-                if (rulesCheckbox) rulesCheckbox.checked = value;
-                if (value) {
-                    document.body.classList.remove('hide-rules');
-                } else {
-                    document.body.classList.add('hide-rules');
-                }
-            }
+
         });
 
         this.renderHistory();

@@ -18,7 +18,6 @@ public sealed class RagOrchestrator
     private readonly VertexAiOptions _options;
     
     private readonly ISqlRuleProvider _ruleProvider;
-    private readonly IQueryClassifier _queryClassifier;
     private readonly IAiResponseParser _responseParser;
     private readonly ISqlPlanExecutor _planExecutor;
 
@@ -27,7 +26,6 @@ public sealed class RagOrchestrator
         QdrantService qdrantService,
         VertexAiOptions options,
         ISqlRuleProvider ruleProvider,
-        IQueryClassifier queryClassifier,
         IAiResponseParser responseParser,
         ISqlPlanExecutor planExecutor)
     {
@@ -35,7 +33,6 @@ public sealed class RagOrchestrator
         _qdrantService = qdrantService;
         _options = options;
         _ruleProvider = ruleProvider;
-        _queryClassifier = queryClassifier;
         _responseParser = responseParser;
         _planExecutor = planExecutor;
     }

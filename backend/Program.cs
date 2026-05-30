@@ -68,7 +68,6 @@ builder.Services.AddSingleton<Backend.Services.Document.ITextChunker, Backend.Se
 
 // Rag Refactored Services
 builder.Services.AddSingleton<Backend.Services.Rag.ISqlRuleProvider, Backend.Services.Rag.SqlRuleProvider>();
-builder.Services.AddSingleton<Backend.Services.Rag.IQueryClassifier, Backend.Services.Rag.QueryClassifier>();
 builder.Services.AddSingleton<Backend.Services.Rag.IAiResponseParser, Backend.Services.Rag.AiResponseParser>();
 builder.Services.AddSingleton<Backend.Services.Rag.ISqlPlanExecutor, Backend.Services.Rag.SqlPlanExecutor>();
 

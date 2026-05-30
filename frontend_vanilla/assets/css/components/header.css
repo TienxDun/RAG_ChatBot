@@ -124,6 +124,7 @@
 .header__right {
     display: flex;
     align-items: center;
+    gap: 10px;
 }
 
 /* Header Dropdown */
@@ -133,7 +134,8 @@
     pointer-events: auto;
 }
 
-#header-dropdown-trigger {
+#header-dropdown-trigger,
+#header-new-chat {
     width: 40px;
     height: 40px;
     padding: 0;
@@ -149,7 +151,8 @@
     color: var(--muted-foreground);
 }
 
-#header-dropdown-trigger i {
+#header-dropdown-trigger i,
+#header-new-chat i {
     font-size: 1.25rem;
     transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -157,6 +160,11 @@
 #header-dropdown-trigger:hover i,
 .header__dropdown-container.active #header-dropdown-trigger i {
     transform: rotate(45deg);
+    color: var(--primary);
+}
+
+#header-new-chat:hover i {
+    transform: rotate(90deg);
     color: var(--primary);
 }
 
@@ -219,14 +227,16 @@
 }
 
 /* Dark Mode styles */
-[data-theme="dark"] #header-dropdown-trigger {
+[data-theme="dark"] #header-dropdown-trigger,
+[data-theme="dark"] #header-new-chat {
     background: rgba(30, 41, 59, 0.6);
     border-color: rgba(255, 255, 255, 0.15);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 [data-theme="dark"] #header-dropdown-trigger:hover,
-[data-theme="dark"] .header__dropdown-container.active #header-dropdown-trigger {
+[data-theme="dark"] .header__dropdown-container.active #header-dropdown-trigger,
+[data-theme="dark"] #header-new-chat:hover {
     border-color: color-mix(in srgb, var(--primary) 40%, transparent);
     box-shadow: 0 0 15px color-mix(in srgb, var(--primary) 25%, transparent);
     color: var(--primary-foreground);
@@ -275,11 +285,13 @@
     }
     .status-dot { width: 6px; height: 6px; }
     
-    #header-dropdown-trigger {
+    #header-dropdown-trigger,
+    #header-new-chat {
         width: 36px;
         height: 36px;
     }
-    #header-dropdown-trigger i {
+    #header-dropdown-trigger i,
+    #header-new-chat i {
         font-size: 1.15rem;
     }
     .header__dropdown-menu {
@@ -332,3 +344,103 @@
         width: 260px;
     }
 }
+
+/* Vertical Dropdown Menu on Desktop */
+@media (min-width: 769px) {
+    .header__dropdown-container {
+        position: relative;
+        display: inline-block;
+        z-index: 1000;
+    }
+
+    #header-dropdown-trigger {
+        display: flex !important;
+    }
+
+    .header__dropdown-menu.hidden {
+        display: flex !important;
+    }
+
+    .header__dropdown-menu {
+        position: absolute;
+        top: calc(100% + 0.5rem);
+        right: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 6px;
+        width: 52px;
+        border-radius: 20px;
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-10px) scale(0.95);
+        transform-origin: top right;
+        transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                    visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        z-index: 1100;
+    }
+
+    .header__dropdown-container:hover .header__dropdown-menu {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0) scale(1);
+    }
+
+    [data-theme="dark"] .header__dropdown-menu {
+        background: rgba(15, 23, 42, 0.85);
+        border-color: rgba(255, 255, 255, 0.08);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    [data-theme="dark"] .header__dropdown-container:hover .header__dropdown-menu {
+        box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5), 
+                    0 0 0 1px rgba(255, 255, 255, 0.05);
+    }
+
+    .header__dropdown-menu .dropdown-item {
+        flex-shrink: 0;
+        opacity: 0;
+        transform: translateY(-10px) scale(0.9);
+        transition: opacity 0.2s cubic-bezier(0.25, 1, 0.5, 1),
+                    transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+                    background-color 0.2s ease,
+                    color 0.2s ease;
+    }
+
+    .header__dropdown-container:hover .header__dropdown-menu .dropdown-item {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        pointer-events: auto;
+    }
+
+    /* Staggered entry animation on hover */
+    .header__dropdown-container:hover .header__dropdown-menu .dropdown-item:nth-child(1) { transition-delay: 0.03s; }
+    .header__dropdown-container:hover .header__dropdown-menu .dropdown-item:nth-child(2) { transition-delay: 0.06s; }
+    .header__dropdown-container:hover .header__dropdown-menu .dropdown-item:nth-child(3) { transition-delay: 0.09s; }
+
+    .dropdown-item:hover {
+        transform: scale(1.15) !important;
+    }
+
+    .header__dropdown-container .template-cache-popup {
+        position: absolute;
+        top: 130px; /* Căn chỉnh hoàn hảo với nút đính kèm Attach (nút thứ 3) */
+        bottom: auto;
+        right: calc(100% + 16px);
+        left: auto;
+        margin-bottom: 0;
+        transform-origin: top right;
+    }
+    .header__dropdown-container .template-cache-popup.visible {
+        display: flex;
+        transform: none;
+        animation: slideLeftFade 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+}
+
