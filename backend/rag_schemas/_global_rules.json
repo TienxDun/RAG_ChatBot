@@ -8,8 +8,8 @@
       "category": "datetime",
       "severity": "CRITICAL",
       "rule": "Khi so sánh hoặc lọc theo ngày tháng trên các cột DATETIME (ví dụ: NgayKiem, DateCreate, NgayTao, TuNgay, DenNgay, NgayXN...), BẮT BUỘC dùng hàm ép kiểu CAST(cột AS DATE) và định dạng YYYY-MM-DD. TUYỆT ĐỐI KHÔNG so sánh trực tiếp dạng cột <= 'YYYY-MM-DD' hoặc cột = 'YYYY-MM-DD' để tránh bỏ sót dữ liệu phát sinh sau 00:00:00 của ngày đó.",
-      "correct_example": "SELECT SUM(Quantity) FROM SEW_CoefficientSize WHERE CAST(DateCreate AS DATE) BETWEEN '2026-03-01' AND '2026-03-31'",
-      "wrong_example": "SELECT SUM(Quantity) FROM SEW_CoefficientSize WHERE DateCreate BETWEEN '2026-03-01' AND '2026-03-31'"
+      "correct_example": "SELECT SUM(Quantity) FROM SEW_CoefficientSize WHERE CAST(DateCreate AS DATE) BETWEEN 'YYYY-MM-DD' AND 'YYYY-MM-DD'",
+      "wrong_example": "SELECT SUM(Quantity) FROM SEW_CoefficientSize WHERE DateCreate BETWEEN 'YYYY-MM-DD' AND 'YYYY-MM-DD'"
     },
     {
       "id": "G002",

@@ -43,7 +43,7 @@
       "id": "T_QTY_QA_NK_006",
       "severity": "CRITICAL",
       "rule": "Khi cần tra cứu chi tiết mã lỗi (Code) hoặc tên lỗi (TenLoi) của QA theo Style/Size/Ngày, hãy thực hiện JOIN bảng QTY_KiemQA_NgayKiem (q) với QTY_KiemQA_CHITIET (c) qua các cột: LenhSX, LineX, MaHang, Size và ép kiểu DATE cho cột NgayKiem, sau đó JOIN tiếp với QTY_NHOMLOI_CHITIET (n) qua c.Code = n.MaLoi.",
-      "correct_example": "SELECT DISTINCT c.Code, n.TenLoi, c.NoiDung FROM QTY_KiemQA_NgayKiem q JOIN QTY_KiemQA_CHITIET c ON c.LenhSX = q.LenhSX AND c.LineX = q.LineX AND c.MaHang = q.MaHang AND c.Size = q.Size AND CAST(c.NgayKiem AS DATE) = CAST(q.NgayKiem AS DATE) JOIN QTY_NHOMLOI_CHITIET n ON c.Code = n.MaLoi JOIN ERP_LENHSX e ON q.LenhSX = e.MaLenh WHERE e.TenLenh = 'TEA25_Y_XR20R' AND q.Size = N'LGE' AND CAST(q.NgayKiem AS DATE) = '2026-01-31'",
+      "correct_example": "SELECT DISTINCT c.Code, n.TenLoi, c.NoiDung FROM QTY_KiemQA_NgayKiem q JOIN QTY_KiemQA_CHITIET c ON c.LenhSX = q.LenhSX AND c.LineX = q.LineX AND c.MaHang = q.MaHang AND c.Size = q.Size AND CAST(c.NgayKiem AS DATE) = CAST(q.NgayKiem AS DATE) JOIN QTY_NHOMLOI_CHITIET n ON c.Code = n.MaLoi JOIN ERP_LENHSX e ON q.LenhSX = e.MaLenh WHERE e.TenLenh = 'TEA25_Y_XR20R' AND q.Size = N'LGE' AND CAST(q.NgayKiem AS DATE) = 'YYYY-MM-DD'",
       "wrong_example": "SELECT c.Code FROM QTY_KiemQA_CHITIET c JOIN ERP_LENHSX e ON c.LenhSX = e.MaLenh WHERE e.TenLenh = 'TEA25_Y_XR20R'"
     },
     {

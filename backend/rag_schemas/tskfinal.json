@@ -29,8 +29,8 @@
       "id": "T_TSK_FN_004",
       "severity": "HIGH",
       "rule": "Cột thời gian tạo là NgayCreate (kiểu datetime). Áp dụng rule toàn cục G001 (cần CAST sang DATE).",
-      "correct_example": "WHERE CAST(NgayCreate AS DATE) = '2026-04-15'",
-      "wrong_example": "WHERE NgayCreate = '2026-04-15'"
+      "correct_example": "WHERE CAST(NgayCreate AS DATE) = 'YYYY-MM-DD'",
+      "wrong_example": "WHERE NgayCreate = 'YYYY-MM-DD'"
     },
     {
       "id": "T_TSK_FN_005",

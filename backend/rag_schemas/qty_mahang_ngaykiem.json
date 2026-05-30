@@ -43,8 +43,8 @@
       "id": "T_QTY_NK_006",
       "severity": "CRITICAL",
       "rule": "Không dùng cột SLKiem (hoặc biểu thức SLKiem - SpLoi) để tính sản lượng đạt / sản phẩm đạt. Bắt buộc tính sản lượng đạt / sản phẩm đạt (TongDat / TongSanPhamDat) từ bảng SEW_CoefficientSize theo công thức: SUM(ISNULL(Quantity, 0) + ISNULL(SuaDat, 0)). Để kết quả hiển thị thân thiện, BẮT BUỘC hiển thị tên chuyền (cột tbl_SettingLineX.Name đặt tên bí danh là [Tên chuyền]) ở câu lệnh SELECT thay vì dùng mã ID.",
-      "correct_example": "WITH loi AS (SELECT LineX, SUM(ISNULL(SpLoi, 0)) AS TongLoi FROM QTY_MAHANG_NGAYKIEM WHERE CAST(NgayKiem AS DATE) = '2025-09-16' GROUP BY LineX), dat AS (SELECT sc.LineX, SUM(ISNULL(sc.Quantity, 0) + ISNULL(sc.SuaDat, 0)) AS TongDat FROM SEW_CoefficientSize sc WHERE CAST(sc.DateCreate AS DATE) = '2025-09-16' GROUP BY sc.LineX) SELECT sl.Name AS [Tên chuyền], l.TongLoi AS TongSanPhamLoi, d.TongDat AS TongSanPhamDat FROM loi l JOIN dat d ON l.LineX = d.LineX JOIN tbl_SettingLineX sl ON l.LineX = sl.ID WHERE sl.Name = 'Cherry'",
-      "wrong_example": "SELECT SUM(ISNULL(SpLoi, 0)) AS TongSanPhamLoi, SUM(ISNULL(SLKiem, 0) - ISNULL(SpLoi, 0)) AS TongSanPhamDat FROM QTY_MAHANG_NGAYKIEM WHERE LineX = '101' AND CAST(NgayKiem AS DATE) = '2025-09-16'"
+      "correct_example": "WITH loi AS (SELECT LineX, SUM(ISNULL(SpLoi, 0)) AS TongLoi FROM QTY_MAHANG_NGAYKIEM WHERE CAST(NgayKiem AS DATE) = 'YYYY-MM-DD' GROUP BY LineX), dat AS (SELECT sc.LineX, SUM(ISNULL(sc.Quantity, 0) + ISNULL(sc.SuaDat, 0)) AS TongDat FROM SEW_CoefficientSize sc WHERE CAST(sc.DateCreate AS DATE) = 'YYYY-MM-DD' GROUP BY sc.LineX) SELECT sl.Name AS [Tên chuyền], l.TongLoi AS TongSanPhamLoi, d.TongDat AS TongSanPhamDat FROM loi l JOIN dat d ON l.LineX = d.LineX JOIN tbl_SettingLineX sl ON l.LineX = sl.ID WHERE sl.Name = 'Cherry'",
+      "wrong_example": "SELECT SUM(ISNULL(SpLoi, 0)) AS TongSanPhamLoi, SUM(ISNULL(SLKiem, 0) - ISNULL(SpLoi, 0)) AS TongSanPhamDat FROM QTY_MAHANG_NGAYKIEM WHERE LineX = '101' AND CAST(NgayKiem AS DATE) = 'YYYY-MM-DD'"
     },
     {
       "id": "T_QTY_NK_007",

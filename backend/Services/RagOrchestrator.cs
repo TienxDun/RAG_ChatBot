@@ -136,10 +136,6 @@ public sealed class RagOrchestrator
                 {globalRules}
 
                 CÂU HỎI CỦA NGƯỜI DÙNG: ""{userQuery}""
-                
-                NHIỆM VỤ BẠN CẦN THỰC HIỆN KHI TẠO SQL TRỰC TIẾP (directSql):
-                - Đọc kỹ và tuân thủ tuyệt đối các QUY TẮC SQL TOÀN CỤC bên trên.
-                - ĐẶC BIỆT LƯU Ý QUY TẮC G002: BẮT BUỘC phải thêm tiền tố N trước các chuỗi tiếng Việt có dấu (ví dụ: CASE WHEN ... THEN N'Cao nhất' ELSE N'Thấp nhất' END). Nếu thiếu tiền tố N, kết quả truy vấn SQL sẽ bị lỗi font (hiển thị dạng dấu hỏi ?).
 
                 NHIỆM VỤ CỦA BẠN:
                 0. QUAN TRỌNG VỀ THỜI GIAN TRUY VẤN: Nếu người dùng hỏi về các khoảng thời gian tương đối/mơ hồ như ""gần đây"", ""gần nhất"", ""mới nhất"", ""hôm nay"", ""tuần này"", ""tháng này"":
