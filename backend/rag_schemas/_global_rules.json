@@ -154,6 +154,14 @@
       "rule": "QUY TẮC XỬ LÝ LỖI DỮ LIỆU QA CHITIET (DEFECT DATA ANOMALY): Đối với bảng QTY_KiemQA_CHITIET, mã lỗi 'A33' (Bo tay ngược) bị lỗi nhập liệu nghiêm trọng ghi nhận cột SLLoi = 570 cho tất cả 570 bản ghi của ngày 29/01/2026. Để không bị sai lệch số liệu thành 324.900, khi tính số lượng lỗi của mã lỗi 'A33' (hoặc khi so sánh/thống kê lỗi chi tiết trong bảng QTY_KiemQA_CHITIET), BẮT BUỘC dùng biểu thức điều kiện `CASE WHEN c.Code = 'A33' THEN 1 ELSE ISNULL(c.SLLoi, 0) END` thay cho `c.SLLoi`. Quy tắc này đảm bảo số lượng lỗi được phản ánh chính xác 100% về giá trị thực tế (mỗi bản ghi chi tiết lỗi tương ứng với 1 lỗi).",
       "correct_example": "SELECT SUM(CASE WHEN c.Code = 'A33' THEN 1 ELSE ISNULL(c.SLLoi, 0) END) AS TongSoLuongLoi FROM QTY_KiemQA_CHITIET c JOIN QTY_NHOMLOI_CHITIET n ON c.Code = n.MaLoi GROUP BY c.Code, n.TenLoi",
       "wrong_example": "SELECT SUM(ISNULL(c.SLLoi, 0)) AS TongSoLuongLoi FROM QTY_KiemQA_CHITIET c JOIN QTY_NHOMLOI_CHITIET n ON c.Code = n.MaLoi GROUP BY c.Code, n.TenLoi"
+    },
+    {
+      "id": "G020",
+      "category": "step_name_recognition",
+      "severity": "CRITICAL",
+      "rule": "NHẬN DIỆN TÊN CÔNG ĐOẠN SẢN XUẤT TRONG CÂU HỎI: Khi câu hỏi của người dùng chứa bất kỳ tên công đoạn sản xuất nào (dù viết có dấu hay không dấu), BẮT BUỘC phải nhận diện đó là một công đoạn cụ thể và JOIN với bảng tbl_Steps (qua StepId = Id_cd) để lọc theo cd_name. Danh sách tên công đoạn phổ biến cần nhận diện (không phân biệt hoa thường, có dấu/không dấu): 'tui hong' / 'túi hông', 'tui xeo' / 'túi xéo', 'ra chuyen' / 'ra chuyền', 'may tp' / 'may thành phẩm', 'KCS', 'UI', 'DONG GOI' / 'đóng gói', 'dieu tp ao' / 'diều tp áo', 'VIEN DKTT', và các công đoạn kỹ thuật khác. TUYỆT ĐỐI KHÔNG bỏ qua tên công đoạn trong câu hỏi — nếu người dùng nhắc đến công đoạn thì phải lọc theo công đoạn đó. Khi lọc, dùng LIKE N'tên công đoạn%' (giữ nguyên trạng thái có dấu/không dấu mà người dùng cung cấp, thêm % ở cuối).",
+      "correct_example": "SELECT SUM(ISNULL(sc.Quantity, 0)) AS [Tổng năng suất] FROM SEW_CoefficientStyle sc JOIN tbl_Steps s ON sc.StepId = s.Id_cd WHERE s.cd_name LIKE N'tui hong%'",
+      "wrong_example": "SELECT SUM(ISNULL(Quantity, 0)) AS [Tổng năng suất] FROM SEW_CoefficientStyle -- SAI: câu hỏi nhắc đến công đoạn 'tui hong' nhưng không JOIN tbl_Steps và không lọc theo cd_name"
     }
 
   ]
