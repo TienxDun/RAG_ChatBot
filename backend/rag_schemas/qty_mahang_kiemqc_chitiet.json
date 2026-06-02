@@ -38,41 +38,200 @@
       "rule": "Lọc tên người kiểm KCS (cột NVKiem): Bắt buộc dùng so sánh bằng tuyệt đối (=) với chuỗi đầy đủ bao gồm tiền tố 'KCS ' hoặc 'Kcs ' (ví dụ: người dùng nói 'PANSY' -> dùng NVKiem = N'KCS PANSY'). Tuyệt đối cấm dùng LIKE hay wildcard %. Chú ý tên cột là NVKiem (không phải NVKiemKCS).",
       "correct_example": "WHERE NVKiem = N'KCS PANSY'",
       "wrong_example": "WHERE NVKiem LIKE N'%PANSY%' hoặc WHERE NVKiemKCS = N'KCS PANSY'"
+    },
+    {
+      "id": "T_QTY_CT_006",
+      "severity": "CRITICAL",
+      "rule": "TUYỆT ĐỐI CẤM JOIN bảng này (QTY_MaHang_KiemQC_ChiTiet) với QTY_MAHANG_NGAYKIEM rồi thực hiện SUM(q.SpLoi) — đây là lỗi fan-out nghiêm trọng. Quan hệ giữa QTY_MAHANG_NGAYKIEM (q) và QTY_MaHang_KiemQC_ChiTiet (c) là 1-NHIỀU: mỗi dòng q có thể khớp nhiều dòng c, khiến SUM(q.SpLoi) bị nhân bản theo số dòng chi tiết khớp (ví dụ: q.SpLoi=5, JOIN ra 3 dòng c → SUM = 5+5+5 = 15, sai hoàn toàn). Khi cần tỷ lệ lỗi theo nhóm (NhomLoi) hoặc loại lỗi: BẮT BUỘC dùng COUNT(*) hoặc COUNT(c.Code) trực tiếp trên bảng chi tiết này — không được trộn SUM(SpLoi) từ bảng tổng hợp.",
+      "correct_example": "-- ĐÚNG: Tính tỷ lệ lỗi Nhóm 1 / Tổng lỗi bằng COUNT từ bảng chi tiết\nWITH ChiTietLoi AS (\n  SELECT c.Code, n.NhomLoi\n  FROM QTY_MaHang_KiemQC_ChiTiet c\n  JOIN QTY_NHOMLOI_CHITIET n ON c.Code = n.MaLoi\n  JOIN tbl_SettingLineX l ON c.LineX = l.ID\n  WHERE c.StyleID = '0088_388_13_V0_3' AND l.Name = N'Lotus'\n),\nTongLoi AS (SELECT COUNT(*) AS TotalDefects FROM ChiTietLoi),\nLoiNhom1 AS (SELECT COUNT(*) AS Group1Defects FROM ChiTietLoi WHERE NhomLoi = 1)\nSELECT CAST(l1.Group1Defects AS FLOAT) / NULLIF(t.TotalDefects, 0) * 100 AS TyLe FROM TongLoi t CROSS JOIN LoiNhom1 l1",
+      "wrong_example": "-- SAI: JOIN bảng chi tiết vào bảng tổng hợp rồi SUM(SpLoi) → fan-out\nSELECT SUM(q.SpLoi) FROM QTY_MAHANG_NGAYKIEM q\nJOIN QTY_MaHang_KiemQC_ChiTiet c ON q.LineX = c.LineX AND q.StyleID = c.StyleID AND CAST(q.NgayKiem AS DATE) = CAST(c.NgayKiem AS DATE)\nJOIN QTY_NHOMLOI_CHITIET n ON c.Code = n.MaLoi\nWHERE n.NhomLoi = 1 -- SAI: SpLoi bị nhân bản theo số dòng chi tiết"
     }
   ],
   "columns": [
-    { "name": "RowID", "type": "bigint", "role": "primary_key", "desc": "ID định danh duy nhất của từng bản ghi lỗi." },
-    { "name": "NgayKiem", "type": "datetime", "role": "filter", "desc": "Ngày ghi nhận lỗi. Áp dụng quy tắc toàn cục G001 (cần CAST sang DATE)." },
-    { "name": "Gio", "type": "time", "role": "info", "desc": "Giờ ghi nhận lỗi trong ngày." },
-    { "name": "LineX", "type": "varchar", "role": "filter", "desc": "Mã chuyền (chữ X viết HOA). Áp dụng rule T_QTY_CT_002." },
-    { "name": "PlanCode", "type": "int", "role": "foreign_key", "desc": "Mã kế hoạch sản xuất. Khóa ngoại liên kết với ERP_LENHSX.MaLenh." },
-    { "name": "StyleID", "type": "varchar", "role": "filter_primary", "desc": "Mã kiểu dáng hệ thống. Áp dụng rule T_QTY_CT_003." },
-    { "name": "MaHang", "type": "nvarchar", "role": "display", "desc": "Tên/mã hàng hiển thị thực tế. Áp dụng rule T_QTY_CT_003." },
-    { "name": "POID", "type": "nvarchar", "role": "info", "desc": "Mã đơn hàng kết hợp (MaDH|PO)." },
-    { "name": "PO", "type": "nvarchar", "role": "info", "desc": "Số đơn hàng (Purchase Order)." },
-    { "name": "DauSizeID", "type": "nvarchar", "role": "info", "desc": "Mã định danh đầu size." },
-    { "name": "DauSize", "type": "nvarchar", "role": "info", "desc": "Thông tin diễn giải đầu size." },
-    { "name": "ColorID", "type": "nvarchar", "role": "info", "desc": "Mã màu hệ thống." },
-    { "name": "MaMau", "type": "nvarchar", "role": "filter", "desc": "Tên màu hoặc mã định danh màu sắc." },
-    { "name": "SizeID", "type": "nvarchar", "role": "filter", "desc": "Mã kích thước định danh (chứa 'SIZE_'). Áp dụng rule T_QTY_CT_004." },
-    { "name": "Size", "type": "nvarchar", "role": "filter", "desc": "Tên hiển thị của kích thước. Áp dụng rule T_QTY_CT_004." },
-    { "name": "CumID", "type": "int", "role": "info", "desc": "ID cụm hoặc khu vực kiểm tra." },
-    { "name": "Code", "type": "varchar", "role": "foreign_key", "desc": "Mã lỗi kỹ thuật (ví dụ: C2, C8, F2...). Khóa ngoại liên kết với QTY_NHOMLOI_CHITIET.MaLoi." },
-    { "name": "PageX", "type": "float", "role": "measure", "desc": "Tọa độ X vị trí đánh dấu lỗi trên áo. Áp dụng rule T_QTY_CT_001." },
-    { "name": "PageY", "type": "float", "role": "measure", "desc": "Tọa độ Y vị trí đánh dấu lỗi trên áo. Áp dụng rule T_QTY_CT_001." },
-    { "name": "TramKiem", "type": "int", "role": "info", "desc": "Mã trạm kiểm tra chất lượng." },
-    { "name": "MaCongDoan", "type": "varchar", "role": "filter", "desc": "Mã công đoạn ghi nhận lỗi (ví dụ: 6.2, 1.15)." },
-    { "name": "GhiChu", "type": "nvarchar", "role": "info", "desc": "Ghi chú bổ sung từ QC." },
-    { "name": "IsQC", "type": "bit", "role": "filter", "desc": "Flag xác nhận đã qua QC." },
-    { "name": "NVKiem", "type": "nvarchar", "role": "filter", "desc": "Tên nhân viên KCS ghi nhận lỗi. Áp dụng rule T_QTY_CT_005." },
-    { "name": "LanKiem", "type": "int", "role": "filter", "desc": "Số lần kiểm tra." },
-    { "name": "StatusHT", "type": "int", "role": "filter", "desc": "Trạng thái hoàn thành xử lý lỗi." },
-    { "name": "Version", "type": "int", "role": "info", "desc": "Phiên bản của bản ghi kiểm QC." },
-    { "name": "CheckType", "type": "int", "role": "info", "desc": "Phân loại kiểu kiểm tra (ví dụ: 0)." }
+    {
+      "name": "RowID",
+      "type": "bigint",
+      "role": "primary_key",
+      "desc": "ID định danh duy nhất của từng bản ghi lỗi."
+    },
+    {
+      "name": "NgayKiem",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Ngày ghi nhận lỗi. Áp dụng quy tắc toàn cục G001 (cần CAST sang DATE)."
+    },
+    {
+      "name": "Gio",
+      "type": "time",
+      "role": "info",
+      "desc": "Giờ ghi nhận lỗi trong ngày."
+    },
+    {
+      "name": "LineX",
+      "type": "varchar",
+      "role": "filter",
+      "desc": "Mã chuyền (chữ X viết HOA). Áp dụng rule T_QTY_CT_002."
+    },
+    {
+      "name": "PlanCode",
+      "type": "int",
+      "role": "foreign_key",
+      "desc": "Mã kế hoạch sản xuất. Khóa ngoại liên kết với ERP_LENHSX.MaLenh."
+    },
+    {
+      "name": "StyleID",
+      "type": "varchar",
+      "role": "filter_primary",
+      "desc": "Mã kiểu dáng hệ thống. Áp dụng rule T_QTY_CT_003."
+    },
+    {
+      "name": "MaHang",
+      "type": "nvarchar",
+      "role": "display",
+      "desc": "Tên/mã hàng hiển thị thực tế. Áp dụng rule T_QTY_CT_003."
+    },
+    {
+      "name": "POID",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mã đơn hàng kết hợp (MaDH|PO)."
+    },
+    {
+      "name": "PO",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Số đơn hàng (Purchase Order)."
+    },
+    {
+      "name": "DauSizeID",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mã định danh đầu size."
+    },
+    {
+      "name": "DauSize",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Thông tin diễn giải đầu size."
+    },
+    {
+      "name": "ColorID",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mã màu hệ thống."
+    },
+    {
+      "name": "MaMau",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Tên màu hoặc mã định danh màu sắc."
+    },
+    {
+      "name": "SizeID",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mã kích thước định danh (chứa 'SIZE_'). Áp dụng rule T_QTY_CT_004."
+    },
+    {
+      "name": "Size",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Tên hiển thị của kích thước. Áp dụng rule T_QTY_CT_004."
+    },
+    {
+      "name": "CumID",
+      "type": "int",
+      "role": "info",
+      "desc": "ID cụm hoặc khu vực kiểm tra."
+    },
+    {
+      "name": "Code",
+      "type": "varchar",
+      "role": "foreign_key",
+      "desc": "Mã lỗi kỹ thuật (ví dụ: C2, C8, F2...). Khóa ngoại liên kết với QTY_NHOMLOI_CHITIET.MaLoi."
+    },
+    {
+      "name": "PageX",
+      "type": "float",
+      "role": "measure",
+      "desc": "Tọa độ X vị trí đánh dấu lỗi trên áo. Áp dụng rule T_QTY_CT_001."
+    },
+    {
+      "name": "PageY",
+      "type": "float",
+      "role": "measure",
+      "desc": "Tọa độ Y vị trí đánh dấu lỗi trên áo. Áp dụng rule T_QTY_CT_001."
+    },
+    {
+      "name": "TramKiem",
+      "type": "int",
+      "role": "info",
+      "desc": "Mã trạm kiểm tra chất lượng."
+    },
+    {
+      "name": "MaCongDoan",
+      "type": "varchar",
+      "role": "filter",
+      "desc": "Mã công đoạn ghi nhận lỗi (ví dụ: 6.2, 1.15)."
+    },
+    {
+      "name": "GhiChu",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Ghi chú bổ sung từ QC."
+    },
+    {
+      "name": "IsQC",
+      "type": "bit",
+      "role": "filter",
+      "desc": "Flag xác nhận đã qua QC."
+    },
+    {
+      "name": "NVKiem",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Tên nhân viên KCS ghi nhận lỗi. Áp dụng rule T_QTY_CT_005."
+    },
+    {
+      "name": "LanKiem",
+      "type": "int",
+      "role": "filter",
+      "desc": "Số lần kiểm tra."
+    },
+    {
+      "name": "StatusHT",
+      "type": "int",
+      "role": "filter",
+      "desc": "Trạng thái hoàn thành xử lý lỗi."
+    },
+    {
+      "name": "Version",
+      "type": "int",
+      "role": "info",
+      "desc": "Phiên bản của bản ghi kiểm QC."
+    },
+    {
+      "name": "CheckType",
+      "type": "int",
+      "role": "info",
+      "desc": "Phân loại kiểu kiểm tra (ví dụ: 0)."
+    }
   ],
   "relationships": [
-    { "target_table": "ERP_LENHSX", "join_on": "QTY_MaHang_KiemQC_ChiTiet.PlanCode = ERP_LENHSX.MaLenh", "notes": "JOIN khi cần lọc theo thông tin lệnh sản xuất." },
-    { "target_table": "QTY_NHOMLOI_CHITIET", "join_on": "QTY_MaHang_KiemQC_ChiTiet.Code = QTY_NHOMLOI_CHITIET.MaLoi", "notes": "BẮT BUỘC khi cần lấy tên lỗi (TenLoi) hoặc lọc theo loại lỗi (LoaiLoi) / nhóm lỗi (NhomLoi)." },
-    { "target_table": "tbl_SettingLineX", "join_on": "QTY_MaHang_KiemQC_ChiTiet.LineX = tbl_SettingLineX.ID", "notes": "BẮT BUỘC kết nối (JOIN) khi cần lấy tên chuyền hiển thị (Name) thay vì mã ID." }
+    {
+      "target_table": "ERP_LENHSX",
+      "join_on": "QTY_MaHang_KiemQC_ChiTiet.PlanCode = ERP_LENHSX.MaLenh",
+      "notes": "JOIN khi cần lọc theo thông tin lệnh sản xuất."
+    },
+    {
+      "target_table": "QTY_NHOMLOI_CHITIET",
+      "join_on": "QTY_MaHang_KiemQC_ChiTiet.Code = QTY_NHOMLOI_CHITIET.MaLoi",
+      "notes": "BẮT BUỘC khi cần lấy tên lỗi (TenLoi) hoặc lọc theo loại lỗi (LoaiLoi) / nhóm lỗi (NhomLoi)."
+    },
+    {
+      "target_table": "tbl_SettingLineX",
+      "join_on": "QTY_MaHang_KiemQC_ChiTiet.LineX = tbl_SettingLineX.ID",
+      "notes": "BẮT BUỘC kết nối (JOIN) khi cần lấy tên chuyền hiển thị (Name) thay vì mã ID."
+    }
   ]
 }

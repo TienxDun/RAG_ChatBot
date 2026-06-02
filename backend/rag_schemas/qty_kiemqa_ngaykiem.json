@@ -59,6 +59,13 @@
       "rule": "TUYỆT ĐỐI CẤM SỬ DỤNG BẢNG NÀY KHI CÂU HỎI KHÔNG CÓ TỪ KHÓA 'FINAL', 'QA', 'AQL' HOẶC 'THÀNH PHẨM CUỐI': Nếu câu hỏi không nhắc đến các từ khóa này (ví dụ: chỉ hỏi 'So sánh tỉ lệ lỗi giữa chuyền Daisy và chuyền Cherry đối với mã lệnh 0088_521_04_V0_0'), TUYỆT ĐỐI CẤM dùng bảng QTY_KiemQA_NgayKiem này. Bạn bắt buộc phải chuyển sang dùng bảng mặc định QTY_MAHANG_NGAYKIEM làm tử số và JOIN với SEW_CoefficientSize làm mẫu số.",
       "correct_example": "-- ĐÚNG: Khi không có chữ 'final/QA', dùng QTY_MAHANG_NGAYKIEM\nWITH loi AS (SELECT LineX, SUM(SpLoi) AS L FROM QTY_MAHANG_NGAYKIEM GROUP BY LineX), dat AS (SELECT LineX, SUM(Quantity+SuaDat) AS D FROM SEW_CoefficientSize GROUP BY LineX) SELECT * FROM loi l JOIN dat d ON l.LineX = d.LineX",
       "wrong_example": "-- SAI: Dùng QTY_KiemQA_NgayKiem khi câu hỏi không nhắc 'final' hay 'QA'\nSELECT * FROM QTY_KiemQA_NgayKiem"
+    },
+    {
+      "id": "T_QTY_QA_NK_009",
+      "severity": "CRITICAL",
+      "rule": "ĐỊNH NGHĨA CHÍNH XÁC TRẠNG THÁI 'FAIL' TRONG QA — BẮT BUỘC DÙNG StatusHT != 3: Cột StatusHT trong QTY_KiemQA_NgayKiem có 4 giá trị: 0 = có lỗi chờ xử lý; 1 = đang sửa/tái chế; 2 = đã sửa, chờ kiểm lại; 3 = PASS (ĐẠT). Khi câu hỏi hỏi về các lần kiểm 'Fail', 'không đạt', 'bị lỗi', 'chưa pass': TUYỆT ĐỐI CẤM lọc StatusHT = 0 (quá hẹp — bỏ sót trạng thái 1 và 2). TUYỆT ĐỐI CẤM lọc StatusHT IN (0, 1) (vẫn thiếu trạng thái 2). BẮT BUỘC dùng q.StatusHT != 3 để bắt toàn bộ các phiếu kiểm chưa đạt (bao gồm cả 0, 1, và 2). Khi JOIN với QTY_KiemQA_CHITIET để thống kê mã lỗi Fail, bắt buộc lọc trên bảng QTY_KiemQA_NgayKiem (q) sau khi JOIN, không lọc trực tiếp trên QTY_KiemQA_CHITIET.",
+      "correct_example": "-- ĐÚNG: Tìm mã lỗi xuất hiện nhiều nhất trong các lần kiểm QA Fail\nWITH RankedDefects AS (\n  SELECT c.Code, n.TenLoi, SUM(ISNULL(c.SLLoi, 0)) AS TongLoi,\n         DENSE_RANK() OVER (ORDER BY SUM(ISNULL(c.SLLoi, 0)) DESC) AS Rk\n  FROM QTY_KiemQA_CHITIET c\n  JOIN QTY_KiemQA_NgayKiem q\n    ON c.LenhSX = q.LenhSX AND c.LineX = q.LineX AND c.MaHang = q.MaHang\n   AND c.Size = q.Size AND CAST(c.NgayKiem AS DATE) = CAST(q.NgayKiem AS DATE)\n  JOIN QTY_NHOMLOI_CHITIET n ON c.Code = n.MaLoi\n  WHERE q.StatusHT != 3\n  GROUP BY c.Code, n.TenLoi\n)\nSELECT Code, TenLoi, TongLoi FROM RankedDefects WHERE Rk = 1",
+      "wrong_example": "-- SAI 1: StatusHT = 0 bỏ sót các bản ghi trạng thái 1 và 2\nWHERE q.StatusHT = 0\n-- SAI 2: StatusHT IN (0,1) vẫn bỏ sót trạng thái 2 (đã sửa chờ kiểm lại)\nWHERE q.StatusHT IN (0, 1)\n-- SAI 3: Lọc trực tiếp trên c.StatusHT (bảng chi tiết) thay vì lọc qua q (bảng ngày kiểm)\nWHERE c.StatusHT != 3"
     }
   ],
   "columns": [

@@ -29,8 +29,8 @@
       "id": "T_QTY_IL_CD_004",
       "severity": "HIGH",
       "rule": "Quy tắc lọc tên nhân viên kiểm QC (NhanVienKiem): Cột này chứa tên nhân viên QC kèm hậu tố 'inline' hoặc 'Inline' (ví dụ: 'Cherry inline'). Yêu cầu dùng so sánh bằng (=) và thêm tiền tố N.",
-      "correct_example": "WHERE NhanVienKiem = N'Cherry inline'",
-      "wrong_example": "WHERE NhanVienKiem LIKE N'%Cherry%'"
+      "correct_example": "WHERE NhanVienKiem LIKE N'Cherry%'",
+      "wrong_example": "WHERE NhanVienKiem = N'Cherry'"
     }
   ],
   "columns": [
