@@ -6,6 +6,7 @@ import { ChatAreaComponent } from './components/ChatArea.js';
 import { StarfieldComponent } from './components/Starfield.js';
 import { SearchComponent } from './components/Search.js';
 import { HeaderComponent } from './components/Header.js';
+import { TemplateManagerComponent } from './components/TemplateManager.js';
 import { state } from './core/State.js';
 import { ENDPOINTS } from './core/Config.js';
 import { ApiClient } from './core/ApiClient.js';
@@ -27,6 +28,7 @@ class App {
         this.starfield = new StarfieldComponent('starfield');
         this.search = new SearchComponent();
         this.header = new HeaderComponent();
+        this.templateManager = new TemplateManagerComponent();
 
         this.initHealthCheck();
         console.log('✅ DODO AI - App Ready');

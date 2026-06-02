@@ -1,4 +1,5 @@
 using Backend.Services;
+using Backend.Services.Excel;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Builder;
@@ -53,6 +54,11 @@ public static class TemplateCacheEndpoints
         // POST /api/templates/save-mapping - Lưu chú thích cột Excel
         app.MapPost("/api/templates/save-mapping", HandleSaveMappingAsync)
             .WithName("SaveTemplateMapping")
+            .DisableAntiforgery();
+
+        // POST /api/templates/auto-map - Tự động ánh xạ giải nghĩa cột bằng Qdrant + Gemini
+        app.MapPost("/api/templates/auto-map", HandleAutoMapAsync)
+            .WithName("AutoMapTemplateColumns")
             .DisableAntiforgery();
     }
 
@@ -194,7 +200,7 @@ public static class TemplateCacheEndpoints
             var worksheet = package.Workbook.Worksheets[0];
             var result = analyzer.AnalyzeTemplate(worksheet);
 
-            var savedMappings = mappingService.GetMapping(file.FileName);
+            var templateMapping = mappingService.GetTemplateMapping(file.FileName);
 
             return Results.Ok(new
             {
@@ -209,7 +215,9 @@ public static class TemplateCacheEndpoints
                     uniqueKey = c.UniqueKey
                 }).ToList(),
                 metadata = result.Metadata,
-                savedMappings = savedMappings
+                grid = result.Grid,
+                savedMappings = templateMapping.ColumnMappings,
+                metadataCellMappings = templateMapping.MetadataCellMappings
             });
         }
         catch (Exception ex)
@@ -222,6 +230,7 @@ public static class TemplateCacheEndpoints
     {
         public string FileName { get; set; } = string.Empty;
         public Dictionary<string, string> Mappings { get; set; } = new();
+        public Dictionary<string, string> MetadataCellMappings { get; set; } = new();
     }
 
     /// <summary>
@@ -236,12 +245,149 @@ public static class TemplateCacheEndpoints
 
         try
         {
-            mappingService.SaveMapping(request.FileName, request.Mappings);
+            var templateMapping = new ExcelTemplateMapping
+            {
+                ColumnMappings = request.Mappings ?? new(),
+                MetadataCellMappings = request.MetadataCellMappings ?? new()
+            };
+            mappingService.SaveTemplateMapping(request.FileName, templateMapping);
             return Results.Ok(new { message = "Đã lưu thông tin ánh xạ cột Excel thành công." });
         }
         catch (Exception ex)
         {
             return Results.Problem($"Lỗi khi lưu cấu hình ánh xạ: {ex.Message}");
         }
+    }
+
+    public sealed class AutoMapColumnDto
+    {
+        public string UniqueKey { get; set; } = string.Empty;
+        public string ChildHeader { get; set; } = string.Empty;
+        public string ParentHeader { get; set; } = string.Empty;
+    }
+
+    public sealed class AutoMapRequest
+    {
+        public string FileName { get; set; } = string.Empty;
+        public string? CollectionName { get; set; }
+        public List<AutoMapColumnDto> Columns { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Xử lý tự động ánh xạ giải nghĩa cột bằng Qdrant schema search và LLM sinh text
+    /// </summary>
+    public static async Task<IResult> HandleAutoMapAsync(
+        AutoMapRequest request,
+        QdrantService qdrantService,
+        VertexAiClient aiClient,
+        CancellationToken ct)
+    {
+        if (request == null || string.IsNullOrWhiteSpace(request.FileName) || request.Columns.Count == 0)
+        {
+            return Results.BadRequest(new { error = "Dữ liệu yêu cầu không hợp lệ hoặc thiếu tên file/danh sách cột." });
+        }
+
+        try
+        {
+            var distinctSchemas = new HashSet<string>();
+            var targetCollection = string.IsNullOrWhiteSpace(request.CollectionName) ? "db_schema" : request.CollectionName;
+
+            // 1. Tìm các schema liên quan nhất trong Qdrant dựa trên độ tương quan ngữ nghĩa của các cột
+            foreach (var col in request.Columns)
+            {
+                var queryText = string.IsNullOrWhiteSpace(col.ParentHeader) 
+                    ? $"Cột {col.ChildHeader}" 
+                    : $"Cột {col.ParentHeader} {col.ChildHeader}";
+                
+                try
+                {
+                    // Lấy embedding vector 3072 cho query
+                    var vector = await aiClient.GetEmbeddingAsync(queryText, "RETRIEVAL_QUERY", 3072, ct);
+                    
+                    // Tìm kiếm 2 schema liên quan nhất
+                    var schemas = await qdrantService.SearchSchemaAsync(vector, limit: 2, collectionName: targetCollection);
+                    foreach (var s in schemas)
+                    {
+                        if (!string.IsNullOrWhiteSpace(s))
+                        {
+                            distinctSchemas.Add(s);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"⚠️ Lỗi khi lấy embedding hoặc search Qdrant cho cột '{col.ChildHeader}': {ex.Message}");
+                }
+            }
+
+            var schemaContext = string.Join("\n\n", distinctSchemas);
+
+            // 2. Gom các cột Excel và dựng Prompt cho Gemini
+            var columnsDescription = string.Join("\n", request.Columns.Select(c => 
+                $"- Key: {c.UniqueKey} | Tiêu đề: {(string.IsNullOrWhiteSpace(c.ParentHeader) ? c.ChildHeader : $"{c.ParentHeader} ➔ {c.ChildHeader}")}"));
+
+            var prompt = $@"Bạn là một chuyên gia thiết kế cơ sở dữ liệu và AI RAG.
+Nhiệm vụ của bạn là phân tích danh sách các cột trong một file Excel mẫu, đối chiếu với cấu trúc Database thực tế được lưu trong Qdrant, sau đó tự động tạo câu Ghi chú chú thích giải nghĩa cho từng cột Excel đó để giúp Chatbot AI sau này hiểu cột đó chứa dữ liệu gì khi viết câu SQL.
+
+Danh sách các cột trong file Excel mẫu cần chú thích:
+{columnsDescription}
+
+Cấu trúc cơ sở dữ liệu thực tế (Được trích xuất từ Qdrant):
+{schemaContext}
+
+---
+YÊU CẦU:
+1. Với mỗi cột Excel, hãy viết 1 câu chú thích giải nghĩa ngắn gọn bằng Tiếng Việt. 
+2. Chú thích cần chỉ rõ:
+   - Ý nghĩa của cột.
+   - Cột đó tương ứng với Column nào, Table nào trong database (ví dụ: ""Lấy dữ liệu từ cột Chuyen của bảng QTY_MaHang_KiemQC_ChiTiet"").
+   - Cách tính toán hoặc điều kiện lọc (nếu cột đó là cột tính toán như tỉ lệ lỗi, tổng cộng).
+3. ĐẦU RA BẮT BUỘC chỉ chứa một JSON Object duy nhất, trong đó KEY là Key của cột Excel (ví dụ: Cosmos_Chuyen) và VALUE là câu chú thích bằng tiếng Việt.
+4. Không kèm theo bất kỳ văn bản giải thích nào khác ngoài JSON, không bọc trong markdown codeblock ```json.
+
+Ví dụ định dạng kết quả trả về:
+{{
+  ""key_excel_1"": ""Chú thích cột 1"",
+  ""key_excel_2"": ""Chú thích cột 2""
+}}";
+
+            // 3. Gọi Gemini
+            var responseText = await aiClient.GenerateContentAsync(prompt, ct);
+            
+            // Clean kết quả nếu có markdown codeblock
+            responseText = CleanJsonResponse(responseText);
+
+            // Parse kết quả
+            var mappings = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(responseText, new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            return Results.Ok(new { mappings });
+        }
+        catch (Exception ex)
+        {
+            return Results.Problem($"Lỗi khi tự động phân tích và ánh xạ cột bằng AI: {ex.Message}");
+        }
+    }
+
+    private static string CleanJsonResponse(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return "{}";
+        
+        var clean = input.Trim();
+        if (clean.StartsWith("```"))
+        {
+            var lines = clean.Split('\n');
+            var resultLines = new List<string>();
+            for (int i = 0; i < lines.Length; i++)
+            {
+                var line = lines[i].Trim();
+                if (line.StartsWith("```")) continue;
+                resultLines.Add(lines[i]);
+            }
+            clean = string.Join("\n", resultLines).Trim();
+        }
+        return clean;
     }
 }

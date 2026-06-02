@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
+using System.Text.Json;
 using OfficeOpenXml;
 using Backend.Services.Excel;
 using Backend.Endpoints;
@@ -220,7 +221,7 @@ public class ExcelTests
             table,
             8,
             1,
-            2,
+            9,
             null,
             new List<int> { 9, 10, 11 },
             12);
@@ -495,6 +496,87 @@ public class ExcelTests
         Assert.Equal(14, merged.DataEndRowIndex);
         Assert.Equal(15, merged.TotalRowIndex);
         Assert.Equal(new List<int> { 9, 10, 11, 12, 13, 14 }, merged.FillableRowIndexes);
+    }
+
+    [Fact]
+    public void ExcelMappingService_ShouldHandleBackwardCompatibility_WhenLoadingOldFormat()
+    {
+        // Arrange
+        string tempFilePath = Path.Combine(Path.GetTempPath(), $"excel_mappings_{Guid.NewGuid()}.json");
+        try
+        {
+            // Ghi file ở định dạng cũ (dictionary 2 cấp phẳng string-to-string)
+            var oldData = new Dictionary<string, Dictionary<string, string>>
+            {
+                ["TestFile.xlsx"] = new Dictionary<string, string>
+                {
+                    ["Col1"] = "Note 1",
+                    ["Col2"] = "Note 2"
+                }
+            };
+            File.WriteAllText(tempFilePath, JsonSerializer.Serialize(oldData));
+
+            // Khởi tạo service bằng Reflection để dùng path tạm
+            var service = new ExcelMappingService();
+            // Sử dụng Reflection để thay thế trường private _filePath
+            var filePathField = typeof(ExcelMappingService).GetField("_filePath", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.NotNull(filePathField);
+            filePathField!.SetValue(service, tempFilePath);
+
+            // Force load lại file
+            var loadMethod = typeof(ExcelMappingService).GetMethod("LoadFromFile", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.NotNull(loadMethod);
+            loadMethod!.Invoke(service, null);
+
+            // Act
+            var mapping = service.GetTemplateMapping("TestFile.xlsx");
+
+            // Assert
+            Assert.NotNull(mapping);
+            Assert.NotNull(mapping.ColumnMappings);
+            Assert.Equal("Note 1", mapping.ColumnMappings["Col1"]);
+            Assert.Equal("Note 2", mapping.ColumnMappings["Col2"]);
+            Assert.Empty(mapping.MetadataCellMappings); // Metadata cell mappings phải rỗng vì là định dạng cũ
+        }
+        finally
+        {
+            if (File.Exists(tempFilePath)) File.Delete(tempFilePath);
+        }
+    }
+
+    [Fact]
+    public void FillMetadata_ShouldPlaceValuesInConfiguredCells_WhenCellMappingsExist()
+    {
+        // Arrange
+        using var package = new ExcelPackage();
+        var worksheet = package.Workbook.Worksheets.Add("Report");
+        worksheet.Cells["C2"].Value = "Chuyền:";
+        worksheet.Cells["C3"].Value = "Ngày tháng:";
+        worksheet.Cells["D5"].Value = "Style gốc";
+
+        var metadataValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Chuyen"] = "Cherry Chuyền 5",
+            ["Ngay"] = "2026-06-02",
+            ["StyleID"] = "SA-893-ABC"
+        };
+
+        var cellMappings = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Chuyen"] = "C2",
+            ["Ngay"] = "C3",
+            ["StyleID"] = "D5"
+        };
+
+        var filler = new ExcelTemplateFiller(new TextUtility());
+
+        // Act
+        filler.FillMetadata(worksheet, 10, metadataValues, cellMappings);
+
+        // Assert
+        Assert.Equal("Chuyền: Cherry Chuyền 5", worksheet.Cells["C2"].Value); // Phải ghép với label có sẵn
+        Assert.Equal("Ngày tháng: 2026-06-02", worksheet.Cells["C3"].Value); // Phải ghép với label có sẵn
+        Assert.Equal("SA-893-ABC", worksheet.Cells["D5"].Value); // Không chứa dấu hai chấm, phải ghi đè hẳn
     }
 }
 

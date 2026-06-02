@@ -12,7 +12,8 @@ class State {
             selectedFiles: [],
             isUploading: false,
             currentConversationId: null,
-            isBackendOnline: true
+            isBackendOnline: true,
+            activePage: 'chat'
         };
         this._listeners = [];
         this._saveDebounceTimer = null;
@@ -46,6 +47,12 @@ class State {
         this._state.chatHistory = history;
         this._notify('chatHistory', history);
         console.log(`✅ State initialized with ${history.length} conversations.`);
+    }
+
+    get activePage() { return this._state.activePage || 'chat'; }
+    set activePage(value) {
+        this._state.activePage = value;
+        this._notify('activePage', value);
     }
 
     get theme() { return this._state.theme; }

@@ -9,13 +9,15 @@ public interface IExcelMappingService
 {
     void SaveMapping(string fileName, Dictionary<string, string> mappings);
     Dictionary<string, string> GetMapping(string fileName);
+    void SaveTemplateMapping(string fileName, ExcelTemplateMapping mapping);
+    ExcelTemplateMapping GetTemplateMapping(string fileName);
 }
 
 public class ExcelMappingService : IExcelMappingService
 {
     private readonly string _filePath;
     private readonly object _lock = new();
-    private Dictionary<string, Dictionary<string, string>> _mappingsStore = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<string, ExcelTemplateMapping> _mappingsStore = new(StringComparer.OrdinalIgnoreCase);
 
     public ExcelMappingService()
     {
@@ -57,10 +59,15 @@ public class ExcelMappingService : IExcelMappingService
                     var json = File.ReadAllText(_filePath);
                     if (!string.IsNullOrWhiteSpace(json))
                     {
-                        var data = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, string>>>(json);
+                        var data = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json);
                         if (data != null)
                         {
-                            _mappingsStore = new Dictionary<string, Dictionary<string, string>>(data, StringComparer.OrdinalIgnoreCase);
+                            var newStore = new Dictionary<string, ExcelTemplateMapping>(StringComparer.OrdinalIgnoreCase);
+                            foreach (var kvp in data)
+                            {
+                                newStore[kvp.Key] = ParseMapping(kvp.Value);
+                            }
+                            _mappingsStore = newStore;
                         }
                     }
                 }
@@ -70,6 +77,48 @@ public class ExcelMappingService : IExcelMappingService
                 Console.WriteLine($"⚠️ Lỗi khi tải dữ liệu ánh xạ Excel: {ex.Message}");
             }
         }
+    }
+
+    private static ExcelTemplateMapping ParseMapping(JsonElement element)
+    {
+        var mapping = new ExcelTemplateMapping();
+        if (element.ValueKind == JsonValueKind.Object)
+        {
+            bool hasColumnMappings = element.TryGetProperty("columnMappings", out var colProp) || 
+                                     element.TryGetProperty("ColumnMappings", out colProp);
+            bool hasMetadataCellMappings = element.TryGetProperty("metadataCellMappings", out var metaProp) || 
+                                           element.TryGetProperty("MetadataCellMappings", out metaProp);
+
+            if (hasColumnMappings || hasMetadataCellMappings)
+            {
+                if (colProp.ValueKind == JsonValueKind.Object)
+                {
+                    foreach (var prop in colProp.EnumerateObject())
+                    {
+                        mapping.ColumnMappings[prop.Name] = prop.Value.GetString() ?? "";
+                    }
+                }
+                if (metaProp.ValueKind == JsonValueKind.Object)
+                {
+                    foreach (var prop in metaProp.EnumerateObject())
+                    {
+                        mapping.MetadataCellMappings[prop.Name] = prop.Value.GetString() ?? "";
+                    }
+                }
+            }
+            else
+            {
+                // Định dạng cũ (tất cả là column mappings)
+                foreach (var prop in element.EnumerateObject())
+                {
+                    if (prop.Value.ValueKind == JsonValueKind.String)
+                    {
+                        mapping.ColumnMappings[prop.Name] = prop.Value.GetString() ?? "";
+                    }
+                }
+            }
+        }
+        return mapping;
     }
 
     private void SaveToFile()
@@ -98,8 +147,9 @@ public class ExcelMappingService : IExcelMappingService
 
         lock (_lock)
         {
-            _mappingsStore[fileName] = mappings;
-            SaveToFile();
+            var templateMapping = GetTemplateMapping(fileName);
+            templateMapping.ColumnMappings = mappings;
+            SaveTemplateMapping(fileName, templateMapping);
         }
     }
 
@@ -109,11 +159,35 @@ public class ExcelMappingService : IExcelMappingService
 
         lock (_lock)
         {
-            if (_mappingsStore.TryGetValue(fileName, out var mappings) && mappings != null)
+            LoadFromFile();
+            var templateMapping = GetTemplateMapping(fileName);
+            return templateMapping.ColumnMappings;
+        }
+    }
+
+    public void SaveTemplateMapping(string fileName, ExcelTemplateMapping mapping)
+    {
+        if (string.IsNullOrWhiteSpace(fileName) || mapping == null) return;
+
+        lock (_lock)
+        {
+            _mappingsStore[fileName] = mapping;
+            SaveToFile();
+        }
+    }
+
+    public ExcelTemplateMapping GetTemplateMapping(string fileName)
+    {
+        if (string.IsNullOrWhiteSpace(fileName)) return new ExcelTemplateMapping();
+
+        lock (_lock)
+        {
+            LoadFromFile();
+            if (_mappingsStore.TryGetValue(fileName, out var mapping) && mapping != null)
             {
-                return new Dictionary<string, string>(mappings);
+                return mapping;
             }
-            return new Dictionary<string, string>();
+            return new ExcelTemplateMapping();
         }
     }
 }

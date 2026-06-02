@@ -162,7 +162,30 @@
       "rule": "NHẬN DIỆN TÊN CÔNG ĐOẠN SẢN XUẤT TRONG CÂU HỎI: Khi câu hỏi của người dùng chứa bất kỳ tên công đoạn sản xuất nào (dù viết có dấu hay không dấu), BẮT BUỘC phải nhận diện đó là một công đoạn cụ thể và JOIN với bảng tbl_Steps (qua StepId = Id_cd) để lọc theo cd_name. Danh sách tên công đoạn phổ biến cần nhận diện (không phân biệt hoa thường, có dấu/không dấu): 'tui hong' / 'túi hông', 'tui xeo' / 'túi xéo', 'ra chuyen' / 'ra chuyền', 'may tp' / 'may thành phẩm', 'KCS', 'UI', 'DONG GOI' / 'đóng gói', 'dieu tp ao' / 'diều tp áo', 'VIEN DKTT', và các công đoạn kỹ thuật khác. TUYỆT ĐỐI KHÔNG bỏ qua tên công đoạn trong câu hỏi — nếu người dùng nhắc đến công đoạn thì phải lọc theo công đoạn đó. Khi lọc, dùng LIKE N'tên công đoạn%' (giữ nguyên trạng thái có dấu/không dấu mà người dùng cung cấp, thêm % ở cuối).",
       "correct_example": "SELECT SUM(ISNULL(sc.Quantity, 0)) AS [Tổng năng suất] FROM SEW_CoefficientStyle sc JOIN tbl_Steps s ON sc.StepId = s.Id_cd WHERE s.cd_name LIKE N'tui hong%'",
       "wrong_example": "SELECT SUM(ISNULL(Quantity, 0)) AS [Tổng năng suất] FROM SEW_CoefficientStyle -- SAI: câu hỏi nhắc đến công đoạn 'tui hong' nhưng không JOIN tbl_Steps và không lọc theo cd_name"
+    },
+    {
+      "id": "G021",
+      "category": "case_when_base_table",
+      "severity": "CRITICAL",
+      "rule": "QUY TẮC SỬ DỤNG BẢNG GỐC TRONG CASE WHEN KHI DÙNG BẢNG GIẢ LẬP TYPES: Khi sinh câu lệnh SQL cho mẫu báo cáo Excel có nhiều bộ phận (CheckType từ 0 đến 3) sử dụng bảng giả lập gốc (ví dụ: `(SELECT 0 AS CheckType UNION SELECT 1 UNION SELECT 2 UNION SELECT 3) AS types`), các biểu thức điều kiện `CASE WHEN` ở mệnh đề `SELECT` bắt buộc phải so sánh dựa trên cột của bảng gốc giả lập này (ví dụ: `types.CheckType = 0` hoặc `t.CheckType = 0`). TUYỆT ĐỐI CẤM so sánh bằng cột của bảng LEFT JOIN (như `d.CheckType = 0` hay `dt.CheckType = 0`). Đồng thời, NẾU BÁO CÁO CÓ PHÂN TÍCH THEO NGÀY, bắt buộc phải lấy danh sách Ngày gốc (UNION ngày từ bảng đạt và bảng lỗi) CROSS JOIN với bảng types để tạo tổ hợp cơ sở [Ngay x CheckType] trước khi LEFT JOIN với bảng đạt và bảng lỗi theo cả hai điều kiện (Ngay và CheckType) để tránh nhân bản chéo chênh lệch ngày.",
+      "correct_example": "WITH NgayGoc AS (SELECT Ngay FROM DataDat UNION SELECT Ngay FROM DataLoi), NgayTypes AS (SELECT n.Ngay, t.CheckType FROM NgayGoc n CROSS JOIN (SELECT 0 AS CheckType UNION SELECT 1 UNION SELECT 2 UNION SELECT 3) AS t), FinalData AS (SELECT nt.Ngay, nt.CheckType, ISNULL(d.TongDat, 0) AS TongDat, ISNULL(l.TongLoi, 0) AS TongLoi FROM NgayTypes nt LEFT JOIN DataDat d ON nt.Ngay = d.Ngay AND nt.CheckType = d.CheckType LEFT JOIN DataLoi l ON nt.Ngay = l.Ngay AND nt.CheckType = l.CheckType) SELECT Ngay, SUM(CASE WHEN CheckType = 0 THEN TongDat ELSE 0 END) AS [ThanhPhamFinished_SLkiemQuantity] FROM FinalData GROUP BY Ngay",
+      "wrong_example": "SELECT SUM(CASE WHEN d.CheckType = 0 THEN dt.TongDat ELSE 0 END) AS [ThanhPhamFinished_SLkiemQuantity] FROM (SELECT 0 AS CheckType UNION SELECT 1 UNION SELECT 2 UNION SELECT 3) AS types LEFT JOIN DataLoi d ON types.CheckType = d.CheckType LEFT JOIN DataDat dt ON types.CheckType = dt.CheckType -- SAI: sử dụng d.CheckType trong CASE WHEN làm mất sản lượng đạt khi không có lỗi, và thiếu so khớp điều kiện ngày làm nhân chéo số liệu giữa các ngày."
+    },
+    {
+      "id": "G022",
+      "category": "excel_notes_query",
+      "severity": "CRITICAL",
+      "rule": "QUY TẮC TRUY VẤN GHI CHÚ LỖI (NOTES) CHO BÁO CÁO BCEndlineNgay: Khi mẫu báo cáo Excel BCEndlineNgay (22)_Empty.xlsx yêu cầu điền cột Ghi chú lỗi (ví dụ: ThanhPhamFinished_GhichuNotes, VoShell_GhichuNotes, LotthuongLining_GhichuNotes, LotlanLining_GhichuNotes), bạn BẮT BUỘC phải lấy chi tiết lỗi từ bảng QTY_MaHang_KiemQC_ChiTiet JOIN với QTY_NHOMLOI_CHITIET. Vì SQL Server không cho phép lồng trực tiếp hàm gộp trong STRING_AGG, hãy viết một CTE con để SUM số lượng lỗi theo từng ngày, CheckType, TenLoi trước, sau đó ở CTE tiếp theo mới dùng STRING_AGG để nối chuỗi danh sách lỗi (ví dụ: N'Đứt chỉ (2), Bỏ mũi (1)'). Trong câu SELECT chính, dùng MAX(CASE WHEN types.CheckType = X THEN DanhSachLoi END) AS [UniqueKey] tương ứng.",
+      "correct_example": "WITH LoiTheoNgay AS (SELECT CAST(c.NgayKiem AS DATE) AS Ngay, c.CheckType, n.TenLoi, SUM(CASE WHEN c.Code = 'A33' THEN 1 ELSE ISNULL(c.SLLoi, 1) END) AS SoLuongLoi FROM QTY_MaHang_KiemQC_ChiTiet c JOIN QTY_NHOMLOI_CHITIET n ON c.Code = n.MaLoi GROUP BY CAST(c.NgayKiem AS DATE), c.CheckType, n.TenLoi), LoiGop AS (SELECT Ngay, CheckType, STRING_AGG(CONCAT(TenLoi, ' (', SoLuongLoi, ')'), ', ') AS DanhSachLoi FROM LoiTheoNgay GROUP BY Ngay, CheckType) SELECT t.Ngay, MAX(CASE WHEN types.CheckType = 0 THEN lg.DanhSachLoi END) AS [ThanhPhamFinished_GhichuNotes] FROM ... LEFT JOIN LoiGop lg ON t.Ngay = lg.Ngay AND types.CheckType = lg.CheckType GROUP BY t.Ngay",
+      "wrong_example": "SELECT GhiChu AS [ThanhPhamFinished_GhichuNotes] FROM QTY_MAHANG_NGAYKIEM -- SAI: cột GhiChu trong bảng tổng hợp luôn rỗng/NULL và không thể tự liệt kê chi tiết các lỗi."
+    },
+    {
+      "id": "G023",
+      "category": "column_name_accuracy",
+      "severity": "CRITICAL",
+      "rule": "CẢNH BÁO NHẦM LẪN TÊN CỘT GIỮA CÁC BẢNG: Cột `SLLoi` CHỈ tồn tại trong bảng `QTY_KiemQA_CHITIET` (bảng kiểm QA final). TUYỆT ĐỐI CẤM sử dụng tên cột `SLLoi` khi truy vấn bảng `QTY_MAHANG_NGAYKIEM` — cột lỗi đúng trong bảng này là `SpLoi`. Tương tự, `SoLuongLoi` chỉ có trong bảng `QTY_InLineQC_NgayKiem` và `QTY_KiemQA_NgayKiem`. Bảng `QTY_MAHANG_NGAYKIEM` KHÔNG có cột `SLLoi`, `SoLuongLoi`, `SoLuongKiem`, `KetQua` hay `SoLuongKCS` — tất cả đều không tồn tại và sẽ gây lỗi 'Invalid column name'. Khi cần đếm lỗi từ `QTY_MAHANG_NGAYKIEM`, BẮT BUỘC dùng SUM(ISNULL(SpLoi, 0)).",
+      "correct_example": "SELECT SUM(ISNULL(q.SpLoi, 0)) AS TongLoi FROM QTY_MAHANG_NGAYKIEM q JOIN tbl_SettingLineX l ON q.LineX = l.ID WHERE l.Name = N'Cherry'",
+      "wrong_example": "SELECT SUM(ISNULL(q.SLLoi, 0)) AS TongLoi FROM QTY_MAHANG_NGAYKIEM q -- SAI NGHIÊM TRỌNG: cột SLLoi không tồn tại trong QTY_MAHANG_NGAYKIEM, gây lỗi 'Invalid column name SLLoi'. Cột đúng là SpLoi."
     }
-
   ]
 }

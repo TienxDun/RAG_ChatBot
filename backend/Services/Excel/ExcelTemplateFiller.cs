@@ -31,7 +31,11 @@ public interface IExcelTemplateFiller
         List<int>? fillableRowIndexes = null,
         int? totalRowIndex = null,
         bool isExplicitFillableOnly = false);
-    void FillMetadata(ExcelWorksheet worksheet, int headerRowIndex, Dictionary<string, string> metadataValues);
+    void FillMetadata(
+        ExcelWorksheet worksheet, 
+        int headerRowIndex, 
+        Dictionary<string, string> metadataValues,
+        Dictionary<string, string>? metadataCellMappings = null);
 }
 
 public class ExcelTemplateFiller : IExcelTemplateFiller
@@ -441,62 +445,58 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
     }
 
     // Điền metadata chung vào phần đầu trang Excel
-    public void FillMetadata(ExcelWorksheet worksheet, int headerRowIndex, Dictionary<string, string> metadataValues)
+    public void FillMetadata(
+        ExcelWorksheet worksheet, 
+        int headerRowIndex, 
+        Dictionary<string, string> metadataValues,
+        Dictionary<string, string>? metadataCellMappings = null)
     {
         if (metadataValues == null || metadataValues.Count == 0) return;
-        
-        int totalCols = worksheet.Dimension?.Columns ?? 0;
-        
-        for (int r = 1; r < headerRowIndex; r++)
-        {
-            for (int c = 1; c <= totalCols; c++)
-            {
-                string val = worksheet.Cells[r, c].Text?.Trim() ?? "";
-                if (string.IsNullOrEmpty(val)) continue;
 
-                if (val.Contains(":"))
+        // Chỉ điền metadata nếu được định nghĩa cấu hình cụ thể trong MetadataCellMappings
+        if (metadataCellMappings == null || metadataCellMappings.Count == 0) return;
+
+        foreach (var kvp in metadataCellMappings)
+        {
+            // Hỗ trợ 2 định dạng trong MetadataCellMappings:
+            //   Format 1 (cũ): { "mô_tả_ngữ_nghĩa": "A5" }  → key=mô_tả, value=địa_chỉ_ô
+            //   Format 2 (mới): { "A5": "mô_tả_ngữ_nghĩa" }  → key=địa_chỉ_ô, value=mô_tả
+            // Tự động nhận diện: nếu key trông giống địa chỉ ô Excel (chữ cái + số, vd: A5, D10) → Format 2
+            string cellAddress;
+            string semanticKey;
+
+            bool keyIsCellAddress = System.Text.RegularExpressions.Regex.IsMatch(
+                kvp.Key.Trim(), @"^[A-Za-z]{1,3}\d{1,7}$");
+
+            if (keyIsCellAddress)
+            {
+                // Format 2: key = địa chỉ ô, value = mô tả ngữ nghĩa
+                cellAddress = kvp.Key.Trim();
+                semanticKey = kvp.Value;
+            }
+            else
+            {
+                // Format 1: key = mô tả ngữ nghĩa, value = địa chỉ ô
+                semanticKey = kvp.Key;
+                cellAddress = kvp.Value;
+            }
+
+            if (string.IsNullOrWhiteSpace(cellAddress)) continue;
+
+            string? matchedValue = _textUtility.FindBestMetadataValue(metadataValues, semanticKey);
+            if (matchedValue != null)
+            {
+                var cell = worksheet.Cells[cellAddress];
+                string currentText = cell.Text?.Trim() ?? "";
+                if (currentText.Contains(":"))
                 {
-                    int colonIndex = val.IndexOf(':');
-                    string label = val.Substring(0, colonIndex).Trim();
-                    
-                    string? matchedValue = _textUtility.FindBestMetadataValue(metadataValues, label);
-                    if (!string.IsNullOrEmpty(matchedValue))
-                    {
-                        worksheet.Cells[r, c].Value = $"{label}: {matchedValue}";
-                    }
-                    else if (val.Contains("N/A", StringComparison.OrdinalIgnoreCase))
-                    {
-                        worksheet.Cells[r, c].Value = $"{label}: ";
-                    }
+                    int colonIndex = currentText.IndexOf(':');
+                    string label = currentText.Substring(0, colonIndex).Trim();
+                    cell.Value = $"{label}: {matchedValue}";
                 }
                 else
                 {
-                    if (c + 1 <= totalCols)
-                    {
-                        if (val.Contains("mã", StringComparison.OrdinalIgnoreCase) || 
-                            val.Contains("chuyền", StringComparison.OrdinalIgnoreCase) || 
-                            val.Contains("style", StringComparison.OrdinalIgnoreCase) || 
-                            val.Contains("line", StringComparison.OrdinalIgnoreCase) ||
-                            val.Contains("ngày", StringComparison.OrdinalIgnoreCase) ||
-                            val.Contains("tên", StringComparison.OrdinalIgnoreCase) ||
-                            val.Contains("khách", StringComparison.OrdinalIgnoreCase) ||
-                            val.Contains("customer", StringComparison.OrdinalIgnoreCase))
-                        {
-                            string? matchedValue = _textUtility.FindBestMetadataValue(metadataValues, val);
-                            if (!string.IsNullOrEmpty(matchedValue))
-                            {
-                                worksheet.Cells[r, c + 1].Value = matchedValue;
-                            }
-                            else
-                            {
-                                string nextVal = worksheet.Cells[r, c + 1].Text?.Trim() ?? "";
-                                if (nextVal.Equals("N/A", StringComparison.OrdinalIgnoreCase))
-                                {
-                                    worksheet.Cells[r, c + 1].Value = "";
-                                }
-                            }
-                        }
-                    }
+                    cell.Value = matchedValue;
                 }
             }
         }

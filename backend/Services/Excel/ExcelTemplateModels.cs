@@ -17,6 +17,20 @@ public class FlattenedColumn
     public string ChildHeader { get; set; } = string.Empty;
 }
 
+public class ExcelCellDto
+{
+    public int Row { get; set; }
+    public int Col { get; set; }
+    public string Address { get; set; } = string.Empty;
+    public string Value { get; set; } = string.Empty;
+    public bool IsBold { get; set; }
+    public bool IsMerged { get; set; }
+    public string? MergedRange { get; set; }
+    public int RowSpan { get; set; } = 1;
+    public int ColSpan { get; set; } = 1;
+    public bool IsMergedChild { get; set; } // Nếu true, ô này bị ẩn vì thuộc ô gộp của ô khác
+}
+
 public class TemplateAnalysisResult
 {
     public TemplateType Type { get; set; } = TemplateType.Horizontal;
@@ -28,4 +42,5 @@ public class TemplateAnalysisResult
     public List<int> FillableRowIndexes { get; set; } = new();
     public List<FlattenedColumn> Columns { get; set; } = new();
     public Dictionary<string, string> Metadata { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    public List<List<ExcelCellDto>> Grid { get; set; } = new();
 }

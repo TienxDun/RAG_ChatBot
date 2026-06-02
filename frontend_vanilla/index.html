@@ -41,15 +41,28 @@
             <button id="theme-toggle" class="icon-btn sidebar__theme" title="Chuyển giao diện">
                 <i class="ph-duotone ph-moon-stars"></i>
             </button>
-            <h2 class="sidebar__title-main">HISTORY</h2>
+            <h2 class="sidebar__title-main">DODO AI</h2>
             <div class="sidebar__header-actions">
                 <button id="close-sidebar" class="icon-btn sidebar__close">
                     <i class="ph-bold ph-x"></i>
                 </button>
             </div>
         </div>
+
+        <!-- Navigation Menu -->
+        <div class="sidebar__nav">
+            <button id="nav-chat-btn" class="sidebar__nav-item active" title="Trò chuyện với Trợ lý AI">
+                <i class="ph-bold ph-chat-circle-dots"></i>
+                <span>Trợ lý AI</span>
+            </button>
+            <button id="nav-templates-btn" class="sidebar__nav-item" title="Quản lý & Cấu hình mẫu báo cáo Excel">
+                <i class="ph-bold ph-microsoft-excel-logo"></i>
+                <span>Mẫu báo cáo Excel</span>
+            </button>
+        </div>
         
         <div class="sidebar__content">
+            <h3 class="sidebar__title-history">LỊCH SỬ HỘI THOẠI</h3>
             <div id="chat-history" class="chat-history">
                 <!-- Các mục lịch sử sẽ được render động ở đây -->
                 <div class="empty-state">Chưa có cuộc trò chuyện nào</div>
@@ -268,6 +281,10 @@
             </section>
         </div>
 
+        <!-- Template Manager Page -->
+        <div id="template-manager-page" class="template-manager-page hidden">
+            <!-- Rendered dynamically by TemplateManager.js -->
+        </div>
 
         <!-- Request Minimap Navigation -->
         <div id="chat-minimap" class="chat-minimap hidden"></div>
@@ -337,6 +354,30 @@
             </div>
         </div>
     </div>
+
+    <!-- Global Error Listener for Debugging -->
+    <script>
+        window.addEventListener('error', function(e) {
+            console.error('❌ Global JS Error:', e.error || e.message);
+            // Tạo một thông báo lỗi hiển thị trên màn hình nếu xảy ra lỗi nghiêm trọng
+            const errorDiv = document.createElement('div');
+            errorDiv.style.position = 'fixed';
+            errorDiv.style.bottom = '10px';
+            errorDiv.style.right = '10px';
+            errorDiv.style.background = '#ef4444';
+            errorDiv.style.color = '#fff';
+            errorDiv.style.padding = '10px 15px';
+            errorDiv.style.borderRadius = '8px';
+            errorDiv.style.zIndex = '9999';
+            errorDiv.style.fontSize = '12px';
+            errorDiv.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+            errorDiv.innerText = 'Lỗi JS: ' + e.message + ' (' + e.filename.split('/').pop() + ':' + e.lineno + ')';
+            document.body.appendChild(errorDiv);
+        });
+        window.addEventListener('unhandledrejection', function(e) {
+            console.error('❌ Global Promise Rejection:', e.reason);
+        });
+    </script>
 
     <!-- Entry Point -->
     <script type="module" src="assets/js/app.js"></script>

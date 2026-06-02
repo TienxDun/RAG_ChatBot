@@ -194,6 +194,9 @@ public class ExcelReportService
             dataTable = _templateFiller.ConvertJsonToDataTable(ragResponse.RawData, columnsKeys);
         }
 
+        // Sắp xếp DataTable theo ngày tăng dần (từ quá khứ tới gần nhất)
+        SortDataTableByDate(dataTable, templateInfo.Columns);
+
         // 5. Điền Metadata
         var metadataValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         if (ragResponse.Metadata != null)
@@ -231,7 +234,8 @@ public class ExcelReportService
 
         if (metadataValues.Count > 0)
         {
-            _templateFiller.FillMetadata(worksheet, templateInfo.HeaderRowIndex, metadataValues);
+            var templateMapping = _mappingService.GetTemplateMapping(fileName);
+            _templateFiller.FillMetadata(worksheet, templateInfo.HeaderRowIndex, metadataValues, templateMapping.MetadataCellMappings);
         }
 
         // 6. Điền dữ liệu bảng (tự chèn dòng và copy style nếu cần)
@@ -364,4 +368,76 @@ public class ExcelReportService
 
         return result;
     }
+
+    private static void SortDataTableByDate(DataTable dt, List<FlattenedColumn> columns)
+    {
+        if (dt == null || dt.Rows.Count <= 1) return;
+
+        var dateCol = columns.FirstOrDefault(c => 
+            c.UniqueKey.Equals("Ngay", StringComparison.OrdinalIgnoreCase) ||
+            c.UniqueKey.Equals("NgayDate", StringComparison.OrdinalIgnoreCase) ||
+            c.UniqueKey.Contains("Ngay", StringComparison.OrdinalIgnoreCase) ||
+            c.UniqueKey.Contains("Date", StringComparison.OrdinalIgnoreCase)
+        );
+
+        if (dateCol != null && dt.Columns.Contains(dateCol.UniqueKey))
+        {
+            try
+            {
+                // Tạo một cột tạm kiểu DateTime để sắp xếp chính xác
+                string tempColName = "_TempSortDateCol_" + Guid.NewGuid().ToString("N");
+                dt.Columns.Add(tempColName, typeof(DateTime));
+
+                foreach (DataRow row in dt.Rows)
+                {
+                    var val = row[dateCol.UniqueKey];
+                    if (val == null || val == DBNull.Value)
+                    {
+                        row[tempColName] = DateTime.MinValue;
+                    }
+                    else if (val is DateTime dtVal)
+                    {
+                        row[tempColName] = dtVal.Date;
+                    }
+                    else
+                    {
+                        string strVal = val.ToString() ?? "";
+                        if (DateTime.TryParseExact(strVal, new[] { "dd/MM/yyyy", "yyyy-MM-dd", "d/M/yyyy", "yyyy-M-d" }, 
+                            System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out DateTime parsedDate))
+                        {
+                            row[tempColName] = parsedDate;
+                        }
+                        else if (DateTime.TryParse(strVal, out DateTime parsedAny))
+                        {
+                            row[tempColName] = parsedAny;
+                        }
+                        else
+                        {
+                            row[tempColName] = DateTime.MinValue;
+                        }
+                    }
+                }
+
+                // Sắp xếp theo cột tạm thời
+                DataView dv = dt.DefaultView;
+                dv.Sort = $"{tempColName} ASC";
+                DataTable sortedTable = dv.ToTable();
+
+                // Nạp lại các dòng đã sắp xếp vào DataTable gốc
+                dt.Rows.Clear();
+                foreach (DataRow row in sortedTable.Rows)
+                {
+                    dt.ImportRow(row);
+                }
+
+                // Xóa cột tạm
+                dt.Columns.Remove(tempColName);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠️ Lỗi khi sort DataTable theo ngày: {ex.Message}");
+            }
+        }
+    }
 }
+

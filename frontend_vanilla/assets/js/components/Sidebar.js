@@ -10,6 +10,8 @@ export class SidebarComponent {
         this.closeBtn = document.querySelector(SELECTORS.CLOSE_SIDEBAR);
         this.appContainer = document.querySelector(SELECTORS.APP_CONTAINER);
         this.historyContainer = document.querySelector(SELECTORS.CHAT_HISTORY);
+        this.navChatBtn = document.getElementById('nav-chat-btn');
+        this.navTemplatesBtn = document.getElementById('nav-templates-btn');
         
         this.init();
     }
@@ -18,6 +20,23 @@ export class SidebarComponent {
         if (this.openBtn) this.openBtn.addEventListener('click', () => this.toggleSidebar());
         if (this.closeBtn) this.closeBtn.addEventListener('click', () => this.toggleSidebar());
         if (this.overlay) this.overlay.addEventListener('click', () => this.toggleSidebar());
+
+        // Chuyển trang điều hướng
+        if (this.navChatBtn) {
+            this.navChatBtn.addEventListener('click', () => {
+                state.activePage = 'chat';
+            });
+        }
+        if (this.navTemplatesBtn) {
+            this.navTemplatesBtn.addEventListener('click', () => {
+                state.activePage = 'templates';
+                // Đảm bảo vẽ layout ngay lập tức khi click chuyển tab
+                if (window.app && window.app.templateManager) {
+                    window.app.templateManager.renderLayout();
+                    window.app.templateManager.loadTemplatesList();
+                }
+            });
+        }
         
         const cleanBtn = document.getElementById('clean-storage');
         if (cleanBtn) cleanBtn.addEventListener('click', () => this.handleStorageCleanup());
@@ -70,7 +89,7 @@ export class SidebarComponent {
                 this.updateActiveHistoryItem(value);
             }
             if (key === 'isSidebarOpen') this.applySidebarState();
-
+            if (key === 'activePage') this.updateActivePageUI(value);
         });
 
         this.renderHistory();
@@ -277,5 +296,28 @@ export class SidebarComponent {
             return `<span class="history-date-day">${datePart}</span><span class="history-date-time">${timePart}</span>`;
         }
         return `<span class="history-date-day">${datePart}</span>`;
+    }
+
+    updateActivePageUI(activePage) {
+        if (!this.navChatBtn || !this.navTemplatesBtn) return;
+        
+        if (activePage === 'chat') {
+            this.navChatBtn.classList.add('active');
+            this.navTemplatesBtn.classList.remove('active');
+            
+            document.getElementById('chat-area')?.classList.remove('hidden');
+            document.getElementById('template-manager-page')?.classList.add('hidden');
+        } else if (activePage === 'templates') {
+            this.navTemplatesBtn.classList.add('active');
+            this.navChatBtn.classList.remove('active');
+            
+            document.getElementById('chat-area')?.classList.add('hidden');
+            document.getElementById('template-manager-page')?.classList.remove('hidden');
+        }
+
+        // Đóng sidebar khi click chuyển trang trên thiết bị di động
+        if (window.innerWidth <= 768) {
+            state.isSidebarOpen = false;
+        }
     }
 }

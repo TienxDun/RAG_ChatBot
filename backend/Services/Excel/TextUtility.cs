@@ -76,10 +76,11 @@ public class TextUtility : ITextUtility
 
     private static readonly Dictionary<string, string[]> _synonymGroups = new(StringComparer.OrdinalIgnoreCase)
     {
-        { "lsx", new[] { "plancode", "poid", "malenh", "so lenh", "solenh", "po", "lsx" } },
-        { "mahang", new[] { "style", "styleid", "stypeid", "mahang", "ma hang", "hang", "mã hàng", "style/ mã hàng", "mã hàng/ style" } },
-        { "chuyen", new[] { "line", "chuyen", "chuyenline", "linex", "chuyen/ line" } },
-        { "ngay", new[] { "date", "ngay", "createddate", "checkeddate" } }
+        { "lsx", new[] { "plancode", "poid", "malenh", "so lenh", "solenh", "po", "lsx", "tenlenhsx", "tenlenh", "malenhsx" } },
+        { "mahang", new[] { "style", "styleid", "stypeid", "mahang", "ma hang", "hang", "mã hàng", "style/ mã hàng", "mã hàng/ style", "tenlenh", "malenh" } },
+        { "chuyen", new[] { "line", "chuyen", "chuyenline", "linex", "chuyen/ line", "name", "tenchuyen", "ten chuyen" } },
+        { "ngay", new[] { "date", "ngay", "createddate", "checkeddate" } },
+        { "name", new[] { "name", "tenchuyen", "ten chuyen", "settinglinex", "tblsettinglinex" } }
     };
 
     public string? FindBestMetadataValue(Dictionary<string, string> metadata, string key)

@@ -322,6 +322,66 @@ public class ExcelTemplateAnalyzer : IExcelTemplateAnalyzer
             }
         }
 
+        // Bước 5: Phân tích cấu trúc lưới ô (Grid Layout) để phục vụ hiển thị UI
+        int maxRowsToReturn = Math.Min(totalRows, Math.Max(50, headerRowIndex + 5));
+        int maxColsToReturn = totalCols; // Hiển thị đầy đủ tất cả các cột trong template Excel trên UI Workspace
+
+        for (int r = 1; r <= maxRowsToReturn; r++)
+        {
+            var rowList = new List<ExcelCellDto>();
+            for (int c = 1; c <= maxColsToReturn; c++)
+            {
+                var address = ExcelCellBase.GetAddress(r, c);
+                rowList.Add(new ExcelCellDto
+                {
+                    Row = r,
+                    Col = c,
+                    Address = address,
+                    Value = worksheet.Cells[r, c].Text?.Trim() ?? string.Empty,
+                    IsBold = worksheet.Cells[r, c].Style.Font.Bold,
+                    IsMerged = false,
+                    RowSpan = 1,
+                    ColSpan = 1,
+                    IsMergedChild = false
+                });
+            }
+            result.Grid.Add(rowList);
+        }
+
+        // Xử lý thông tin ô gộp (Merged Cells) cho vùng Grid
+        if (worksheet.MergedCells != null)
+        {
+            foreach (var mergedAddress in worksheet.MergedCells)
+            {
+                var addr = new ExcelAddress(mergedAddress);
+                int mStartRow = addr.Start.Row;
+                int mStartCol = addr.Start.Column;
+                int mEndRow = addr.End.Row;
+                int mEndCol = addr.End.Column;
+
+                if (mStartRow <= maxRowsToReturn && mStartCol <= maxColsToReturn)
+                {
+                    var mainCell = result.Grid[mStartRow - 1][mStartCol - 1];
+                    mainCell.IsMerged = true;
+                    mainCell.MergedRange = mergedAddress;
+                    mainCell.RowSpan = Math.Min(mEndRow, maxRowsToReturn) - mStartRow + 1;
+                    mainCell.ColSpan = Math.Min(mEndCol, maxColsToReturn) - mStartCol + 1;
+
+                    for (int r = mStartRow; r <= Math.Min(mEndRow, maxRowsToReturn); r++)
+                    {
+                        for (int c = mStartCol; c <= Math.Min(mEndCol, maxColsToReturn); c++)
+                        {
+                            if (r == mStartRow && c == mStartCol) continue;
+                            
+                            var childCell = result.Grid[r - 1][c - 1];
+                            childCell.IsMergedChild = true;
+                            childCell.MergedRange = mergedAddress;
+                        }
+                    }
+                }
+            }
+        }
+
         return result;
     }
 }

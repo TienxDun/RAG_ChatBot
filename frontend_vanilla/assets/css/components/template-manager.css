@@ -1,0 +1,905 @@
+/* template-manager.css - CSS for Dedicated Excel Template Configuration Workspace */
+
+.template-manager-page {
+    display: flex;
+    flex-direction: column;
+    height: 100vh; /* Sử dụng 100vh kết hợp padding-top */
+    width: 100%;
+    padding-top: 5.5rem; /* Đẩy nội dung xuống dưới Fixed Header */
+    overflow: hidden;
+    animation: fadeIn 0.4s ease;
+}
+
+@media (max-width: 768px) {
+    .template-manager-page {
+        padding-top: 4.5rem; /* Trên di động, top header nhỏ hơn */
+    }
+}
+
+.template-manager-page.hidden {
+    display: none !important;
+}
+
+.template-manager-layout {
+    display: flex;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+}
+
+/* Left Panel: List & Upload */
+.template-list-panel {
+    width: 320px;
+    min-width: 320px;
+    border-right: 1px solid var(--glass-border);
+    display: flex;
+    flex-direction: column;
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+[data-theme="dark"] .template-list-panel {
+    background: rgba(15, 23, 42, 0.35);
+}
+
+.template-panel-header {
+    padding: 1.5rem 1.25rem 1rem 1.25rem;
+}
+
+.template-panel-header h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--foreground);
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.template-panel-header h3 i {
+    color: var(--primary);
+}
+
+.template-panel-header p {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+}
+
+/* Upload area inside left panel */
+.template-upload-area {
+    padding: 0 1.25rem 1rem 1.25rem;
+}
+
+.template-mini-dropzone {
+    border: 2px dashed color-mix(in srgb, var(--primary) 20%, var(--border));
+    background: rgba(255, 255, 255, 0.4);
+    border-radius: 12px;
+    padding: 1.25rem 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+[data-theme="dark"] .template-mini-dropzone {
+    background: rgba(30, 41, 59, 0.2);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.template-mini-dropzone:hover {
+    border-color: var(--primary);
+    background: rgba(124, 58, 237, 0.05);
+    transform: translateY(-2px);
+}
+
+.template-mini-dropzone i {
+    font-size: 2rem;
+    color: var(--primary);
+}
+
+.dropzone-text {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--foreground);
+}
+
+.dropzone-subtext {
+    font-size: 0.7rem;
+    color: var(--muted-foreground);
+}
+
+/* Scrollable template item list */
+.template-items-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.template-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    cursor: pointer;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.template-card:hover {
+    border-color: var(--primary);
+    transform: translateX(4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="dark"] .template-card {
+    border-color: rgba(255, 255, 255, 0.05);
+}
+
+.template-card.active {
+    border-color: var(--primary);
+    background: rgba(124, 58, 237, 0.06);
+}
+
+[data-theme="dark"] .template-card.active {
+    background: rgba(139, 92, 246, 0.1);
+    border-color: var(--primary);
+}
+
+.template-card.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--primary);
+}
+
+.template-card-icon {
+    font-size: 1.5rem;
+    color: #1d6f42; /* Excel Green */
+}
+
+.template-card-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.template-card-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--foreground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+    margin-bottom: 2px;
+}
+
+.template-card-size {
+    font-size: 0.72rem;
+    color: var(--muted-foreground);
+}
+
+.btn-delete-template-card {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: var(--muted-foreground);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-delete-template-card:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--destructive);
+    transform: scale(1.1);
+}
+
+/* Right Panel: Detail view */
+.template-detail-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--card);
+}
+
+.template-detail-empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    text-align: center;
+    color: var(--muted-foreground);
+}
+
+.template-detail-empty i {
+    font-size: 4rem;
+    color: var(--primary);
+    opacity: 0.25;
+    margin-bottom: 1.5rem;
+}
+
+.template-detail-empty h4 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--foreground);
+    margin-bottom: 0.5rem;
+}
+
+.template-detail-empty p {
+    font-size: 0.875rem;
+    max-width: 320px;
+    line-height: 1.5;
+}
+
+/* Selected Template Workspace */
+.template-workspace {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.template-workspace-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.template-workspace-info h2 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--foreground);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.template-workspace-info p {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+}
+
+/* Tab control bar */
+.template-tabs-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.5rem 1.5rem 0 1.5rem;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.template-tab-btn {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--muted-foreground);
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+}
+
+.template-tab-btn:hover {
+    color: var(--foreground);
+}
+
+.template-tab-btn.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+}
+
+/* Workspace content area */
+.template-workspace-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Không cuộn toàn bộ body để lưới excel tự giãn và cuộn bên trong */
+    padding: 1.5rem;
+    position: relative;
+}
+
+.template-tab-content {
+    display: none;
+    height: 100%;
+}
+
+.template-tab-content.active {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    height: 100%;
+}
+
+/* Column mapping styling */
+.column-mapping-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 720px;
+}
+
+.column-mapping-item {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    align-items: center;
+    gap: 20px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.column-label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.column-name {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--foreground);
+}
+
+.column-index-tag {
+    font-size: 0.7rem;
+    color: var(--muted-foreground);
+}
+
+.column-input-wrapper {
+    width: 100%;
+}
+
+.column-note-input {
+    width: 100%;
+    padding: 0.625rem 0.875rem;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--foreground);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color 0.2s ease;
+    resize: vertical;
+    min-height: 60px;
+    line-height: 1.4;
+    font-family: inherit;
+}
+
+.column-note-input:focus {
+    border-color: var(--primary);
+}
+
+/* spreadsheet visual grid mapping */
+.spreadsheet-grid-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--card);
+}
+
+.spreadsheet-grid-header {
+    background: color-mix(in srgb, var(--primary) 4%, var(--card));
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.grid-instructions {
+    font-size: 0.78rem;
+    color: var(--muted-foreground);
+}
+
+.grid-instructions span {
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.grid-scrollable-container {
+    flex: 1;
+    overflow: auto;
+    max-height: none; /* Bỏ giới hạn chiều cao 480px cũ để grid tự động mở rộng */
+    position: relative;
+    height: 100%;
+}
+
+/* Excel Style Table */
+.excel-table {
+    border-collapse: collapse;
+    font-family: var(--font-sans);
+    font-size: 0.825rem;
+    background: var(--card);
+    width: max-content;
+    min-width: 100%;
+    user-select: none;
+}
+
+.excel-table th, 
+.excel-table td {
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    min-width: 90px;
+    height: 32px;
+    text-align: left;
+    white-space: nowrap;
+    position: relative;
+    vertical-align: middle;
+}
+
+/* Row & Column Index Headers */
+.excel-table tr:first-child th {
+    background: color-mix(in srgb, var(--primary) 8%, var(--card));
+    color: var(--primary);
+    font-weight: 700;
+    text-align: center;
+    font-size: 0.75rem;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.excel-table td.row-num-header {
+    background: color-mix(in srgb, var(--primary) 8%, var(--card));
+    color: var(--primary);
+    font-weight: 700;
+    text-align: center;
+    font-size: 0.75rem;
+    min-width: 40px;
+    width: 40px;
+    position: sticky;
+    left: 0;
+    z-index: 5;
+}
+
+/* Table cells hover & selection styles */
+.excel-table tbody td:not(.row-num-header) {
+    cursor: cell;
+    transition: background-color 0.15s ease;
+}
+
+.excel-table tbody td:not(.row-num-header):hover {
+    background-color: rgba(124, 58, 237, 0.08);
+}
+
+.excel-table td.selected-cell {
+    outline: 2px solid var(--primary);
+    outline-offset: -2px;
+    background-color: rgba(124, 58, 237, 0.12) !important;
+}
+
+/* Cells that have metadata mapped */
+.excel-table td.mapped-cell {
+    background-color: rgba(6, 182, 212, 0.08) !important; /* Cyan-teal background */
+    border: 1px solid rgba(6, 182, 212, 0.3);
+}
+
+.excel-table td.mapped-cell:hover {
+    background-color: rgba(6, 182, 212, 0.15) !important;
+}
+
+/* Badge for mapped cell label */
+.mapped-badge {
+    position: absolute;
+    right: 4px;
+    top: 4px;
+    background: var(--accent);
+    color: white;
+    font-size: 0.625rem;
+    font-weight: 700;
+    padding: 1px 4px;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(6, 182, 212, 0.2);
+}
+
+/* Save Footer */
+.template-workspace-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 1.25rem 1.5rem;
+    border-top: 1px solid var(--border);
+    background: var(--card);
+}
+
+.btn-save-mapping {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.625rem 1.25rem;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    font-size: 0.85rem;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.15);
+}
+
+.btn-save-mapping:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(124, 58, 237, 0.25);
+}
+
+.btn-save-mapping:disabled {
+    background: var(--muted);
+    color: var(--muted-foreground);
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+/* Mapped variables overlay popover/editor */
+.cell-mapping-editor {
+    position: absolute;
+    background: var(--popover);
+    border: 1px solid var(--border);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+    border-radius: 12px;
+    padding: 12px;
+    z-index: 100;
+    width: 240px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    animation: slideUpFade 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-theme="dark"] .cell-mapping-editor {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.editor-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--muted-foreground);
+    text-transform: uppercase;
+}
+
+.cell-mapping-editor select,
+.cell-mapping-editor input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.8rem;
+    background: var(--card);
+    color: var(--foreground);
+    outline: none;
+}
+
+.cell-mapping-editor select:focus,
+.cell-mapping-editor input:focus {
+    border-color: var(--primary);
+}
+
+.editor-actions {
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+    margin-top: 4px;
+}
+
+.editor-btn {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid transparent;
+}
+
+.editor-btn-cancel {
+    background: transparent;
+    color: var(--muted-foreground);
+    border-color: var(--border);
+}
+
+.editor-btn-clear {
+    background: rgba(239, 68, 68, 0.08);
+    color: var(--destructive);
+    border-color: rgba(239, 68, 68, 0.15);
+}
+
+.editor-btn-apply {
+    background: var(--primary);
+    color: white;
+}
+
+/* Responsiveness */
+@media (max-width: 1024px) {
+    .template-manager-layout {
+        flex-direction: column;
+    }
+    
+    .template-list-panel {
+        width: 100%;
+        min-width: 100%;
+        height: 280px;
+        border-right: none;
+        border-bottom: 1px solid var(--glass-border);
+    }
+}
+
+/* Premium Column Mapping Table Styling */
+.column-mapping-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 10px; /* Tạo khoảng cách dọc giữa các hàng */
+    margin-top: 0.5rem;
+}
+
+.column-mapping-table th {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--muted-foreground);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+}
+
+.column-mapping-row {
+    background: var(--card);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.column-mapping-row:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+}
+
+[data-theme="dark"] .column-mapping-row:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.column-mapping-row td {
+    padding: 12px 16px;
+    vertical-align: middle;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background: var(--card);
+}
+
+/* Bo tròn góc cho hàng tr khi dùng border-spacing */
+.column-mapping-row td:first-child {
+    border-left: 1px solid var(--border);
+    border-top-left-radius: 10px;
+    border-bottom-left-radius: 10px;
+    font-weight: 600;
+}
+
+.column-mapping-row td:last-child {
+    border-right: 1px solid var(--border);
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+}
+
+.column-mapping-row:hover td {
+    border-color: color-mix(in srgb, var(--primary) 30%, var(--border)) !important;
+}
+
+[data-theme="dark"] .column-mapping-row:hover td {
+    border-color: color-mix(in srgb, var(--primary) 40%, rgba(255,255,255,0.06)) !important;
+}
+
+/* Badge for column position */
+.col-meta-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    background: rgba(124, 58, 237, 0.06);
+    color: var(--primary);
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    border: 1px solid rgba(124, 58, 237, 0.12);
+}
+
+[data-theme="dark"] .col-meta-badge {
+    background: rgba(139, 92, 246, 0.1);
+    color: #c084fc;
+    border-color: rgba(139, 92, 246, 0.2);
+}
+
+.col-excel-icon {
+    font-size: 1rem;
+    color: #1d6f42 !important;
+}
+
+/* Scrollbar styling for mapping column notes list */
+.column-mapping-scroll-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.column-mapping-scroll-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.column-mapping-scroll-container::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+}
+
+[data-theme="dark"] .column-mapping-scroll-container::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.column-mapping-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: var(--primary);
+}
+
+/* Premium AI Auto-Map Button Styling */
+.btn-auto-map {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: var(--radius-md, 8px);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+    
+    /* Đồng bộ tông màu chủ đạo hệ thống - Nền tím nhạt thanh lịch */
+    background: rgba(139, 92, 246, 0.07);
+    color: var(--primary);
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+[data-theme="dark"] .btn-auto-map {
+    background: rgba(139, 92, 246, 0.12);
+    color: #c084fc;
+    border-color: rgba(139, 92, 246, 0.25);
+}
+
+.btn-auto-map:hover {
+    background: var(--primary);
+    color: #ffffff;
+    border-color: var(--primary);
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.15);
+    transform: translateY(-1px);
+}
+
+[data-theme="dark"] .btn-auto-map:hover {
+    background: var(--primary);
+    color: #ffffff;
+    border-color: var(--primary);
+    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+}
+
+.btn-auto-map i {
+    font-size: 1rem;
+    color: var(--primary);
+    transition: all 0.2s ease;
+}
+
+[data-theme="dark"] .btn-auto-map i {
+    color: #c084fc;
+}
+
+.btn-auto-map:hover i {
+    color: #ffffff !important;
+    transform: scale(1.1) rotate(15deg);
+}
+
+.btn-auto-map:disabled {
+    background: var(--muted) !important;
+    color: var(--muted-foreground) !important;
+    border-color: var(--border) !important;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* AI Auto-Map Loading Overlay */
+.ai-loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    z-index: 100;
+    border-radius: var(--radius-lg, 12px);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.ai-loading-overlay.show {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+[data-theme="dark"] .ai-loading-overlay {
+    background: rgba(15, 23, 42, 0.75);
+}
+
+.ai-loading-spinner {
+    position: relative;
+    width: 60px;
+    height: 60px;
+}
+
+.ai-loading-spinner-circle {
+    width: 100%;
+    height: 100%;
+    border: 3px solid rgba(139, 92, 246, 0.1);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.ai-loading-spinner-inner {
+    position: absolute;
+    top: 15%;
+    left: 15%;
+    width: 70%;
+    height: 70%;
+    border: 3px solid rgba(236, 72, 153, 0.1);
+    border-bottom-color: #ec4899;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite reverse;
+}
+
+.ai-loading-text {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--foreground);
+    text-align: center;
+}
+
+.ai-loading-subtext {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    margin-top: 4px;
+    animation: pulse 1.5s infinite ease-in-out;
+}
+
+
