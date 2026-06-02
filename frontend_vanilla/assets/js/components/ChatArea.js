@@ -1002,6 +1002,7 @@ export class ChatAreaComponent {
         this.uiState.lastDownloadUrl = null;
         this.uiState.lastDownloadFileName = null;
         state.currentConversationId = null;
+        state.activePage = 'chat'; // Chuyển về tab chatbot khi tạo cuộc hội thoại mới
 
         // Cập nhật và ẩn Minimap (trở về Landing)
         this.minimap.update();

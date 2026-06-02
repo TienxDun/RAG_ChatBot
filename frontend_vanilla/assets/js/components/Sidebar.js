@@ -307,12 +307,22 @@ export class SidebarComponent {
             
             document.getElementById('chat-area')?.classList.remove('hidden');
             document.getElementById('template-manager-page')?.classList.add('hidden');
+            
+            // Khôi phục hiển thị của Minimap dựa trên trạng thái landing hiện tại của chat
+            const chatArea = document.getElementById('chat-area');
+            if (chatArea && window.app && window.app.chatArea && window.app.chatArea.minimap) {
+                const isLanding = chatArea.classList.contains('is-landing');
+                window.app.chatArea.minimap.toggleVisibility(isLanding);
+            }
         } else if (activePage === 'templates') {
             this.navTemplatesBtn.classList.add('active');
             this.navChatBtn.classList.remove('active');
             
             document.getElementById('chat-area')?.classList.add('hidden');
             document.getElementById('template-manager-page')?.classList.remove('hidden');
+            
+            // Ẩn Minimap khi chuyển sang tab templates
+            document.getElementById('chat-minimap')?.classList.add('hidden');
         }
 
         // Đóng sidebar khi click chuyển trang trên thiết bị di động

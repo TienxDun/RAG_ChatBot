@@ -206,17 +206,7 @@ public class ExcelReportService
                 metadataValues[kvp.Key] = kvp.Value;
             }
         }
-        if (ragResponse.Steps != null)
-        {
-            var sqlMetadata = ExtractMetadataFromSqlSteps(ragResponse.Steps);
-            foreach (var kvp in sqlMetadata)
-            {
-                if (!metadataValues.ContainsKey(kvp.Key))
-                {
-                    metadataValues[kvp.Key] = kvp.Value;
-                }
-            }
-        }
+
 
         // Tự động bổ sung metadata từ dòng đầu tiên của dữ liệu truy vấn thực tế (DataTable)
         if (ragResponse.RawDataTable != null && ragResponse.RawDataTable.Rows.Count > 0)
@@ -332,42 +322,7 @@ public class ExcelReportService
         return _staticTextUtility.MergeTemplateAnalysis(llm, ruleBased);
     }
 
-    private static Dictionary<string, string> ExtractMetadataFromSqlSteps(List<RagStep> steps)
-    {
-        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-        var patterns = new (string Key, string Pattern)[]
-        {
-            ("StyleID", @"StyleID\s*=\s*N?'([^']+)'"),
-            ("StypeId", @"StypeId\s*=\s*N?'([^']+)'"),
-            ("MaHang", @"MaHang\s*(?:=|LIKE)\s*N?'%?([^'%]+)%?'"),
-            ("LineX", @"LineX\s*=\s*N?'?([^'\s,)]+)'?"),
-            ("PlanCode", @"PlanCode\s*=\s*N?'?([^'\s,)]+)'?"),
-            ("PoId", @"PoId\s*=\s*N?'?([^'\s,)]+)'?"),
-            ("MaLenh", @"MaLenh\s*=\s*N?'?([^'\s,)]+)'?"),
-        };
-
-        foreach (var step in steps)
-        {
-            if (string.IsNullOrEmpty(step.Content)) continue;
-
-            var sqlMatch = Regex.Match(step.Content, @"```sql\s*([\s\S]*?)```");
-            if (!sqlMatch.Success) continue;
-            var sql = sqlMatch.Groups[1].Value;
-
-            foreach (var (key, pattern) in patterns)
-            {
-                if (result.ContainsKey(key)) continue;
-                var m = Regex.Match(sql, pattern, RegexOptions.IgnoreCase);
-                if (m.Success && !string.IsNullOrWhiteSpace(m.Groups[1].Value))
-                {
-                    result[key] = m.Groups[1].Value.Trim();
-                }
-            }
-        }
-
-        return result;
-    }
 
     private static void SortDataTableByDate(DataTable dt, List<FlattenedColumn> columns)
     {

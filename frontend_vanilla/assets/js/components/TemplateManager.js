@@ -702,15 +702,13 @@ export class TemplateManagerComponent {
         editor.className = 'cell-mapping-editor';
         
         editor.innerHTML = `
+            <button class="editor-close-btn" id="editor-btn-close" style="position: absolute; right: 8px; top: 8px; border: none; background: transparent; color: var(--muted-foreground); cursor: pointer; display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 4px; transition: all 0.2s;" onmouseover="this.style.background='rgba(0,0,0,0.05)';" onmouseout="this.style.background='transparent';">
+                <i class="ph-bold ph-x" style="font-size: 0.85rem;"></i>
+            </button>
             <span class="editor-label">Thiết lập ô: ${address}</span>
             <div style="display:flex; flex-direction:column; gap:6px;">
-                <label style="font-size:0.75rem; color:var(--muted-foreground);">Chọn biến metadata có sẵn:</label>
-                <select id="editor-select-var">
-                    <option value="">-- Chọn biến --</option>
-                    ${metadataOptions}
-                </select>
-                <label style="font-size:0.75rem; color:var(--muted-foreground); margin-top:4px;">Hoặc tự nhập biến tùy chỉnh:</label>
-                <input type="text" id="editor-input-custom-var" value="${currentMappedValue}" placeholder="Ví dụ: Chuyen, StyleID...">
+                <label style="font-size:0.75rem; color:var(--muted-foreground); margin-top:4px;">Nhập biến tùy chỉnh:</label>
+                <textarea id="editor-input-custom-var" rows="3" style="resize:vertical; font-family:inherit; padding:8px; border:1px solid var(--border); border-radius:6px; background:var(--background); color:var(--foreground); font-size:0.875rem;" placeholder="Ví dụ: Lấy thông tin Mã hàng và Style...">${currentMappedValue}</textarea>
             </div>
             <div class="editor-actions">
                 <button class="editor-btn editor-btn-cancel" id="editor-btn-cancel">Hủy</button>
@@ -753,17 +751,13 @@ export class TemplateManagerComponent {
             editor.style.top = `${rect.bottom + 6}px`;
         }
 
-        // Bắt sự kiện đồng bộ khi select biến có sẵn
-        const selectVar = document.getElementById('editor-select-var');
         const inputCustom = document.getElementById('editor-input-custom-var');
 
-        selectVar.addEventListener('change', () => {
-            if (selectVar.value) {
-                inputCustom.value = selectVar.value;
-            }
+        // Bắt sự kiện click các nút chức năng trong editor
+        document.getElementById('editor-btn-close').addEventListener('click', () => {
+            this.closeCellMappingEditor();
         });
 
-        // Bắt sự kiện click các nút chức năng trong editor
         document.getElementById('editor-btn-cancel').addEventListener('click', () => {
             this.closeCellMappingEditor();
         });

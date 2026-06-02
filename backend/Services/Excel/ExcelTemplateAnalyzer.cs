@@ -271,56 +271,8 @@ public class ExcelTemplateAnalyzer : IExcelTemplateAnalyzer
             result.FillableRowIndexes.Add(r);
         }
 
-        // Bước 4: Phân tích Metadata ở phía trên bảng tiêu đề (bỏ qua dòng tiêu đề cha đối với template phân cấp)
-        int maxMetadataRow = isHierarchical ? headerRowIndex - 2 : headerRowIndex - 1;
-        for (int r = 1; r <= maxMetadataRow; r++)
-        {
-            for (int c = 1; c <= totalCols; c++)
-            {
-                string val = worksheet.Cells[r, c].Text?.Trim() ?? "";
-                if (string.IsNullOrEmpty(val)) continue;
+        // Bước 4: Nhận diện tự động từ File Template Excel đã bị loại bỏ theo yêu cầu.
 
-                // Trường hợp 1: Nhãn và Giá trị nằm chung 1 ô cách nhau bởi dấu hai chấm (ví dụ: "Mã hàng: SA-893")
-                if (val.Contains(":"))
-                {
-                    int colonIndex = val.IndexOf(':');
-                    string key = val.Substring(0, colonIndex).Trim();
-                    string value = val.Substring(colonIndex + 1).Trim();
-                    if (!string.IsNullOrEmpty(key) && !string.IsNullOrEmpty(value))
-                    {
-                        string cleanKey = _textUtility.RemoveDiacritics(key);
-                        if (!IgnoredMetadataKeys.Contains(cleanKey) && !result.Metadata.ContainsKey(cleanKey))
-                        {
-                            result.Metadata[cleanKey] = value;
-                        }
-                    }
-                }
-                else
-                {
-                    // Trường hợp 2: Nhãn nằm ở ô này, Giá trị nằm ở ô bên phải liền kề
-                    if (c + 1 <= totalCols)
-                    {
-                        string nextVal = worksheet.Cells[r, c + 1].Text?.Trim() ?? "";
-                        if (!string.IsNullOrEmpty(nextVal) && 
-                            (val.Contains("mã", StringComparison.OrdinalIgnoreCase) || 
-                             val.Contains("chuyền", StringComparison.OrdinalIgnoreCase) || 
-                             val.Contains("style", StringComparison.OrdinalIgnoreCase) || 
-                             val.Contains("line", StringComparison.OrdinalIgnoreCase) ||
-                             val.Contains("ngày", StringComparison.OrdinalIgnoreCase) ||
-                             val.Contains("tên", StringComparison.OrdinalIgnoreCase) ||
-                             val.Contains("khách", StringComparison.OrdinalIgnoreCase) ||
-                             val.Contains("customer", StringComparison.OrdinalIgnoreCase)))
-                        {
-                            string cleanKey = _textUtility.RemoveDiacritics(val);
-                            if (!IgnoredMetadataKeys.Contains(cleanKey) && !result.Metadata.ContainsKey(cleanKey))
-                            {
-                                result.Metadata[cleanKey] = nextVal;
-                            }
-                        }
-                    }
-                }
-            }
-        }
 
         // Bước 5: Phân tích cấu trúc lưới ô (Grid Layout) để phục vụ hiển thị UI
         int maxRowsToReturn = Math.Min(totalRows, Math.Max(50, headerRowIndex + 5));
