@@ -1,5 +1,6 @@
 using Microsoft.Data.SqlClient;
 using Xunit.Abstractions;
+using Xunit;
 
 namespace backend.Tests;
 

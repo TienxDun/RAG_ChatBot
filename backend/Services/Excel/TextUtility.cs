@@ -162,18 +162,47 @@ public class TextUtility : ITextUtility
         return maxMatchScore > 0 ? bestMatchValue : null;
     }
 
+    private string NormalizeKeyForSoftMatching(string key)
+    {
+        if (string.IsNullOrEmpty(key)) return string.Empty;
+
+        // Bỏ dấu tiếng Việt, viết thường
+        string clean = RemoveDiacritics(key).ToLowerInvariant();
+
+        // Chuẩn hóa y -> i
+        clean = clean.Replace("y", "i");
+
+        // Loại bỏ các từ tiếng Anh (bilingual translations) thường thấy trong template
+        string[] englishWords = { "date", "finished", "defectrate", "defect", "quantity", "shell", "lining", "notes", "rate" };
+        foreach (var word in englishWords)
+        {
+            clean = clean.Replace(word, "");
+        }
+
+        // Loại bỏ ký tự đặc biệt, dấu gạch dưới, khoảng trắng để so khớp chuỗi trơn
+        clean = clean.Replace("_", "").Replace("-", "").Replace(" ", "");
+
+        return clean;
+    }
+
     public Dictionary<string, string> BuildSoftColumnMapping(DataTable source, List<FlattenedColumn> templateColumns)
     {
         var mapping = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var mappedColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var tc in templateColumns)
         {
+            // 1. So khớp chính xác sau khi làm sạch cơ bản (giữ nguyên logic cũ)
             string tcClean = RemoveDiacritics(tc.UniqueKey)
                 .Replace("_", "").Replace("-", "").Replace(" ", "")
                 .Replace("y", "i").Replace("Y", "i")
                 .ToLowerInvariant();
 
+            bool found = false;
             foreach (DataColumn dc in source.Columns)
             {
+                if (mappedColumns.Contains(dc.ColumnName)) continue;
+
                 string dcClean = RemoveDiacritics(dc.ColumnName)
                     .Replace("_", "").Replace("-", "").Replace(" ", "")
                     .Replace("y", "i").Replace("Y", "i")
@@ -182,12 +211,69 @@ public class TextUtility : ITextUtility
                 if (string.Equals(tcClean, dcClean, StringComparison.OrdinalIgnoreCase))
                 {
                     mapping[tc.UniqueKey] = dc.ColumnName;
+                    mappedColumns.Add(dc.ColumnName);
+                    found = true;
+                    break;
+                }
+            }
+
+            if (found) continue;
+
+            // 2. So khớp thông minh / relaxed bằng cách loại bỏ các từ tiếng Anh dịch song ngữ
+            string tcNorm = NormalizeKeyForSoftMatching(tc.UniqueKey);
+            foreach (DataColumn dc in source.Columns)
+            {
+                if (mappedColumns.Contains(dc.ColumnName)) continue;
+
+                string dcNorm = NormalizeKeyForSoftMatching(dc.ColumnName);
+                if (string.Equals(tcNorm, dcNorm, StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(tcNorm))
+                {
+                    mapping[tc.UniqueKey] = dc.ColumnName;
+                    mappedColumns.Add(dc.ColumnName);
+                    found = true;
+                    break;
+                }
+            }
+
+            if (found) continue;
+
+            // 3. So khớp chứa / substring cho các trường hợp đặc biệt (như NgayDate với NgayKiem, hoặc TyLeLoi)
+            foreach (DataColumn dc in source.Columns)
+            {
+                if (mappedColumns.Contains(dc.ColumnName)) continue;
+
+                string dcNorm = NormalizeKeyForSoftMatching(dc.ColumnName);
+                bool match = false;
+
+                // Trường hợp ngày tháng
+                if ((tcNorm.Contains("ngai") || tcNorm.Contains("date")) && (dcNorm.Contains("ngai") || dcNorm.Contains("date")))
+                {
+                    match = true;
+                }
+                // Trường hợp tỉ lệ lỗi
+                else if (tcNorm.Contains("tileloi") && (dcNorm.Contains("tileloi") || dcNorm.Contains("tile") || dcNorm.Contains("loi")))
+                {
+                    // Đảm bảo cùng phân khúc (ví dụ: cả hai cùng thuộc ThanhPham hoặc cả hai cùng thuộc Vo/Shell)
+                    string tcParent = NormalizeKeyForSoftMatching(tc.ParentHeader ?? "");
+                    string dcParent = NormalizeKeyForSoftMatching(dc.ColumnName); // Tên cột SQL có thể tự chứa tên cha (vd: ThanhPham_TyLeLoi)
+                    
+                    if (string.IsNullOrEmpty(tcParent) || dcParent.Contains(tcParent))
+                    {
+                        match = true;
+                    }
+                }
+
+                if (match)
+                {
+                    mapping[tc.UniqueKey] = dc.ColumnName;
+                    mappedColumns.Add(dc.ColumnName);
                     break;
                 }
             }
         }
         return mapping;
     }
+
 
     public TemplateAnalysisResult MergeTemplateAnalysis(TemplateAnalysisResult llm, TemplateAnalysisResult ruleBased)
     {
