@@ -854,16 +854,7 @@ export class ChatAreaComponent {
             return;
         }
 
-        // Ưu tiên 1: Nếu là bảng dọc (có nhãn và cột), xuất từ markdown để giữ giao diện dọc
-        const isVertical = this._checkIsVerticalTable(this.uiState.lastMarkdownText);
-        if (isVertical && this.uiState.lastMarkdownText) {
-            await ExportService.exportToExcel({ markdownText: this.uiState.lastMarkdownText }, this.elements.exportBtn, {
-                defaultLabel: '<i class="ph-bold ph-microsoft-excel-logo"></i>'
-            });
-            return;
-        }
-
-        // Ưu tiên 2: Nếu là bảng ngang thường, ưu tiên xuất từ rawData để đầy đủ dòng
+        // Ưu tiên 1: Nếu là bảng ngang thường, ưu tiên xuất từ rawData để đầy đủ dòng
         if (this.uiState.lastRawData) {
             let data = this.uiState.lastRawData;
             if (typeof data === 'string') {
@@ -879,6 +870,15 @@ export class ChatAreaComponent {
                 });
                 return;
             }
+        }
+
+        // Ưu tiên 2: Nếu là bảng dọc (có nhãn và cột), xuất từ markdown để giữ giao diện dọc (chỉ khi không có rawData)
+        const isVertical = this._checkIsVerticalTable(this.uiState.lastMarkdownText);
+        if (isVertical && this.uiState.lastMarkdownText) {
+            await ExportService.exportToExcel({ markdownText: this.uiState.lastMarkdownText }, this.elements.exportBtn, {
+                defaultLabel: '<i class="ph-bold ph-microsoft-excel-logo"></i>'
+            });
+            return;
         }
 
         // Fallback 3: nếu không có rawData, xuất từ markdown
@@ -897,16 +897,7 @@ export class ChatAreaComponent {
         const markdownText = messageEl?.getAttribute('data-markdown');
         const rawDataStr = messageEl?.getAttribute('data-raw');
 
-        // Ưu tiên 1: Nếu là bảng dọc (có nhãn và cột), xuất từ markdown để giữ giao diện dọc
-        const isVertical = this._checkIsVerticalTable(markdownText);
-        if (isVertical && markdownText) {
-            await ExportService.exportToExcel({ markdownText }, btn, {
-                defaultLabel: '<i class="ph-duotone ph-microsoft-excel-logo"></i> Xuất Excel'
-            });
-            return;
-        }
-
-        // Ưu tiên 2: Nếu là bảng ngang thường, ưu tiên xuất từ rawData để đầy đủ dòng
+        // Ưu tiên 1: Nếu là bảng ngang thường, ưu tiên xuất từ rawData để đầy đủ dòng
         if (rawDataStr) {
             try {
                 const data = JSON.parse(rawDataStr);
@@ -919,6 +910,15 @@ export class ChatAreaComponent {
             } catch (e) {
                 console.error('Failed to parse message rawData', e);
             }
+        }
+
+        // Ưu tiên 2: Nếu là bảng dọc (có nhãn và cột), xuất từ markdown để giữ giao diện dọc (chỉ khi không có rawData)
+        const isVertical = this._checkIsVerticalTable(markdownText);
+        if (isVertical && markdownText) {
+            await ExportService.exportToExcel({ markdownText }, btn, {
+                defaultLabel: '<i class="ph-duotone ph-microsoft-excel-logo"></i> Xuất Excel'
+            });
+            return;
         }
 
         // Fallback 3: nếu không có rawData, xuất từ markdown
