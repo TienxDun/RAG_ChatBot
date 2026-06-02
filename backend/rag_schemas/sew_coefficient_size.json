@@ -135,7 +135,7 @@
       "name": "CheckType",
       "type": "int",
       "role": "info",
-      "desc": "Loại kiểm tra."
+      "desc": "Phân loại bộ phận kiểm tra (0: Thành phẩm - Finished, 1: Vỏ - Shell, 2: Lót thường - Lining, 3: Lót lăn - Lining)."
     }
   ],
   "relationships": [
