@@ -136,87 +136,18 @@ public sealed class VertexAiClient
         }
 
         using var responseStream = await response.Content.ReadAsStreamAsync(ct);
-        using var reader = new StreamReader(responseStream, Encoding.UTF8);
 
-        var charBuffer = new char[4096];
-        var jsonAccumulator = new StringBuilder();
-        int braceCount = 0;
-        bool inString = false;
-        bool isEscaped = false;
-
-        while (true)
+        await foreach (var chunk in JsonSerializer.DeserializeAsyncEnumerable<VertexAiStreamChunk>(responseStream, _jsonOptions, ct))
         {
-            int readCount = await reader.ReadAsync(charBuffer, 0, charBuffer.Length);
-            if (readCount == 0) break;
-
-            for (int i = 0; i < readCount; i++)
+            if (chunk?.Candidates != null && chunk.Candidates.Count > 0)
             {
-                char c = charBuffer[i];
-                jsonAccumulator.Append(c);
-
-                if (c == '"' && !isEscaped)
+                var candidate = chunk.Candidates[0];
+                if (candidate.Content?.Parts != null && candidate.Content.Parts.Count > 0)
                 {
-                    inString = !inString;
-                }
-                
-                if (c == '\\' && inString)
-                {
-                    isEscaped = !isEscaped;
-                }
-                else
-                {
-                    isEscaped = false;
-                }
-
-                if (!inString)
-                {
-                    if (c == '{')
+                    var text = candidate.Content.Parts[0].Text;
+                    if (!string.IsNullOrEmpty(text))
                     {
-                        braceCount++;
-                    }
-                    else if (c == '}')
-                    {
-                        braceCount--;
-                        if (braceCount == 0 && jsonAccumulator.Length > 0)
-                        {
-                            var jsonObjectStr = jsonAccumulator.ToString().Trim();
-                            
-                            // Làm sạch các ký tự dư thừa như dấu phẩy hoặc ngoặc vuông ở đầu/cuối của chunk
-                            if (jsonObjectStr.StartsWith(",")) jsonObjectStr = jsonObjectStr.Substring(1).Trim();
-                            if (jsonObjectStr.StartsWith("[")) jsonObjectStr = jsonObjectStr.Substring(1).Trim();
-                            if (jsonObjectStr.EndsWith("]")) jsonObjectStr = jsonObjectStr.Substring(0, jsonObjectStr.Length - 1).Trim();
-                            
-                            string? extractedText = null;
-                            if (jsonObjectStr.StartsWith("{") && jsonObjectStr.EndsWith("}"))
-                            {
-                                try
-                                {
-                                    using var doc = JsonDocument.Parse(jsonObjectStr);
-                                    if (doc.RootElement.TryGetProperty("candidates", out var candidates) && candidates.GetArrayLength() > 0)
-                                    {
-                                        var candidate = candidates[0];
-                                        if (candidate.TryGetProperty("content", out var content) &&
-                                            content.TryGetProperty("parts", out var parts) &&
-                                            parts.GetArrayLength() > 0 &&
-                                            parts[0].TryGetProperty("text", out var textElement))
-                                        {
-                                            extractedText = textElement.GetString();
-                                        }
-                                    }
-                                }
-                                catch (Exception ex)
-                                {
-                                    Console.WriteLine($"⚠️ Failed to parse accumulated JSON chunk: {ex.Message}");
-                                }
-                            }
-
-                            if (!string.IsNullOrEmpty(extractedText))
-                            {
-                                yield return extractedText;
-                            }
-                            
-                            jsonAccumulator.Clear();
-                        }
+                        yield return text;
                     }
                 }
             }
@@ -379,5 +310,24 @@ public sealed class VertexAiClient
         return string.Empty;
     }
 
-    
+    // Các lớp định nghĩa cấu hình phản hồi stream từ Vertex AI
+    public sealed class VertexAiStreamChunk
+    {
+        public List<Candidate>? Candidates { get; set; }
+    }
+
+    public sealed class Candidate
+    {
+        public Content? Content { get; set; }
+    }
+
+    public sealed class Content
+    {
+        public List<Part>? Parts { get; set; }
+    }
+
+    public sealed class Part
+    {
+        public string? Text { get; set; }
+    }
 }
