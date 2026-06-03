@@ -4,7 +4,7 @@
       "ChuyenLine_Chuyen": "Tên chuyền sản xuất, lấy từ cột Name của bảng tbl_SettingLineX sau khi JOIN với QTY_InLineQC_ngaykiem qua ID chuyền (sử dụng cột Line, không sử dụng LineX).",
       "Cosmos_Ngaykiem": "Ngày thực hiện kiểm tra chất lượng, lấy từ cột NgayKiem của bảng QTY_InLineQC_ngaykiem (cần CAST sang DATE).",
       "Cosmos_SizeSL": "Lấy giá trị cột Size của bảng QTY_InLineQC_ngaykiem",
-      "Cosmos_Tinhtrang": "Nối các tên lỗi (TenLoi) không trùng nhau bằng dấu ' | ', lấy từ QTY_InLineQC_CHITIET kết hợp QTY_NHOMLOI_CHITIET (QTY_InLineQC_CHITIET.Code = QTY_NHOMLOI_CHITIET.MaLoi). Bắt buộc liên kết QTY_InLineQC_CHITIET với QTY_InLineQC_ngaykiem qua các cột: Line, LenhSX, Size, MocTgian, LanKiem và so khớp ngày kiểm bằng cách CAST(NgayKiem AS DATE).",
+      "Cosmos_Tinhtrang": "Nối các tên lỗi (TenLoi) không trùng bằng dấu ' | '. Yêu cầu dùng một câu truy vấn con (subquery) lọc các tên lỗi duy nhất (không trùng) của mỗi nhóm (cùng Line, LenhSX, Size, MocTgian, LanKiem và cùng ngày kiểm), chuyển tên lỗi sang chuỗi độ dài cực đại rồi mới nối.",
       "Cosmos_SizeSLloiSLkiem": "Định dạng: [Size]/[SL lỗi]/[SL kiểm] (ví dụ: L/2/20). Size lấy từ cột Size, SL lỗi là SoLuongLoi, SL kiểm là SoLuongKiem.",
       "Cosmos_Loi": "Tỷ lệ lỗi phần trăm: SoLuongLoi / SoLuongKiem * 100.",
       "Cosmos_NguyennhanXuly": "Cột NguyenNhan từ bảng QTY_InLineQC_ngaykiem",
