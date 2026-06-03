@@ -50,7 +50,7 @@ public class ExcelReportService
     }
 
     // Xử lý upload template Excel mẫu, chạy RAG query để lấy dữ liệu, điền vào template và xuất file
-    public async Task<ExcelReportResult> ProcessExcelTemplateAsync(Stream stream, string fileName, string additionalQuery, Func<RagStep, Task> onStep, CancellationToken ct)
+    public async Task<ExcelReportResult> ProcessExcelTemplateAsync(Stream stream, string fileName, string additionalQuery, Func<RagStep, Task> onStep, Func<string, Task> onFinalChunk, CancellationToken ct)
     {
         using var package = new ExcelPackage(stream);
         var worksheet = package.Workbook.Worksheets[0];
@@ -160,7 +160,7 @@ public class ExcelReportService
             combinedQuery,
             null,
             onStep,
-            _ => Task.CompletedTask,
+            onFinalChunk,
             ct,
             isExcelTemplate: true);
 

@@ -49,6 +49,9 @@ public static class ChatEndpoints
                 var result = await excelService.ProcessExcelTemplateAsync(stream, parameters.File.FileName, parameters.Message, async (step) => 
                 {
                     await SendEventAsync(new { type = "step", step });
+                }, async (chunk) => 
+                {
+                    await SendEventAsync(new { type = "chunk", text = chunk });
                 }, ct);
 
                 var fileId = Guid.NewGuid().ToString() + ".xlsx";

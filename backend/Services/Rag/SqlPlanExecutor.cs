@@ -151,7 +151,7 @@ public class SqlPlanExecutor : ISqlPlanExecutor
                     var stepJson = JsonSerializer.Serialize(rows, new JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
 
                     result.LastStepJson = stepJson;
-                    workingContextBuilder.AppendLine($"\n--- [Kết quả {stepTitle}: {currentStepDesc}] ---\n{GetCompactContext(stepJson)}");
+                    workingContextBuilder.AppendLine($"\n--- [Kết quả {stepTitle}: {currentStepDesc}] ---\n{GetCompactContext(rows)}");
 
                     // Logic rút gọn hiển thị kết quả SQL trên UI để tối ưu hiệu năng
                     const int maxRowsForUi = 10;
@@ -245,7 +245,7 @@ public class SqlPlanExecutor : ISqlPlanExecutor
             var stepJson = JsonSerializer.Serialize(rows, new JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
             
             result.LastStepJson = stepJson;
-            workingContextBuilder.AppendLine($"\n--- [Kết quả {stepTitle}: SQL trực tiếp] ---\n{GetCompactContext(stepJson)}");
+            workingContextBuilder.AppendLine($"\n--- [Kết quả {stepTitle}: SQL trực tiếp] ---\n{GetCompactContext(rows)}");
 
             // Logic rút gọn hiển thị kết quả SQL trên UI để tối ưu hiệu năng
             const int maxRowsForUi = 10;
@@ -279,33 +279,30 @@ public class SqlPlanExecutor : ISqlPlanExecutor
         return result;
     }
 
-    private string GetCompactContext(string json, int threshold = 50)
+    private string GetCompactContext(List<Dictionary<string, object>> rows, int threshold = 50)
     {
-        try
+        if (rows == null || rows.Count == 0) return "[]";
+
+        var serializeOptions = new JsonSerializerOptions
         {
-            using var doc = JsonDocument.Parse(json);
-            if (doc.RootElement.ValueKind != JsonValueKind.Array) return json;
+            WriteIndented = true,
+            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        };
 
-            var array = doc.RootElement.EnumerateArray().ToList();
-            if (array.Count == 0) return "[]";
-
-            if (array.Count <= threshold) return json;
-
-            var sample = array.Take(5).ToList();
-
-            var summary = new
-            {
-                TotalRows = array.Count,
-                SampleData = sample,
-                WarningRules = "DỮ LIỆU ĐÃ BỊ THU GỌN! Tập dữ liệu 'SampleData' phía trên CHỈ là 5 dòng mẫu đại diện để bạn hiểu cấu trúc cột và kiểu dữ liệu. Tuyệt đối KHÔNG sử dụng tập mẫu này để tự tính toán (Min, Max, Sum, Avg, Group) hoặc tạo câu lệnh SQL giả lập bằng UNION ALL. Nếu câu hỏi yêu cầu phân tích tổng hợp trên toàn bộ dữ liệu, bạn BẮT BUỘC phải sinh câu lệnh SQL truy vấn trực tiếp từ bảng gốc trong cơ sở dữ liệu."
-            };
-
-            return JsonSerializer.Serialize(summary, new JsonSerializerOptions
-            {
-                WriteIndented = true,
-                Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-            });
+        if (rows.Count <= threshold)
+        {
+            return JsonSerializer.Serialize(rows, serializeOptions);
         }
-        catch { return json; }
+
+        var sample = rows.Take(5).ToList();
+
+        var summary = new
+        {
+            TotalRows = rows.Count,
+            SampleData = sample,
+            WarningRules = "DỮ LIỆU ĐÃ BỊ THU GỌN! Tập dữ liệu 'SampleData' phía trên CHỈ là 5 dòng mẫu đại diện để bạn hiểu cấu trúc cột và kiểu dữ liệu. Tuyệt đối KHÔNG sử dụng tập mẫu này để tự tính toán (Min, Max, Sum, Avg, Group) hoặc tạo câu lệnh SQL giả lập bằng UNION ALL. Nếu câu hỏi yêu cầu phân tích tổng hợp trên toàn bộ dữ liệu, bạn BẮT BUỘC phải sinh câu lệnh SQL truy vấn trực tiếp từ bảng gốc trong cơ sở dữ liệu."
+        };
+
+        return JsonSerializer.Serialize(summary, serializeOptions);
     }
 }

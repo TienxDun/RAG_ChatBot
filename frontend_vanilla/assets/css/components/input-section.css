@@ -96,7 +96,7 @@
     gap: 0.5rem;
     transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 10px 40px rgba(124, 58, 237, 0.1);
-    cursor: text; /* Đảm bảo hiện trỏ chuột dạng nhập liệu khi di chuyển vào vùng này */
+    cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'><path d='M5 2h6v2H9v8h2v2H5v-2h2V4H5V2z' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linejoin='round'/><path d='M5 2h6v2H9v8h2v2H5v-2h2V4H5V2z' fill='%231E1B4B'/></svg>") 8 8, text; /* Đảm bảo hiện trỏ chuột dạng nhập liệu khi di chuyển vào vùng này */
 }
 
 .input-container:hover {
@@ -193,6 +193,7 @@ textarea {
     line-height: 1.5;
     overflow-y: hidden; 
     caret-color: var(--primary); /* Ép vạch nhấp nháy có màu tím để không bị trùng màu nền trắng/glass */
+    cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'><path d='M5 2h6v2H9v8h2v2H5v-2h2V4H5V2z' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linejoin='round'/><path d='M5 2h6v2H9v8h2v2H5v-2h2V4H5V2z' fill='%231E1B4B'/></svg>") 8 8, text;
 }
 
 textarea::placeholder {
