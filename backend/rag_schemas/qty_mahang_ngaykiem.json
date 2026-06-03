@@ -56,9 +56,23 @@
     {
       "id": "T_QTY_NK_008",
       "severity": "CRITICAL",
-      "rule": "KHI LỌC THEO MÃ LỆNH (TenLenh): Cột StyleID trong bảng này đã chứa trực tiếp giá trị TenLenh (ví dụ: '0088_521_04_V0_0'). TUYỆT ĐỐI KHÔNG JOIN ERP_LENHSX chỉ để lọc theo TenLenh — lọc thẳng trên cột StyleID. Tương tự, SEW_CoefficientSize.StyleId cũng chứa sẵn TenLenh, không cần JOIN. JOIN ERP_LENHSX chỉ cần thiết khi câu hỏi yêu cầu lấy thông tin từ ERP_LENHSX (ngày, khách hàng, trạng thái...) hoặc phải đi tiếp sang DIC_KHACHHANG.",
+      "rule": "KHI LỌC THEO TÊN LỆNH / STYLE (TenLenh): Cột StyleID trong bảng này đã chứa trực tiếp giá trị TenLenh (ví dụ: '0088_521_04_V0_0'). TUYỆT ĐỐI KHÔNG JOIN ERP_LENHSX chỉ để lọc theo TenLenh — lọc thẳng trên cột StyleID. Tương tự, SEW_CoefficientSize.StyleId cũng chứa sẵn TenLenh, không cần JOIN. JOIN ERP_LENHSX chỉ cần thiết khi câu hỏi yêu cầu lấy thông tin từ ERP_LENHSX (ngày, khách hàng, trạng thái...) hoặc phải đi tiếp sang DIC_KHACHHANG.",
       "correct_example": "SELECT q.LineX, SUM(ISNULL(q.SpLoi, 0)) AS TongLoi FROM QTY_MAHANG_NGAYKIEM q WHERE q.StyleID = '0088_521_04_V0_0' AND q.LineX IN ('101', '102') GROUP BY q.LineX",
       "wrong_example": "SELECT q.LineX, SUM(ISNULL(q.SpLoi, 0)) AS TongLoi FROM QTY_MAHANG_NGAYKIEM q JOIN ERP_LENHSX e ON q.PlanCode = e.MaLenh WHERE e.TenLenh = '0088_521_04_V0_0' AND q.LineX IN ('101', '102') GROUP BY q.LineX"
+    },
+    {
+      "id": "T_QTY_NK_009",
+      "severity": "CRITICAL",
+      "rule": "Khi câu hỏi yêu cầu lọc hoặc thống kê theo Lệnh sản xuất (PlanCode) kết hợp sản lượng từ bảng SEW_CoefficientSize (PoId): Bắt buộc JOIN qua PlanCode và PoId (sc.PoId = q.PlanCode) bằng cách thực hiện GROUP BY trên từng bảng trong subquery/CTE trước khi JOIN để tránh nhân đôi dữ liệu. Bạn thực hiện so khớp trực tiếp hai cột này (sc.PoId = q.PlanCode) mà không cần ép kiểu.",
+      "correct_example": "WITH loi AS (SELECT PlanCode, LineX, SUM(ISNULL(SpLoi, 0)) AS TongLoi FROM QTY_MAHANG_NGAYKIEM GROUP BY PlanCode, LineX), dat AS (SELECT PoId, LineX, SUM(ISNULL(Quantity, 0) + ISNULL(SuaDat, 0)) AS TongDat FROM SEW_CoefficientSize GROUP BY PoId, LineX) SELECT l.LineX, l.PlanCode, l.TongLoi, d.TongDat FROM loi l JOIN dat d ON l.PlanCode = d.PoId AND l.LineX = d.LineX",
+      "wrong_example": "SELECT q.PlanCode, SUM(q.SpLoi), SUM(s.Quantity) FROM QTY_MAHANG_NGAYKIEM q JOIN SEW_CoefficientSize s ON q.PlanCode = s.PoId GROUP BY q.PlanCode"
+    },
+    {
+      "id": "T_QTY_NK_010",
+      "severity": "CRITICAL",
+      "rule": "BẮT BUỘC SELECT METADATA KHI XUẤT BÁO CÁO EXCEL VÀ CHỐNG NHÂN BẢN (FAN-OUT): Khi sinh SQL cho báo cáo Excel template BCEndlineNgay (lọc theo PlanCode/PoId), bạn BẮT BUỘC phải SELECT thêm các cột metadata chung ở câu lệnh SELECT ngoài cùng: (1) MAX(m.[Tên chuyền]) AS [Tên chuyền] (để điền vào ô F5) và (2) MAX(m.[PlanCode -- MH: MaHang]) AS [PlanCode -- MH: MaHang] (để điền vào ô C5). TUYỆT ĐỐI CẤM LEFT JOIN trực tiếp với bảng raw `QTY_MAHANG_NGAYKIEM` ở ngoài cùng của câu query có GROUP BY chỉ để lấy metadata vì sẽ gây ra lỗi nhân bản chéo dữ liệu (fan-out). BẮT BUỘC sử dụng một CTE riêng biệt giới hạn 1 dòng (dùng TOP 1) để lấy metadata, sau đó dùng `CROSS JOIN` ở câu lệnh SELECT ngoài cùng.",
+      "correct_example": "WITH loi AS (...), dat AS (...), Metadata AS (SELECT TOP 1 l.Name AS [Tên chuyền], CONCAT(q.PlanCode, ' -- MH: ', q.MaHang) AS [PlanCode -- MH: MaHang] FROM QTY_MAHANG_NGAYKIEM q JOIN tbl_SettingLineX l ON q.LineX = l.ID WHERE q.PlanCode = 332) SELECT f.Ngay AS [NgayDate], SUM(...) AS ..., MAX(m.[Tên chuyền]) AS [Tên chuyền], MAX(m.[PlanCode -- MH: MaHang]) AS [PlanCode -- MH: MaHang] FROM FinalData f CROSS JOIN Metadata m GROUP BY f.Ngay",
+      "wrong_example": "SELECT Ngay AS [NgayDate], SUM(...) AS ... FROM FinalData nt LEFT JOIN QTY_MAHANG_NGAYKIEM q ON q.PlanCode = 332 GROUP BY Ngay -- SAI: Gây nhân bản dữ liệu (fan-out) và thiếu [Tên chuyền] ở câu SELECT ngoài cùng"
     }
   ],
   "columns": [

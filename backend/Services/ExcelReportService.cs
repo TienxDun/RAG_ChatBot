@@ -58,6 +58,22 @@ public class ExcelReportService
         // 1. Phân tích cấu trúc Template thông minh
         var templateInfo = _templateAnalyzer.AnalyzeTemplate(worksheet);
 
+        // Nạp các cấu hình metadata từ MetadataCellMappings của file mapping vào templateInfo.Metadata
+        var templateMapping = _mappingService.GetTemplateMapping(fileName);
+        if (templateMapping.MetadataCellMappings != null && templateMapping.MetadataCellMappings.Count > 0)
+        {
+            foreach (var kvp in templateMapping.MetadataCellMappings)
+            {
+                bool keyIsCellAddress = Regex.IsMatch(kvp.Key.Trim(), @"^[A-Za-z]{1,3}\d{1,7}$");
+                string semanticKey = keyIsCellAddress ? kvp.Value : kvp.Key;
+                if (!string.IsNullOrWhiteSpace(semanticKey) && !templateInfo.Metadata.ContainsKey(semanticKey))
+                {
+                    templateInfo.Metadata[semanticKey] = keyIsCellAddress ? kvp.Key : kvp.Value;
+                }
+            }
+        }
+
+
         var serializeOptions = new JsonSerializerOptions
         {
             WriteIndented = true,
@@ -224,7 +240,6 @@ public class ExcelReportService
 
         if (metadataValues.Count > 0)
         {
-            var templateMapping = _mappingService.GetTemplateMapping(fileName);
             _templateFiller.FillMetadata(worksheet, templateInfo.HeaderRowIndex, metadataValues, templateMapping.MetadataCellMappings);
         }
 

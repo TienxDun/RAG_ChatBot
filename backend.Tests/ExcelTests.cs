@@ -192,8 +192,8 @@ public class ExcelTests
         Assert.Equal(10d, Convert.ToDouble(worksheet.Cells[9, 2].Value));
         Assert.Equal(new DateTime(2026, 5, 28), worksheet.Cells[10, 1].GetValue<DateTime>().Date);
         Assert.Equal(15d, Convert.ToDouble(worksheet.Cells[10, 2].Value));
-        Assert.Null(worksheet.Cells[11, 1].Value);
-        Assert.Equal("SUM(B9:B11)", worksheet.Cells[12, 2].Formula);
+        Assert.Equal("Tổng", worksheet.Cells[11, 1].Value);
+        Assert.Equal("SUM(B9:B10)", worksheet.Cells[11, 2].Formula);
     }
 
     [Fact]
@@ -281,7 +281,8 @@ public class ExcelTests
         Assert.Equal(new DateTime(2026, 5, 4), worksheet.Cells[10, 1].GetValue<DateTime>().Date);
         Assert.Equal(188d, Convert.ToDouble(worksheet.Cells[10, 2].Value));
         Assert.Equal(177d, Convert.ToDouble(worksheet.Cells[10, 3].Value));
-        Assert.Null(worksheet.Cells[11, 1].Value);
+        Assert.Equal("Tổng", worksheet.Cells[11, 1].Value);
+        Assert.Equal("SUM(B9:B10)", worksheet.Cells[11, 2].Formula);
     }
 
     [Fact]

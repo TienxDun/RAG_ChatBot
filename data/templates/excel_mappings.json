@@ -5,14 +5,27 @@
   },
   "BCEndlineNgay (22)_Empty.xlsx": {
     "ColumnMappings": {
-      "ThanhPhamFinished_GhichuNotes": "",
-      "VoShell_GhichuNotes": "",
-      "LotthuongLining_GhichuNotes": "",
-      "LotlanLining_GhichuNotes": ""
+      "ThanhPhamFinished_GhichuNotes": "Ghi chú kiểm tra thành phẩm. Bắt buộc lấy danh sách tên lỗi duy nhất (TenLoi) bằng cách JOIN QTY_MaHang_KiemQC_ChiTiet với QTY_NHOMLOI_CHITIET (qua Code = MaLoi) với CheckType = 0. Viết một CTE trung gian gom nhóm để lấy TenLoi duy nhất trước, sau đó sử dụng STRING_AGG(TenLoi, ' | ') để nối các tên lỗi phân tách bằng ' | '.",
+      "VoShell_GhichuNotes": "Ghi chú kiểm tra phần vỏ. Bắt buộc lấy danh sách tên lỗi duy nhất (TenLoi) bằng cách JOIN QTY_MaHang_KiemQC_ChiTiet với QTY_NHOMLOI_CHITIET (qua Code = MaLoi) với CheckType = 1. Viết một CTE trung gian gom nhóm để lấy TenLoi duy nhất trước, sau đó sử dụng STRING_AGG(TenLoi, ' | ') để nối các tên lỗi phân tách bằng ' | '.",
+      "LotthuongLining_GhichuNotes": "Ghi chú kiểm tra lót thường. Bắt buộc lấy danh sách tên lỗi duy nhất (TenLoi) bằng cách JOIN QTY_MaHang_KiemQC_ChiTiet với QTY_NHOMLOI_CHITIET (qua Code = MaLoi) với CheckType = 2. Viết một CTE trung gian gom nhóm để lấy TenLoi duy nhất trước, sau đó sử dụng STRING_AGG(TenLoi, ' | ') để nối các tên lỗi phân tách bằng ' | '.",
+      "LotlanLining_GhichuNotes": "Ghi chú kiểm tra lót lăn. Bắt buộc lấy danh sách tên lỗi duy nhất (TenLoi) bằng cách JOIN QTY_MaHang_KiemQC_ChiTiet với QTY_NHOMLOI_CHITIET (qua Code = MaLoi) với CheckType = 3. Viết một CTE trung gian gom nhóm để lấy TenLoi duy nhất trước, sau đó sử dụng STRING_AGG(TenLoi, ' | ') để nối các tên lỗi phân tách bằng ' | '.",
+      "ThanhPhamFinished_SLkiemQuantity": "Số lượng sản phẩm thành phẩm đã kiểm tra, lấy từ bảng SEW_CoefficientSize (cột Quantity + SuaDat) với điều kiện CheckType = 0, không dùng cột SLKiem của bảng QTY_MAHANG_NGAYKIEM.",
+      "NgayDate": "Ngày thực hiện kiểm tra chất lượng, lấy từ cột NgayKiem của bảng QTY_MAHANG_NGAYKIEM, cần CAST sang kiểu DATE khi lọc.",
+      "ThanhPhamFinished_SLloiDefect": "Số lượng sản phẩm thành phẩm bị lỗi, lấy từ cột SpLoi của bảng QTY_MAHANG_NGAYKIEM với điều kiện CheckType = 0.",
+      "ThanhPhamFinished_TileloiDefectrate": "Tỉ lệ lỗi thành phẩm, tính bằng SUM(SpLoi) / (SUM(SpLoi) +SUM(Quantity + SuaDat)) * 100, sử dụng CTE riêng biệt cho lỗi (QTY_MAHANG_NGAYKIEM) và sản lượng (SEW_CoefficientSize) với CheckType = 0.",
+      "VoShell_SLkiemQuantity": "Số lượng sản phẩm phần vỏ đã kiểm tra, lấy từ bảng SEW_CoefficientSize (cột Quantity + SuaDat) với điều kiện CheckType = 1.",
+      "VoShell_SLloiDefect": "Số lượng sản phẩm phần vỏ bị lỗi, lấy từ cột SpLoi của bảng QTY_MAHANG_NGAYKIEM với điều kiện CheckType = 1.",
+      "VoShell_TileloiDefectrate": "Tỉ lệ lỗi phần vỏ, tính bằng SUM(SpLoi) /(SUM(SpLoi) + SUM(Quantity + SuaDat)) * 100, sử dụng CTE riêng biệt cho lỗi (QTY_MAHANG_NGAYKIEM) và sản lượng (SEW_CoefficientSize) với CheckType = 1.",
+      "LotthuongLining_SLkiemQuantity": "Số lượng sản phẩm lót thường đã kiểm tra, lấy từ bảng SEW_CoefficientSize (cột Quantity + SuaDat) với điều kiện CheckType = 2.",
+      "LotthuongLining_SLloiDefect": "Số lượng sản phẩm lót thường bị lỗi, lấy từ cột SpLoi của bảng QTY_MAHANG_NGAYKIEM với điều kiện CheckType = 2.",
+      "LotthuongLining_TileloiDefectrate": "Tỉ lệ lỗi lót thường, tính bằng SUM(SpLoi) / SUM(SpLoi) +SUM(Quantity + SuaDat)) * 100, sử dụng CTE riêng biệt cho lỗi (QTY_MAHANG_NGAYKIEM) và sản lượng (SEW_CoefficientSize) với CheckType = 2.",
+      "LotlanLining_SLkiemQuantity": "Số lượng sản phẩm lót lăn đã kiểm tra, lấy từ bảng SEW_CoefficientSize (cột Quantity + SuaDat) với điều kiện CheckType = 3.",
+      "LotlanLining_SLloiDefect": "Số lượng sản phẩm lót lăn bị lỗi, lấy từ cột SpLoi của bảng QTY_MAHANG_NGAYKIEM với điều kiện CheckType = 3.",
+      "LotlanLining_TileloiDefectrate": "Tỉ lệ lỗi lót lăn, tính bằng SUM(SpLoi) / SUM(SpLoi) +SUM(Quantity + SuaDat)) * 100, sử dụng CTE riêng biệt cho lỗi (QTY_MAHANG_NGAYKIEM) và sản lượng (SEW_CoefficientSize) với CheckType = 3."
     },
     "MetadataCellMappings": {
-      "F5": "lấy thông tin của cột Name của bảng tbl_settingLineX",
-      "C5": "Lấy thông tin Mã hàng và Style"
+      "F5": "Tên chuyền",
+      "C5": "PlanCode -- MH: MaHang"
     }
   }
 }

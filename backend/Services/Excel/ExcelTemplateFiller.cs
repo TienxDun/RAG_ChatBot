@@ -387,6 +387,14 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
             {
                 WriteRowData(worksheet, data.Rows[i], targetRows[i], mappings);
             }
+
+            // Xóa các dòng trống dư thừa nếu số dòng dữ liệu thực tế ít hơn số dòng trong template
+            if (dataRowsCount < availableRowsCount)
+            {
+                int startDeleteRow = targetRows[dataRowsCount];
+                int rowsToDelete = availableRowsCount - dataRowsCount;
+                worksheet.DeleteRow(startDeleteRow, rowsToDelete);
+            }
         }
         else
         {
