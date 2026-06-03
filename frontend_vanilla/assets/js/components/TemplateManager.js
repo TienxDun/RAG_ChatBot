@@ -7,7 +7,6 @@ import { Toast } from './Toast.js';
 export class TemplateManagerComponent {
     constructor() {
         this.container = document.getElementById('template-manager-page');
-        console.log('🔍 TemplateManager constructor: container is', this.container);
         this.templates = [];
         this.selectedTemplate = null;
         this.selectedTemplateData = null; // Chứa dữ liệu phân tích chi tiết (columns, grid, metadata, mappings)
@@ -22,16 +21,12 @@ export class TemplateManagerComponent {
     }
 
     init() {
-        console.log('🔍 TemplateManager init called');
         // Lắng nghe sự thay đổi của activePage trong State
         state.subscribe((key, value) => {
-            console.log(`🔍 TemplateManager state listener: key=${key}, value=${value}`);
-            if (key === 'activePage') {
-                if (value === 'templates') {
-                    console.log('🔍 TemplateManager: activePage is templates, rendering layout...');
-                    this.renderLayout();
-                    this.loadTemplatesList();
-                }
+            if (key === 'activePage' && value === 'templates') {
+                console.log('🔍 TemplateManager: Navigating to templates page...');
+                this.renderLayout();
+                this.loadTemplatesList();
             }
         });
     }
@@ -40,17 +35,13 @@ export class TemplateManagerComponent {
      * Render cấu trúc Layout Split-View chính của trang Template Manager
      */
     renderLayout() {
-        console.log('🔍 TemplateManager renderLayout called. container innerHTML length:', this.container ? this.container.innerHTML.length : 'N/A');
         if (!this.container) {
             console.error('❌ TemplateManager: container is null!');
             return;
         }
         if (this.container.querySelector('.template-manager-layout')) {
-            console.log('🔍 TemplateManager: layout already rendered, skipping.');
             return; 
         }
-
-        console.log('🔍 TemplateManager: writing innerHTML to container...');
         this.container.innerHTML = `
             <div class="template-manager-layout">
                 <!-- Panel bên trái: Danh sách file & Kéo thả tải lên -->
