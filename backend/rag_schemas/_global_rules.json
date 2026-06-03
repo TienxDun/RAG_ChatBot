@@ -186,6 +186,46 @@
       "rule": "CẢNH BÁO NHẦM LẪN TÊN CỘT GIỮA CÁC BẢNG: Cột `SLLoi` CHỈ tồn tại trong bảng `QTY_KiemQA_CHITIET` (bảng kiểm QA final). TUYỆT ĐỐI CẤM sử dụng tên cột `SLLoi` khi truy vấn bảng `QTY_MAHANG_NGAYKIEM` — cột lỗi đúng trong bảng này là `SpLoi`. Tương tự, `SoLuongLoi` chỉ có trong bảng `QTY_InLineQC_NgayKiem` và `QTY_KiemQA_NgayKiem`. Bảng `QTY_MAHANG_NGAYKIEM` KHÔNG có cột `SLLoi`, `SoLuongLoi`, `SoLuongKiem`, `KetQua` hay `SoLuongKCS` — tất cả đều không tồn tại và sẽ gây lỗi 'Invalid column name'. Khi cần đếm lỗi từ `QTY_MAHANG_NGAYKIEM`, BẮT BUỘC dùng SUM(ISNULL(SpLoi, 0)).",
       "correct_example": "SELECT SUM(ISNULL(q.SpLoi, 0)) AS TongLoi FROM QTY_MAHANG_NGAYKIEM q JOIN tbl_SettingLineX l ON q.LineX = l.ID WHERE l.Name = N'Cherry'",
       "wrong_example": "SELECT SUM(ISNULL(q.SLLoi, 0)) AS TongLoi FROM QTY_MAHANG_NGAYKIEM q -- SAI NGHIÊM TRỌNG: cột SLLoi không tồn tại trong QTY_MAHANG_NGAYKIEM, gây lỗi 'Invalid column name SLLoi'. Cột đúng là SpLoi."
+    },
+    {
+      "id": "G024",
+      "category": "defect_rate_formula",
+      "severity": "CRITICAL",
+      "rule": "CÔNG THỨC TÍNH TỈ LỆ LỖI % CHUẨN CỦA MÃ HÀNG / CHUYỀN: Khi câu hỏi yêu cầu tính tỷ lệ lỗi, tỉ lệ sản phẩm lỗi của một mã hàng, chuyền hay toàn cục mà KHÔNG CHỈ ĐỊNH rõ bộ phận/phương pháp kiểm (như inline/QA): BẮT BUỘC sử dụng công thức tỉ lệ lỗi % chuẩn = `TongLoi / NULLIF(TongLoi + TongDat, 0) * 100`. Trong đó: (1) TongLoi là `SUM(ISNULL(SpLoi, 0))` lấy từ bảng `QTY_MAHANG_NGAYKIEM`. (2) TongDat là `SUM(ISNULL(Quantity, 0) + ISNULL(SuaDat, 0))` lấy từ bảng `SEW_CoefficientSize`. TUYỆT ĐỐI CẤM sử dụng công thức chia trực tiếp cho sản lượng đạt `TongDat` mà không cộng `TongLoi` ở mẫu số, vì mẫu số bắt buộc phải là tổng sản phẩm đã kiểm tra (Lỗi + Đạt).",
+      "correct_example": "WITH loi AS (SELECT StyleID, SUM(ISNULL(SpLoi, 0)) AS TongLoi FROM QTY_MAHANG_NGAYKIEM WHERE StyleID = 'XF_MY_XA7YG' GROUP BY StyleID), dat AS (SELECT StyleId, SUM(ISNULL(Quantity, 0) + ISNULL(SuaDat, 0)) AS TongDat FROM SEW_CoefficientSize WHERE StyleId = 'XF_MY_XA7YG' GROUP BY StyleId) SELECT l.StyleID, CAST(l.TongLoi AS FLOAT) / NULLIF(l.TongLoi + d.TongDat, 0) * 100 AS TyLeLoi FROM loi l JOIN dat d ON l.StyleID = d.StyleId",
+      "wrong_example": "SELECT CAST(l.TotalDefects AS FLOAT) / NULLIF(d.TotalOutput, 0) * 100 AS TiLeLoi -- SAI NGHIÊM TRỌNG: mẫu số chỉ có d.TotalOutput (sản lượng đạt) mà thiếu l.TotalDefects (sản phẩm lỗi)"
+    },
+    {
+      "id": "G025",
+      "category": "alias_scoping",
+      "severity": "CRITICAL",
+      "rule": "CẤM SỬ DỤNG BÍ DANH CỘT (COLUMN ALIAS) TRONG WHERE, GROUP BY VÀ CÙNG CẤP SELECT: Trong SQL Server (T-SQL), bạn TUYỆT ĐỐI KHÔNG được sử dụng bí danh cột được định nghĩa ở SELECT (ví dụ: [Tên chuyền], [NgayDate], [TiLeLoi], [QtyDaisy]) tại mệnh đề WHERE, GROUP BY, HAVING hoặc trong các biểu thức tính toán khác ở cùng cấp SELECT đó (ví dụ: SELECT A AS [Cột A], B AS [Cột B], [Cột A] - [Cột B] là SAI vì SQL Server chưa nhận diện được bí danh tại thời điểm tính toán). Bạn bắt buộc phải sử dụng cột gốc hoặc lặp lại biểu thức con để tính toán, lọc hoặc gom nhóm. Chỉ cho phép sử dụng bí danh cột ở ngoài cùng nếu cột đó đã được định nghĩa qua CTE hoặc Subquery trước đó.",
+      "correct_example": "SELECT l.Name AS [Tên chuyền], SUM(sc.Quantity) FROM SEW_CoefficientStyle sc JOIN tbl_SettingLineX l ON sc.Linex = CAST(l.ID AS INT) WHERE l.Name IN ('Daisy', 'Cherry') GROUP BY l.Name | SELECT (SELECT SUM(Quantity) FROM ...) AS QtyDaisy, (SELECT SUM(Quantity) FROM ...) AS QtyCherry, ABS((SELECT SUM(Quantity) FROM ...) - (SELECT SUM(Quantity) FROM ...)) AS ChenhLech",
+      "wrong_example": "SELECT l.Name AS [Tên chuyền], SUM(sc.Quantity) FROM SEW_CoefficientStyle sc JOIN tbl_SettingLineX l ON sc.Linex = CAST(l.ID AS INT) WHERE [Tên chuyền] IN ('Daisy', 'Cherry') GROUP BY [Tên chuyền] -- SAI | SELECT (SELECT SUM(Quantity) FROM ...) AS QtyDaisy, (SELECT SUM(Quantity) FROM ...) AS QtyCherry, ABS(QtyDaisy - QtyCherry) AS ChenhLech -- SAI NGHIÊM TRỌNG: Không được dùng QtyDaisy, QtyCherry cùng cấp SELECT để làm toán trừ, gây lỗi 'Invalid column name'"
+    },
+    {
+      "id": "G026",
+      "category": "order_vs_style_routing",
+      "severity": "CRITICAL",
+      "rule": "PHÂN BIỆT MÃ LỆNH/KIỂU DÁNG VỚI MÃ ĐƠN HÀNG (MA_DH VS TEN_LENH): Khi câu hỏi của người dùng có chứa các số dạng mã thuần số (ví dụ: '110055', '110056') hoặc định dạng kiểu dáng (ví dụ: '0088_521_04_V0_0') mà họ gọi là 'mã đơn hàng' hoặc 'mã hàng': Bạn cần biết rằng bảng ERP_LENHSX có cột `MaDH` chứa mã đơn hàng tổng (luôn có tiền tố 'DH_' trong database, ví dụ: 'DH_123'). Các mã số dạng '110055' thực chất là `TenLenh` (trong bảng ERP_LENHSX) hoặc `StypeId`/`StyleID`/`StyleId` (trong các bảng SEW_CoefficientStyle, QTY_MAHANG_NGAYKIEM, SEW_CoefficientSize). TUYỆT ĐỐI CẤM lọc cột `MaDH = '110055'` vì sẽ không ra dữ liệu. Hãy lọc cột `TenLenh` hoặc dùng trực tiếp cột kiểu dáng (`StypeId`/`StyleId`/`StyleID`) của các bảng tương ứng để truy vấn.",
+      "correct_example": "SELECT SUM(Quantity) FROM SEW_CoefficientStyle WHERE StypeId = '110055' -- Đúng: lọc trực tiếp qua StypeId mà không cần JOIN ERP_LENHSX",
+      "wrong_example": "SELECT SUM(Quantity) FROM SEW_CoefficientStyle sc JOIN ERP_LENHSX e ON sc.PoId = e.MaLenh WHERE e.MaDH = '110055' -- SAI NGHIÊM TRỌNG: 110055 không phải là MaDH, lọc như vậy sẽ không ra dữ liệu; đồng thời JOIN ERP_LENHSX không cần thiết."
+    },
+    {
+      "id": "G027",
+      "category": "row_comparison_aggregation",
+      "severity": "CRITICAL",
+      "rule": "QUY TẮC SO SÁNH / TÍNH CHÊNH LỆCH GIỮA CÁC DÒNG (CONDITIONAL AGGREGATION): Khi câu hỏi yêu cầu so sánh sản lượng/số lượng và tính chênh lệch giữa hai công đoạn (ví dụ: BTP và RA CHUYỀN) hoặc hai chuyền trong cùng một bảng: TUYỆT ĐỐI CẤM sử dụng các câu lệnh Subquery độc lập để lấy giá trị từng dòng (ví dụ: `SELECT (SELECT Qty FROM Data WHERE CongDoan = 'A') - (SELECT Qty FROM Data WHERE CongDoan = 'B')` là SAI vì nếu subquery trả về nhiều dòng do điều kiện LIKE hoặc không trả về dòng nào sẽ gây lỗi runtime hoặc trả về NULL). BẮT BUỘC sử dụng phương pháp Conditional Aggregation (`SUM(CASE WHEN...)`) kết hợp `ISNULL` để gom các dòng thành các cột dữ liệu trên một dòng duy nhất trước khi tính toán chênh lệch.",
+      "correct_example": "WITH Data AS (SELECT s.cd_name AS CongDoan, SUM(sc.Quantity) AS NangSuat FROM SEW_CoefficientStyle sc JOIN tbl_Steps s ON sc.StepId = s.Id_cd WHERE sc.StypeId = '0088_342_29_V0_2' AND (s.cd_name LIKE N'BTP%' OR s.cd_name LIKE N'RA CHUYỀN%') GROUP BY s.cd_name) SELECT ISNULL(SUM(CASE WHEN CongDoan LIKE N'BTP%' THEN NangSuat ELSE 0 END), 0) AS [SL_BTP], ISNULL(SUM(CASE WHEN CongDoan LIKE N'RA CHUYỀN%' THEN NangSuat ELSE 0 END), 0) AS [SL_RA_CHUYEN], ABS(ISNULL(SUM(CASE WHEN CongDoan LIKE N'BTP%' THEN NangSuat ELSE 0 END), 0) - ISNULL(SUM(CASE WHEN CongDoan LIKE N'RA CHUYỀN%' THEN NangSuat ELSE 0 END), 0)) AS [ChenhLech] FROM Data",
+      "wrong_example": "WITH Data AS (...) SELECT (SELECT TongSL FROM Data WHERE cd_name LIKE N'BTP%') AS [SL_BTP], (SELECT TongSL FROM Data WHERE cd_name LIKE N'RA CHUYỀN%') AS [SL_RA_CHUYEN], ABS(ISNULL((SELECT TongSL FROM BTP), 0) - ISNULL((SELECT TongSL FROM RA_CHUYEN), 0)) -- SAI NGHIÊM TRỌNG: Dùng subquery có nguy cơ quăng lỗi 'Subquery returned more than 1 value' và trả về NULL khi rỗng."
+    },
+    {
+      "id": "G028",
+      "category": "anomaly_detection_aggregation",
+      "severity": "CRITICAL",
+      "rule": "QUY TẮC TRA CỨU BẤT THƯỜNG / VƯỢT NGƯỠNG TRONG KIỂM TRA QA: Khi câu hỏi yêu cầu tìm các mã hàng, chuyền, hay lượt kiểm tra QA có số lượng lỗi lớn hơn hoặc vượt quá số lượng mẫu kiểm tra (ví dụ: 'Tìm những mã hàng kiểm QA có số lượng lỗi lớn hơn số mẫu kiểm'): TUYỆT ĐỐI CẤM sử dụng mệnh đề GROUP BY toàn cục kết hợp HAVING SUM(SoLuongLoi) > SUM(SoLuongKiem) vì việc cộng gộp tổng số lượng kiểm qua nhiều đợt khác nhau sẽ triệt tiêu và bỏ sót hầu hết các lượt kiểm bất thường đơn lẻ. BẮT BUỘC thực hiện so sánh trực tiếp ở cấp độ dòng dữ liệu thô (raw data) bằng mệnh đề WHERE (ví dụ: WHERE ISNULL(SoLuongLoi, 0) > ISNULL(SoLuongKiem, 0)) để tìm ra các bản ghi/lượt kiểm bất thường thực tế, đồng thời SELECT đầy đủ các thông tin ngữ cảnh như NgayKiem, Tên chuyền, MaHang, Size, SoLuongKiem, SoLuongLoi.",
+      "correct_example": "SELECT q.NgayKiem, l.Name AS [Tên chuyền], q.MaHang, q.Size, q.SoLuongKiem, q.SoLuongLoi FROM QTY_KiemQA_NgayKiem q JOIN tbl_SettingLineX l ON q.LineX = l.ID WHERE ISNULL(q.SoLuongLoi, 0) > ISNULL(q.SoLuongKiem, 0)",
+      "wrong_example": "SELECT MaHang, SUM(ISNULL(SoLuongLoi, 0)) AS TongLoi, SUM(ISNULL(SoLuongKiem, 0)) AS TongMauKiem FROM QTY_KiemQA_NgayKiem GROUP BY MaHang HAVING SUM(ISNULL(SoLuongLoi, 0)) > SUM(ISNULL(SoLuongKiem, 0)) -- SAI NGHIÊM TRỌNG: Cộng gộp làm triệt tiêu các lô lỗi đơn lẻ, bỏ sót các bản ghi bất thường thực tế."
     }
   ]
 }

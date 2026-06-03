@@ -35,9 +35,9 @@
     {
       "id": "T_SEW_SIZE_005",
       "severity": "HIGH",
-      "rule": "TÊN CỘT MÃ HÀNG BẮT BUỘC viết là StyleId (có chữ 'l', KHÔNG có chữ 'y'). Chuyển '-' hoặc ' ' sang '_' để khớp với cột ERP_LENHSX.TenLenh.",
-      "correct_example": "WHERE StyleId = '110055'",
-      "wrong_example": "WHERE StypeId = '110055'"
+      "rule": "TÊN CỘT MÃ HÀNG BẮT BUỘC viết là StyleId (có chữ 'l', KHÔNG có chữ 'y'). Bảng SEW_CoefficientSize TUYỆT ĐỐI KHÔNG CÓ cột MaHang. Khi lọc mã hàng có chứa dấu gạch dưới '_' (ví dụ: 'XF_MY_XA7YG'), bắt buộc dùng cột StyleId. Nếu mã hàng chứa dấu gạch ngang '-' hoặc dấu cách ' ' trong câu hỏi của người dùng, cần đổi chúng sang dấu gạch dưới '_' trước khi lọc qua cột StyleId.",
+      "correct_example": "WHERE StyleId = '110055' hoặc WHERE StyleId = 'XF_MY_XA7YG'",
+      "wrong_example": "WHERE MaHang = N'XF_MY_XA7YG' -- SAI NGHIÊM TRỌNG: bảng này không có cột MaHang, gây lỗi 'Invalid column name MaHang' | WHERE StyleId = '110-055' -- SAI: phải đổi sang dạng gạch dưới"
     },
     {
       "id": "T_SEW_SIZE_006",
