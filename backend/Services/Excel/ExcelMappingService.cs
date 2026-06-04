@@ -117,6 +117,22 @@ public class ExcelMappingService : IExcelMappingService
                     }
                 }
             }
+
+            bool hasSubtotalConfig = element.TryGetProperty("subtotalConfig", out var subtotalProp) || 
+                                     element.TryGetProperty("SubtotalConfig", out subtotalProp);
+            if (hasSubtotalConfig && subtotalProp.ValueKind == JsonValueKind.Object)
+            {
+                try
+                {
+                    mapping.SubtotalConfig = JsonSerializer.Deserialize<ExcelTemplateSubtotalConfig>(
+                        subtotalProp.GetRawText(),
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"⚠️ Lỗi khi parse SubtotalConfig: {ex.Message}");
+                }
+            }
         }
         return mapping;
     }

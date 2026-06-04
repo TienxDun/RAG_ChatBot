@@ -20,7 +20,8 @@ public interface IExcelTemplateFiller
         List<string>? rowLabels = null,
         List<int>? fillableRowIndexes = null,
         int? totalRowIndex = null,
-        bool isExplicitFillableOnly = false);
+        bool isExplicitFillableOnly = false,
+        ExcelTemplateSubtotalConfig? subtotalConfig = null);
     void FillHierarchicalTemplate(
         ExcelWorksheet worksheet,
         DataTable data,
@@ -30,7 +31,8 @@ public interface IExcelTemplateFiller
         List<string>? rowLabels = null,
         List<int>? fillableRowIndexes = null,
         int? totalRowIndex = null,
-        bool isExplicitFillableOnly = false);
+        bool isExplicitFillableOnly = false,
+        ExcelTemplateSubtotalConfig? subtotalConfig = null);
     void FillMetadata(
         ExcelWorksheet worksheet, 
         int headerRowIndex, 
@@ -191,6 +193,386 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
         }
     }
 
+    private bool IsValidSizeLoiKiemFormat(string? valStr)
+    {
+        if (string.IsNullOrEmpty(valStr)) return false;
+        var parts = valStr.Split('/');
+        return parts.Length >= 3 && 
+               long.TryParse(parts[parts.Length - 2].Trim(), out _) && 
+               long.TryParse(parts[parts.Length - 1].Trim(), out _);
+    }
+
+    private void FillTemplateWithSubtotals(
+        ExcelWorksheet worksheet,
+        DataTable data,
+        int dataStartRowIndex,
+        List<ColumnMapping> mappings,
+        ExcelTemplateSubtotalConfig subtotalConfig,
+        int? totalRowIndex)
+    {
+        if (data == null || data.Rows.Count == 0 || mappings.Count == 0) return;
+
+        // 1. Tìm cột gom nhóm trong mappings
+        var groupByMapping = mappings.FirstOrDefault(m => 
+            m.DataTableColumnName.Equals(subtotalConfig.GroupByColumn, StringComparison.OrdinalIgnoreCase));
+            
+        if (groupByMapping == null)
+        {
+            // Fallback nếu không cấu hình đúng cột group by
+            FillTemplateCore(worksheet, data, dataStartRowIndex, mappings, null, null, totalRowIndex, false);
+            return;
+        }
+
+        // 2. Gom nhóm dữ liệu theo cột GroupByColumn
+        var groups = new List<(string Key, List<DataRow> Rows)>();
+        string currentGroupKey = null!;
+        List<DataRow> currentGroupRows = null!;
+
+        foreach (DataRow row in data.Rows)
+        {
+            var valObj = row[groupByMapping.DataTableColumnName];
+            string groupVal = "";
+            if (valObj is DateTime dt)
+            {
+                groupVal = dt.ToString("dd/MM/yyyy");
+            }
+            else if (valObj != null && valObj != DBNull.Value)
+            {
+                groupVal = valObj.ToString()?.Trim() ?? "";
+                if (DateTime.TryParse(groupVal, out DateTime dtParsed))
+                {
+                    groupVal = dtParsed.ToString("dd/MM/yyyy");
+                }
+            }
+
+            if (currentGroupKey == null || !currentGroupKey.Equals(groupVal, StringComparison.OrdinalIgnoreCase))
+            {
+                if (currentGroupKey != null)
+                {
+                    groups.Add((currentGroupKey, currentGroupRows));
+                }
+                currentGroupKey = groupVal;
+                currentGroupRows = new List<DataRow>();
+            }
+            currentGroupRows.Add(row);
+        }
+        if (currentGroupKey != null)
+        {
+            groups.Add((currentGroupKey, currentGroupRows));
+        }
+
+        // 3. Tính toán tổng số dòng cần thiết (bao gồm cả dòng chi tiết và các dòng subtotal)
+        int totalDetailRows = data.Rows.Count;
+        int totalSubtotalRows = groups.Count;
+        int requiredRows = totalDetailRows + totalSubtotalRows;
+
+        // Xác định số lượng dòng trống có sẵn trong template
+        int startRow = dataStartRowIndex;
+        int endRow = totalRowIndex.HasValue ? totalRowIndex.Value - 1 : startRow + 100;
+        int availableRowsCount = endRow - startRow + 1;
+
+        // Nếu thiếu dòng trong template, chèn thêm dòng
+        if (requiredRows > availableRowsCount)
+        {
+            int rowsToInsert = requiredRows - availableRowsCount;
+            int insertAt = endRow; // Chèn tại dòng trống cuối cùng ngay trước dòng tổng lớn
+            worksheet.InsertRow(insertAt, rowsToInsert);
+
+            // Copy style từ dòng cũ bị đẩy xuống cho các dòng mới chèn
+            int shiftedSourceRow = insertAt + rowsToInsert;
+            int totalCols = worksheet.Dimension?.Columns ?? 0;
+            for (int i = 0; i < rowsToInsert; i++)
+            {
+                int newRowIndex = insertAt + i;
+                worksheet.Row(newRowIndex).Height = worksheet.Row(shiftedSourceRow).Height;
+                for (int col = 1; col <= totalCols; col++)
+                {
+                    var sourceCell = worksheet.Cells[shiftedSourceRow, col];
+                    var destCell = worksheet.Cells[newRowIndex, col];
+                    destCell.StyleID = sourceCell.StyleID;
+                    destCell.Value = null;
+                }
+            }
+        }
+
+        // 4. Bắt đầu điền dữ liệu và chèn các dòng subtotal
+        int currentExcelRow = dataStartRowIndex;
+        long grandTotalLoi = 0;
+        long grandTotalKiem = 0;
+        int totalColsCount = worksheet.Dimension?.Columns ?? 0;
+
+        foreach (var group in groups)
+        {
+            int groupStartRow = currentExcelRow;
+
+            // Điền các dòng chi tiết của nhóm
+            foreach (var row in group.Rows)
+            {
+                WriteRowData(worksheet, row, currentExcelRow, mappings);
+                currentExcelRow++;
+            }
+
+            int groupEndRow = currentExcelRow - 1;
+
+            // Điền dòng subtotal
+            int subtotalRowIndex = currentExcelRow;
+
+            // Label dòng tổng ngày
+            if (!string.IsNullOrWhiteSpace(subtotalConfig.LabelColumn))
+            {
+                var labelMapping = mappings.FirstOrDefault(m => 
+                    m.DataTableColumnName.Equals(subtotalConfig.LabelColumn, StringComparison.OrdinalIgnoreCase));
+                if (labelMapping != null)
+                {
+                    worksheet.Cells[subtotalRowIndex, labelMapping.ExcelColumnIndex].Value = "";
+                }
+            }
+
+            // Ghi nội dung cột ngày của dòng tổng (nếu muốn)
+            worksheet.Cells[subtotalRowIndex, groupByMapping.ExcelColumnIndex].Value = ""; 
+
+            // Tính toán sẵn tổng lỗi và tổng kiểm từ các cột được cấu hình trong SumColumns có dạng Size/Loi/Kiem
+            long groupTotalLoi = 0;
+            long groupTotalKiem = 0;
+            bool hasSizeLoiKiemData = false;
+
+            if (subtotalConfig.SumColumns != null)
+            {
+                foreach (var sumColName in subtotalConfig.SumColumns)
+                {
+                    var sumMapping = mappings.FirstOrDefault(m => 
+                        m.DataTableColumnName.Equals(sumColName, StringComparison.OrdinalIgnoreCase));
+                    if (sumMapping == null) continue;
+
+                    bool isSizeLoiKiemFormat = false;
+                    foreach (var r in group.Rows)
+                    {
+                        if (IsValidSizeLoiKiemFormat(r[sumMapping.DataTableColumnName]?.ToString()))
+                        {
+                            isSizeLoiKiemFormat = true;
+                            break;
+                        }
+                    }
+
+                    if (isSizeLoiKiemFormat)
+                    {
+                        hasSizeLoiKiemData = true;
+                        foreach (var r in group.Rows)
+                        {
+                            var valStr = r[sumMapping.DataTableColumnName]?.ToString();
+                            if (IsValidSizeLoiKiemFormat(valStr))
+                            {
+                                var parts = valStr!.Split('/');
+                                if (long.TryParse(parts[parts.Length - 2].Trim(), out long loi) && 
+                                    long.TryParse(parts[parts.Length - 1].Trim(), out long kiem))
+                                {
+                                    groupTotalLoi += loi;
+                                    groupTotalKiem += kiem;
+                                }
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+
+            if (!hasSizeLoiKiemData)
+            {
+                // Thử tính trực tiếp từ cột loi và kiem nếu là các cột số riêng biệt
+                double sumLoi = 0;
+                double sumKiem = 0;
+                var loiCol = mappings.FirstOrDefault(m => m.DataTableColumnName.Contains("Loi", StringComparison.OrdinalIgnoreCase));
+                var kiemCol = mappings.FirstOrDefault(m => m.DataTableColumnName.Contains("Kiem", StringComparison.OrdinalIgnoreCase));
+                if (loiCol != null && kiemCol != null)
+                {
+                    foreach (var r in group.Rows)
+                    {
+                        if (double.TryParse(r[loiCol.DataTableColumnName]?.ToString(), out double l)) sumLoi += l;
+                        if (double.TryParse(r[kiemCol.DataTableColumnName]?.ToString(), out double k)) sumKiem += k;
+                    }
+                    groupTotalLoi = (long)sumLoi;
+                    groupTotalKiem = (long)sumKiem;
+                }
+            }
+
+            grandTotalLoi += groupTotalLoi;
+            grandTotalKiem += groupTotalKiem;
+
+            // Tính và điền Subtotals cho các cột được cấu hình
+            foreach (var sumColName in subtotalConfig.SumColumns ?? new List<string>())
+            {
+                var sumMapping = mappings.FirstOrDefault(m => 
+                    m.DataTableColumnName.Equals(sumColName, StringComparison.OrdinalIgnoreCase));
+                if (sumMapping == null) continue;
+
+                var sumCell = worksheet.Cells[subtotalRowIndex, sumMapping.ExcelColumnIndex];
+
+                // Kiểm tra xem cột này có thuộc định dạng "Size/Loi/Kiem" không
+                bool isSizeLoiKiemFormat = false;
+                foreach (var r in group.Rows)
+                {
+                    if (IsValidSizeLoiKiemFormat(r[sumColName]?.ToString()))
+                    {
+                        isSizeLoiKiemFormat = true;
+                        break;
+                    }
+                }
+
+                if (isSizeLoiKiemFormat)
+                {
+                    sumCell.Value = $"Tổng kiểm: {groupTotalKiem} | Tổng lỗi: {groupTotalLoi}";
+                    sumCell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                }
+                else
+                {
+                    // Numeric Sum
+                    double numericSum = 0;
+                    bool hasNumeric = false;
+                    foreach (var r in group.Rows)
+                    {
+                        var valObj = r[sumColName];
+                        if (valObj != null && valObj != DBNull.Value && double.TryParse(valObj.ToString(), out double num))
+                        {
+                            numericSum += num;
+                            hasNumeric = true;
+                        }
+                    }
+
+                    if (hasNumeric)
+                    {
+                        sumCell.Value = numericSum;
+                        sumCell.Style.Numberformat.Format = "#,##0";
+                        sumCell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Right;
+                    }
+                    else
+                    {
+                        sumCell.Value = null;
+                    }
+                }
+
+                sumCell.Style.Font.Bold = true;
+            }
+
+            // Tính và điền Tỷ lệ lỗi cho các cột được cấu hình
+            if (subtotalConfig.DefectRateColumns != null)
+            {
+                foreach (var rateColName in subtotalConfig.DefectRateColumns)
+                {
+                    var rateMapping = mappings.FirstOrDefault(m => 
+                        m.DataTableColumnName.Equals(rateColName, StringComparison.OrdinalIgnoreCase));
+                    if (rateMapping == null) continue;
+
+                    var rateCell = worksheet.Cells[subtotalRowIndex, rateMapping.ExcelColumnIndex];
+                    if (groupTotalKiem > 0)
+                    {
+                        double rateVal = (double)groupTotalLoi / groupTotalKiem * 100;
+                        rateCell.Value = rateVal;
+                        rateCell.Style.Numberformat.Format = "#,##0.00";
+                    }
+                    else
+                    {
+                        rateCell.Value = null;
+                    }
+                    rateCell.Style.Font.Bold = true;
+                    rateCell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Right;
+                }
+            }
+
+            // Định dạng font Bold và viền đầy đủ cho dòng Subtotal
+            worksheet.Row(subtotalRowIndex).Style.Font.Bold = true;
+            for (int col = 1; col <= totalColsCount; col++)
+            {
+                var cell = worksheet.Cells[subtotalRowIndex, col];
+                cell.Style.Font.Bold = true;
+                cell.Style.Border.Top.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+                cell.Style.Border.Bottom.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+                cell.Style.Border.Left.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+                cell.Style.Border.Right.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+            }
+
+            currentExcelRow++;
+        }
+
+        // 5. Xóa bớt dòng trống dư thừa
+        if (requiredRows < availableRowsCount)
+        {
+            int startDeleteRow = currentExcelRow;
+            int rowsToDelete = availableRowsCount - requiredRows;
+            worksheet.DeleteRow(startDeleteRow, rowsToDelete);
+        }
+
+        // 6. Điền thông tin dòng Tổng toàn bảng (Grand Total)
+        if (totalRowIndex.HasValue)
+        {
+            int grandTotalRowIndex = currentExcelRow;
+
+            // Tính và điền Grand Totals cho các cột được cấu hình trong SumColumns
+            foreach (var sumColName in subtotalConfig.SumColumns ?? new List<string>())
+            {
+                var sumMapping = mappings.FirstOrDefault(m => 
+                    m.DataTableColumnName.Equals(sumColName, StringComparison.OrdinalIgnoreCase));
+                if (sumMapping == null) continue;
+
+                var sumCell = worksheet.Cells[grandTotalRowIndex, sumMapping.ExcelColumnIndex];
+
+                // Kiểm tra định dạng Size/Loi/Kiem trong dữ liệu gốc
+                bool isSizeLoiKiemFormat = false;
+                foreach (DataRow r in data.Rows)
+                {
+                    if (IsValidSizeLoiKiemFormat(r[sumColName]?.ToString()))
+                    {
+                        isSizeLoiKiemFormat = true;
+                        break;
+                    }
+                }
+
+                if (isSizeLoiKiemFormat)
+                {
+                    sumCell.Value = $"Tổng kiểm: {grandTotalKiem} | Tổng lỗi: {grandTotalLoi}";
+                    sumCell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                }
+                sumCell.Style.Font.Bold = true;
+            }
+
+            // Tính và điền Tỷ lệ lỗi cho dòng tổng
+            if (subtotalConfig.DefectRateColumns != null)
+            {
+                foreach (var rateColName in subtotalConfig.DefectRateColumns)
+                {
+                    var rateMapping = mappings.FirstOrDefault(m => 
+                        m.DataTableColumnName.Equals(rateColName, StringComparison.OrdinalIgnoreCase));
+                    if (rateMapping == null) continue;
+
+                    var rateCell = worksheet.Cells[grandTotalRowIndex, rateMapping.ExcelColumnIndex];
+                    if (grandTotalKiem > 0)
+                    {
+                        double rateVal = (double)grandTotalLoi / grandTotalKiem * 100;
+                        rateCell.Value = rateVal;
+                        rateCell.Style.Numberformat.Format = "#,##0.00";
+                    }
+                    else
+                    {
+                        rateCell.Value = null;
+                    }
+                    rateCell.Style.Font.Bold = true;
+                    rateCell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Right;
+                }
+            }
+
+            // Định dạng font Bold và viền đầy đủ cho dòng Grand Total
+            worksheet.Row(grandTotalRowIndex).Style.Font.Bold = true;
+            for (int col = 1; col <= totalColsCount; col++)
+            {
+                var cell = worksheet.Cells[grandTotalRowIndex, col];
+                cell.Style.Font.Bold = true;
+                cell.Style.Border.Top.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+                cell.Style.Border.Bottom.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+                cell.Style.Border.Left.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+                cell.Style.Border.Right.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+            }
+        }
+    }
+
     // Điền dữ liệu dạng Horizontal (Bảng lưới thông thường)
     public void FillHorizontalTemplate(
         ExcelWorksheet worksheet,
@@ -201,7 +583,8 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
         List<string>? rowLabels = null,
         List<int>? fillableRowIndexes = null,
         int? totalRowIndex = null,
-        bool isExplicitFillableOnly = false)
+        bool isExplicitFillableOnly = false,
+        ExcelTemplateSubtotalConfig? subtotalConfig = null)
     {
         // 1. Tạo mapping cột
         var mappings = new List<ColumnMapping>();
@@ -228,6 +611,12 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
             }
         }
 
+        if (subtotalConfig != null && (rowLabels == null || rowLabels.Count == 0))
+        {
+            FillTemplateWithSubtotals(worksheet, data, dataStartRowIndex, mappings, subtotalConfig, totalRowIndex);
+            return;
+        }
+
         FillTemplateCore(
             worksheet,
             data,
@@ -249,7 +638,8 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
         List<string>? rowLabels = null,
         List<int>? fillableRowIndexes = null,
         int? totalRowIndex = null,
-        bool isExplicitFillableOnly = false)
+        bool isExplicitFillableOnly = false,
+        ExcelTemplateSubtotalConfig? subtotalConfig = null)
     {
         // 1. Tạo mapping cột từ FlattenedColumn truyền vào
         var mappings = new List<ColumnMapping>();
@@ -272,6 +662,12 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
         }
 
         int dataStartRowIndex = headerRowIndex + 1;
+
+        if (subtotalConfig != null && (rowLabels == null || rowLabels.Count == 0))
+        {
+            FillTemplateWithSubtotals(worksheet, data, dataStartRowIndex, mappings, subtotalConfig, totalRowIndex);
+            return;
+        }
 
         FillTemplateCore(
             worksheet,

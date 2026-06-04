@@ -95,7 +95,7 @@ public class ExcelTests
         // Ngày giao dịch phải được parse thành kiểu DateTime thành công
         var dateValue = dateCell.GetValue<DateTime>();
         Assert.Equal(new DateTime(2026, 5, 25), dateValue.Date);
-        
+
         // Định dạng hiển thị ngày trên Excel phải là dd/MM/yyyy
         Assert.Equal("dd/MM/yyyy", dateCell.Style.Numberformat.Format);
         Assert.Equal(OfficeOpenXml.Style.ExcelHorizontalAlignment.Center, dateCell.Style.HorizontalAlignment);
