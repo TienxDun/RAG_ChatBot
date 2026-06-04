@@ -35,9 +35,9 @@
     {
       "id": "T_QTY_QA_CD_005",
       "severity": "CRITICAL",
-      "rule": "Khi cần liên kết dữ liệu lỗi chi tiết QA với thông tin tổng hợp của QA, hãy JOIN bảng QTY_KiemQA_CHITIET (c) với QTY_KiemQA_NgayKiem (q) qua các cột: LenhSX, LineX, MaHang, Size và ép kiểu DATE cho NgayKiem. Đồng thời, liên kết với QTY_NHOMLOI_CHITIET (n) qua c.Code = n.MaLoi để lấy tên lỗi.",
-      "correct_example": "SELECT DISTINCT c.Code, n.TenLoi, c.NoiDung FROM QTY_KiemQA_CHITIET c JOIN QTY_KiemQA_NgayKiem q ON c.LenhSX = q.LenhSX AND c.LineX = q.LineX AND c.MaHang = q.MaHang AND c.Size = q.Size AND CAST(c.NgayKiem AS DATE) = CAST(q.NgayKiem AS DATE) JOIN QTY_NHOMLOI_CHITIET n ON c.Code = n.MaLoi",
-      "wrong_example": "SELECT c.Code, n.TenLoi FROM QTY_KiemQA_CHITIET c JOIN QTY_NHOMLOI_CHITIET n ON c.Code = n.MaLoi JOIN ERP_LENHSX e ON c.LenhSX = e.MaLenh"
+      "rule": "Khi cần liên kết dữ liệu lỗi chi tiết QA với thông tin tổng hợp của QA (ví dụ: cần lọc phiếu Pass/Fail bằng StatusHT, cần lấy số lượng mẫu kiểm AQL SoLuongKiem), mới JOIN bảng QTY_KiemQA_CHITIET (c) với QTY_KiemQA_NgayKiem (q) qua các cột: LenhSX, LineX, MaHang, Size và ép kiểu DATE cho NgayKiem. TUYỆT ĐỐI CẤM JOIN với QTY_KiemQA_NgayKiem nếu câu hỏi chỉ yêu cầu đếm số lỗi/thống kê lỗi theo chuyền, ngày, size, màu thông thường vì bảng chi tiết đã có sẵn các cột này.",
+      "correct_example": "-- ĐÚNG: JOIN khi cần kiểm tra StatusHT của phiếu đầu ngày\nSELECT SUM(ISNULL(c.SLLoi, 0)) FROM QTY_KiemQA_CHITIET c JOIN QTY_KiemQA_NgayKiem q ON c.LenhSX = q.LenhSX AND c.LineX = q.LineX AND c.MaHang = q.MaHang AND c.Size = q.Size AND CAST(c.NgayKiem AS DATE) = CAST(q.NgayKiem AS DATE) WHERE q.StatusHT = 3",
+      "wrong_example": "-- SAI: JOIN không cần thiết khi chỉ đếm lỗi thông thường\nSELECT SUM(ISNULL(c.SLLoi, 0)) FROM QTY_KiemQA_CHITIET c JOIN QTY_KiemQA_NgayKiem q ON c.LenhSX = q.LenhSX AND c.LineX = q.LineX AND c.MaHang = q.MaHang AND c.Size = q.Size AND CAST(c.NgayKiem AS DATE) = CAST(q.NgayKiem AS DATE) WHERE c.Size = 'L'"
     },
     {
       "id": "T_QTY_QA_CD_006",

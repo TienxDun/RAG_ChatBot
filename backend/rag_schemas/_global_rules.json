@@ -37,7 +37,7 @@
       "id": "G006",
       "category": "string_comparison",
       "severity": "CRITICAL",
-      "rule": "So sánh tên công đoạn (cd_name), tên lỗi (TenLoi) bắt buộc dùng LIKE N'tên%' kết hợp % ở cuối (cấm dùng =). Ví dụ ĐÚNG: `cd_name LIKE N'dieu tp ao%'`"
+      "rule": "So sánh tên công đoạn (cd_name), tên lỗi (TenLoi, NoiDungLoi) bắt buộc dùng LIKE N'tên%' kết hợp % ở cuối. TUYỆT ĐỐI CẤM dùng toán tử bằng (=). Ví dụ ĐÚNG: `cd_name LIKE N'dieu tp%'` hoặc `TenLoi LIKE N'Thiếu bọ%'`. Ví dụ SAI: `TenLoi = N'Thiếu bọ'`."
     },
     {
       "id": "G007",
