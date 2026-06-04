@@ -82,13 +82,13 @@
       "name": "StyleID",
       "type": "varchar",
       "role": "filter_primary",
-      "desc": "Mã kiểu dáng hệ thống. Áp dụng rule T_QTY_CT_003."
+      "desc": "Mã kiểu dáng hệ thống. Áp dụng rule T_QTY_CT_003. BẮT BUỘC sử dụng cột StyleID để lọc nếu mã hàng/mã kiểu dáng chứa dấu gạch dưới '_' (ví dụ: '0088_521_04_V0_0', 'XF_MY_XA7YG'). TUYỆT ĐỐI CẤM dùng cột MaHang khi mã có chứa gạch dưới."
     },
     {
       "name": "MaHang",
       "type": "nvarchar",
       "role": "display",
-      "desc": "Tên/mã hàng hiển thị thực tế. Áp dụng rule T_QTY_CT_003."
+      "desc": "Tên/mã hàng hiển thị thực tế. Áp dụng rule T_QTY_CT_003. TUYỆT ĐỐI CẤM sử dụng cột MaHang để lọc nếu mã hàng/mã kiểu dáng chứa dấu gạch dưới '_' (ví dụ: '0088_521_04_V0_0', 'XF_MY_XA7YG') — trường hợp này bắt buộc phải dùng StyleID."
     },
     {
       "name": "POID",

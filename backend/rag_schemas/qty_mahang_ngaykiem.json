@@ -1,7 +1,7 @@
 {
   "table": "QTY_MAHANG_NGAYKIEM",
   "purpose": "Lưu trữ số liệu lỗi kiểm (SpLoi) tổng hợp của mã hàng theo chuyền, ngày, màu và kích thước.",
-  "when_to_use": "ĐÂY LÀ BẢNG MẶC ĐỊNH khi hỏi về số lượng sản phẩm lỗi (SpLoi), tỷ lệ lỗi, thống kê lỗi của mã hàng/chuyền mà KHÔNG CHỈ ĐỊNH rõ bộ phận/phương pháp kiểm (không nhắc tới 'inline', 'final', 'QA', 'thành phẩm cuối', 'AQL'). Khi tính tỷ lệ lỗi (%), số lỗi từ bảng này (SUM(SpLoi)) đóng vai trò làm tử số và kết hợp (JOIN) với sản lượng từ bảng SEW_CoefficientSize (SUM(Quantity + SuaDat)) làm mẫu số.",
+  "when_to_use": "ĐÂY LÀ BẢNG MẶC ĐỊNH khi hỏi về số lượng sản phẩm lỗi (SpLoi), tỷ lệ lỗi, thống kê lỗi của mã hàng/chuyền mà KHÔNG CHỈ ĐỊNH rõ bộ phận/phương pháp kiểm (không nhắc tới 'inline', 'final', 'QA', 'thành phẩm cuối', 'AQL'). Khi tính tỷ lệ lỗi (%), số lỗi từ bảng này (SUM(SpLoi)) đóng vai trò làm tử số và kết hợp (JOIN) với sản lượng từ bảng SEW_CoefficientSize (SUM(ISNULL(Quantity, 0) + ISNULL(SuaDat, 0))) làm mẫu số thông qua hai subquery/CTE riêng biệt được GROUP BY theo cùng các chiều tương ứng (ví dụ: StyleID/StyleId) để tránh nhân đôi dữ liệu.",
   "when_not_to_use": "Tuyệt đối không dùng khi câu hỏi yêu cầu thống kê theo tên lỗi/mã lỗi cụ thể (dùng chi tiết). TUYỆT ĐỐI KHÔNG dùng khi câu hỏi CÓ chứa từ khóa 'inline'/'InLine'/'in line' (dùng QTY_InLineQC_NgayKiem) hoặc chứa từ khóa 'final'/'QA'/'thành phẩm cuối'/'AQL' (dùng QTY_KiemQA_NgayKiem).",
   "table_rules": [
     {
@@ -104,13 +104,13 @@
       "name": "StyleID",
       "type": "varchar",
       "role": "filter_primary",
-      "desc": "Mã kiểu dáng hệ thống. Áp dụng rule T_QTY_NK_003."
+      "desc": "Mã kiểu dáng hệ thống. Áp dụng rule T_QTY_NK_003. BẮT BUỘC sử dụng cột StyleID để lọc nếu mã hàng/mã kiểu dáng chứa dấu gạch dưới '_' (ví dụ: '0088_521_04_V0_0', 'XF_MY_XA7YG'). TUYỆT ĐỐI CẤM dùng cột MaHang khi mã có chứa gạch dưới."
     },
     {
       "name": "MaHang",
       "type": "nvarchar",
       "role": "display",
-      "desc": "Tên/mã hàng hóa hiển thị. Áp dụng rule T_QTY_NK_003."
+      "desc": "Tên/mã hàng hóa hiển thị. Áp dụng rule T_QTY_NK_003. TUYỆT ĐỐI CẤM sử dụng cột MaHang để lọc nếu mã hàng/mã kiểu dáng chứa dấu gạch dưới '_' (ví dụ: '0088_521_04_V0_0', 'XF_MY_XA7YG') — trường hợp này bắt buộc phải dùng StyleID."
     },
     {
       "name": "POID",
@@ -246,8 +246,8 @@
     },
     {
       "target_table": "SEW_CoefficientSize",
-      "join_on": "QTY_MAHANG_NGAYKIEM.LineX = SEW_CoefficientSize.LineX AND QTY_MAHANG_NGAYKIEM.StyleID = SEW_CoefficientSize.StyleId AND QTY_MAHANG_NGAYKIEM.SizeID = SEW_CoefficientSize.SizeId",
-      "notes": "JOIN gián tiếp thông qua subquery/CTE để tính tỷ lệ lỗi, áp dụng rule T_QTY_NK_001."
+      "join_on": "CẤM JOIN TRỰC TIẾP (Bắt buộc dùng subquery/CTE kết hợp riêng biệt theo LineX, StyleID/StyleId, SizeID/SizeId)",
+      "notes": "TUYỆT ĐỐI CẤM JOIN trực tiếp ở mức bảng thô. Phải tính tổng lỗi (SUM(SpLoi)) và tổng đạt (SUM(Quantity+SuaDat)) trong hai subquery/CTE riêng biệt rồi mới JOIN kết quả theo quy tắc chống nhân đôi dòng T_QTY_NK_001."
     },
     {
       "target_table": "tbl_SettingLineX",

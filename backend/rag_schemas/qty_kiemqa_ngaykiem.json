@@ -2,7 +2,7 @@
   "table": "QTY_KiemQA_NgayKiem",
   "purpose": "Lưu trữ thông tin kiểm tra AQL (Acceptable Quality Level) tổng hợp theo ngày của bộ phận QA (Final QA). Mỗi bản ghi = 1 lần kiểm AQL 1 mã hàng/size/màu. TỈ LỆ LỖI = SoLuongLoi / SoLuongKiem * 100 (SoLuongKiem là số SP mẫu AQL lấy kiểm, KHÔNG phải tổng lô). Đây là checkpoint xuất hàng — khác hoàn toàn với InLine QC kiểm tại chuyền.",
   "when_to_use": "CHỈ sử dụng khi câu hỏi CÓ CHỨA rõ ràng từ khóa 'final', 'QA', 'thành phẩm cuối' hoặc 'AQL' VÀ yêu cầu thống kê số lượng mẫu kiểm (SoLuongKiem), số lượng lỗi QA (SoLuongLoi).",
-  "when_not_to_use": "TUYỆT ĐỐI CẤM sử dụng bảng này nếu câu hỏi KHÔNG nhắc tới 'final', 'QA', 'thành phẩm cuối', hoặc 'AQL'. Nếu câu hỏi chỉ hỏi về 'tỉ lệ lỗi', 'sản phẩm lỗi', 'thống kê lỗi' chung chung của mã hàng hoặc chuyền (ví dụ: 'tỉ lệ sản phẩm lỗi của mã hàng XF_MY_XA7YG'), BẮT BUỘC dùng bảng QTY_MAHANG_NGAYKIEM làm tử số và JOIN với SEW_CoefficientSize làm mẫu số.",
+  "when_not_to_use": "TUYỆT ĐỐI CẤM sử dụng bảng này nếu câu hỏi KHÔNG nhắc tới 'final', 'QA', 'thành phẩm cuối', hoặc 'AQL'. Nếu câu hỏi chỉ hỏi về 'tỉ lệ lỗi', 'sản phẩm lỗi', 'thống kê lỗi' chung chung của mã hàng hoặc chuyền (ví dụ: 'tỉ lệ sản phẩm lỗi của mã hàng XF_MY_XA7YG'), BẮT BUỘC dùng bảng QTY_MAHANG_NGAYKIEM làm tử số và kết hợp (JOIN) với sản lượng từ bảng SEW_CoefficientSize làm mẫu số thông qua hai subquery/CTE riêng biệt để tránh nhân đôi dữ liệu (theo rule G005).",
   "table_rules": [
     {
       "id": "T_QTY_QA_NK_001",

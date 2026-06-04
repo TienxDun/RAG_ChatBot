@@ -55,7 +55,7 @@
       "name": "StypeId",
       "type": "varchar",
       "role": "filter_primary",
-      "desc": "Mã kiểu dáng / Mã hàng. Viết 'StypeId'. Áp dụng rule T_SEW_STYLE_003."
+      "desc": "Mã kiểu dáng / Mã hàng. Viết 'StypeId' (chữ y, không có l). Áp dụng rule T_SEW_STYLE_003. BẮT BUỘC sử dụng cột StypeId để lọc khi mã hàng/mã kiểu dáng chứa dấu gạch dưới '_' (ví dụ: '0088_521_04_V0_0', 'XF_MY_XA7YG'). TUYỆT ĐỐI CẤM dùng cột MaHang vì bảng này không có cột MaHang."
     },
     {
       "name": "ColorId",

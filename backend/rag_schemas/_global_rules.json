@@ -67,7 +67,7 @@
       "id": "G011",
       "category": "metric_differentiation",
       "severity": "CRITICAL",
-      "rule": "Năng suất/sản lượng mặc định dùng SUM(Quantity). Chỉ dùng SUM(Quantity + SuaDat) khi nói rõ 'sản lượng đạt' hoặc làm mẫu số tỷ lệ lỗi."
+      "rule": "Năng suất/sản lượng mặc định dùng SUM(Quantity). Chỉ dùng SUM(ISNULL(Quantity, 0) + ISNULL(SuaDat, 0)) khi nói rõ 'sản lượng đạt' hoặc làm mẫu số tỷ lệ lỗi."
     },
     {
       "id": "G012",
@@ -170,6 +170,12 @@
       "category": "anomaly_detection_aggregation",
       "severity": "CRITICAL",
       "rule": "QA vượt mẫu kiểm: Cấm GROUP BY HAVING. So sánh trực tiếp ở cấp độ dòng: `WHERE ISNULL(SoLuongLoi, 0) > ISNULL(SoLuongKiem, 0)`."
+    },
+    {
+      "id": "G029",
+      "category": "order_column_accuracy",
+      "severity": "CRITICAL",
+      "rule": "Bắt buộc ghi đúng tên cột đại diện cho Lệnh/Kế hoạch sản xuất (MaLenh): 'PlanCode' trong QTY_MAHANG_NGAYKIEM và QTY_MaHang_KiemQC_ChiTiet; 'PoId' trong các bảng SEW_*; 'LenhSX' trong các bảng QTY_KiemQA_* và QTY_InLineQC_*. TUYỆT ĐỐI CẤM sử dụng lẫn lộn hoặc tự ý bịa tên cột giữa các bảng."
     }
   ]
 }

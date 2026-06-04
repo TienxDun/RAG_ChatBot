@@ -8,8 +8,8 @@
       "id": "T_SEW_SIZE_001",
       "severity": "CRITICAL",
       "rule": "Bảng này chứa sản lượng của tất cả các công đoạn. Khi lọc theo công đoạn (ví dụ: 'KCS', 'RA CHUYỀN'), BẮT BUỘC JOIN với tbl_Steps (qua StepId = Id_cd) và lọc cd_name (ví dụ: s.cd_name LIKE N'KCS%'). Khi câu hỏi KHÔNG có chữ công đoạn thì KHÔNG JOIN với tbl_Steps.",
-      "correct_example": "SELECT SUM(Quantity + SuaDat) FROM SEW_CoefficientSize sc JOIN tbl_Steps s ON sc.StepId = s.Id_cd WHERE s.cd_name LIKE N'KCS%'",
-      "wrong_example": "SELECT SUM(Quantity + SuaDat) FROM SEW_CoefficientSize sc JOIN tbl_Steps s ON sc.StepId = s.Id_cd WHERE s.cd_name LIKE N'KCS%' -- Sai vì câu hỏi không nhắc đến công đoạn nhưng vẫn JOIN tbl_Steps"
+      "correct_example": "SELECT SUM(ISNULL(Quantity, 0) + ISNULL(SuaDat, 0)) FROM SEW_CoefficientSize sc JOIN tbl_Steps s ON sc.StepId = s.Id_cd WHERE s.cd_name LIKE N'KCS%'",
+      "wrong_example": "SELECT SUM(ISNULL(Quantity, 0) + ISNULL(SuaDat, 0)) FROM SEW_CoefficientSize sc JOIN tbl_Steps s ON sc.StepId = s.Id_cd WHERE s.cd_name LIKE N'KCS%' -- Sai vì câu hỏi không nhắc đến công đoạn nhưng vẫn JOIN tbl_Steps"
     },
     {
       "id": "T_SEW_SIZE_002",
@@ -76,7 +76,7 @@
       "name": "StyleId",
       "type": "varchar",
       "role": "filter_primary",
-      "desc": "Mã kiểu dáng / Mã hàng. Viết 'StyleId'. Áp dụng rule T_SEW_SIZE_005."
+      "desc": "Mã kiểu dáng / Mã hàng. Viết 'StyleId' (chữ I hoa, d thường). Áp dụng rule T_SEW_SIZE_005. BẮT BUỘC sử dụng cột StyleId để lọc khi mã hàng/mã kiểu dáng chứa dấu gạch dưới '_' (ví dụ: '0088_521_04_V0_0', 'XF_MY_XA7YG'). TUYỆT ĐỐI CẤM dùng cột MaHang vì bảng này không có cột MaHang."
     },
     {
       "name": "ColorId",
@@ -118,13 +118,13 @@
       "name": "Quantity",
       "type": "int",
       "role": "measure",
-      "desc": "Một phần của sản phẩm đạt. Tổng sản phẩm đạt sẽ bằng Quantity + SuaDat. Áp dụng rule T_SEW_SIZE_002."
+      "desc": "Một phần của sản phẩm đạt. Tổng sản phẩm đạt bắt buộc phải dùng công thức: ISNULL(Quantity, 0) + ISNULL(SuaDat, 0). Áp dụng rule T_SEW_SIZE_002."
     },
     {
       "name": "SuaDat",
       "type": "int",
       "role": "measure",
-      "desc": "Một phần của sản phẩm đạt. Tổng sản phẩm đạt sẽ bằng Quantity + SuaDat. Áp dụng rule T_SEW_SIZE_002."
+      "desc": "Một phần của sản phẩm đạt. Tổng sản phẩm đạt bắt buộc phải dùng công thức: ISNULL(Quantity, 0) + ISNULL(SuaDat, 0). Áp dụng rule T_SEW_SIZE_002."
     },
     {
       "name": "DefectNo",
