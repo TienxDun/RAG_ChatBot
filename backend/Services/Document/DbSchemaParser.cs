@@ -72,11 +72,9 @@ public class DbSchemaParser : IDbSchemaParser
                     var rSeverity = rule.TryGetProperty("severity", out var sevProp) ? sevProp.GetString() ?? "" : "";
                     var rText = rule.TryGetProperty("rule", out var ruleProp2) ? ruleProp2.GetString() ?? "" : "";
                     var rCorrect = rule.TryGetProperty("correct_example", out var corProp) ? corProp.GetString() ?? "" : "";
-                    var rWrong = rule.TryGetProperty("wrong_example", out var wrgProp) ? wrgProp.GetString() ?? "" : "";
 
                     sb.AppendLine($"- [{rId}] [{rSeverity}]: {rText}");
                     if (!string.IsNullOrWhiteSpace(rCorrect)) sb.AppendLine($"  * Ví dụ ĐÚNG: `{rCorrect}`");
-                    if (!string.IsNullOrWhiteSpace(rWrong)) sb.AppendLine($"  * Ví dụ SAI: `{rWrong}`");
                 }
                 sb.AppendLine();
             }
@@ -85,9 +83,6 @@ public class DbSchemaParser : IDbSchemaParser
         // Đọc columns
         var columns = columnsProp.EnumerateArray().ToList();
         sb.AppendLine($"## Cấu trúc cột ({columns.Count} cột):");
-        sb.AppendLine();
-        sb.AppendLine("| Tên cột | Kiểu dữ liệu | Vai trò (Role) | Mô tả |");
-        sb.AppendLine("|---------|--------------|----------------|-------|");
 
         foreach (var col in columns)
         {
@@ -112,9 +107,7 @@ public class DbSchemaParser : IDbSchemaParser
                 colDesc = descProp2.GetString() ?? "";
             }
             
-            colDesc = colDesc.Replace("|", "\\|");
-            
-            sb.AppendLine($"| {colName} | {colType} | {colRole} | {colDesc} |");
+            sb.AppendLine($"- {colName} ({colType}, {colRole}): {colDesc}");
         }
         sb.AppendLine();
 

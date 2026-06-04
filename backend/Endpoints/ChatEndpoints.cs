@@ -74,27 +74,37 @@ public static class ChatEndpoints
             }
             else
             {
-                var response = await orchestrator.ProcessQueryAsync(
-                    parameters.Message, 
-                    parameters.CollectionName, 
-                    async (step) => 
-                    {
-                        await SendEventAsync(new { type = "step", step });
-                    }, 
-                    async (chunk) => 
-                    {
-                        await SendEventAsync(new { type = "chunk", text = chunk });
-                    },
-                    ct, 
-                    false);
+                var tracker = new PerformanceTracker { IsEnabled = parameters.IsTestPerformance };
+                PerformanceContext.Current = tracker;
+                try
+                {
+                    var response = await orchestrator.ProcessQueryAsync(
+                        parameters.Message, 
+                        parameters.CollectionName, 
+                        async (step) => 
+                        {
+                            await SendEventAsync(new { type = "step", step });
+                        }, 
+                        async (chunk) => 
+                        {
+                            await SendEventAsync(new { type = "chunk", text = chunk });
+                        },
+                        ct, 
+                        false);
 
-                await SendEventAsync(new { 
-                    type = "final", 
-                    text = response.Text, 
-                    suggestedQuestions = response.SuggestedQuestions,
-                    rawData = response.RawData,
-                    isAmbiguous = response.IsAmbiguous
-                });
+                    await SendEventAsync(new { 
+                        type = "final", 
+                        text = response.Text, 
+                        suggestedQuestions = response.SuggestedQuestions,
+                        rawData = response.RawData,
+                        isAmbiguous = response.IsAmbiguous,
+                        metadata = response.Metadata
+                    });
+                }
+                finally
+                {
+                    PerformanceContext.Current = null;
+                }
             }
         }
         catch (OperationCanceledException)

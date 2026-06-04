@@ -73,6 +73,25 @@ public sealed class VertexAiClient
 
         // 6. Phân tích chuỗi JSON phản hồi từ API để trích xuất văn bản câu trả lời sinh ra từ mô hình
         using var doc = JsonDocument.Parse(body);
+
+        var tracker = Backend.Models.PerformanceContext.Current;
+        if (tracker != null && tracker.IsEnabled && doc.RootElement.TryGetProperty("usageMetadata", out var usage))
+        {
+            int prompt = usage.TryGetProperty("promptTokenCount", out var p) ? p.GetInt32() : 0;
+            int candidatesTokens = usage.TryGetProperty("candidatesTokenCount", out var c) ? c.GetInt32() : 0;
+
+            if (tracker.CurrentPhase == Backend.Models.PerformancePhase.Planning)
+            {
+                tracker.PlanningPromptTokens = prompt;
+                tracker.PlanningCandidatesTokens = candidatesTokens;
+            }
+            else if (tracker.CurrentPhase == Backend.Models.PerformancePhase.SqlGeneration)
+            {
+                tracker.SqlPromptTokens += prompt;
+                tracker.SqlCandidatesTokens += candidatesTokens;
+            }
+        }
+
         if (doc.RootElement.TryGetProperty("candidates", out var candidates) && candidates.GetArrayLength() > 0)
         {
             var candidate = candidates[0];
@@ -139,6 +158,16 @@ public sealed class VertexAiClient
 
         await foreach (var chunk in JsonSerializer.DeserializeAsyncEnumerable<VertexAiStreamChunk>(responseStream, _jsonOptions, ct))
         {
+            var tracker = Backend.Models.PerformanceContext.Current;
+            if (tracker != null && tracker.IsEnabled && chunk?.UsageMetadata != null)
+            {
+                if (tracker.CurrentPhase == Backend.Models.PerformancePhase.FinalGeneration)
+                {
+                    tracker.GenerationPromptTokens = chunk.UsageMetadata.PromptTokenCount;
+                    tracker.GenerationCandidatesTokens = chunk.UsageMetadata.CandidatesTokenCount;
+                }
+            }
+
             if (chunk?.Candidates != null && chunk.Candidates.Count > 0)
             {
                 var candidate = chunk.Candidates[0];
@@ -314,6 +343,14 @@ public sealed class VertexAiClient
     public sealed class VertexAiStreamChunk
     {
         public List<Candidate>? Candidates { get; set; }
+        public UsageMetadata? UsageMetadata { get; set; }
+    }
+
+    public sealed class UsageMetadata
+    {
+        public int PromptTokenCount { get; set; }
+        public int CandidatesTokenCount { get; set; }
+        public int TotalTokenCount { get; set; }
     }
 
     public sealed class Candidate

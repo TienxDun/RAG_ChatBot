@@ -72,9 +72,25 @@ export class SidebarComponent {
             });
         }
 
-        // Logic Fast-path đã bị loại bỏ
+        // Khởi tạo Toggle Chế độ kiểm thử hiệu năng
+        const perfToggle = document.getElementById('performance-mode-toggle');
+        if (perfToggle) {
+            const isPerfMode = localStorage.getItem('dodo_performance_mode') === 'true';
+            perfToggle.checked = isPerfMode;
 
-
+            perfToggle.addEventListener('change', (e) => {
+                localStorage.setItem('dodo_performance_mode', e.target.checked);
+                
+                // Hiển thị toast thông báo
+                if (window.app && window.app.toast) {
+                    window.app.toast.success(
+                        e.target.checked 
+                        ? "Đã bật chế độ kiểm thử hiệu năng!" 
+                        : "Đã tắt chế độ kiểm thử hiệu năng!"
+                    );
+                }
+            });
+        }
 
         // Khởi tạo trạng thái ban đầu từ State
         this.applySidebarState();

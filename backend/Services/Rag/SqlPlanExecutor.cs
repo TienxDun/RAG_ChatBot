@@ -81,7 +81,8 @@ public class SqlPlanExecutor : ISqlPlanExecutor
 
             for (int attempt = 1; attempt <= stepMaxAttempts; attempt++)
             {
-                var globalRules = await _ruleProvider.GetGlobalRulesAsync();
+                var isExcel = userQuery.Contains("DANH SÁCH Ý NGHĨA") || userQuery.Contains("YÊU CẦU ĐẶC BIỆT");
+                var globalRules = await _ruleProvider.GetGlobalRulesAsync(userQuery, isExcel);
                 var sqlPrompt = $@"Bạn là chuyên gia SQL Server cao cấp.
                     Thời gian hệ thống hiện tại: {currentTimeStr} (Việt Nam, UTC+7).
                     Cấu trúc database: {schemaInfo}
@@ -109,6 +110,12 @@ public class SqlPlanExecutor : ISqlPlanExecutor
 
                     4. Cú pháp phản hồi: Trả về mã SQL thô, không giải thích, không markdown.
                     {(string.IsNullOrEmpty(lastError) ? "" : $"\nLỖI TRƯỚC ĐÓ: {lastError}\nHãy sửa SQL.")}";
+
+                var tracker = Backend.Models.PerformanceContext.Current;
+                if (tracker != null && tracker.IsEnabled)
+                {
+                    tracker.CurrentPhase = Backend.Models.PerformancePhase.SqlGeneration;
+                }
 
                 generatedSql = await _aiClient.GenerateContentAsync(sqlPrompt, ct);
                 generatedSql = _responseParser.CleanSql(generatedSql);

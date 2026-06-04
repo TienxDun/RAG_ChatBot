@@ -160,16 +160,164 @@ export class MessageRenderer {
         return finalHtml;
     }
 
-    static createMessageElement(role, content, steps = [], suggestedQuestions = [], downloadUrl = null, downloadFileName = null, rawData = null, userFile = null, loadingStatus = null, duration = null, isAmbiguous = false) {
+    static renderPerformanceMetadata(metadata) {
+        if (!metadata || metadata.performance_enabled !== 'true') return '';
+
+        const getVal = (key, fallback = 0) => parseInt(metadata[key] || fallback, 10);
+        
+        const embedding = getVal('embedding_ms');
+        const schema = getVal('schema_retrieval_ms');
+        const planning = getVal('planning_ms');
+        const execution = getVal('execution_ms');
+        const generation = getVal('generation_ms');
+        const total = getVal('total_ms');
+
+        const planningPrompt = getVal('planning_prompt_tokens');
+        const planningCand = getVal('planning_candidates_tokens');
+        const sqlPrompt = getVal('sql_prompt_tokens');
+        const sqlCand = getVal('sql_candidates_tokens');
+        const genPrompt = getVal('generation_prompt_tokens');
+        const genCand = getVal('generation_candidates_tokens');
+
+        const totalPrompt = getVal('total_prompt_tokens');
+        const totalCand = getVal('total_candidates_tokens');
+        const totalTokens = getVal('total_tokens');
+
+        const getPct = (val) => total > 0 ? Math.min((val / total) * 100, 100).toFixed(1) : 0;
+
+        return `
+            <div class="perf-metric border-t border-dashed border-gray-200/10 mt-3 pt-3">
+                <button class="perf-metric__toggle" data-action="toggle-perf">
+                    <i class="ph-bold ph-gauge"></i>
+                    <span>Hiệu năng & Token (${total} ms • ${totalTokens} tokens)</span>
+                    <i class="ph-bold ph-caret-down perf-caret"></i>
+                </button>
+                <div class="perf-metric__content hidden">
+                    <div class="perf-dashboard">
+                        <!-- Phân tích Latency -->
+                        <div class="perf-dashboard__section">
+                            <h4 class="perf-dashboard__section-title">
+                                <i class="ph-bold ph-clock"></i> Phân tích thời gian
+                            </h4>
+                            <div class="perf-list">
+                                <div class="perf-item">
+                                    <div class="perf-item__label">
+                                        <span>Vector hóa câu hỏi</span>
+                                        <span class="perf-item__value">${embedding} ms</span>
+                                    </div>
+                                    <div class="perf-bar-track">
+                                        <div class="perf-bar-fill bg-indigo" style="width: ${getPct(embedding)}%"></div>
+                                    </div>
+                                </div>
+                                <div class="perf-item">
+                                    <div class="perf-item__label">
+                                        <span>Tìm kiếm Schema (Semantic)</span>
+                                        <span class="perf-item__value">${schema} ms</span>
+                                    </div>
+                                    <div class="perf-bar-track">
+                                        <div class="perf-bar-fill bg-blue" style="width: ${getPct(schema)}%"></div>
+                                    </div>
+                                </div>
+                                <div class="perf-item">
+                                    <div class="perf-item__label">
+                                        <span>Lập kế hoạch (Planning)</span>
+                                        <span class="perf-item__value">${planning} ms</span>
+                                    </div>
+                                    <div class="perf-bar-track">
+                                        <div class="perf-bar-fill bg-amber" style="width: ${getPct(planning)}%"></div>
+                                    </div>
+                                </div>
+                                <div class="perf-item">
+                                    <div class="perf-item__label">
+                                        <span>Sinh & Thực thi SQL (Execution)</span>
+                                        <span class="perf-item__value">${execution} ms</span>
+                                    </div>
+                                    <div class="perf-bar-track">
+                                        <div class="perf-bar-fill bg-emerald" style="width: ${getPct(execution)}%"></div>
+                                    </div>
+                                </div>
+                                <div class="perf-item">
+                                    <div class="perf-item__label">
+                                        <span>Sinh phản hồi final (Synthesis)</span>
+                                        <span class="perf-item__value">${generation} ms</span>
+                                    </div>
+                                    <div class="perf-bar-track">
+                                        <div class="perf-bar-fill bg-purple" style="width: ${getPct(generation)}%"></div>
+                                    </div>
+                                </div>
+                                <div class="perf-item font-bold border-t border-gray-200/10 pt-2 mt-2">
+                                    <div class="perf-item__label text-primary">
+                                        <span>Tổng cộng (E2E Latency)</span>
+                                        <span class="perf-item__value">${total} ms</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Phân tích Token -->
+                        <div class="perf-dashboard__section">
+                            <h4 class="perf-dashboard__section-title">
+                                <i class="ph-bold ph-cpu"></i> Tokens tiêu thụ
+                            </h4>
+                            <div class="perf-list">
+                                <div class="perf-item">
+                                    <div class="perf-item__label">
+                                        <span>Bước Lập kế hoạch (Planning)</span>
+                                        <span class="perf-item__value text-xs opacity-70">${planningPrompt} p | ${planningCand} c</span>
+                                    </div>
+                                    <div class="perf-tokens-bar">
+                                        <div class="perf-tokens-fill prompt" style="width: ${totalTokens > 0 ? (planningPrompt / totalTokens * 100) : 0}%" title="Prompt: ${planningPrompt}"></div>
+                                        <div class="perf-tokens-fill candidate" style="width: ${totalTokens > 0 ? (planningCand / totalTokens * 100) : 0}%" title="Candidate: ${planningCand}"></div>
+                                    </div>
+                                </div>
+                                <div class="perf-item">
+                                    <div class="perf-item__label">
+                                        <span>Bước Sinh SQL (SQL Gen)</span>
+                                        <span class="perf-item__value text-xs opacity-70">${sqlPrompt} p | ${sqlCand} c</span>
+                                    </div>
+                                    <div class="perf-tokens-bar">
+                                        <div class="perf-tokens-fill prompt" style="width: ${totalTokens > 0 ? (sqlPrompt / totalTokens * 100) : 0}%" title="Prompt: ${sqlPrompt}"></div>
+                                        <div class="perf-tokens-fill candidate" style="width: ${totalTokens > 0 ? (sqlCand / totalTokens * 100) : 0}%" title="Candidate: ${sqlCand}"></div>
+                                    </div>
+                                </div>
+                                <div class="perf-item">
+                                    <div class="perf-item__label">
+                                        <span>Bước Sinh câu trả lời (Synthesis)</span>
+                                        <span class="perf-item__value text-xs opacity-70">${genPrompt} p | ${genCand} c</span>
+                                    </div>
+                                    <div class="perf-tokens-bar">
+                                        <div class="perf-tokens-fill prompt" style="width: ${totalTokens > 0 ? (genPrompt / totalTokens * 100) : 0}%" title="Prompt: ${genPrompt}"></div>
+                                        <div class="perf-tokens-fill candidate" style="width: ${totalTokens > 0 ? (genCand / totalTokens * 100) : 0}%" title="Candidate: ${genCand}"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="perf-legend mt-2">
+                                    <span class="legend-item"><span class="legend-dot prompt"></span>Prompt</span>
+                                    <span class="legend-item"><span class="legend-dot candidate"></span>Candidates</span>
+                                </div>
+
+                                <div class="perf-item font-bold border-t border-gray-200/10 pt-2 mt-2">
+                                    <div class="perf-item__label text-secondary">
+                                        <span>Tổng Tokens</span>
+                                        <span class="perf-item__value">${totalTokens} (${totalPrompt}p | ${totalCand}c)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    static createMessageElement(role, content, steps = [], suggestedQuestions = [], downloadUrl = null, downloadFileName = null, rawData = null, userFile = null, loadingStatus = null, duration = null, isAmbiguous = false, metadata = null) {
         const messageEl = document.createElement('div');
         messageEl.className = `message message--${role === 'user' ? 'user' : 'ai'} animate-slide-up`;
         
-        // Lưu markdown để hỗ trợ xuất Excel trực tiếp từ Markdown
         if (content) {
             messageEl.setAttribute('data-markdown', content);
         }
 
-        // Lưu rawData vào data attribute để có thể truy xuất khi click export
         if (rawData) {
             try {
                 const dataObj = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
@@ -193,7 +341,6 @@ export class MessageRenderer {
             messageEl.setAttribute('data-download-filename', downloadFileName);
         }
 
-        // Lưu thông tin file vào attribute nếu là tin nhắn user
         if (role === 'user' && userFile) {
             messageEl.setAttribute('data-file', typeof userFile === 'string' ? userFile : userFile.name);
         }
@@ -213,6 +360,9 @@ export class MessageRenderer {
                 </div>
                 <div class="rag-steps-container">
                     ${steps.length > 0 ? this.renderRagSteps(steps, !content) : ''}
+                </div>
+                <div class="perf-metric-container">
+                    ${role === 'ai' ? this.renderPerformanceMetadata(metadata) : ''}
                 </div>
         `;
 
@@ -249,13 +399,10 @@ export class MessageRenderer {
         }
 
         messageEl.innerHTML = html;
-
-        // Đã loại bỏ hiển thị câu hỏi gợi ý (suggestions) theo yêu cầu
-
         return messageEl;
     }
 
-    static updateMessage(messageEl, content, steps = [], suggestedQuestions = [], downloadUrl = null, downloadFileName = null, rawData = null, userFile = null, loadingStatus = null, duration = null, isAmbiguous = false) {
+    static updateMessage(messageEl, content, steps = [], suggestedQuestions = [], downloadUrl = null, downloadFileName = null, rawData = null, userFile = null, loadingStatus = null, duration = null, isAmbiguous = false, metadata = null) {
         const contentEl = messageEl.querySelector('.markdown-content');
         const stepsContainer = messageEl.querySelector('.rag-steps-container');
         const footerActionsContainer = messageEl.querySelector('.footer-actions-container');
@@ -296,7 +443,6 @@ export class MessageRenderer {
                 contentEl.innerHTML = this.renderContent(content);
                 messageEl.setAttribute('data-markdown', content);
             } else if (steps.length > 0) {
-                // Nếu đang loading nhưng đã có steps, ẩn typing indicator để show steps rõ hơn
                 contentEl.innerHTML = ''; 
             } else {
                 contentEl.innerHTML = `
@@ -309,6 +455,19 @@ export class MessageRenderer {
         }
         if (stepsContainer && steps.length > 0) stepsContainer.innerHTML = this.renderRagSteps(steps, !content);
         
+        const perfContainer = messageEl.querySelector('.perf-metric-container');
+        if (perfContainer) {
+            perfContainer.innerHTML = this.renderPerformanceMetadata(metadata);
+        } else if (bubbleEl) {
+            const perfHtml = `<div class="perf-metric-container">${this.renderPerformanceMetadata(metadata)}</div>`;
+            const ragContainer = bubbleEl.querySelector('.rag-steps-container');
+            if (ragContainer) {
+                ragContainer.insertAdjacentHTML('afterend', perfHtml);
+            } else if (contentEl) {
+                contentEl.insertAdjacentHTML('afterend', perfHtml);
+            }
+        }
+
         const footerEl = messageEl.querySelector('.message__footer');
         if (footerEl && !content) {
             if (!footerEl.querySelector('.loading-timer')) {
