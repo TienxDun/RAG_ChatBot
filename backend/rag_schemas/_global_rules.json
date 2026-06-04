@@ -163,7 +163,7 @@
       "id": "G027",
       "category": "row_comparison_aggregation",
       "severity": "CRITICAL",
-      "rule": "So sánh/tính chênh lệch giữa các dòng: Cấm dùng Subquery độc lập. Bắt buộc dùng Conditional Aggregation (`SUM(CASE WHEN...)`)."
+      "rule": "So sánh/tính chênh lệch sản lượng/lỗi giữa các chuyền/đối tượng: TUYỆT ĐỐI CẤM dùng subquery độc lập trong câu SELECT để tính chênh lệch hoặc so sánh. BẮT BUỘC dùng Conditional Aggregation (SUM(CASE WHEN...)) gom tất cả về 1 dòng rồi tính hiệu số. Ví dụ ĐÚNG: `WITH Productivity AS (SELECT SUM(CASE WHEN l.Name = 'Daisy' THEN Quantity ELSE 0 END) AS DaisyQty, SUM(CASE WHEN l.Name = 'Cherry' THEN Quantity ELSE 0 END) AS CherryQty FROM ...) SELECT DaisyQty, CherryQty, ABS(DaisyQty - CherryQty) AS ChenhLech FROM Productivity`. Ví dụ SAI: `SELECT (SELECT SUM(Quantity) FROM ... WHERE Name = 'Daisy') - (SELECT SUM(Quantity) FROM ... WHERE Name = 'Cherry')`."
     },
     {
       "id": "G028",
