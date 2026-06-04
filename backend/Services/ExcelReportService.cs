@@ -95,6 +95,7 @@ public class ExcelReportService
         await onStep(new RagStep("Excel Template Analysis", excelAnalysisContent));
 
         // 2. Xây dựng câu query tích hợp các chỉ dẫn mapping cột cho RAG AI
+        var savedMappings = _mappingService.GetMapping(fileName);
         string combinedQuery;
         string mappingInstructions;
 
@@ -123,7 +124,15 @@ public class ExcelReportService
 
         if (templateInfo.Metadata.Count > 0)
         {
-            var metadataList = templateInfo.Metadata.Keys.Select(m => $"- Nhãn '{m}' -> Bạn BẮT BUỘC SELECT cột tương ứng từ database trong câu SELECT cuối cùng và đặt ALIAS (AS) khớp hoàn toàn với tên nhãn này (Dùng MAX/MIN nếu có GROUP BY, ví dụ: MAX(StyleID) AS [{m}] hoặc MAX(PlanCode) AS [{m}]).");
+            var metadataList = templateInfo.Metadata.Keys.Select(m =>
+            {
+                string desc = $"- Nhãn '{m}' -> Bạn BẮT BUỘC SELECT cột tương ứng từ database trong câu SELECT cuối cùng và đặt ALIAS (AS) khớp hoàn toàn với tên nhãn này (Dùng MAX/MIN nếu có GROUP BY, ví dụ: MAX(StyleID) AS [{m}] hoặc MAX(PlanCode) AS [{m}]).";
+                if (savedMappings.TryGetValue(m, out var customNote) && !string.IsNullOrWhiteSpace(customNote))
+                {
+                    desc += $" Chi tiết cách lấy/ý nghĩa: {customNote}";
+                }
+                return desc;
+            });
             var metadataInstructions = string.Join("\n", metadataList);
             mappingInstructions += $"\n\nYÊU CẦU BẮT BUỘC TRUY VẤN THÔNG TIN CHUNG (METADATA):\n" +
                                    $"- File Excel template có {templateInfo.Metadata.Count} nhãn thông tin chung ở đầu trang cần được điền dữ liệu:\n" +
@@ -132,7 +141,6 @@ public class ExcelReportService
         }
 
         // Lấy ghi chú cột Excel được lưu trữ lâu dài của người dùng
-        var savedMappings = _mappingService.GetMapping(fileName);
         string userNotes = "";
         if (savedMappings.Count > 0)
         {
