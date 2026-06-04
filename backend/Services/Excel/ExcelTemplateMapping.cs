@@ -9,6 +9,7 @@ public class ExcelTemplateSubtotalConfig
     public List<string> SumColumns { get; set; } = new();
     public string? LabelColumn { get; set; }
     public List<string> DefectRateColumns { get; set; } = new();
+    public List<string> MergeColumns { get; set; } = new();
 }
 
 public class ExcelTemplateMapping
