@@ -11,9 +11,21 @@ export class Toast {
         document.body.appendChild(this.container);
     }
 
-    // @param {Object} options - { title, message, type: 'success'|'error'|'info'|'warning', duration: 3000 }
-    static show({ title, message, type = 'info', duration = 3000 }) {
+    // @param {Object|string} options - { title, message, type: 'success'|'error'|'info'|'warning', duration: 3000 } hoặc chuỗi tin nhắn trực tiếp
+    static show(options, type = 'info', duration = 3000) {
         this.init();
+
+        let title = '';
+        let message = '';
+        
+        if (typeof options === 'string') {
+            message = options;
+        } else if (options && typeof options === 'object') {
+            title = options.title || '';
+            message = options.message || '';
+            type = options.type || type;
+            duration = options.duration || duration;
+        }
 
         const toast = document.createElement('div');
         toast.className = `toast toast-${type}`;

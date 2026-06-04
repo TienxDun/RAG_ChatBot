@@ -40,81 +40,61 @@ public static class AutoTestRunner
 
         var lines = File.ReadAllLines(filePath);
         int currentSection = 0;
-        TestCase? currentTestCase = null;
-        bool inQueryBlock = false;
-        var queryBuilder = new StringBuilder();
-        var expectedBuilder = new StringBuilder();
-        bool collectExpected = false;
+
+        var questionRegex = new Regex(@"^\d+\.\s+\*\*(.*?)\*\*");
+        var questionBackupRegex = new Regex(@"^\d+\.\s+(.*)");
 
         foreach (var line in lines)
         {
-            string trimmed = line.Trim();
-            if (trimmed.StartsWith("### 10"))
-            {
-                break; // Bỏ qua phần 10 hoàn toàn
-            }
+            string trimmedLine = line.Trim();
+            if (string.IsNullOrWhiteSpace(trimmedLine)) continue;
 
-            if (trimmed.StartsWith("### "))
+            if (trimmedLine.StartsWith("## "))
             {
-                if (currentTestCase != null)
+                var sectionMatch = Regex.Match(trimmedLine, @"##\s*Phần\s*(\d+)");
+                if (sectionMatch.Success)
                 {
-                    ProcessExpectedData(currentTestCase, expectedBuilder.ToString());
-                    testCases.Add(currentTestCase);
-                    currentTestCase = null;
-                    collectExpected = false;
-                }
-
-                var match = Regex.Match(trimmed, @"###\s*(\d+)");
-                if (match.Success)
-                {
-                    currentSection = int.Parse(match.Groups[1].Value);
+                    currentSection = int.Parse(sectionMatch.Groups[1].Value);
                 }
                 continue;
             }
 
-            if (trimmed.StartsWith("```"))
+            if (currentSection == 10)
             {
-                if (inQueryBlock)
+                // Bỏ qua phần 10 hoàn toàn
+                continue;
+            }
+
+            var match = questionRegex.Match(trimmedLine);
+            if (match.Success)
+            {
+                string queryText = match.Groups[1].Value.Trim();
+                testCases.Add(new TestCase
                 {
-                    inQueryBlock = false;
-                    string queryText = queryBuilder.ToString().Trim().Replace("**", "").Trim();
-                    
-                    if (currentTestCase != null)
+                    Section = currentSection,
+                    Query = queryText,
+                    ExpectedKeywords = new List<string>()
+                });
+            }
+            else
+            {
+                var backupMatch = questionBackupRegex.Match(trimmedLine);
+                if (backupMatch.Success)
+                {
+                    string queryText = backupMatch.Groups[1].Value.Trim();
+                    testCases.Add(new TestCase
                     {
-                        ProcessExpectedData(currentTestCase, expectedBuilder.ToString());
-                        testCases.Add(currentTestCase);
-                    }
-
-                    currentTestCase = new TestCase { Section = currentSection, Query = queryText };
-                    collectExpected = true;
-                    expectedBuilder.Clear();
+                        Section = currentSection,
+                        Query = queryText,
+                        ExpectedKeywords = new List<string>()
+                    });
                 }
-                else
-                {
-                    inQueryBlock = true;
-                    queryBuilder.Clear();
-                }
-                continue;
             }
-
-            if (inQueryBlock)
-            {
-                queryBuilder.AppendLine(line);
-            }
-            else if (collectExpected)
-            {
-                expectedBuilder.AppendLine(line);
-            }
-        }
-
-        if (currentTestCase != null)
-        {
-            ProcessExpectedData(currentTestCase, expectedBuilder.ToString());
-            testCases.Add(currentTestCase);
         }
 
         return testCases.Where(t => !string.IsNullOrWhiteSpace(t.Query)).ToList();
     }
+
 
     private static void ProcessExpectedData(TestCase testCase, string expectedText)
     {

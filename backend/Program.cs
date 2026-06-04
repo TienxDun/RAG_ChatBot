@@ -107,6 +107,84 @@ app.MapGet("/api/health", () => Results.Ok(new {
     message = "API is ready"
 }));
 
+app.MapGet("/api/testcases", async () =>
+{
+    try
+    {
+        var currentDir = Directory.GetCurrentDirectory();
+        var testCasesPath = Path.GetFullPath(Path.Combine(currentDir, "..", "test_cases.md"));
+
+        if (!File.Exists(testCasesPath))
+        {
+            testCasesPath = Path.GetFullPath(Path.Combine(currentDir, "test_cases.md"));
+        }
+
+        if (!File.Exists(testCasesPath))
+        {
+            return Results.NotFound(new { error = "Không tìm thấy file test_cases.md" });
+        }
+
+        var lines = await File.ReadAllLinesAsync(testCasesPath);
+        var sections = new List<object>();
+        string currentSectionName = "Chưa phân loại";
+        var currentQuestions = new List<string>();
+
+        var questionRegex = new System.Text.RegularExpressions.Regex(@"^\d+\.\s+\*\*(.*?)\*\*");
+        var questionBackupRegex = new System.Text.RegularExpressions.Regex(@"^\d+\.\s+(.*)");
+
+        foreach (var line in lines)
+        {
+            var trimmedLine = line.Trim();
+            if (string.IsNullOrWhiteSpace(trimmedLine)) continue;
+
+            if (trimmedLine.StartsWith("## "))
+            {
+                if (currentQuestions.Count > 0)
+                {
+                    sections.Add(new
+                    {
+                        section = currentSectionName,
+                        questions = currentQuestions.ToList()
+                    });
+                    currentQuestions.Clear();
+                }
+                currentSectionName = trimmedLine.Substring(3).Trim();
+            }
+            else
+            {
+                var match = questionRegex.Match(trimmedLine);
+                if (match.Success)
+                {
+                    currentQuestions.Add(match.Groups[1].Value.Trim());
+                }
+                else
+                {
+                    var backupMatch = questionBackupRegex.Match(trimmedLine);
+                    if (backupMatch.Success)
+                    {
+                        currentQuestions.Add(backupMatch.Groups[1].Value.Trim());
+                    }
+                }
+            }
+        }
+
+        if (currentQuestions.Count > 0)
+        {
+            sections.Add(new
+            {
+                section = currentSectionName,
+                questions = currentQuestions
+            });
+        }
+
+        return Results.Ok(sections);
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem(ex.Message);
+    }
+});
+
 app.MapGet("/api/documents/collections", async (QdrantService qdrant) => 
 {
     var collections = await qdrant.GetCollectionsAsync();
@@ -167,6 +245,42 @@ app.MapGet("/api/download/{id}", (string id, Microsoft.Extensions.Caching.Memory
 app.MapPost("/api/chat/export-excel", ChatEndpoints.HandleExportExcelAsync)
     .WithName("ExportExcel")
     .WithOpenApi();
+
+app.MapPost("/api/sql/execute", async ([FromBody] ExecuteSqlRequest request, SqlService sqlService, CancellationToken ct) =>
+{
+    if (string.IsNullOrWhiteSpace(request.Sql))
+    {
+        return Results.BadRequest(new { error = "SQL query is required." });
+    }
+
+    try
+    {
+        var dataTable = await sqlService.ExecuteQueryAsDataTableAsync(request.Sql, ct);
+        
+        var rows = new List<Dictionary<string, object>>();
+        foreach (System.Data.DataRow row in dataTable.Rows)
+        {
+            var dict = new Dictionary<string, object>();
+            foreach (System.Data.DataColumn col in dataTable.Columns)
+            {
+                dict[col.ColumnName] = row[col] == DBNull.Value ? null : row[col];
+            }
+            rows.Add(dict);
+        }
+
+        return Results.Ok(new 
+        { 
+            columns = dataTable.Columns.Cast<System.Data.DataColumn>().Select(c => c.ColumnName).ToList(), 
+            data = rows 
+        });
+    }
+    catch (Exception ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+})
+.WithName("ExecuteSql")
+.WithOpenApi();
 
 app.MapPost("/api/documents/upload", async (HttpContext context, DocumentProcessor processor, CancellationToken ct) =>
 {
@@ -243,4 +357,6 @@ TemplateCacheEndpoints.MapRoutes(app);
 
 
 app.Run();
+
+public record ExecuteSqlRequest(string Sql);
 

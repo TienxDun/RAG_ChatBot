@@ -37,6 +37,7 @@
     background: rgba(255, 255, 255, 0.25);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
+    overflow: hidden; /* Cắt các phần tử tràn ra ngoài */
 }
 
 [data-theme="dark"] .template-list-panel {
@@ -135,6 +136,7 @@
     transition: all 0.25s ease;
     position: relative;
     overflow: hidden;
+    flex-shrink: 0; /* Ngăn chặn co card làm đè chồng lên nhau */
 }
 
 .template-card:hover {
@@ -639,18 +641,149 @@
     color: white;
 }
 
-/* Responsiveness */
-@media (max-width: 1024px) {
+/* Button Back To List (dành cho Mobile/Tablet) */
+.btn-back-to-list {
+    display: none; /* Mặc định ẩn trên Desktop */
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--foreground);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-right: 12px;
+    flex-shrink: 0;
+}
+
+.btn-back-to-list:hover {
+    background: rgba(124, 58, 237, 0.05);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.btn-back-to-list i {
+    font-size: 1rem;
+}
+
+/* Responsiveness - Master-Detail Pattern */
+@media (max-width: 992px) {
     .template-manager-layout {
-        flex-direction: column;
+        position: relative;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: row; /* Vẫn giữ flex-row nhưng chỉ hiển thị 1 panel */
     }
     
+    /* Mặc định chỉ hiển thị danh sách & upload, ẩn chi tiết */
     .template-list-panel {
-        width: 100%;
-        min-width: 100%;
-        height: 280px;
+        width: 100% !important;
+        min-width: 100% !important;
+        height: 100% !important;
+        display: flex !important;
         border-right: none;
-        border-bottom: 1px solid var(--glass-border);
+        border-bottom: none;
+        background: var(--background);
+    }
+    
+    .template-detail-panel {
+        display: none !important;
+        width: 100% !important;
+        height: 100% !important;
+    }
+    
+    /* Khi ở trạng thái xem chi tiết (show-detail) */
+    .template-manager-layout.show-detail .template-list-panel {
+        display: none !important;
+    }
+    
+    .template-manager-layout.show-detail .template-detail-panel {
+        display: flex !important;
+    }
+    
+    .btn-back-to-list {
+        display: inline-flex;
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        margin-right: 0;
+    }
+
+    .btn-save-mapping {
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        padding: 8px 16px;
+        font-size: 0.8rem;
+    }
+    
+    /* Tối ưu hóa padding/spacing trên thiết bị di động và căn giữa */
+    .template-workspace-header {
+        position: relative;
+        padding: 1rem 7.5rem 1rem 7.5rem !important; /* Chừa khoảng trống 2 bên cho 2 nút */
+        justify-content: center;
+        text-align: center;
+    }
+
+    .template-workspace-info {
+        width: 100%;
+        text-align: center;
+    }
+
+    .template-workspace-info h2 {
+        justify-content: center;
+        font-size: 0.95rem !important;
+        word-break: break-all;
+    }
+
+    .template-workspace-info p {
+        font-size: 0.7rem !important;
+    }
+    
+    .template-workspace-body {
+        padding: 1rem;
+    }
+
+    @media (max-width: 768px) {
+        .template-workspace-header {
+            padding: 1rem 4.5rem 1rem 7.5rem !important; /* Bên phải chừa ít hơn vì nút Lưu chỉ còn icon */
+        }
+        .btn-save-mapping {
+            right: 0.75rem;
+            padding: 8px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn-save-mapping span {
+            display: none; /* chỉ hiển thị icon trên màn hình nhỏ */
+        }
+    }
+    
+    .column-mapping-table th:nth-child(2),
+    .column-mapping-table td:nth-child(2) {
+        display: none; /* ẩn bớt cột chỉ số trên mobile nếu màn hình quá chật */
+    }
+    
+    /* Responsive cho các cột bảng mapping trên mobile */
+    .column-mapping-table th,
+    .column-mapping-row td {
+        padding: 8px;
+    }
+    
+    .column-note-input {
+        min-height: 50px;
+        padding: 6px;
     }
 }
 

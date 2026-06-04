@@ -242,7 +242,7 @@ export class MessageRenderer {
                                         <span class="perf-item__value">${generation} ms</span>
                                     </div>
                                     <div class="perf-bar-track">
-                                        <div class="perf-bar-fill bg-purple" style="width: ${getPct(generation)}%"></div>
+                                        <div class="perf-bar-fill bg-teal-perf" style="width: ${getPct(generation)}%"></div>
                                     </div>
                                 </div>
                                 <div class="perf-item font-bold border-t border-gray-200/10 pt-2 mt-2">

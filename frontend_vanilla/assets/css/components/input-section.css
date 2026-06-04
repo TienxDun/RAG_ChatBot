@@ -351,10 +351,10 @@ textarea::placeholder {
 }
 
 .mic-btn.active {
-    background: #8b5cf6;
+    background: #14b8a6;
     color: white;
-    border-color: #8b5cf6;
-    box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
+    border-color: #14b8a6;
+    box-shadow: 0 0 15px rgba(20, 184, 166, 0.4);
 }
 
 /* Send Button */
@@ -877,7 +877,7 @@ textarea::placeholder {
 }
 
 .excel-grid-cell.mapped-header {
-    background: rgba(124, 58, 237, 0.1) !important; /* Purpleish header row highlight */
+    background: rgba(13, 148, 136, 0.1) !important; /* Tealish header row highlight */
 }
 
 /* Grid Selector Widget Form styling */
@@ -886,8 +886,8 @@ textarea::placeholder {
     flex-wrap: wrap;
     align-items: center;
     gap: 0.75rem;
-    background: rgba(124, 58, 237, 0.03);
-    border: 1px dashed rgba(124, 58, 237, 0.25);
+    background: rgba(13, 148, 136, 0.03);
+    border: 1px dashed rgba(13, 148, 136, 0.25);
     border-radius: 8px;
     padding: 0.6rem 0.8rem;
     font-size: 0.8rem;

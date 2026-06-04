@@ -229,6 +229,10 @@ export class TemplateManagerComponent {
                 </div>
             `;
         }
+        const layout = this.container.querySelector('.template-manager-layout');
+        if (layout) {
+            layout.classList.remove('show-detail');
+        }
     }
 
     /**
@@ -246,6 +250,12 @@ export class TemplateManagerComponent {
                 card.classList.remove('active');
             }
         });
+
+        // Thêm class show-detail cho layout trên di động
+        const layout = this.container.querySelector('.template-manager-layout');
+        if (layout) {
+            layout.classList.add('show-detail');
+        }
 
         await this.analyzeAndLoadWorkspace(id, filename);
     }
@@ -322,10 +332,17 @@ export class TemplateManagerComponent {
             <div class="template-workspace">
                 <!-- Header Workspace -->
                 <div class="template-workspace-header">
+                    <button id="btn-back-to-list" class="btn-back-to-list" title="Quay lại danh sách tệp mẫu">
+                        <i class="ph-bold ph-arrow-left"></i>
+                        <span>Danh sách</span>
+                    </button>
                     <div class="template-workspace-info">
                         <h2><i class="ph-bold ph-file-spreadsheet" style="color: #1d6f42;"></i> ${this.selectedTemplate.fileName}</h2>
                         <p>Loại bảng mẫu phát hiện: <strong>${data.type === 'Hierarchical' ? 'Tiêu đề gộp phân tầng (Hierarchical)' : 'Bảng phẳng (Horizontal)'}</strong> | Dòng tiêu đề cột: <strong>Dòng ${data.headerRowIndex}</strong></p>
                     </div>
+                    <button class="btn-save-mapping" id="btn-save-template-mapping">
+                        <i class="ph-bold ph-floppy-disk"></i> <span>Lưu cấu hình</span>
+                    </button>
                 </div>
 
                 <!-- Tab bar -->
@@ -358,7 +375,7 @@ export class TemplateManagerComponent {
                                 Điều này giúp Trợ lý AI (RAG) hiểu rõ ý nghĩa của cột để truy vấn dữ liệu chính xác nhất.
                             </p>
                             <button class="btn-auto-map" id="btn-auto-map-columns">
-                                <i class="ph-bold ph-sparkles"></i> Tự động điền bằng AI
+                                <i class="ph-bold ph-sparkle"></i> Tự động điền bằng AI
                             </button>
                         </div>
                         <div class="column-mapping-scroll-container" style="flex: 1; overflow-y: auto; padding-right: 4px;">
@@ -379,13 +396,6 @@ export class TemplateManagerComponent {
                             </div>
                         </div>
                     </div>
-                </div>
-
-                <!-- Footer chứa nút Lưu -->
-                <div class="template-workspace-footer">
-                    <button class="btn-save-mapping" id="btn-save-template-mapping">
-                        <i class="ph-bold ph-floppy-disk"></i> Lưu cấu hình
-                    </button>
                 </div>
             </div>
         `;
@@ -515,6 +525,24 @@ export class TemplateManagerComponent {
      * Đăng ký sự kiện của Workspace sau khi render
      */
     bindWorkspaceEvents() {
+        // Nút quay lại danh sách trên di động
+        const backBtn = document.getElementById('btn-back-to-list');
+        if (backBtn) {
+            backBtn.addEventListener('click', () => {
+                const layout = this.container.querySelector('.template-manager-layout');
+                if (layout) {
+                    layout.classList.remove('show-detail');
+                }
+                // Bỏ chọn active card
+                const cards = document.querySelectorAll('.template-card');
+                cards.forEach(card => card.classList.remove('active'));
+                
+                this.selectedTemplate = null;
+                this.selectedTemplateData = null;
+                this.renderEmptyDetails();
+            });
+        }
+
         // Tab switching
         const tabBtns = this.container.querySelectorAll('.template-tab-btn');
         tabBtns.forEach(btn => {
@@ -669,7 +697,7 @@ export class TemplateManagerComponent {
             }
             if (autoMapBtn) {
                 autoMapBtn.disabled = false;
-                autoMapBtn.innerHTML = `<i class="ph-bold ph-sparkles"></i> Tự động điền bằng AI`;
+                autoMapBtn.innerHTML = `<i class="ph-bold ph-sparkle"></i> Tự động điền bằng AI`;
             }
         }
     }

@@ -412,7 +412,7 @@
 }
 
 [data-theme="dark"] .perf-dashboard__section-title i {
-    color: #c084fc;
+    color: #2dd4bf;
 }
 
 .perf-list {
@@ -462,7 +462,7 @@
 .perf-bar-fill.bg-blue { background: #3b82f6; }
 .perf-bar-fill.bg-amber { background: #f59e0b; }
 .perf-bar-fill.bg-emerald { background: #10b981; }
-.perf-bar-fill.bg-purple { background: #8b5cf6; }
+.perf-bar-fill.bg-teal-perf { background: #14b8a6; }
 
 /* Tokens bar styling */
 .perf-tokens-bar {

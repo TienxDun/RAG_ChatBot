@@ -154,6 +154,18 @@
     margin-bottom: 1rem;
 }
 
+.sidebar__title-history {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--foreground);
+    opacity: 0.8;
+    letter-spacing: 0.05em;
+    margin-top: 0.75rem;
+    margin-bottom: 0.25rem;
+    text-align: center;
+}
+
 .sidebar__footer {
     position: relative;
     margin-top: auto;
@@ -864,8 +876,8 @@
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    margin-bottom: 1.25rem;
-    padding-bottom: 1.25rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
     border-bottom: 1px solid var(--glass-border);
 }
 

@@ -1,0 +1,1032 @@
+// TestingManager.js - Auto Testing Workspace component
+import { state } from '../core/State.js';
+import { ApiClient } from '../core/ApiClient.js';
+import { ENDPOINTS } from '../core/Config.js';
+import { Toast } from './Toast.js';
+import { MessageRenderer } from './MessageRenderer.js';
+
+export class TestingManagerComponent {
+    constructor() {
+        this.container = document.getElementById('testing-page');
+        this.testCases = []; // Danh sách toàn bộ test case từ backend
+        this.queue = [];     // Stack câu hỏi đang chờ chạy
+        this.isRunning = false;
+        this.shouldStop = false;
+        this.currentAbortController = null;
+        this.results = []; // Lưu kết quả thực thi chi tiết
+        this.activeResultIndex = -1; // Index câu hỏi đang được xem chi tiết
+        
+        // Khôi phục hàng đợi từ localStorage nếu có
+        try {
+            const savedQueue = localStorage.getItem('dodo_testing_queue');
+            if (savedQueue) {
+                this.queue = JSON.parse(savedQueue);
+            }
+        } catch (e) {
+            console.error('Không thể khôi phục hàng đợi test cases:', e);
+        }
+
+        this.init();
+    }
+
+    init() {
+        // Đăng ký chuyển đổi tab trang Kiểm thử
+        state.subscribe((key, value) => {
+            if (key === 'activePage') {
+                if (value === 'testing') {
+                    console.log('🔍 TestingManager: Navigating to testing page...');
+                    this.container.classList.remove('hidden');
+                    
+                    // Khởi tạo các sự kiện và tải test cases lần đầu tiên
+                    this.setupUI();
+                    if (this.testCases.length === 0) {
+                        this.loadTestCases();
+                    }
+                } else {
+                    this.container.classList.add('hidden');
+                    // Nếu đang chạy mà chuyển trang khác thì dừng chạy
+                    if (this.isRunning) {
+                        this.stopTesting();
+                    }
+                }
+            }
+        });
+    }
+
+    setupUI() {
+        // Gán sự kiện cho các nút điều khiển hàng đợi
+        const btnRun = document.getElementById('btn-run-testing');
+        const btnStop = document.getElementById('btn-stop-testing');
+        const btnClear = document.getElementById('btn-clear-queue');
+        const btnAddCustom = document.getElementById('btn-add-custom-question');
+        const inputCustom = document.getElementById('input-custom-question');
+        const btnAddAll = document.getElementById('btn-add-all-testcases');
+
+        if (btnRun && !btnRun.dataset.bound) {
+            btnRun.addEventListener('click', () => this.runSequential());
+            btnRun.dataset.bound = 'true';
+        }
+
+        if (btnStop && !btnStop.dataset.bound) {
+            btnStop.addEventListener('click', () => this.stopTesting());
+            btnStop.dataset.bound = 'true';
+        }
+
+        if (btnClear && !btnClear.dataset.bound) {
+            btnClear.addEventListener('click', () => this.clearQueue());
+            btnClear.dataset.bound = 'true';
+        }
+
+        if (btnAddCustom && !btnAddCustom.dataset.bound) {
+            const addAction = () => {
+                const question = inputCustom.value.trim();
+                if (question) {
+                    this.addToQueue(question);
+                    inputCustom.value = '';
+                }
+            };
+            btnAddCustom.addEventListener('click', addAction);
+            inputCustom.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') addAction();
+            });
+            btnAddCustom.dataset.bound = 'true';
+        }
+
+        if (btnAddAll && !btnAddAll.dataset.bound) {
+            btnAddAll.addEventListener('click', () => {
+                if (this.testCases.length === 0) return;
+                let count = 0;
+                this.testCases.forEach(sec => {
+                    sec.questions.forEach(q => {
+                        this.queue.push(q);
+                        count++;
+                    });
+                });
+                this.saveQueue();
+                this.renderQueue();
+                Toast.show(`Đã thêm toàn bộ ${count} câu hỏi vào hàng đợi`, 'success');
+            });
+            btnAddAll.dataset.bound = 'true';
+        }
+
+        this.renderQueue();
+        this.setupResponsiveCollapse();
+    }
+
+    async loadTestCases() {
+        const accordionContainer = document.getElementById('testcase-list-accordion');
+        if (!accordionContainer) return;
+
+        try {
+            const data = await ApiClient.get('/testcases');
+            this.testCases = data;
+            this.renderTestCases();
+        } catch (error) {
+            console.error('Không thể tải test cases:', error);
+            accordionContainer.innerHTML = `
+                <div class="loading-state text-destructive">
+                    <i class="ph-bold ph-x-circle"></i> Lỗi khi tải danh sách câu hỏi: ${error.message}
+                </div>
+            `;
+            Toast.show('Không thể tải danh sách test cases', 'error');
+        }
+    }
+
+    renderTestCases() {
+        const accordionContainer = document.getElementById('testcase-list-accordion');
+        if (!accordionContainer) return;
+
+        if (this.testCases.length === 0) {
+            accordionContainer.innerHTML = '<div class="loading-state">Danh sách test cases trống</div>';
+            return;
+        }
+
+        accordionContainer.innerHTML = this.testCases.map((sec, secIndex) => {
+            const sectionId = `accordion-sec-${secIndex}`;
+            return `
+                <div class="accordion-item" id="${sectionId}">
+                    <div class="accordion-header">
+                        <div class="accordion-header-left">
+                            <i class="ph-bold ph-caret-right accordion-icon"></i>
+                            <span>${sec.section}</span>
+                        </div>
+                        <div class="accordion-actions">
+                            <span class="badge" style="background: var(--muted); color: var(--foreground);">${sec.questions.length}</span>
+                            <button class="btn btn-secondary btn-sm btn-add-section" title="Thêm tất cả câu hỏi của phần này" data-index="${secIndex}">
+                                <i class="ph-bold ph-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="accordion-content">
+                        <div class="testcase-list">
+                            ${sec.questions.map((q, qIndex) => `
+                                <div class="testcase-item" data-question="${encodeURIComponent(q)}">
+                                    <span class="testcase-text">${qIndex + 1}. ${q}</span>
+                                    <button class="btn-add-tc" title="Thêm vào hàng đợi">
+                                        <i class="ph-bold ph-plus-circle"></i>
+                                    </button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        // Gán sự kiện click accordion toggle
+        accordionContainer.querySelectorAll('.accordion-header').forEach(header => {
+            header.addEventListener('click', (e) => {
+                // Nếu click vào nút thêm section thì bỏ qua việc toggle accordion
+                if (e.target.closest('.btn-add-section')) return;
+
+                const item = header.closest('.accordion-item');
+                const isActive = item.classList.contains('active');
+                
+                // Thu gọn các accordion khác
+                accordionContainer.querySelectorAll('.accordion-item').forEach(i => {
+                    i.classList.remove('active');
+                });
+
+                if (!isActive) {
+                    item.classList.add('active');
+                }
+            });
+        });
+
+        // Gán sự kiện thêm section
+        accordionContainer.querySelectorAll('.btn-add-section').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const index = parseInt(btn.getAttribute('data-index'));
+                const section = this.testCases[index];
+                if (section) {
+                    section.questions.forEach(q => this.queue.push(q));
+                    this.saveQueue();
+                    this.renderQueue();
+                    Toast.show(`Đã thêm ${section.questions.length} câu hỏi của "${section.section}"`, 'success');
+                }
+            });
+        });
+
+        // Gán sự kiện thêm từng câu hỏi
+        accordionContainer.querySelectorAll('.testcase-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const question = decodeURIComponent(item.getAttribute('data-question'));
+                this.addToQueue(question);
+            });
+        });
+    }
+
+    addToQueue(question) {
+        this.queue.push(question);
+        this.saveQueue();
+        this.renderQueue();
+        Toast.show('Đã thêm câu hỏi vào hàng đợi', 'success');
+    }
+
+    removeFromQueue(index) {
+        if (this.isRunning) {
+            Toast.show('Không thể xóa câu hỏi khi đang chạy kiểm thử', 'warning');
+            return;
+        }
+        this.queue.splice(index, 1);
+        this.saveQueue();
+        this.renderQueue();
+    }
+
+    clearQueue() {
+        if (this.isRunning) {
+            Toast.show('Không thể xóa hàng đợi khi đang chạy kiểm thử', 'warning');
+            return;
+        }
+        if (confirm('Bạn có chắc chắn muốn xóa sạch hàng đợi câu hỏi hiện tại không?')) {
+            this.queue = [];
+            this.saveQueue();
+            this.renderQueue();
+            Toast.show('Đã xóa sạch hàng đợi', 'success');
+        }
+    }
+
+    saveQueue() {
+        localStorage.setItem('dodo_testing_queue', JSON.stringify(this.queue));
+    }
+
+    renderQueue() {
+        const countBadge = document.getElementById('queue-count-badge');
+        const queueList = document.getElementById('queue-items-list');
+        const btnRun = document.getElementById('btn-run-testing');
+
+        if (countBadge) countBadge.innerText = this.queue.length;
+
+        if (!queueList) return;
+
+        if (this.queue.length === 0) {
+            queueList.classList.add('empty');
+            queueList.innerHTML = `<div class="queue-empty-msg">Chưa có câu hỏi nào trong hàng đợi. Hãy chọn câu hỏi ở cột bên trái hoặc tự nhập câu hỏi.</div>`;
+            if (btnRun) btnRun.disabled = true;
+            return;
+        }
+
+        queueList.classList.remove('empty');
+        queueList.innerHTML = this.queue.map((q, index) => `
+            <div class="queue-item">
+                <span class="result-index">${index + 1}</span>
+                <span class="queue-item-text" title="${q}">${q}</span>
+                <button class="btn-remove-queue" data-index="${index}" title="Xóa khỏi hàng đợi">
+                    <i class="ph-bold ph-trash"></i>
+                </button>
+            </div>
+        `).join('');
+
+        // Gán sự kiện xóa item
+        queueList.querySelectorAll('.btn-remove-queue').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const index = parseInt(btn.getAttribute('data-index'));
+                this.removeFromQueue(index);
+            });
+        });
+
+        if (btnRun) {
+            btnRun.disabled = this.isRunning;
+        }
+    }
+
+    async runSequential() {
+        if (this.queue.length === 0 || this.isRunning) return;
+
+        this.isRunning = true;
+        this.shouldStop = false;
+        this.results = []; // Reset kết quả
+
+        // Cập nhật trạng thái các nút bấm điều khiển
+        document.getElementById('btn-run-testing').classList.add('hidden');
+        document.getElementById('btn-stop-testing').classList.remove('hidden');
+        document.getElementById('btn-clear-queue').disabled = true;
+        document.getElementById('btn-add-all-testcases').disabled = true;
+        document.getElementById('btn-add-custom-question').disabled = true;
+        document.getElementById('input-custom-question').disabled = true;
+        document.querySelectorAll('.btn-remove-queue').forEach(b => b.disabled = true);
+
+        // Hiển thị thanh tiến trình và tổng quan kết quả
+        const progressContainer = document.getElementById('testing-progress-container');
+        const resultsSummary = document.getElementById('results-summary');
+        const resultsList = document.getElementById('results-list');
+
+        if (progressContainer) progressContainer.classList.remove('hidden');
+        if (resultsSummary) resultsSummary.classList.remove('hidden');
+        if (resultsList) resultsList.innerHTML = ''; // Clear kết quả cũ
+
+        let successCount = 0;
+        let failCount = 0;
+        let totalDuration = 0;
+        const totalQuestions = this.queue.length;
+
+        this.updateSummary(0, 0, 0);
+
+        for (let i = 0; i < totalQuestions; i++) {
+            if (this.shouldStop) {
+                Toast.show('Đã dừng chạy kiểm thử tuần tự.', 'info');
+                break;
+            }
+
+            const question = this.queue[i];
+
+            // Khởi tạo đối tượng kết quả cho câu hỏi này
+            this.results[i] = {
+                question: question,
+                status: 'running',
+                duration: 0,
+                aiContent: '',
+                steps: [],
+                error: null
+            };
+
+            // 1. Tạo Card kết quả dạng tóm tắt ở cột giữa
+            const cardId = `result-card-${i}`;
+            const resultCardHtml = `
+                <div class="result-card status-running" id="${cardId}">
+                    <div class="result-card-header">
+                        <div class="result-card-header-left">
+                            <span class="result-index">${i + 1}</span>
+                            <span class="result-question" title="${question}">${question}</span>
+                        </div>
+                        <div class="result-card-header-right">
+                            <span class="result-duration" id="${cardId}-duration">Đang chạy...</span>
+                            <span class="result-status-icon running" id="${cardId}-icon">
+                                <i class="ph-bold ph-circle-notch animate-spin"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            resultsList.insertAdjacentHTML('beforeend', resultCardHtml);
+
+            // Tự động cuộn xuống kết quả mới nhất ở cột giữa
+            resultsList.scrollTop = resultsList.scrollHeight;
+
+            // Đăng ký sự kiện click để xem chi tiết
+            const card = document.getElementById(cardId);
+            card.addEventListener('click', () => {
+                this.selectResult(i);
+            });
+
+            // Tự động chọn và hiển thị chi tiết câu đang chạy ở cột bên phải
+            this.selectResult(i);
+
+            // Cập nhật thanh tiến trình tổng quát
+            this.updateProgressBar(i, totalQuestions, question);
+
+            const startTime = Date.now();
+            let finalData = null;
+            let runError = null;
+
+            try {
+                // 2. Chạy request với cơ chế Retry 1 lần
+                finalData = await this.executeQuestionWithRetry(question, i);
+            } catch (err) {
+                runError = err;
+            }
+
+            const duration = Math.round((Date.now() - startTime) / 1000);
+            totalDuration += duration;
+
+            this.results[i].duration = duration;
+
+            // 3. Cập nhật trạng thái kết quả trên Card ở cột giữa
+            const durationEl = document.getElementById(`${cardId}-duration`);
+            const iconEl = document.getElementById(`${cardId}-icon`);
+
+            if (durationEl) durationEl.innerText = `${duration}s`;
+
+            if (runError) {
+                failCount++;
+                this.results[i].status = 'error';
+                this.results[i].error = runError.message;
+                card.classList.remove('status-running');
+                card.classList.add('status-error');
+                if (iconEl) iconEl.innerHTML = `<i class="ph-bold ph-x-circle" style="color: var(--destructive);"></i>`;
+            } else {
+                successCount++;
+                this.results[i].status = 'success';
+                card.classList.remove('status-running');
+                card.classList.add('status-success');
+                if (iconEl) iconEl.innerHTML = `<i class="ph-bold ph-check-circle" style="color: #22c55e;"></i>`;
+            }
+
+            // Nếu đang xem câu hỏi này, render lại để cập nhật Header / Badge trạng thái
+            if (this.activeResultIndex === i) {
+                this.renderDetailView(i);
+            }
+
+            // Cập nhật bảng tổng hợp kết quả
+            const avgTime = Math.round(totalDuration / (successCount + failCount));
+            this.updateSummary(successCount, failCount, avgTime);
+        }
+
+        // Cập nhật hoàn thành tiến trình
+        this.updateProgressBar(totalQuestions, totalQuestions, 'Hoàn thành kiểm thử');
+
+        // Khôi phục trạng thái nút bấm
+        this.isRunning = false;
+        document.getElementById('btn-run-testing').classList.remove('hidden');
+        document.getElementById('btn-stop-testing').classList.add('hidden');
+        document.getElementById('btn-clear-queue').disabled = false;
+        document.getElementById('btn-add-all-testcases').disabled = false;
+        document.getElementById('btn-add-custom-question').disabled = false;
+        document.getElementById('input-custom-question').disabled = false;
+        document.querySelectorAll('.btn-remove-queue').forEach(b => b.disabled = false);
+        this.renderQueue();
+
+        Toast.show(`Đã hoàn thành lượt chạy kiểm thử. Thành công: ${successCount}, Thất bại: ${failCount}`, successCount > 0 ? 'success' : 'error');
+    }
+
+    updateProgressBar(current, total, currentQuestion) {
+        const percent = Math.round((current / total) * 100);
+        const statusText = document.getElementById('progress-status-text');
+        const percentText = document.getElementById('progress-percentage-text');
+        const progressBar = document.getElementById('testing-progress-bar');
+
+        if (statusText) {
+            statusText.innerText = current === total 
+                ? `Hoàn thành kiểm thử: ${total}/${total}`
+                : `Đang chạy: ${current + 1}/${total} - ${currentQuestion}`;
+        }
+        if (percentText) percentText.innerText = `${percent}%`;
+        if (progressBar) progressBar.style.width = `${percent}%`;
+    }
+
+    updateSummary(success, fail, avgTime) {
+        const successEl = document.getElementById('summary-success-count');
+        const failEl = document.getElementById('summary-fail-count');
+        const avgTimeEl = document.getElementById('summary-avg-time');
+
+        if (successEl) successEl.innerText = success;
+        if (failEl) failEl.innerText = fail;
+        if (avgTimeEl) avgTimeEl.innerText = `${avgTime}s`;
+    }
+
+    /**
+     * Thực hiện gửi request và xử lý retry 1 lần nếu xảy ra lỗi
+     */
+    async executeQuestionWithRetry(question, index, attempt = 1) {
+        try {
+            return await this.sendChatRequest(question, index);
+        } catch (error) {
+            // Kiểm tra xem có lệnh dừng từ người dùng hay không
+            if (this.shouldStop) {
+                throw error;
+            }
+
+            if (attempt === 1) {
+                console.warn(`Lần 1 lỗi cho câu hỏi "${question}": ${error.message}. Đang thử lại lần 2...`);
+                
+                // Reset lại kết quả cũ trước khi chạy lại
+                const result = this.results[index];
+                result.aiContent = '';
+                result.steps = [];
+
+                // Cập nhật trạng thái hiển thị đang thử lại trên UI chi tiết nếu đang active
+                if (this.activeResultIndex === index) {
+                    const answerEl = document.getElementById('detail-answer');
+                    if (answerEl) {
+                        answerEl.innerHTML = `<span class="animate-pulse" style="color: var(--secondary);">⚠️ Gặp lỗi: ${error.message}. Đang tự động thử lại lần 2 (Attempt 2/2)...</span>`;
+                    }
+                    const stepsContainer = document.getElementById('detail-steps');
+                    if (stepsContainer) {
+                        stepsContainer.innerHTML = '';
+                    }
+                }
+                
+                // Chờ 1.5 giây trước khi thực hiện thử lại
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                // Chạy lại
+                return await this.executeQuestionWithRetry(question, index, 2);
+            }
+            
+            throw error; // Lần 2 vẫn lỗi thì ném lỗi ra ngoài để đánh dấu thất bại
+        }
+    }
+
+    /**
+     * Gửi truy vấn thực tế lên API `/chat` và nhận SSE stream
+     */
+    sendChatRequest(question, index) {
+        return new Promise((resolve, reject) => {
+            const collectionSelect = document.getElementById('chat-collection-select');
+            const collectionName = collectionSelect ? collectionSelect.value : '';
+            const isPerfMode = localStorage.getItem('dodo_performance_mode') === 'true';
+
+            const body = JSON.stringify({
+                message: question,
+                collectionName,
+                isTestPerformance: isPerfMode
+            });
+
+            const abortController = new AbortController();
+            this.currentAbortController = abortController;
+
+            const result = this.results[index];
+
+            ApiClient.fetchStream(ENDPOINTS.CHAT, {
+                body,
+                signal: abortController.signal,
+                silent: true // Tắt log console phiền phức của ApiClient khi chạy số lượng lớn
+            }, (data) => {
+                // Xử lý stream bước RAG (Step)
+                if (data.type === 'step') {
+                    result.steps.push(data.step);
+
+                    // Nếu đang xem câu hỏi này, cập nhật DOM chi tiết
+                    if (this.activeResultIndex === index) {
+                        const stepsContainer = document.getElementById('detail-steps');
+                        if (stepsContainer) {
+                            this.renderRagStepDOM(stepsContainer, data.step, result.steps.length);
+                        }
+                    }
+                }
+
+                // Xử lý stream nội dung text (Chunk)
+                if (data.type === 'chunk') {
+                    result.aiContent += data.text;
+
+                    // Nếu đang xem câu hỏi này, cập nhật DOM chi tiết
+                    if (this.activeResultIndex === index) {
+                        const answerEl = document.getElementById('detail-answer');
+                        if (answerEl) {
+                            if (window.marked) {
+                                answerEl.innerHTML = window.marked.parse(result.aiContent);
+                            } else {
+                                answerEl.innerText = result.aiContent;
+                            }
+                        }
+                    }
+                }
+
+                // Hoàn tất câu trả lời (Final)
+                if (data.type === 'final') {
+                    result.aiContent = data.text || result.aiContent;
+
+                    // Nếu đang xem câu hỏi này, cập nhật DOM chi tiết
+                    if (this.activeResultIndex === index) {
+                        const answerEl = document.getElementById('detail-answer');
+                        if (answerEl) {
+                            if (window.marked) {
+                                answerEl.innerHTML = window.marked.parse(result.aiContent);
+                            } else {
+                                answerEl.innerText = result.aiContent;
+                            }
+                        }
+                    }
+                    resolve(data);
+                }
+
+                // Xảy ra lỗi từ API
+                if (data.type === 'error') {
+                    reject(new Error(data.message || 'Lỗi không xác định từ API'));
+                }
+            }).catch(error => {
+                reject(error);
+            });
+        });
+    }
+
+    /**
+     * Đánh dấu và hiển thị chi tiết câu hỏi được chọn
+     */
+    selectResult(index) {
+        this.activeResultIndex = index;
+        
+        // Cập nhật class active cho card ở cột giữa
+        document.querySelectorAll('.result-card').forEach((card, idx) => {
+            if (idx === index) {
+                card.classList.add('active');
+            } else {
+                card.classList.remove('active');
+            }
+        });
+
+        // Vẽ cột chi tiết bên phải
+        this.renderDetailView(index);
+    }
+
+    /**
+     * Render bảng chi tiết kết quả chạy kiểm thử ở cột bên phải
+     */
+    renderDetailView(index) {
+        const detailView = document.getElementById('testing-detail-view');
+        if (!detailView) return;
+
+        const result = this.results[index];
+        if (!result) {
+            detailView.innerHTML = `
+                <div class="detail-empty-state">
+                    <i class="ph-bold ph-browsers"></i>
+                    <h4>Chưa chọn câu hỏi</h4>
+                    <p>Click vào một câu hỏi bất kỳ trong danh sách kết quả thực thi ở cột giữa để xem câu trả lời chi tiết và các câu lệnh SQL tương ứng tại đây.</p>
+                </div>
+            `;
+            return;
+        }
+
+        let statusBadge = '';
+        if (result.status === 'running') {
+            statusBadge = `<span class="badge" style="background: var(--primary);"><i class="ph-bold ph-circle-notch animate-spin"></i> Đang chạy</span>`;
+        } else if (result.status === 'success') {
+            statusBadge = `<span class="badge" style="background: #22c55e;"><i class="ph-bold ph-check"></i> Thành công</span>`;
+        } else {
+            statusBadge = `<span class="badge" style="background: var(--destructive);"><i class="ph-bold ph-x"></i> Lỗi</span>`;
+        }
+
+        const isPrevDisabled = index === 0;
+        const isNextDisabled = index === this.results.length - 1;
+
+        detailView.innerHTML = `
+            <div class="detail-content-wrapper">
+                <div class="detail-header" style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem;">
+                    <div style="flex: 1; min-width: 0;">
+                        <div class="detail-header-question">${result.question}</div>
+                        <div class="detail-meta-row" style="display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 0.75rem;">
+                            <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                                <div class="detail-meta-item">
+                                    <i class="ph-bold ph-hash"></i>
+                                    <span>Câu số ${index + 1}</span>
+                                </div>
+                                <div class="detail-meta-item">
+                                    <i class="ph-bold ph-clock"></i>
+                                    <span>Thời gian: ${result.duration ? result.duration + 's' : '---'}</span>
+                                </div>
+                                <div class="detail-meta-item">
+                                    ${statusBadge}
+                                </div>
+                            </div>
+                            <div class="detail-navigation-actions" style="display: flex; align-items: center; gap: 0.4rem;">
+                                <button class="btn btn-secondary btn-sm btn-prev-result" ${isPrevDisabled ? 'disabled' : ''} title="Xem câu trước">
+                                    <i class="ph-bold ph-caret-left"></i> Lùi
+                                </button>
+                                <button class="btn btn-secondary btn-sm btn-next-result" ${isNextDisabled ? 'disabled' : ''} title="Xem câu sau">
+                                    Tiến <i class="ph-bold ph-caret-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <i class="ph-bold ph-caret-down toggle-collapse-icon"></i>
+                </div>
+                
+                <div class="testing-answer markdown-content" id="detail-answer">
+                    ${result.aiContent ? (window.marked ? window.marked.parse(result.aiContent) : result.aiContent) : '<span class="animate-pulse" style="display: flex; align-items: center; gap: 0.5rem; color: var(--primary);"><i class="ph-bold ph-sparkle animate-pulse"></i> Đang xử lý truy vấn...</span>'}
+                </div>
+
+                <div class="testing-steps" id="detail-steps">
+                    <!-- Các bước RAG sẽ được thêm vào đây -->
+                </div>
+            </div>
+        `;
+
+        // Gán sự kiện click cho các nút điều hướng tiến/lùi
+        const btnPrev = detailView.querySelector('.btn-prev-result');
+        const btnNext = detailView.querySelector('.btn-next-result');
+
+        if (btnPrev && !isPrevDisabled) {
+            btnPrev.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.selectResult(index - 1);
+            });
+        }
+
+        if (btnNext && !isNextDisabled) {
+            btnNext.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.selectResult(index + 1);
+            });
+        }
+
+        // Render lại các bước RAG đã có
+        const stepsContainer = document.getElementById('detail-steps');
+        if (stepsContainer && result.steps && result.steps.length > 0) {
+            result.steps.forEach((step, stepIdx) => {
+                this.renderRagStepDOM(stepsContainer, step, stepIdx + 1);
+            });
+        }
+
+        // Nếu xảy ra lỗi và không có câu trả lời
+        if (result.error && !result.aiContent) {
+            const answerEl = document.getElementById('detail-answer');
+            if (answerEl) {
+                answerEl.innerHTML = `
+                    <div style="color: var(--destructive); font-weight: 600;">⚠️ Lỗi thực thi (Đã thử lại 2 lần):</div>
+                    <pre style="margin-top:0.5rem; background: rgba(239, 68, 68, 0.05); border: 1px solid var(--border); color: var(--foreground); padding: 0.75rem; border-radius: 6px; overflow-x: auto;">${result.error}</pre>
+                `;
+            }
+        }
+    }
+
+    /**
+     * Render một bước RAG DOM chi tiết với Tiện ích SQL
+     */
+    renderRagStepDOM(container, step, stepIndex) {
+        if (!container) return;
+
+        const stepId = `detail-step-${stepIndex}`;
+        
+        // 1. Xác định icon dựa trên tiêu đề bước
+        const getStepIcon = (title) => {
+            if (!title) return '<i class="ph-bold ph-gear"></i>';
+            const t = title.toLowerCase();
+            const iconMap = {
+                'vector': 'ph-file-search',
+                'retrieval': 'ph-magnifying-glass',
+                'schema': 'ph-database',
+                'rules': 'ph-shield-warning',
+                'sql': 'ph-code-block',
+                'execution': 'ph-code-block',
+                'healing': 'ph-magic-wand',
+                'system': 'ph-gear'
+            };
+            
+            const key = Object.keys(iconMap).find(k => t.includes(k));
+            const iconClass = iconMap[key] || 'ph-lightning';
+            
+            // Thiết lập màu sắc icon
+            let colorStyle = '';
+            if (key === 'schema') colorStyle = 'style="color: var(--primary);"';
+            else if (key === 'sql' || key === 'execution') colorStyle = 'style="color: var(--accent);"';
+            else if (key === 'retrieval' || key === 'vector') colorStyle = 'style="color: #22c55e;"';
+            
+            return `<i class="ph-bold ${iconClass}" ${colorStyle}></i>`;
+        };
+
+        const stepIcon = getStepIcon(step.title);
+
+        // 2. Lấy nội dung chi tiết của bước (hỗ trợ step.content từ backend hoặc fallback step.details)
+        let contentText = "";
+        if (step.content) {
+            contentText = step.content.trim();
+        } else if (step.details) {
+            if (typeof step.details === 'string') {
+                contentText = step.details.trim();
+            } else {
+                contentText = JSON.stringify(step.details, null, 2).trim();
+            }
+        } else if (step.sql) {
+            contentText = step.sql.trim();
+        }
+
+        // 3. Nhận diện câu SQL trong content để hỗ trợ các nút Sao chép & Chạy thử
+        let sqlQuery = step.sql || '';
+        if (!sqlQuery && step.content) {
+            const sqlMatch = step.content.match(/```sql\s*([\s\S]*?)```/i);
+            if (sqlMatch) {
+                sqlQuery = sqlMatch[1].trim();
+            } else if (step.content.toUpperCase().includes('SELECT ')) {
+                sqlQuery = step.content.trim();
+            }
+        }
+        if (!sqlQuery && step.type === 'sql_execution' && typeof step.details === 'string') {
+            sqlQuery = step.details;
+        }
+
+        const hasSql = !!sqlQuery.trim();
+        
+        // Xác định xem bước này có chi tiết thực sự hay không
+        const hasDetails = contentText !== "" && contentText !== "Không có chi tiết bổ sung.";
+
+        let stepHtml = "";
+        if (hasDetails) {
+            // Render nội dung bằng MessageRenderer để đồng bộ giao diện Dark Terminal và Markdown
+            const formattedContent = MessageRenderer.formatRagStepContent(contentText);
+            let contentHtml = `<div class="markdown-content text-sm" style="opacity: 0.95;">${formattedContent}</div>`;
+
+            // Bổ sung Action Bar của SQL nếu có câu truy vấn SQL
+            if (hasSql) {
+                contentHtml += `
+                    <div class="sql-actions-bar" style="margin-top: 1rem;">
+                        <button class="btn-sql-action btn-copy-sql" data-sql="${encodeURIComponent(sqlQuery)}">
+                            <i class="ph-bold ph-copy"></i> Sao chép SQL
+                        </button>
+                        <button class="btn-sql-action btn-run-sql" data-sql="${encodeURIComponent(sqlQuery)}" data-preview-id="sql-preview-${stepIndex}">
+                            <i class="ph-bold ph-play"></i> Chạy thử SQL
+                        </button>
+                    </div>
+                    <div class="sql-preview-container" id="sql-preview-${stepIndex}"></div>
+                `;
+            }
+
+            stepHtml = `
+                <div class="testing-step-item collapsible" id="${stepId}">
+                    <div class="testing-step-header">
+                        <i class="ph-bold ph-caret-right caret-icon"></i>
+                        ${stepIcon}
+                        <span>Bước ${stepIndex}: ${step.title || 'Đang xử lý...'}</span>
+                    </div>
+                    <div class="testing-step-content" id="${stepId}-content" style="max-height: 0px; overflow: hidden; transition: max-height 0.2s ease-out;">
+                        ${contentHtml}
+                    </div>
+                </div>
+            `;
+        } else {
+            // Không có chi tiết -> Hiển thị dạng tĩnh, không có mũi tên caret
+            stepHtml = `
+                <div class="testing-step-item static" id="${stepId}">
+                    <div class="testing-step-header" style="cursor: default;">
+                        <i class="ph-bold ph-circle" style="font-size: 0.4rem; color: var(--muted-foreground); margin: 0 0.4rem;"></i>
+                        ${stepIcon}
+                        <span>Bước ${stepIndex}: ${step.title || 'Đang xử lý...'}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        container.insertAdjacentHTML('beforeend', stepHtml);
+
+        if (hasDetails) {
+            const stepItem = document.getElementById(stepId);
+            const stepHeader = stepItem.querySelector('.testing-step-header');
+            const stepContent = stepItem.querySelector('.testing-step-content');
+
+            // Toggle mở rộng/thu gọn bước RAG
+            stepHeader.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isExpanded = stepItem.classList.contains('expanded');
+                if (isExpanded) {
+                    stepItem.classList.remove('expanded');
+                    stepContent.style.maxHeight = '0px';
+                } else {
+                    stepItem.classList.add('expanded');
+                    stepContent.style.maxHeight = 'none'; // Sử dụng none để nội dung tự co giãn
+                }
+            });
+
+            // Đăng ký sự kiện nút Sao chép & Chạy thử SQL
+            if (hasSql) {
+                const copyBtn = stepContent.querySelector('.btn-copy-sql');
+                const runBtn = stepContent.querySelector('.btn-run-sql');
+
+                if (copyBtn) {
+                    copyBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const sql = decodeURIComponent(copyBtn.getAttribute('data-sql'));
+                        navigator.clipboard.writeText(sql).then(() => {
+                            Toast.show('Đã sao chép câu lệnh SQL vào clipboard', 'success');
+                        }).catch(err => {
+                            console.error('Không thể sao chép:', err);
+                            Toast.show('Lỗi sao chép SQL', 'error');
+                        });
+                    });
+                }
+
+                if (runBtn) {
+                    runBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const sql = decodeURIComponent(runBtn.getAttribute('data-sql'));
+                        const previewId = runBtn.getAttribute('data-preview-id');
+                        this.executeSqlPreview(sql, previewId, runBtn);
+                    });
+                }
+            }
+        }
+    }
+
+    /**
+     * Gọi API backend để thực thi câu lệnh SQL và vẽ bảng kết quả
+     */
+    async executeSqlPreview(sql, previewId, runBtn) {
+        const previewContainer = document.getElementById(previewId);
+        if (!previewContainer) return;
+
+        const originalText = runBtn.innerHTML;
+        runBtn.disabled = true;
+        runBtn.innerHTML = `<i class="ph-bold ph-circle-notch animate-spin"></i> Đang chạy...`;
+
+        previewContainer.innerHTML = `
+            <div class="loading-state" style="padding: 1rem 0; font-size: 0.72rem;">
+                <i class="ph-bold ph-circle-notch animate-spin"></i> Đang truy vấn cơ sở dữ liệu...
+            </div>
+        `;
+
+        try {
+            const response = await ApiClient.post('/sql/execute', { sql: sql });
+            
+            if (response.error) {
+                previewContainer.innerHTML = `<div class="sql-preview-error">Lỗi: ${response.error}</div>`;
+            } else if (!response.data || response.data.length === 0) {
+                previewContainer.innerHTML = `<div class="sql-preview-empty">Không tìm thấy bản ghi nào khớp với điều kiện truy vấn.</div>`;
+            } else {
+                const columns = response.columns || [];
+                const rows = response.data || [];
+                
+                const maxRows = Math.min(rows.length, 50);
+                const isTruncated = rows.length > 50;
+
+                let tableHtml = `
+                    <div class="sql-preview-table-wrapper">
+                        <table class="sql-preview-table">
+                            <thead>
+                                <tr>
+                                    ${columns.map(col => `<th>${col}</th>`).join('')}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${rows.slice(0, maxRows).map(row => `
+                                    <tr>
+                                        ${columns.map(col => {
+                                            const cellVal = row[col];
+                                            return `<td>${cellVal === null || cellVal === undefined ? '<em style="color:var(--muted-foreground);">NULL</em>' : this.escapeHtml(cellVal.toString())}</td>`;
+                                        }).join('')}
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
+                if (isTruncated) {
+                    tableHtml += `
+                        <div style="font-size: 0.72rem; color: var(--muted-foreground); margin-top: 0.4rem; font-style: italic;">
+                            * Chỉ hiển thị tối đa 50 trên tổng số ${rows.length} hàng dữ liệu.
+                        </div>
+                    `;
+                }
+
+                previewContainer.innerHTML = tableHtml;
+            }
+        } catch (err) {
+            previewContainer.innerHTML = `<div class="sql-preview-error">Lỗi: ${err.message}</div>`;
+        } finally {
+            runBtn.disabled = false;
+            runBtn.innerHTML = originalText;
+            
+            // Tự động điều chỉnh chiều cao của step-content
+            const stepContent = previewContainer.closest('.testing-step-content');
+            if (stepContent && stepContent.style.maxHeight !== 'none' && stepContent.style.maxHeight !== '0px') {
+                stepContent.style.maxHeight = `${stepContent.scrollHeight + 50}px`;
+            }
+        }
+    }
+
+    escapeHtml(str) {
+        return str
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    stopTesting() {
+        if (!this.isRunning) return;
+        this.shouldStop = true;
+        if (this.currentAbortController) {
+            this.currentAbortController.abort();
+        }
+        Toast.show('Đang dừng kiểm thử...', 'warning');
+    }
+
+    setupResponsiveCollapse() {
+        // Lắng nghe click trên sidebar header
+        const sidebarHeader = document.querySelector('.testing-sidebar__header');
+        if (sidebarHeader) {
+            sidebarHeader.addEventListener('click', (e) => {
+                if (e.target.closest('button') || e.target.closest('.btn')) return;
+                if (window.innerWidth <= 1024) {
+                    const sidebar = document.querySelector('.testing-sidebar');
+                    sidebar?.classList.toggle('collapsed');
+                }
+            });
+        }
+
+        // Lắng nghe click trên queue header
+        const queueHeader = document.querySelector('.queue-header');
+        if (queueHeader) {
+            queueHeader.addEventListener('click', () => {
+                if (window.innerWidth <= 1024) {
+                    const queuePanel = document.querySelector('.queue-control-panel');
+                    queuePanel?.classList.toggle('collapsed');
+                }
+            });
+        }
+
+        // Lắng nghe click trên results header
+        const resultsHeader = document.querySelector('.results-header');
+        if (resultsHeader) {
+            resultsHeader.addEventListener('click', () => {
+                if (window.innerWidth <= 1024) {
+                    const resultsPanel = document.querySelector('.testing-results-panel');
+                    resultsPanel?.classList.toggle('collapsed');
+                }
+            });
+        }
+
+        // Lắng nghe click trên detail header (delegation)
+        const detailView = document.getElementById('testing-detail-view');
+        if (detailView) {
+            detailView.addEventListener('click', (e) => {
+                const header = e.target.closest('.detail-header');
+                if (header && window.innerWidth <= 1024) {
+                    detailView.classList.toggle('collapsed');
+                }
+            });
+        }
+    }
+}

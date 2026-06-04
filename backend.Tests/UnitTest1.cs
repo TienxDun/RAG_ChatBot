@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Backend.Models;
 using Backend.Services;
+using Backend.Services.Document;
 using Backend.Services.Rag;
 using Backend.Services.Security;
 using Microsoft.Data.SqlClient;
@@ -23,6 +24,65 @@ public class UnitTest1
     public UnitTest1(ITestOutputHelper output)
     {
         _output = output;
+    }
+
+    [Fact]
+    public async Task IndexSchemasToQdrant()
+    {
+        // 1. Find and load .env
+        string current = Directory.GetCurrentDirectory();
+        string envPath = null;
+        while (current != null)
+        {
+            var testPath = Path.Combine(current, ".env");
+            if (File.Exists(testPath))
+            {
+                envPath = testPath;
+                break;
+            }
+            current = Directory.GetParent(current)?.FullName;
+        }
+
+        Assert.NotNull(envPath);
+        DotNetEnv.Env.Load(envPath);
+
+        // 2. Setup options
+        var options = VertexAiOptions.FromEnvironment();
+        var qdrantOptions = QdrantOptions.FromEnvironment();
+
+        // 3. Setup services
+        using var httpClient = new HttpClient();
+        var aiClient = new VertexAiClient(httpClient, options);
+        var qdrantService = new QdrantService(qdrantOptions);
+        var dbSchemaParser = new DbSchemaParser();
+        var textChunker = new TextChunker();
+        var processor = new DocumentProcessor(aiClient, qdrantService, options, dbSchemaParser, textChunker);
+
+        string rootDir = Directory.GetParent(envPath).FullName;
+        string schemasDir = Path.Combine(rootDir, "backend", "rag_schemas");
+        
+        Assert.True(Directory.Exists(schemasDir), $"Could not find schemas directory: {schemasDir}");
+
+        var jsonFiles = Directory.GetFiles(schemasDir, "*.json");
+        _output.WriteLine($"Found {jsonFiles.Length} schema files.");
+
+        foreach (var file in jsonFiles)
+        {
+            var fileName = Path.GetFileName(file);
+            _output.WriteLine($"Indexing file: {fileName}...");
+            using var stream = File.OpenRead(file);
+            var result = await processor.ProcessFileAsync(
+                stream,
+                fileName,
+                "db_schema",
+                (percent, msg) => {
+                    _output.WriteLine($"  [{percent}%] {msg}");
+                    return Task.CompletedTask;
+                },
+                CancellationToken.None
+            );
+            _output.WriteLine($"Successfully indexed {fileName}: {result.ChunkCount} chunks.");
+        }
     }
 
     [Fact]
@@ -115,7 +175,10 @@ public class UnitTest1
                 var response = await orchestrator.ProcessQueryAsync(
                     tc.Query,
                     null,
-                    step => Task.CompletedTask,
+                    step => {
+                        _output.WriteLine($"[RAG STEP] {step.Title}: {step.Content}");
+                        return Task.CompletedTask;
+                    },
                     chunk => Task.CompletedTask,
                     cts.Token
                 );

@@ -12,6 +12,7 @@ export class SidebarComponent {
         this.historyContainer = document.querySelector(SELECTORS.CHAT_HISTORY);
         this.navChatBtn = document.getElementById('nav-chat-btn');
         this.navTemplatesBtn = document.getElementById('nav-templates-btn');
+        this.navTestingBtn = document.getElementById('nav-testing-btn');
         
         this.init();
     }
@@ -35,6 +36,11 @@ export class SidebarComponent {
                     window.app.templateManager.renderLayout();
                     window.app.templateManager.loadTemplatesList();
                 }
+            });
+        }
+        if (this.navTestingBtn) {
+            this.navTestingBtn.addEventListener('click', () => {
+                state.activePage = 'testing';
             });
         }
         
@@ -317,27 +323,27 @@ export class SidebarComponent {
     updateActivePageUI(activePage) {
         if (!this.navChatBtn || !this.navTemplatesBtn) return;
         
+        // Cập nhật class active cho các nút điều hướng
+        this.navChatBtn.classList.toggle('active', activePage === 'chat');
+        this.navTemplatesBtn.classList.toggle('active', activePage === 'templates');
+        if (this.navTestingBtn) {
+            this.navTestingBtn.classList.toggle('active', activePage === 'testing');
+        }
+        
+        // Ẩn/Hiện các trang tương ứng
+        document.getElementById('chat-area')?.classList.toggle('hidden', activePage !== 'chat');
+        document.getElementById('template-manager-page')?.classList.toggle('hidden', activePage !== 'templates');
+        document.getElementById('testing-page')?.classList.toggle('hidden', activePage !== 'testing');
+        
+        // Xử lý hiển thị Minimap
         if (activePage === 'chat') {
-            this.navChatBtn.classList.add('active');
-            this.navTemplatesBtn.classList.remove('active');
-            
-            document.getElementById('chat-area')?.classList.remove('hidden');
-            document.getElementById('template-manager-page')?.classList.add('hidden');
-            
-            // Khôi phục hiển thị của Minimap dựa trên trạng thái landing hiện tại của chat
             const chatArea = document.getElementById('chat-area');
             if (chatArea && window.app && window.app.chatArea && window.app.chatArea.minimap) {
                 const isLanding = chatArea.classList.contains('is-landing');
                 window.app.chatArea.minimap.toggleVisibility(isLanding);
             }
-        } else if (activePage === 'templates') {
-            this.navTemplatesBtn.classList.add('active');
-            this.navChatBtn.classList.remove('active');
-            
-            document.getElementById('chat-area')?.classList.add('hidden');
-            document.getElementById('template-manager-page')?.classList.remove('hidden');
-            
-            // Ẩn Minimap khi chuyển sang tab templates
+        } else {
+            // Ẩn Minimap khi chuyển sang tab khác
             document.getElementById('chat-minimap')?.classList.add('hidden');
         }
 

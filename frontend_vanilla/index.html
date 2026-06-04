@@ -31,6 +31,7 @@
     <link rel="stylesheet" href="assets/css/components/toast.css">
     <link rel="stylesheet" href="assets/css/animations.css">
     <link rel="stylesheet" href="assets/css/components/minimap.css">
+    <link rel="stylesheet" href="assets/css/components/testing.css">
 </head>
 <body class="mesh-bg">
     <canvas id="starfield"></canvas>
@@ -59,10 +60,15 @@
                 <i class="ph-bold ph-microsoft-excel-logo"></i>
                 <span>Mẫu báo cáo Excel</span>
             </button>
+            <button id="nav-testing-btn" class="sidebar__nav-item" title="Kiểm thử tự động các Test Cases">
+                <i class="ph-bold ph-flask"></i>
+                <span>Kiểm thử tự động</span>
+            </button>
         </div>
         
+        <h3 class="sidebar__title-history">LỊCH SỬ HỘI THOẠI</h3>
+        
         <div class="sidebar__content">
-            <h3 class="sidebar__title-history">LỊCH SỬ HỘI THOẠI</h3>
             <div id="chat-history" class="chat-history">
                 <!-- Các mục lịch sử sẽ được render động ở đây -->
                 <div class="empty-state">Chưa có cuộc trò chuyện nào</div>
@@ -298,6 +304,105 @@
         <!-- Template Manager Page -->
         <div id="template-manager-page" class="template-manager-page hidden">
             <!-- Rendered dynamically by TemplateManager.js -->
+        </div>
+
+        <!-- Testing Page -->
+        <div id="testing-page" class="testing-page hidden">
+            <div class="testing-container glass">
+                <!-- Cột trái: Bộ chọn Test Cases -->
+                <div class="testing-sidebar">
+                    <div class="testing-sidebar__header">
+                        <h3><i class="ph-bold ph-list-numbers"></i> Danh sách Test Cases</h3>
+                        <div class="testing-header-actions" style="display: flex; align-items: center; gap: 0.75rem;">
+                            <button id="btn-add-all-testcases" class="btn btn-secondary btn-sm" title="Thêm tất cả câu hỏi vào stack">
+                                <i class="ph ph-plus-circle"></i> Thêm tất cả
+                            </button>
+                            <i class="ph-bold ph-caret-down toggle-collapse-icon"></i>
+                        </div>
+                    </div>
+                    <div id="testcase-list-accordion" class="testcase-accordion">
+                        <div class="loading-state">
+                            <i class="ph-bold ph-circle-notch animate-spin"></i> Đang tải danh sách câu hỏi...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cột giữa: Hàng đợi (Queue/Stack) và kết quả rút gọn -->
+                <div class="testing-main">
+                    <!-- Khu điều khiển hàng đợi -->
+                    <div class="queue-control-panel glass-panel">
+                        <div class="queue-header">
+                            <div class="queue-title">
+                                <h3><i class="ph-bold ph-stack"></i> Hàng đợi câu hỏi</h3>
+                                <span id="queue-count-badge" class="badge">0</span>
+                            </div>
+                            <i class="ph-bold ph-caret-down toggle-collapse-icon"></i>
+                        </div>
+                        <div class="queue-actions-row">
+                            <button id="btn-run-testing" class="btn btn-primary btn-sm" disabled>
+                                <i class="ph-bold ph-play"></i> Chạy tuần tự
+                            </button>
+                            <button id="btn-stop-testing" class="btn btn-danger btn-sm hidden">
+                                <i class="ph-bold ph-stop"></i> Dừng chạy
+                            </button>
+                            <button id="btn-clear-queue" class="btn btn-outline btn-sm">
+                                <i class="ph-bold ph-trash"></i> Xóa hàng đợi
+                            </button>
+                        </div>
+
+                        <!-- Ô nhập câu hỏi thủ công -->
+                        <div class="queue-add-custom">
+                            <input type="text" id="input-custom-question" placeholder="Nhập câu hỏi tự do để thêm vào hàng đợi..." />
+                            <button id="btn-add-custom-question" class="btn btn-secondary btn-sm">
+                                <i class="ph-bold ph-plus"></i> Thêm
+                            </button>
+                        </div>
+
+                        <!-- Danh sách hàng đợi -->
+                        <div id="queue-items-list" class="queue-list empty">
+                            <div class="queue-empty-msg">Chưa có câu hỏi nào trong hàng đợi. Hãy chọn câu hỏi ở cột bên trái hoặc tự nhập câu hỏi.</div>
+                        </div>
+                    </div>
+
+                    <!-- Trạng thái tiến trình chạy -->
+                    <div id="testing-progress-container" class="testing-progress-card glass-panel hidden">
+                        <div class="progress-details">
+                            <span id="progress-status-text">Đang chạy kiểm thử: 0 / 0</span>
+                            <span id="progress-percentage-text">0%</span>
+                        </div>
+                        <div class="progress-bar-wrapper">
+                            <div id="testing-progress-bar" class="progress-bar-fill" style="width: 0%;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Kết quả kiểm thử -->
+                    <div class="testing-results-panel glass-panel">
+                        <div class="results-header">
+                            <div class="results-title-group" style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                                <h3><i class="ph-bold ph-activity"></i> Kết quả thực thi</h3>
+                                <div class="results-summary hidden" id="results-summary">
+                                    <span class="summary-item success"><i class="ph-bold ph-check-circle"></i> <b id="summary-success-count">0</b></span>
+                                    <span class="summary-item error"><i class="ph-bold ph-x-circle"></i> <b id="summary-fail-count">0</b></span>
+                                    <span class="summary-item duration"><i class="ph-bold ph-clock"></i> <b id="summary-avg-time">0s</b></span>
+                                </div>
+                            </div>
+                            <i class="ph-bold ph-caret-down toggle-collapse-icon"></i>
+                        </div>
+                        <div id="results-list" class="results-list">
+                            <div class="results-empty-msg">Kết quả kiểm thử sẽ hiển thị tại đây khi bắt đầu chạy.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cột phải: Chi tiết đáp án và tiện ích SQL -->
+                <div class="testing-detail-view glass-panel" id="testing-detail-view">
+                    <div class="detail-empty-state">
+                        <i class="ph-bold ph-browsers"></i>
+                        <h4>Chưa chọn câu hỏi</h4>
+                        <p>Click vào một câu hỏi bất kỳ trong danh sách kết quả thực thi ở cột giữa để xem câu trả lời chi tiết và các câu lệnh SQL tương ứng tại đây.</p>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Request Minimap Navigation -->
