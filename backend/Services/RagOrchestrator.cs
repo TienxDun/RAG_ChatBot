@@ -348,22 +348,52 @@ public sealed class RagOrchestrator
         Task<string>? metadataTask = null;
         if (!isOutOfScope)
         {
-            var metadataPrompt = $@"Bạn là chuyên gia phân tích dữ liệu doanh nghiệp. Hãy phân tích ngữ cảnh, câu hỏi của người dùng và dữ liệu đã truy vấn từ database để tạo ra siêu dữ liệu (metadata) dưới dạng JSON.
+            // Tối ưu token: metadataPrompt chỉ cần danh sách tên cột để dịch (columnMapping case)
+            // hoặc workingContext rút gọn cho excelData case. Không cần full SQL data thô.
+            string metadataContext;
+            if (lastDataTable != null && lastDataTable.Columns.Count > 0)
+            {
+                // Chỉ gửi tên cột + 2 dòng mẫu đầu tiên — đủ để LLM hiểu cấu trúc và dịch tên cột
+                var columnNames = lastDataTable.Columns.Cast<System.Data.DataColumn>()
+                    .Select(c => c.ColumnName).ToList();
+                var sampleRows = new System.Text.StringBuilder();
+                int sampleCount = Math.Min(2, lastDataTable.Rows.Count);
+                for (int si = 0; si < sampleCount; si++)
+                {
+                    var rowDict = new Dictionary<string, object?>();
+                    foreach (System.Data.DataColumn col in lastDataTable.Columns)
+                        rowDict[col.ColumnName] = lastDataTable.Rows[si][col] == DBNull.Value ? null : lastDataTable.Rows[si][col];
+                    sampleRows.AppendLine(JsonSerializer.Serialize(rowDict, new JsonSerializerOptions
+                    {
+                        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+                    }));
+                }
+                metadataContext = $"Tên cột: {JsonSerializer.Serialize(columnNames)}\n" +
+                                  $"Tổng số dòng: {lastDataTable.Rows.Count}\n" +
+                                  $"2 dòng mẫu:\n{sampleRows}";
+            }
+            else
+            {
+                // Fallback: dùng workingContext nhưng giới hạn ký tự để tiết kiệm token
+                var ctx = workingContext.ToString();
+                metadataContext = ctx.Length > 2000 ? ctx.Substring(0, 2000) + "\n...(rút gọn)" : ctx;
+            }
 
-            Thời gian hệ thống hiện tại: {currentTimeStr}
+            var metadataPrompt = $@"Bạn là chuyên gia phân tích dữ liệu doanh nghiệp. Hãy phân tích ngữ cảnh, câu hỏi của người dùng và cấu trúc dữ liệu đã truy vấn để tạo ra siêu dữ liệu (metadata) dưới dạng JSON.
+
             Câu hỏi gốc của người dùng: ""{userQuery}""
-            DỮ LIỆU ĐÃ TRUY VẤN ĐƯỢC TỪ DATABASE:
-            {workingContext}
+            CẤU TRÚC DỮ LIỆU ĐÃ TRUY VẤN:
+            {metadataContext}
 
             NHIỆM VỤ:
             Tạo ra thông tin xuất file Excel (excelData hoặc columnMapping) liên quan trực tiếp đến dữ liệu và câu hỏi.
 
             QUY TẮC QUAN TRỌNG VỀ DỮ LIỆU EXCEL:
-            1. Nếu dữ liệu đã truy vấn được là một danh sách dài hoặc bảng dữ liệu gốc từ database (lastDataTable):
+            1. Nếu dữ liệu đã truy vấn được là một danh sách dài hoặc bảng dữ liệu gốc từ database:
             - Đặt `excelData` là mảng rỗng `[]`.
             - Cung cấp `columnMapping` để dịch tên các cột từ tiếng Anh sang tiếng Việt thân thiện dễ hiểu cho người dùng (ví dụ: {{""MaLenh"": ""Mã Lệnh"", ""TenLenh"": ""Tên Lệnh""}}).
-            2. Nếu câu hỏi yêu cầu một bảng tổng hợp/tóm tắt số liệu mới (không có sẵn trực tiếp dạng bảng trong lastDataTable):
-            - Tính toán dữ liệu đó và điền vào mảng đối tượng `excelData` (mỗi đối tượng đại diện cho một hàng).
+            2. Nếu câu hỏi yêu cầu một bảng tổng hợp/tóm tắt số liệu mới (không có sẵn trực tiếp dạng bảng):
+            - Tính toán dữ liệu đó dựa vào 2 dòng mẫu và điền vào mảng đối tượng `excelData` (mỗi đối tượng đại diện cho một hàng).
             - Đặt `columnMapping` là đối tượng rỗng `{{}}`.
 
             YÊU CẦU ĐỊNH DẠNG (BẮT BUỘC TRẢ VỀ JSON KHÔNG BỌC TRONG CODEBLOCK):

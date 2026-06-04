@@ -14,9 +14,8 @@
     {
       "id": "T_QTY_QA_NK_002",
       "severity": "CRITICAL",
-      "rule": "TÊN CỘT CHUYỀN LÀ LineX (chữ X viết HOA, kiểu varchar). TUYỆT ĐỐI CẤM dùng Line (không có X) hoặc Linex (chữ x viết thường). Lọc bằng so sánh bằng (ví dụ: LineX = '104').",
-      "correct_example": "WHERE LineX = '104'",
-      "wrong_example": "WHERE Line = '104' hoặc WHERE Linex = '104'"
+      "rule": "TÊN CỘT CHUYỀN LÀ LineX (chữ X viết HOA, kiểu varchar). TUYỆT ĐỐI CẤM dùng Line (không có X) hoặc Linex (chữ x viết thường). Lọc bằng so sánh bằng (ví dụ: LineX = '104'). Khi cần hiển thị hoặc in ra tên chuyền, BẮT BUỘC JOIN với tbl_SettingLineX để lấy cột Name AS [Tên chuyền], tuyệt đối cấm in mã ID LineX trực tiếp.",
+      "correct_example": "WHERE LineX = '104'"
     },
     {
       "id": "T_QTY_QA_NK_003",
