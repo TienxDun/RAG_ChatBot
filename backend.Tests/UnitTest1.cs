@@ -87,7 +87,7 @@ public class UnitTest1
         var sqlService = new SqlService(sqlOptions, securityValidator);
         var ruleProvider = new SqlRuleProvider();
         var responseParser = new AiResponseParser();
-        var planExecutor = new SqlPlanExecutor(aiClient, sqlService, ruleProvider, responseParser);
+        var planExecutor = new SqlPlanExecutor(aiClient, sqlService, responseParser);
         var orchestrator = new RagOrchestrator(aiClient, qdrantService, options, ruleProvider, responseParser, planExecutor);
 
         // 4. Tìm và parse file test_cases.md

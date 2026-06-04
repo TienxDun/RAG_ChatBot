@@ -12,11 +12,13 @@ namespace Backend.Services.Rag;
 
 public interface ISqlPlanExecutor
 {
+    // globalRules được truyền từ RagOrchestrator thay vì tự gọi GetGlobalRulesAsync bên trong (#7)
     Task<SqlExecutionResult> ExecutePlanStepsAsync(
         List<string> stepsToExecute,
         string userQuery,
         string currentTimeStr,
         string schemaInfo,
+        string globalRules,
         Func<RagStep, Task> onStep,
         CancellationToken ct);
 
@@ -38,20 +40,25 @@ public class SqlExecutionResult
 
 public class SqlPlanExecutor : ISqlPlanExecutor
 {
+    // Cache static để tránh tạo mới JsonSerializerOptions mỗi lần gọi
+    private static readonly JsonSerializerOptions _serializeOptions = new()
+    {
+        WriteIndented = true,
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
+
     private readonly VertexAiClient _aiClient;
     private readonly SqlService _sqlService;
-    private readonly ISqlRuleProvider _ruleProvider;
     private readonly IAiResponseParser _responseParser;
 
+    // ISqlRuleProvider đã được loại bỏ: globalRules giờ được truyền vào qua tham số (#7)
     public SqlPlanExecutor(
         VertexAiClient aiClient,
         SqlService sqlService,
-        ISqlRuleProvider ruleProvider,
         IAiResponseParser responseParser)
     {
         _aiClient = aiClient;
         _sqlService = sqlService;
-        _ruleProvider = ruleProvider;
         _responseParser = responseParser;
     }
 
@@ -60,6 +67,7 @@ public class SqlPlanExecutor : ISqlPlanExecutor
         string userQuery,
         string currentTimeStr,
         string schemaInfo,
+        string globalRules,
         Func<RagStep, Task> onStep,
         CancellationToken ct)
     {
@@ -81,8 +89,6 @@ public class SqlPlanExecutor : ISqlPlanExecutor
 
             for (int attempt = 1; attempt <= stepMaxAttempts; attempt++)
             {
-                var isExcel = userQuery.Contains("DANH SÁCH Ý NGHĨA") || userQuery.Contains("YÊU CẦU ĐẶC BIỆT");
-                var globalRules = await _ruleProvider.GetGlobalRulesAsync(userQuery, isExcel);
                 var sqlPrompt = $@"Bạn là chuyên gia SQL Server cao cấp.
                     Thời gian hệ thống hiện tại: {currentTimeStr} (Việt Nam, UTC+7).
                     Cấu trúc database: {schemaInfo}
@@ -125,58 +131,11 @@ public class SqlPlanExecutor : ISqlPlanExecutor
                     var dt = await _sqlService.ExecuteQueryAsDataTableAsync(generatedSql, ct);
                     result.LastDataTable = dt;
 
-                    var rows = new List<Dictionary<string, object>>();
-                    foreach (DataRow row in dt.Rows)
-                    {
-                        var dict = new Dictionary<string, object>();
-                        foreach (DataColumn col in dt.Columns)
-                        {
-                            var val = row[col];
-                            if (val == DBNull.Value)
-                            {
-                                dict[col.ColumnName] = null!;
-                            }
-                            else if (val is DateTime dateTimeVal)
-                            {
-                                dict[col.ColumnName] = dateTimeVal.TimeOfDay == TimeSpan.Zero
-                                    ? dateTimeVal.ToString("dd/MM/yyyy")
-                                    : dateTimeVal.ToString("dd/MM/yyyy HH:mm:ss");
-                            }
-                            else if (val is DateTimeOffset dateTimeOffsetVal)
-                            {
-                                dict[col.ColumnName] = dateTimeOffsetVal.TimeOfDay == TimeSpan.Zero
-                                    ? dateTimeOffsetVal.ToString("dd/MM/yyyy")
-                                    : dateTimeOffsetVal.ToString("dd/MM/yyyy HH:mm:ss");
-                            }
-                            else
-                            {
-                                dict[col.ColumnName] = val;
-                            }
-                        }
-                        rows.Add(dict);
-                    }
-                    var stepJson = JsonSerializer.Serialize(rows, new JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
-
-                    result.LastStepJson = stepJson;
+                    var (fullJson, uiJson, truncationNotice, rows) = BuildStepOutput(dt);
+                    result.LastStepJson = fullJson;
                     workingContextBuilder.AppendLine($"\n--- [Kết quả {stepTitle}: {currentStepDesc}] ---\n{GetCompactContext(rows)}");
 
-                    // Logic rút gọn hiển thị kết quả SQL trên UI để tối ưu hiệu năng
-                    const int maxRowsForUi = 10;
-                    string stepUiJson;
-                    string truncationNotice = string.Empty;
-
-                    if (rows.Count > maxRowsForUi)
-                    {
-                        var truncatedRows = rows.Take(maxRowsForUi).ToList();
-                        stepUiJson = JsonSerializer.Serialize(truncatedRows, new JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
-                        truncationNotice = $"\n\n*⚠️ Lưu ý: Dữ liệu quá lớn. Hệ thống đã tự động rút gọn hiển thị {maxRowsForUi} trên tổng số {rows.Count} dòng để tối ưu hiệu năng UI.*";
-                    }
-                    else
-                    {
-                        stepUiJson = stepJson;
-                    }
-
-                    var stepLog = new RagStep(stepTitle, $"Hoàn thành: {currentStepDesc}\n\n```sql\n{generatedSql}\n```\n\nKết quả:\n```json\n{stepUiJson}\n```{truncationNotice}");
+                    var stepLog = new RagStep(stepTitle, $"Hoàn thành: {currentStepDesc}\n\n```sql\n{generatedSql}\n```\n\nKết quả:\n```json\n{uiJson}\n```{truncationNotice}");
                     result.ExecutedSteps.Add(stepLog);
                     await onStep(stepLog);
                     break;
@@ -211,7 +170,6 @@ public class SqlPlanExecutor : ISqlPlanExecutor
         var stepTitle = "Step 1/1";
         await onStep(new RagStep(stepTitle, "Đang thực thi câu lệnh SQL trực tiếp từ kế hoạch..."));
 
-        // Clean SQL
         directSql = _responseParser.CleanSql(directSql);
 
         try
@@ -219,58 +177,11 @@ public class SqlPlanExecutor : ISqlPlanExecutor
             var dt = await _sqlService.ExecuteQueryAsDataTableAsync(directSql, ct);
             result.LastDataTable = dt;
 
-            var rows = new List<Dictionary<string, object>>();
-            foreach (DataRow row in dt.Rows)
-            {
-                var dict = new Dictionary<string, object>();
-                foreach (DataColumn col in dt.Columns)
-                {
-                    var val = row[col];
-                    if (val == DBNull.Value)
-                    {
-                        dict[col.ColumnName] = null!;
-                    }
-                    else if (val is DateTime dateTimeVal)
-                    {
-                        dict[col.ColumnName] = dateTimeVal.TimeOfDay == TimeSpan.Zero
-                            ? dateTimeVal.ToString("dd/MM/yyyy")
-                            : dateTimeVal.ToString("dd/MM/yyyy HH:mm:ss");
-                    }
-                    else if (val is DateTimeOffset dateTimeOffsetVal)
-                    {
-                        dict[col.ColumnName] = dateTimeOffsetVal.TimeOfDay == TimeSpan.Zero
-                            ? dateTimeOffsetVal.ToString("dd/MM/yyyy")
-                            : dateTimeOffsetVal.ToString("dd/MM/yyyy HH:mm:ss");
-                    }
-                    else
-                    {
-                        dict[col.ColumnName] = val;
-                    }
-                }
-                rows.Add(dict);
-            }
-            var stepJson = JsonSerializer.Serialize(rows, new JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
-            
-            result.LastStepJson = stepJson;
+            var (fullJson, uiJson, truncationNotice, rows) = BuildStepOutput(dt);
+            result.LastStepJson = fullJson;
             workingContextBuilder.AppendLine($"\n--- [Kết quả {stepTitle}: SQL trực tiếp] ---\n{GetCompactContext(rows)}");
 
-            // Logic rút gọn hiển thị kết quả SQL trên UI để tối ưu hiệu năng
-            const int maxRowsForUi = 10;
-            string stepUiJson;
-            string truncationNotice = string.Empty;
-
-            if (rows.Count > maxRowsForUi)
-            {
-                var truncatedRows = rows.Take(maxRowsForUi).ToList();
-                stepUiJson = JsonSerializer.Serialize(truncatedRows, new JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
-                truncationNotice = $"\n\n*⚠️ Lưu ý: Dữ liệu quá lớn. Hệ thống đã tự động rút gọn hiển thị {maxRowsForUi} trên tổng số {rows.Count} dòng để tối ưu hiệu năng UI.*";
-            }
-            else
-            {
-                stepUiJson = stepJson;
-            }
-
-            var stepLog = new RagStep(stepTitle, $"Hoàn thành: Truy vấn SQL trực tiếp\n\n```sql\n{directSql}\n```\n\nKết quả:\n```json\n{stepUiJson}\n```{truncationNotice}");
+            var stepLog = new RagStep(stepTitle, $"Hoàn thành: Truy vấn SQL trực tiếp\n\n```sql\n{directSql}\n```\n\nKết quả:\n```json\n{uiJson}\n```{truncationNotice}");
             result.ExecutedSteps.Add(stepLog);
             await onStep(stepLog);
         }
@@ -286,19 +197,52 @@ public class SqlPlanExecutor : ISqlPlanExecutor
         return result;
     }
 
-    private string GetCompactContext(List<Dictionary<string, object>> rows, int threshold = 50)
+    // Helper dùng chung: chuyển DataTable → rows + JSON đầy đủ + JSON rút gọn cho UI (#5)
+    private static (string fullJson, string uiJson, string truncationNotice, List<Dictionary<string, object>> rows) BuildStepOutput(DataTable dt)
+    {
+        const int maxRowsForUi = 10;
+        var rows = new List<Dictionary<string, object>>();
+
+        foreach (DataRow row in dt.Rows)
+        {
+            var dict = new Dictionary<string, object>();
+            foreach (DataColumn col in dt.Columns)
+            {
+                var val = row[col];
+                dict[col.ColumnName] = val switch
+                {
+                    DBNull => null!,
+                    DateTime d => d.TimeOfDay == TimeSpan.Zero
+                        ? d.ToString("dd/MM/yyyy")
+                        : d.ToString("dd/MM/yyyy HH:mm:ss"),
+                    DateTimeOffset dto => dto.TimeOfDay == TimeSpan.Zero
+                        ? dto.ToString("dd/MM/yyyy")
+                        : dto.ToString("dd/MM/yyyy HH:mm:ss"),
+                    _ => val
+                };
+            }
+            rows.Add(dict);
+        }
+
+        var fullJson = JsonSerializer.Serialize(rows, _serializeOptions);
+
+        if (rows.Count > maxRowsForUi)
+        {
+            var uiJson = JsonSerializer.Serialize(rows.Take(maxRowsForUi), _serializeOptions);
+            var notice = $"\n\n*⚠️ Lưu ý: Dữ liệu quá lớn. Hệ thống đã tự động rút gọn hiển thị {maxRowsForUi} trên tổng số {rows.Count} dòng để tối ưu hiệu năng UI.*";
+            return (fullJson, uiJson, notice, rows);
+        }
+
+        return (fullJson, fullJson, string.Empty, rows);
+    }
+
+    private static string GetCompactContext(List<Dictionary<string, object>> rows, int threshold = 50)
     {
         if (rows == null || rows.Count == 0) return "[]";
 
-        var serializeOptions = new JsonSerializerOptions
-        {
-            WriteIndented = true,
-            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-        };
-
         if (rows.Count <= threshold)
         {
-            return JsonSerializer.Serialize(rows, serializeOptions);
+            return JsonSerializer.Serialize(rows, _serializeOptions);
         }
 
         var sample = rows.Take(5).ToList();
@@ -310,6 +254,6 @@ public class SqlPlanExecutor : ISqlPlanExecutor
             WarningRules = "DỮ LIỆU ĐÃ BỊ THU GỌN! Tập dữ liệu 'SampleData' phía trên CHỈ là 5 dòng mẫu đại diện để bạn hiểu cấu trúc cột và kiểu dữ liệu. Tuyệt đối KHÔNG sử dụng tập mẫu này để tự tính toán (Min, Max, Sum, Avg, Group) hoặc tạo câu lệnh SQL giả lập bằng UNION ALL. Nếu câu hỏi yêu cầu phân tích tổng hợp trên toàn bộ dữ liệu, bạn BẮT BUỘC phải sinh câu lệnh SQL truy vấn trực tiếp từ bảng gốc trong cơ sở dữ liệu."
         };
 
-        return JsonSerializer.Serialize(summary, serializeOptions);
+        return JsonSerializer.Serialize(summary, _serializeOptions);
     }
 }

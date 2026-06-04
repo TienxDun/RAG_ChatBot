@@ -24,7 +24,8 @@ public class SqlSecurityValidator : ISqlSecurityValidator
         var upperSql = sql.Trim().ToUpper();
 
         // 1. Chỉ cho phép câu lệnh truy vấn dữ liệu (SELECT hoặc CTE)
-        if (!upperSql.StartsWith("SELECT") && !upperSql.StartsWith("WITH"))
+        // Dùng Regex thay vì StartsWith để chặn bypass bằng SQL comment (-- hoặc /* */)
+        if (!Regex.IsMatch(upperSql, @"^\s*(SELECT|WITH)\s", RegexOptions.None))
         {
             throw new InvalidOperationException("Hệ thống chỉ cho phép thực thi các câu lệnh truy vấn dữ liệu (SELECT).");
         }

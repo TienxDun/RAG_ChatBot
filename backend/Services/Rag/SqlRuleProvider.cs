@@ -23,7 +23,8 @@ public class SqlRuleProvider : ISqlRuleProvider
 
     private List<RuleItem>? _cachedRules;
     private DateTime _lastRulesReadTime = DateTime.MinValue;
-    private readonly object _rulesLock = new();
+    // Dùng SemaphoreSlim thay vì lock để hỗ trợ await bên trong critical section
+    private readonly SemaphoreSlim _rulesLock = new(1, 1);
 
     public async Task<string> GetGlobalRulesAsync(string? userQuery = null, bool isExcelTemplate = false)
     {
@@ -42,31 +43,46 @@ public class SqlRuleProvider : ISqlRuleProvider
         try
         {
             var lastWrite = File.GetLastWriteTime(path);
-            if (_cachedRules == null || lastWrite > _lastRulesReadTime)
+
+            // Kiểm tra nhanh ngoài lock (read-only, chấp nhận stale check nhẹ)
+            if (_cachedRules != null && lastWrite <= _lastRulesReadTime)
             {
-                var content = await File.ReadAllTextAsync(path, Encoding.UTF8);
-                using var doc = JsonDocument.Parse(content);
-                var tempRules = new List<RuleItem>();
-                if (doc.RootElement.TryGetProperty("rules", out var rulesProp) && rulesProp.ValueKind == JsonValueKind.Array)
+                rules = _cachedRules;
+            }
+            else
+            {
+                // Vào critical section async-safe: chỉ 1 thread được đọc file và cập nhật cache
+                await _rulesLock.WaitAsync();
+                try
                 {
-                    foreach (var rule in rulesProp.EnumerateArray())
+                    // Double-check sau khi acquire semaphore để tránh reload trùng
+                    if (_cachedRules == null || lastWrite > _lastRulesReadTime)
                     {
-                        tempRules.Add(new RuleItem
+                        var content = await File.ReadAllTextAsync(path, Encoding.UTF8);
+                        using var doc = JsonDocument.Parse(content);
+                        var tempRules = new List<RuleItem>();
+                        if (doc.RootElement.TryGetProperty("rules", out var rulesProp) && rulesProp.ValueKind == JsonValueKind.Array)
                         {
-                            Id = rule.TryGetProperty("id", out var idProp) ? idProp.GetString() ?? "" : "",
-                            Severity = rule.TryGetProperty("severity", out var sevProp) ? sevProp.GetString() ?? "" : "",
-                            Rule = rule.TryGetProperty("rule", out var rProp) ? rProp.GetString() ?? "" : ""
-                        });
+                            foreach (var rule in rulesProp.EnumerateArray())
+                            {
+                                tempRules.Add(new RuleItem
+                                {
+                                    Id = rule.TryGetProperty("id", out var idProp) ? idProp.GetString() ?? "" : "",
+                                    Severity = rule.TryGetProperty("severity", out var sevProp) ? sevProp.GetString() ?? "" : "",
+                                    Rule = rule.TryGetProperty("rule", out var rProp) ? rProp.GetString() ?? "" : ""
+                                });
+                            }
+                        }
+                        _cachedRules = tempRules;
+                        _lastRulesReadTime = lastWrite;
                     }
+                    rules = _cachedRules;
                 }
-                
-                lock (_rulesLock)
+                finally
                 {
-                    _cachedRules = tempRules;
-                    _lastRulesReadTime = lastWrite;
+                    _rulesLock.Release();
                 }
             }
-            rules = _cachedRules;
         }
         catch
         {

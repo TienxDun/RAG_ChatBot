@@ -55,6 +55,11 @@ public sealed class RagOrchestrator
             tracker.CurrentPhase = Backend.Models.PerformancePhase.Embedding;
         }
 
+        // Timeout 60s toàn pipeline: hủy khi hết giờ HOẶC client ngắt kết nối (#10)
+        using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, timeoutCts.Token);
+        var pipelineCt = linkedCts.Token;
+
         // 0. Khởi tạo & 1. Get Embeddings song song
         var initTask = onStep(new RagStep("System Initialization", "Đang khởi tạo luồng xử lý và chuẩn bị kết nối tới AI Engine..."));
 
@@ -86,10 +91,23 @@ public sealed class RagOrchestrator
             embeddingText = embeddingText.Substring(0, 2000);
         }
 
-        var vectorTask = _aiClient.GetEmbeddingAsync(embeddingText, "RETRIEVAL_QUERY", 3072, ct);
-        
+        // Await initTask trước (chỉ là bước UI, rất nhanh)
         await initTask;
-        var vector = await vectorTask;
+
+        // Retry embedding tối đa 3 lần với exponential backoff: 2s, 4s (#6)
+        IReadOnlyList<float> vector = Array.Empty<float>();
+        for (int embedAttempt = 1; embedAttempt <= 3; embedAttempt++)
+        {
+            try
+            {
+                vector = await _aiClient.GetEmbeddingAsync(embeddingText, "RETRIEVAL_QUERY", 3072, pipelineCt);
+                break;
+            }
+            catch when (embedAttempt < 3)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(embedAttempt * 2), pipelineCt);
+            }
+        }
         stepSw.Stop();
         if (tracker != null && tracker.IsEnabled)
         {
@@ -143,10 +161,12 @@ public sealed class RagOrchestrator
         var suggestedQuestions = new List<string>();
         string planningReason = string.Empty;
         string? directSql = null;
+        // Khai báo ngoài scope block để dùng được ở execution phase (#7)
+        string globalRules = string.Empty;
 
         {
             await onStep(new RagStep("Execution Planning", "AI đang phân tích câu hỏi và lập kế hoạch truy vấn..."));
-            var globalRules = await _ruleProvider.GetGlobalRulesAsync(userQuery, isExcelTemplate: isExcelTemplate);
+            globalRules = await _ruleProvider.GetGlobalRulesAsync(userQuery, isExcelTemplate: isExcelTemplate);
             var planningPrompt = $@"Bạn là chuyên gia phân tích yêu cầu và lập kế hoạch truy vấn SQL.
                 Thời gian hệ thống hiện tại: {currentTimeStr} (Việt Nam, UTC+7).
                 Dựa trên CẤU TRÚC DATABASE được cung cấp dưới đây (được trích xuất động từ Qdrant dựa trên ngữ cảnh câu hỏi):
@@ -183,7 +203,7 @@ public sealed class RagOrchestrator
                     ""directSql"": ""Câu lệnh SQL Server duy nhất nếu câu hỏi chỉ cần 1 bước truy vấn duy nhất để trả về kết quả, ngược lại để trống """" ""
                 }}";
 
-            var planResponse = await _aiClient.GenerateContentAsync(planningPrompt, ct);
+            var planResponse = await _aiClient.GenerateContentAsync(planningPrompt, pipelineCt);
             var planJson = planResponse.Replace("```json", "").Replace("```", "").Trim();
             
             try {
@@ -241,7 +261,7 @@ public sealed class RagOrchestrator
                         userQuery,
                         currentTimeStr,
                         onStep,
-                        ct);
+                        pipelineCt);
 
                     lastStepJson = execResult.LastStepJson;
                     lastDataTable = execResult.LastDataTable;
@@ -258,8 +278,9 @@ public sealed class RagOrchestrator
                         userQuery,
                         currentTimeStr,
                         schemaInfo,
+                        globalRules,
                         onStep,
-                        ct);
+                        pipelineCt);
 
                     lastStepJson = execResult.LastStepJson;
                     lastDataTable = execResult.LastDataTable;
@@ -274,8 +295,9 @@ public sealed class RagOrchestrator
                     userQuery,
                     currentTimeStr,
                     schemaInfo,
+                    globalRules,
                     onStep,
-                    ct);
+                    pipelineCt);
 
                 lastStepJson = execResult.LastStepJson;
                 lastDataTable = execResult.LastDataTable;
@@ -344,7 +366,7 @@ public sealed class RagOrchestrator
         bool foundSeparator = false;
         int separatorIndex = -1;
 
-        await foreach (var chunk in _aiClient.GenerateContentStreamAsync(finalPrompt, ct))
+        await foreach (var chunk in _aiClient.GenerateContentStreamAsync(finalPrompt, pipelineCt))
         {
             accumulatedText.Append(chunk);
             
