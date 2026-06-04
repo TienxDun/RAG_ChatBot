@@ -158,7 +158,6 @@ public sealed class RagOrchestrator
         // 3. Planning Phase: AI đánh giá phạm vi và lập kế hoạch
         var stepsToExecute = new List<string>();
         bool isOutOfScope = false;
-        var suggestedQuestions = new List<string>();
         string planningReason = string.Empty;
         string? directSql = null;
         // Khai báo ngoài scope block để dùng được ở execution phase (#7)
@@ -203,8 +202,8 @@ public sealed class RagOrchestrator
                     ""directSql"": ""Câu lệnh SQL Server duy nhất nếu câu hỏi chỉ cần 1 bước truy vấn duy nhất để trả về kết quả, ngược lại để trống """" ""
                 }}";
 
-            var planResponse = await _aiClient.GenerateContentAsync(planningPrompt, pipelineCt);
-            var planJson = planResponse.Replace("```json", "").Replace("```", "").Trim();
+            var planResponse = await _aiClient.GenerateContentAsync(planningPrompt, pipelineCt, responseMimeType: "application/json");
+            var planJson = planResponse.Trim();
             
             try {
                 var planObj = JsonSerializer.Deserialize<JsonElement>(planJson);
@@ -341,76 +340,46 @@ public sealed class RagOrchestrator
                     * Nếu thêm ký hiệu `%`, vẫn phải giữ nguyên đơn vị gốc từ SQL, làm tròn tối đa 3 chữ số sau dấu phẩy và TUYỆT ĐỐI KHÔNG viết thêm các số 0 vô nghĩa ở cuối phần thập phân (ví dụ: SQL trả 0.196335 -> hiển thị 0,196%; SQL trả 19.63 -> hiển thị 19,63% chứ không viết 19,630%; SQL trả 40 -> hiển thị 40% chứ không viết 40,000%).
                     * Số liệu trong phần `### 💠 Tổng quan` và bảng `### 📋 Chi tiết` phải đồng nhất tuyệt đối với `DỮ LIỆU ĐÃ TRUY VẤN ĐƯỢC`.
 
-            QUY TẮC QUAN TRỌNG VỀ DỮ LIỆU EXCEL:
-            - Nếu dữ liệu đã truy vấn được là một danh sách dài/bảng dữ liệu gốc từ database:
-              * BẮT BUỘC để `excelData` là mảng rỗng `[]`.
-              * Cung cấp `columnMapping` để dịch toàn bộ các cột từ tiếng Anh sang tiếng Việt thân thiện (ví dụ: {{""MaLenh"": ""Mã Lệnh"", ""TenLenh"": ""Tên Lệnh""}}).
-            - Chỉ điền dữ liệu vào `excelData` khi bạn tự tính toán/tổng hợp ra một bảng số liệu tóm tắt mới. Khi đó, `columnMapping` để trống `{{}}`.
+            YÊU CẦU ĐẦU RA:
+            - Hãy trả về TRỰC TIẾP câu trả lời bằng Markdown tiếng Việt theo các quy tắc trên.
+            - TUYỆT ĐỐI KHÔNG đính kèm bất kỳ thông tin bổ sung, mã JSON, metadata hay cấu trúc mapping/excelData nào ở cuối câu trả lời văn bản này.";
 
-            ĐỊNH DẠNG ĐẦU RA BẮT BUỘC:
-            1. Trước tiên, hãy viết trực tiếp câu trả lời bằng Markdown tiếng Việt (không bọc trong JSON, không sử dụng thẻ code block JSON ở ngoài cùng).
-            2. Ngay sau khi kết thúc câu trả lời Markdown, hãy xuống dòng và in ra chính xác chuỗi phân cách:
-            ===METADATA===
-            3. Sau chuỗi phân cách đó, hãy viết một đối tượng JSON chứa các thông tin bổ sung với cấu trúc sau (không dùng markdown code block cho phần JSON này):
+        // Khởi tạo task sinh metadata song song với luồng stream để giảm độ trễ (E2E Latency) xuống tối đa!
+        Task<string>? metadataTask = null;
+        if (!isOutOfScope)
+        {
+            var metadataPrompt = $@"Bạn là chuyên gia phân tích dữ liệu doanh nghiệp. Hãy phân tích ngữ cảnh, câu hỏi của người dùng và dữ liệu đã truy vấn từ database để tạo ra siêu dữ liệu (metadata) dưới dạng JSON.
+
+            Thời gian hệ thống hiện tại: {currentTimeStr}
+            Câu hỏi gốc của người dùng: ""{userQuery}""
+            DỮ LIỆU ĐÃ TRUY VẤN ĐƯỢC TỪ DATABASE:
+            {workingContext}
+
+            NHIỆM VỤ:
+            Tạo ra thông tin xuất file Excel (excelData hoặc columnMapping) liên quan trực tiếp đến dữ liệu và câu hỏi.
+
+            QUY TẮC QUAN TRỌNG VỀ DỮ LIỆU EXCEL:
+            1. Nếu dữ liệu đã truy vấn được là một danh sách dài hoặc bảng dữ liệu gốc từ database (lastDataTable):
+            - Đặt `excelData` là mảng rỗng `[]`.
+            - Cung cấp `columnMapping` để dịch tên các cột từ tiếng Anh sang tiếng Việt thân thiện dễ hiểu cho người dùng (ví dụ: {{""MaLenh"": ""Mã Lệnh"", ""TenLenh"": ""Tên Lệnh""}}).
+            2. Nếu câu hỏi yêu cầu một bảng tổng hợp/tóm tắt số liệu mới (không có sẵn trực tiếp dạng bảng trong lastDataTable):
+            - Tính toán dữ liệu đó và điền vào mảng đối tượng `excelData` (mỗi đối tượng đại diện cho một hàng).
+            - Đặt `columnMapping` là đối tượng rỗng `{{}}`.
+
+            YÊU CẦU ĐỊNH DẠNG (BẮT BUỘC TRẢ VỀ JSON KHÔNG BỌC TRONG CODEBLOCK):
             {{
                 ""excelData"": [],
-                ""columnMapping"": {{}},
-                ""metadata"": {{""key"": ""value""}}
+                ""columnMapping"": {{}}
             }}";
 
-        string separator = "===METADATA===";
-        int sepLen = separator.Length;
-        int sentLength = 0;
-        var accumulatedText = new StringBuilder();
-        var metadataBuilder = new StringBuilder();
-        bool foundSeparator = false;
-        int separatorIndex = -1;
+            metadataTask = _aiClient.GenerateContentAsync(metadataPrompt, pipelineCt, responseMimeType: "application/json");
+        }
 
+        var accumulatedText = new StringBuilder();
         await foreach (var chunk in _aiClient.GenerateContentStreamAsync(finalPrompt, pipelineCt))
         {
             accumulatedText.Append(chunk);
-            
-            if (!foundSeparator)
-            {
-                var currentText = accumulatedText.ToString();
-                separatorIndex = currentText.IndexOf(separator);
-                if (separatorIndex >= 0)
-                {
-                    foundSeparator = true;
-                    int textToSendLength = separatorIndex - sentLength;
-                    if (textToSendLength > 0)
-                    {
-                        var textChunk = currentText.Substring(sentLength, textToSendLength);
-                        await onFinalChunk(textChunk);
-                    }
-                    sentLength = separatorIndex + sepLen;
-                    metadataBuilder.Append(currentText.Substring(sentLength));
-                }
-                else
-                {
-                    int safeLength = currentText.Length - sepLen;
-                    if (safeLength > sentLength)
-                    {
-                        var textChunk = currentText.Substring(sentLength, safeLength - sentLength);
-                        await onFinalChunk(textChunk);
-                        sentLength = safeLength;
-                    }
-                }
-            }
-            else
-            {
-                metadataBuilder.Append(chunk);
-            }
-        }
-
-        if (!foundSeparator)
-        {
-            var currentText = accumulatedText.ToString();
-            if (currentText.Length > sentLength)
-            {
-                var finalChunk = currentText.Substring(sentLength);
-                await onFinalChunk(finalChunk);
-            }
+            await onFinalChunk(chunk);
         }
         stepSw.Stop();
         totalSw.Stop();
@@ -421,51 +390,33 @@ public sealed class RagOrchestrator
             tracker.CurrentPhase = Backend.Models.PerformancePhase.None;
         }
 
-        string finalText = foundSeparator ? accumulatedText.ToString().Substring(0, separatorIndex).Trim() : accumulatedText.ToString().Trim();
-        string metadataJson = metadataBuilder.ToString().Trim();
-        
-        List<string> suggestions = new();
+        string finalText = accumulatedText.ToString().Trim();
         string rawDataForExport = lastStepJson; 
         Dictionary<string, string>? metadata = tracker != null && tracker.IsEnabled ? tracker.ToMetadata() : null;
 
-        if (!string.IsNullOrEmpty(metadataJson))
+        if (metadataTask != null)
         {
-            try 
+            try
             {
-                var cleanedMetaJson = metadataJson.Replace("```json", "").Replace("```", "").Trim();
-                var result = JsonSerializer.Deserialize<JsonElement>(cleanedMetaJson);
-                
-                if (result.TryGetProperty("suggestions", out var sugProp)) {
-                    suggestions = sugProp.EnumerateArray().Select(x => x.GetString() ?? "").Where(x => !string.IsNullOrEmpty(x)).ToList();
-                }
+                var metadataResponse = await metadataTask;
+                using var metaDoc = JsonDocument.Parse(metadataResponse);
+                var root = metaDoc.RootElement;
 
-                // Trích xuất metadata nếu có
-                if (result.TryGetProperty("metadata", out var metaProp) && metaProp.ValueKind == JsonValueKind.Object) {
-                    try {
-                        var parsedMeta = JsonSerializer.Deserialize<Dictionary<string, string>>(metaProp.GetRawText());
-                        if (parsedMeta != null)
-                        {
-                            metadata ??= new Dictionary<string, string>();
-                            foreach (var kv in parsedMeta)
-                            {
-                                metadata[kv.Key] = kv.Value;
-                            }
-                        }
-                    } catch { }
-                }
-
-                // ƯU TIÊN 1: Nếu AI cung cấp excelData
-                if (result.TryGetProperty("excelData", out var excelProp) && excelProp.ValueKind == JsonValueKind.Array && excelProp.GetArrayLength() > 0) {
+                if (root.TryGetProperty("excelData", out var excelProp) && excelProp.ValueKind == JsonValueKind.Array && excelProp.GetArrayLength() > 0)
+                {
                     rawDataForExport = JsonSerializer.Serialize(excelProp, new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
                 }
-                // ƯU TIÊN 2: Nếu AI cung cấp columnMapping
-                else if (result.TryGetProperty("columnMapping", out var mappingProp) && lastDataTable != null) {
+                else if (root.TryGetProperty("columnMapping", out var mappingProp) && mappingProp.ValueKind == JsonValueKind.Object && lastDataTable != null)
+                {
                     var mapping = JsonSerializer.Deserialize<Dictionary<string, string>>(mappingProp.GetRawText());
-                    if (mapping != null && mapping.Count > 0) {
+                    if (mapping != null && mapping.Count > 0)
+                    {
                         var friendlyRows = new List<Dictionary<string, object>>();
-                        foreach (DataRow row in lastDataTable.Rows) {
+                        foreach (DataRow row in lastDataTable.Rows)
+                        {
                             var friendlyRow = new Dictionary<string, object>();
-                            foreach (DataColumn col in lastDataTable.Columns) {
+                            foreach (DataColumn col in lastDataTable.Columns)
+                            {
                                 string friendlyHeader = mapping.ContainsKey(col.ColumnName) ? mapping[col.ColumnName] : col.ColumnName;
                                 friendlyRow[friendlyHeader] = row[col] == DBNull.Value ? null! : row[col];
                             }
@@ -474,54 +425,14 @@ public sealed class RagOrchestrator
                         rawDataForExport = JsonSerializer.Serialize(friendlyRows, new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
                     }
                 }
-            } 
+            }
             catch (Exception ex)
             {
-                Console.WriteLine($"⚠️ Error parsing stream metadata JSON: {ex.Message}. Raw metadata was: {metadataJson}");
-                // Fallback trích xuất thủ công nếu JSON bị lỗi nhẹ
-                if (_responseParser.TryExtractInvalidJsonFields(metadataJson, out var extractedAnswer, out var extractedSuggestions, out var extractedExcelData, out var extractedColumnMapping))
-                {
-                    suggestions = extractedSuggestions;
-                    if (!string.IsNullOrEmpty(extractedExcelData))
-                    {
-                        try
-                        {
-                            var excelProp = JsonSerializer.Deserialize<JsonElement>(extractedExcelData);
-                            if (excelProp.ValueKind == JsonValueKind.Array && excelProp.GetArrayLength() > 0)
-                            {
-                                rawDataForExport = JsonSerializer.Serialize(excelProp, new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
-                            }
-                        }
-                        catch { }
-                    }
-                    else if (!string.IsNullOrEmpty(extractedColumnMapping) && lastDataTable != null)
-                    {
-                        try
-                        {
-                            var mapping = JsonSerializer.Deserialize<Dictionary<string, string>>(extractedColumnMapping);
-                            if (mapping != null && mapping.Count > 0)
-                            {
-                                var friendlyRows = new List<Dictionary<string, object>>();
-                                foreach (DataRow row in lastDataTable.Rows)
-                                {
-                                    var friendlyRow = new Dictionary<string, object>();
-                                    foreach (DataColumn col in lastDataTable.Columns)
-                                    {
-                                        string friendlyHeader = mapping.ContainsKey(col.ColumnName) ? mapping[col.ColumnName] : col.ColumnName;
-                                        friendlyRow[friendlyHeader] = row[col] == DBNull.Value ? null! : row[col];
-                                    }
-                                    friendlyRows.Add(friendlyRow);
-                                }
-                                rawDataForExport = JsonSerializer.Serialize(friendlyRows, new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
-                            }
-                        }
-                        catch { }
-                    }
-                }
+                Console.WriteLine($"⚠️ Error generating metadata JSON: {ex.Message}");
             }
         }
 
-        return new ChatResponse(finalText, steps, suggestions, rawDataForExport, lastDataTable, Metadata: metadata);
+        return new ChatResponse(finalText, steps, null, rawDataForExport, lastDataTable, Metadata: metadata);
     }
 
     private static string CompressSchemaMarkdown(string schemaMd)

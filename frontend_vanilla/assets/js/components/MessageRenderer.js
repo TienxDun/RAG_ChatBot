@@ -409,11 +409,13 @@ export class MessageRenderer {
         const bubbleEl = messageEl.querySelector('.message__bubble');
         
         if (rawData) {
-            console.log("MessageRenderer: Received rawData for Excel export", rawData);
             try {
                 const dataObj = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
                 if (Array.isArray(dataObj)) {
+                    console.log(`MessageRenderer: Received rawData for Excel export (${dataObj.length} rows)`);
                     messageEl.setAttribute('data-raw', JSON.stringify(dataObj));
+                } else {
+                    console.log("MessageRenderer: Received rawData for Excel export", dataObj);
                 }
             } catch (e) {
                 console.error("MessageRenderer: Failed to parse rawData", e);

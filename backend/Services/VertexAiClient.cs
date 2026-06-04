@@ -23,7 +23,7 @@ public sealed class VertexAiClient
     }
 
     // Gửi yêu cầu sinh nội dung văn bản tới mô hình Gemini của Vertex AI dựa trên prompt đầu vào.
-    public async Task<string> GenerateContentAsync(string message, CancellationToken ct)
+    public async Task<string> GenerateContentAsync(string message, CancellationToken ct, string responseMimeType = "text/plain")
     {
         // 1. Tạo URL endpoint API bằng cách thay thế các placeholder trong cấu hình template và đính kèm khóa API
         var url = _options.ApiUrlTemplate
@@ -51,7 +51,7 @@ public sealed class VertexAiClient
                 topP = 0.95,
                 topK = 40,
                 maxOutputTokens = 8192,
-                responseMimeType = "text/plain"
+                responseMimeType = responseMimeType
             }
         };
 
