@@ -35,9 +35,9 @@
     {
       "id": "T_QTY_CT_005",
       "severity": "HIGH",
-      "rule": "Lọc tên người kiểm KCS (cột NVKiem): Bắt buộc dùng so sánh bằng tuyệt đối (=) với chuỗi đầy đủ bao gồm tiền tố 'KCS ' hoặc 'Kcs ' (ví dụ: người dùng nói 'PANSY' -> dùng NVKiem = N'KCS PANSY'). Tuyệt đối cấm dùng LIKE hay wildcard %. Chú ý tên cột là NVKiem (không phải NVKiemKCS).",
-      "correct_example": "WHERE NVKiem = N'KCS PANSY'",
-      "wrong_example": "WHERE NVKiem LIKE N'%PANSY%' hoặc WHERE NVKiemKCS = N'KCS PANSY'"
+      "rule": "Lọc tên người kiểm KCS (cột NVKiem): Khi câu hỏi đề cập đến 'nhân viên KCS [tên_chuyền]' hoặc 'nhân viên [tên_chuyền]' (ví dụ: 'nhân viên KCS cosmos'), bắt buộc dùng so sánh bằng tuyệt đối (=) với chuỗi đầy đủ bao gồm tiền tố 'KCS ' hoặc 'Kcs ' (ví dụ: NVKiem = N'KCS cosmos'). Tuyệt đối cấm dùng LIKE hay wildcard %, và không được phép bỏ sót điều kiện lọc này khi câu hỏi yêu cầu lọc theo nhân viên kiểm. Chú ý tên cột là NVKiem (không phải NVKiemKCS).",
+      "correct_example": "WHERE NVKiem = N'KCS cosmos'",
+      "wrong_example": "WHERE NVKiem LIKE N'%cosmos%' hoặc WHERE NVKiemKCS = N'KCS cosmos' -- (cấm dùng LIKE, cấm bịa tên cột, cấm bỏ sót lọc nhân viên)"
     },
     {
       "id": "T_QTY_CT_006",
