@@ -540,34 +540,61 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
             {
                 foreach (var mergeColName in subtotalConfig.MergeColumns)
                 {
+                    int colIdx = -1;
                     var mergeMapping = mappings.FirstOrDefault(m => 
                         m.DataTableColumnName.Equals(mergeColName, StringComparison.OrdinalIgnoreCase));
-                    if (mergeMapping == null) continue;
+                    
+                    if (mergeMapping != null)
+                    {
+                        colIdx = mergeMapping.ExcelColumnIndex;
+                    }
+                    else
+                    {
+                        // Cột tĩnh không có trong data DB, quét tiêu đề của Excel
+                        int headerRowIndex = dataStartRowIndex - 1;
+                        for (int c = 1; c <= totalColsCount; c++)
+                        {
+                            string headerText = worksheet.Cells[headerRowIndex, c].Text?.Trim() ?? "";
+                            string cleanHeader = _textUtility.RemoveDiacritics(headerText).Replace(" ", "").Replace("_", "").ToLower();
+                            string cleanMergeName = _textUtility.RemoveDiacritics(mergeColName).Replace(" ", "").Replace("_", "").ToLower();
+                            if (cleanHeader == cleanMergeName || cleanHeader.Contains(cleanMergeName) || cleanMergeName.Contains(cleanHeader))
+                            {
+                                colIdx = c;
+                                break;
+                            }
+                        }
+                    }
 
-                    int colIdx = mergeMapping.ExcelColumnIndex;
+                    if (colIdx == -1) continue;
 
                     // If column is also in DefectRateColumns
                     bool isDefectRateCol = subtotalConfig.DefectRateColumns != null && 
                                            subtotalConfig.DefectRateColumns.Any(c => c.Equals(mergeColName, StringComparison.OrdinalIgnoreCase));
 
-                    if (isDefectRateCol)
-                    {
-                        double? rateVal = null;
-                        if (groupTotalKiem > 0)
-                        {
-                            rateVal = (double)groupTotalLoi / groupTotalKiem * 100;
-                        }
+                    bool shouldMergeToSubtotal = subtotalConfig.MergeToSubtotalColumns != null && 
+                                                 subtotalConfig.MergeToSubtotalColumns.Any(c => c.Equals(mergeColName, StringComparison.OrdinalIgnoreCase));
 
-                        // Write computed rate to the cell at groupStartRow
-                        var startCell = worksheet.Cells[groupStartRow, colIdx];
-                        if (rateVal.HasValue)
+                    if (shouldMergeToSubtotal)
+                    {
+                        if (isDefectRateCol)
                         {
-                            startCell.Value = rateVal.Value;
-                            startCell.Style.Numberformat.Format = "#,##0.00";
-                        }
-                        else
-                        {
-                            startCell.Value = null;
+                            double? rateVal = null;
+                            if (groupTotalKiem > 0)
+                            {
+                                rateVal = (double)groupTotalLoi / groupTotalKiem * 100;
+                            }
+
+                            // Write computed rate to the cell at groupStartRow
+                            var startCell = worksheet.Cells[groupStartRow, colIdx];
+                            if (rateVal.HasValue)
+                            {
+                                startCell.Value = rateVal.Value;
+                                startCell.Style.Numberformat.Format = "#,##0.00";
+                            }
+                            else
+                            {
+                                startCell.Value = null;
+                            }
                         }
 
                         // Clear cell at subtotalRowIndex
@@ -584,6 +611,7 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
                         }
                         else
                         {
+                            var startCell = worksheet.Cells[groupStartRow, colIdx];
                             startCell.Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
                             startCell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
                         }

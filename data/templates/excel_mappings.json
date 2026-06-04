@@ -34,7 +34,12 @@
       "MergeColumns": [
         "ChuyenLine_Chuyen",
         "Cosmos_Ngaykiem",
-        "Cosmos_TBloiNgay"
+        "Cosmos_TBloiNgay",
+        "Kyten"
+      ],
+      "MergeToSubtotalColumns": [
+        "Cosmos_TBloiNgay",
+        "Kyten"
       ]
     }
   },
