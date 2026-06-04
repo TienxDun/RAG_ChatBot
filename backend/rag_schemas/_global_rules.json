@@ -176,6 +176,12 @@
       "category": "order_column_accuracy",
       "severity": "CRITICAL",
       "rule": "Bắt buộc ghi đúng tên cột đại diện cho Lệnh/Kế hoạch sản xuất (MaLenh): 'PlanCode' trong QTY_MAHANG_NGAYKIEM và QTY_MaHang_KiemQC_ChiTiet; 'PoId' trong các bảng SEW_*; 'LenhSX' trong các bảng QTY_KiemQA_* và QTY_InLineQC_*. TUYỆT ĐỐI CẤM sử dụng lẫn lộn hoặc tự ý bịa tên cột giữa các bảng."
+    },
+    {
+      "id": "G030",
+      "category": "time_range_between",
+      "severity": "HIGH",
+      "rule": "LỌC KHOẢNG THỜI GIAN (ví dụ: 'từ 13:00 đến 14:00'): Bắt buộc sử dụng toán tử BETWEEN trên cột thời gian để bao gồm cả thời điểm kết thúc (ví dụ: c.Gio BETWEEN '13:00:00' AND '14:00:00')."
     }
   ]
 }
