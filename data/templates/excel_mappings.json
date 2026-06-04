@@ -30,6 +30,11 @@
       "DefectRateColumns": [
         "Cosmos_Loi",
         "Cosmos_TBloiNgay"
+      ],
+      "MergeColumns": [
+        "ChuyenLine_Chuyen",
+        "Cosmos_Ngaykiem",
+        "Cosmos_TBloiNgay"
       ]
     }
   },

@@ -141,6 +141,9 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
     // Ghi một dòng dữ liệu vào Excel sheet
     private void WriteRowData(ExcelWorksheet worksheet, DataRow dataRow, int excelRowIndex, List<ColumnMapping> mappings)
     {
+        double maxRowHeight = worksheet.Row(excelRowIndex).Height;
+        if (maxRowHeight <= 0) maxRowHeight = 20;
+
         foreach (var map in mappings)
         {
             var cell = worksheet.Cells[excelRowIndex, map.ExcelColumnIndex];
@@ -187,10 +190,37 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
                 }
                 else
                 {
+                    if (strVal.Contains("|"))
+                    {
+                        var uniqueItems = strVal.Split('|')
+                            .Select(item => item.Trim())
+                            .Where(item => !string.IsNullOrEmpty(item))
+                            .Distinct(StringComparer.OrdinalIgnoreCase);
+                        strVal = string.Join(" | ", uniqueItems);
+                    }
+                    
                     cell.Value = strVal;
+
+                    if (strVal.Length > 20 || strVal.Contains("|"))
+                    {
+                        cell.Style.WrapText = true;
+                        double colWidth = worksheet.Column(map.ExcelColumnIndex).Width;
+                        if (colWidth <= 0) colWidth = 15;
+
+                        int charsPerLine = Math.Max(5, (int)(colWidth * 0.9));
+                        int lineCount = (int)Math.Ceiling((double)strVal.Length / charsPerLine);
+
+                        double estimatedHeight = lineCount * 16 + 8;
+                        if (estimatedHeight > maxRowHeight)
+                        {
+                            maxRowHeight = estimatedHeight;
+                        }
+                    }
                 }
             }
         }
+
+        worksheet.Row(excelRowIndex).Height = maxRowHeight;
     }
 
     private bool IsValidSizeLoiKiemFormat(string? valStr)
@@ -488,6 +518,79 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
                 cell.Style.Border.Bottom.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
                 cell.Style.Border.Left.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
                 cell.Style.Border.Right.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+            }
+
+            // Dynamic Cell Merging for this group (if configured)
+            if (subtotalConfig.MergeColumns != null && subtotalConfig.MergeColumns.Count > 0)
+            {
+                foreach (var mergeColName in subtotalConfig.MergeColumns)
+                {
+                    var mergeMapping = mappings.FirstOrDefault(m => 
+                        m.DataTableColumnName.Equals(mergeColName, StringComparison.OrdinalIgnoreCase));
+                    if (mergeMapping == null) continue;
+
+                    int colIdx = mergeMapping.ExcelColumnIndex;
+
+                    // If column is also in DefectRateColumns
+                    bool isDefectRateCol = subtotalConfig.DefectRateColumns != null && 
+                                           subtotalConfig.DefectRateColumns.Any(c => c.Equals(mergeColName, StringComparison.OrdinalIgnoreCase));
+
+                    if (isDefectRateCol)
+                    {
+                        double? rateVal = null;
+                        if (groupTotalKiem > 0)
+                        {
+                            rateVal = (double)groupTotalLoi / groupTotalKiem * 100;
+                        }
+
+                        // Write computed rate to the cell at groupStartRow
+                        var startCell = worksheet.Cells[groupStartRow, colIdx];
+                        if (rateVal.HasValue)
+                        {
+                            startCell.Value = rateVal.Value;
+                            startCell.Style.Numberformat.Format = "#,##0.00";
+                        }
+                        else
+                        {
+                            startCell.Value = null;
+                        }
+
+                        // Clear cell at subtotalRowIndex
+                        var subtotalCell = worksheet.Cells[subtotalRowIndex, colIdx];
+                        subtotalCell.Value = null;
+
+                        // Merge range [groupStartRow, colIdx, subtotalRowIndex, colIdx]
+                        if (subtotalRowIndex > groupStartRow)
+                        {
+                            var mergeRange = worksheet.Cells[groupStartRow, colIdx, subtotalRowIndex, colIdx];
+                            mergeRange.Merge = true;
+                            mergeRange.Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
+                            mergeRange.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                        }
+                        else
+                        {
+                            startCell.Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
+                            startCell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                        }
+                    }
+                    else
+                    {
+                        // Merge range [groupStartRow, colIdx, groupEndRow, colIdx]
+                        if (groupEndRow > groupStartRow)
+                        {
+                            var mergeRange = worksheet.Cells[groupStartRow, colIdx, groupEndRow, colIdx];
+                            mergeRange.Merge = true;
+                            mergeRange.Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
+                            mergeRange.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                        }
+                        else
+                        {
+                            var singleCell = worksheet.Cells[groupStartRow, colIdx];
+                            singleCell.Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
+                            singleCell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                        }
+                    }
+                }
             }
 
             currentExcelRow++;
