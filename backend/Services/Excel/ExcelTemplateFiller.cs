@@ -223,6 +223,20 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
         worksheet.Row(excelRowIndex).Height = maxRowHeight;
     }
 
+    private void EnsureRowBorders(ExcelWorksheet worksheet, int rowIndex, List<ColumnMapping> mappings)
+    {
+        int startCol = mappings.Count > 0 ? mappings.Min(m => m.ExcelColumnIndex) : 1;
+        int totalCols = worksheet.Dimension?.Columns ?? startCol;
+        for (int col = startCol; col <= totalCols; col++)
+        {
+            var cell = worksheet.Cells[rowIndex, col];
+            cell.Style.Border.Top.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+            cell.Style.Border.Bottom.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+            cell.Style.Border.Left.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+            cell.Style.Border.Right.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+        }
+    }
+
     private bool IsValidSizeLoiKiemFormat(string? valStr)
     {
         if (string.IsNullOrEmpty(valStr)) return false;
@@ -339,6 +353,7 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
             foreach (var row in group.Rows)
             {
                 WriteRowData(worksheet, row, currentExcelRow, mappings);
+                EnsureRowBorders(worksheet, currentExcelRow, mappings);
                 currentExcelRow++;
             }
 
@@ -856,6 +871,7 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
                     if (targetExcelRow != -1)
                     {
                         WriteRowData(worksheet, dr, targetExcelRow, mappings);
+                        EnsureRowBorders(worksheet, targetExcelRow, mappings);
                     }
                 }
             }
@@ -885,6 +901,7 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
             for (int i = 0; i < dataRowsCount; i++)
             {
                 WriteRowData(worksheet, data.Rows[i], targetRows[i], mappings);
+                EnsureRowBorders(worksheet, targetRows[i], mappings);
             }
 
             // Xóa các dòng trống dư thừa nếu số dòng dữ liệu thực tế ít hơn số dòng trong template
@@ -903,6 +920,7 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
                 for (int i = 0; i < availableRowsCount; i++)
                 {
                     WriteRowData(worksheet, data.Rows[i], targetRows[i], mappings);
+                    EnsureRowBorders(worksheet, targetRows[i], mappings);
                 }
             }
             else
@@ -946,6 +964,7 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
                 for (int i = 0; i < dataRowsCount; i++)
                 {
                     WriteRowData(worksheet, data.Rows[i], targetRows[i], mappings);
+                    EnsureRowBorders(worksheet, targetRows[i], mappings);
                 }
             }
         }
