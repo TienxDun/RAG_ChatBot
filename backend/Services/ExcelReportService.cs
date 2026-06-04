@@ -140,6 +140,13 @@ public class ExcelReportService
                                    $"- CẢNH BÁO BẮT BUỘC: Trong câu lệnh SQL SELECT cuối cùng, bạn BẮT BUỘC phải truy vấn và trả về các cột này cùng với dữ liệu chi tiết của bảng để hệ thống có thể tự động bóc tách và điền vào đầu trang Excel. Nếu không có dữ liệu phù hợp, hãy trả về NULL có ép kiểu rõ ràng để tránh lỗi MAX(NULL) trong T-SQL (ví dụ: CAST(NULL AS VARCHAR(100)) AS [{templateInfo.Metadata.Keys.First()}]).";
         }
 
+        if (templateMapping.SubtotalConfig != null)
+        {
+            mappingInstructions += $"\n\nYÊU CẦU VỀ DỮ LIỆU CHI TIẾT (RAW DETAILS FOR SUBTOTAL):\n" +
+                                   $"- Mẫu báo cáo này sử dụng cấu hình tự động tính tổng con (Subtotal) theo nhóm cột '{templateMapping.SubtotalConfig.GroupByColumn}'.\n" +
+                                   $"- Bạn BẮT BUỘC phải truy vấn và trả về danh sách dữ liệu chi tiết thô (raw details). TUYỆT ĐỐI KHÔNG sử dụng GROUP BY toàn cục hoặc tự gom nhóm/tính tổng các dòng dữ liệu trong câu lệnh SQL, vì hệ thống C# sẽ tự động chèn các dòng tổng con và tính toán chúng ở tầng ứng dụng.";
+        }
+
         // Lấy ghi chú cột Excel được lưu trữ lâu dài của người dùng
         string userNotes = "";
         if (savedMappings.Count > 0)
