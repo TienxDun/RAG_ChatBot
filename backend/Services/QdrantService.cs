@@ -1,6 +1,4 @@
 using System;
-using System.IO;
-using System.Text.Json;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -35,88 +33,14 @@ public sealed class QdrantService
     public async Task<List<string>> SearchSchemaAsync(IReadOnlyList<float> vector, int limit = 3, string? collectionName = null)
     {
         var targetCollection = string.IsNullOrWhiteSpace(collectionName) ? DefaultCollectionName : collectionName;
-        
-        try
-        {
-            var searchResult = await _client.SearchAsync(
-                targetCollection,
-                vector: vector.ToArray(),
-                limit: (uint)limit
-            );
 
-            return searchResult.Select(r => r.Payload["full_text"].StringValue).ToList();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"⚠️ Qdrant connection failed, falling back to local schemas: {ex.Message}");
-            var schemasList = new List<string>();
-            var parser = new Backend.Services.Document.DbSchemaParser();
-            
-            var baseDirs = new[]
-            {
-                Path.Combine(Directory.GetCurrentDirectory(), "rag_schemas"),
-                Path.Combine(AppContext.BaseDirectory, "rag_schemas"),
-                Path.Combine(Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "backend")), "rag_schemas"),
-                Path.Combine(Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..")), "rag_schemas"),
-            };
+        var searchResult = await _client.SearchAsync(
+            targetCollection,
+            vector: vector.ToArray(),
+            limit: (uint)limit
+        );
 
-            string? schemaDir = null;
-            foreach (var dir in baseDirs)
-            {
-                if (Directory.Exists(dir))
-                {
-                    schemaDir = dir;
-                    break;
-                }
-            }
-
-            if (schemaDir != null)
-            {
-                var files = Directory.GetFiles(schemaDir, "*.json");
-                foreach (var file in files)
-                {
-                    if (Path.GetFileName(file).StartsWith("_")) continue;
-                    try
-                    {
-                        var json = File.ReadAllText(file);
-                        using var doc = JsonDocument.Parse(json);
-                        if (parser.IsDatabaseSchema(doc.RootElement))
-                        {
-                            var markdown = parser.ParseSchema(doc.RootElement, out _, out _);
-                            schemasList.Add(markdown);
-                        }
-                    }
-                    catch { }
-                }
-            }
-
-            if (schemasList.Count > 0)
-            {
-                var priorityOrder = new List<string>
-                {
-                    "QTY_MAHANG_NGAYKIEM",
-                    "SEW_CoefficientSize",
-                    "QTY_MaHang_KiemQC_ChiTiet",
-                    "ERP_LENHSX",
-                    "DIC_KHACHHANG",
-                    "tbl_SettingLineX"
-                };
-
-                var sortedSchemas = schemasList
-                    .OrderBy(s => {
-                        var firstLine = s.Split('\n').FirstOrDefault() ?? "";
-                        var tableName = firstLine.Replace("# BẢNG:", "").Trim();
-                        var idx = priorityOrder.IndexOf(tableName);
-                        return idx >= 0 ? idx : 99;
-                    })
-                    .Take(limit)
-                    .ToList();
-
-                return sortedSchemas;
-            }
-
-            throw;
-        }
+        return searchResult.Select(r => r.Payload["full_text"].StringValue).ToList();
     }
 
     

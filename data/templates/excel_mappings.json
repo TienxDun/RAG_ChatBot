@@ -4,16 +4,22 @@
       "ChuyenLine_Chuyen": "Tên chuyền sản xuất, lấy từ cột Name của bảng tbl_SettingLineX sau khi JOIN với QTY_InLineQC_ngaykiem qua ID chuyền (sử dụng cột Line, không sử dụng LineX).",
       "Cosmos_Ngaykiem": "Ngày thực hiện kiểm tra chất lượng, lấy từ cột NgayKiem của bảng QTY_InLineQC_ngaykiem (cần CAST sang DATE).",
       "Cosmos_SizeSL": "Lấy giá trị cột Size của bảng QTY_InLineQC_ngaykiem",
-      "Cosmos_Tinhtrang": "Nối các tên lỗi (TenLoi) không trùng bằng dấu ' | '. Yêu cầu dùng một câu truy vấn con (subquery) lọc các tên lỗi duy nhất (không trùng) của mỗi nhóm (cùng Line, LenhSX, Size, MocTgian, LanKiem và cùng ngày kiểm), chuyển tên lỗi sang chuỗi độ dài cực đại rồi mới nối.",
+      "Cosmos_Tinhtrang": "Ghi chú/Tình trạng kiểm tra. Bắt buộc lấy danh sách tên lỗi duy nhất (TenLoi) bằng cách kết nối (JOIN) QTY_InLineQC_CHITIET với QTY_NHOMLOI_CHITIET (qua Code = MaLoi). Nối các tên lỗi không trùng bằng dấu ' | ' bằng cách dùng một CTE trung gian hoặc câu truy vấn con lọc các tên lỗi duy nhất theo nhóm (cùng Line, LenhSX, Size, MocTgian, LanKiem và cùng ngày kiểm), chuyển tên lỗi sang chuỗi độ dài cực đại rồi mới dùng STRING_AGG để nối.",
       "Cosmos_SizeSLloiSLkiem": "Định dạng: [Size]/[SL lỗi]/[SL kiểm] (ví dụ: L/2/20). Size lấy từ cột Size, SL lỗi là SoLuongLoi, SL kiểm là SoLuongKiem.",
       "Cosmos_Loi": "Tỷ lệ lỗi phần trăm: SoLuongLoi / SoLuongKiem * 100.",
       "Cosmos_NguyennhanXuly": "Cột NguyenNhan từ bảng QTY_InLineQC_ngaykiem",
       "Cosmos_Ketqua": "Kết quả kiểm tra (Đạt/Không đạt), lấy từ cột KetQua. Giá trị 1 là Đạt, 0 là Không Đạt",
       "Cosmos_TBloiNgay": "Tổng SoLuongLoi theo ngày / Tổng SoLuongKiem theo ngày * 100. Lưu ý: Bắt buộc cast tử số sang FLOAT trước khi chia để tránh chia số nguyên, và sử dụng OVER(PARTITION BY CAST(NgayKiem AS DATE)).",
-      "Kyten": ""
+      "Kyten": "",
+      "tên khách hàng": "Tên đối tác/khách hàng. Bắt buộc kết nối (JOIN) từ QTY_InLineQC_NgayKiem (qua cột LenhSX) sang ERP_LENHSX (cột MaLenh), sau đó kết nối sang bảng danh mục DIC_KHACHHANG (qua cột MaKhachHang = DIC_KHACHHANG.MaKhachHang) và chọn lấy cột DIC_KHACHHANG.KhachHang làm kết quả.",
+      "TenLenh": "Tên lệnh sản xuất hiển thị. Bắt buộc kết nối (JOIN) từ QTY_InLineQC_NgayKiem (cột LenhSX) sang ERP_LENHSX (cột MaLenh) và chọn lấy cột ERP_LENHSX.TenLenh.",
+      "PO": "Mã đơn hàng PO. Nếu số lượng mã PO duy nhất của chuyền trong khoảng thời gian lọc lớn hơn 1 (COUNT(DISTINCT q.PO) > 1) thì hiển thị chữ N'Tất cả', ngược lại nếu chỉ có 1 mã PO duy nhất thì in ra chính mã PO đó (dùng MAX(q.PO))."
     },
     "MetadataCellMappings": {
-      "B5": "Tên chuyền"
+      "B5": "Tên chuyền",
+      "E4": "tên khách hàng",
+      "H4": "PO",
+      "B4": "TenLenh"
     },
     "SubtotalConfig": {
       "GroupByColumn": "Cosmos_Ngaykiem",
@@ -25,6 +31,7 @@
         "Cosmos_Loi",
         "Cosmos_TBloiNgay"
       ]
+      
     }
   },
   "BCEndlineNgay (22)_Empty.xlsx": {

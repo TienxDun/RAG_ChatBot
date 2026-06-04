@@ -7,4 +7,5 @@ public sealed class ChatRequestParameters
     public string Message { get; set; } = string.Empty;
     public string? CollectionName { get; set; }
     public IFormFile? File { get; set; }
+    public bool IsTestPerformance { get; set; } = false;
 }

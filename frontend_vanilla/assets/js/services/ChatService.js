@@ -19,6 +19,7 @@ export class ChatService {
         let aiDownloadFileName = null;
         let lastRawData = null;
         let aiIsAmbiguous = false;
+        let aiMetadata = null;
 
         try {
             const startTime = Date.now();
@@ -46,6 +47,7 @@ export class ChatService {
                     aiDownloadFileName = data.downloadFileName || null;
                     lastRawData = data.rawData;
                     aiIsAmbiguous = data.isAmbiguous || false;
+                    aiMetadata = data.metadata || null;
                     if (onFinal) onFinal(data);
                 } else if (data.type === 'error') {
                     aiContent = `⚠️ Lỗi: ${data.message}`;
@@ -54,8 +56,8 @@ export class ChatService {
             });
 
             const duration = Math.round((Date.now() - startTime) / 1000);
-            this._saveToHistory(aiContent, aiSteps, aiSuggestions, aiDownloadUrl, aiDownloadFileName, lastRawData, duration, aiIsAmbiguous, msgId);
-            return { aiContent, aiSteps, aiSuggestions, aiDownloadUrl, aiDownloadFileName, lastRawData, duration, aiIsAmbiguous, msgId };
+            this._saveToHistory(aiContent, aiSteps, aiSuggestions, aiDownloadUrl, aiDownloadFileName, lastRawData, duration, aiIsAmbiguous, msgId, aiMetadata);
+            return { aiContent, aiSteps, aiSuggestions, aiDownloadUrl, aiDownloadFileName, lastRawData, duration, aiIsAmbiguous, msgId, aiMetadata };
         } catch (error) {
             console.error('ChatService error:', error);
             if (onError) onError(error.message);
@@ -64,17 +66,24 @@ export class ChatService {
     }
 
     static _prepareBody(text, file, collectionName) {
+        const isPerfMode = localStorage.getItem('dodo_performance_mode') === 'true';
+
         if (!file) {
-            return JSON.stringify({ message: text, collectionName });
+            return JSON.stringify({ 
+                message: text, 
+                collectionName,
+                isTestPerformance: isPerfMode
+            });
         }
         const formData = new FormData();
         formData.append('message', text);
         formData.append('file', file);
         if (collectionName) formData.append('collectionName', collectionName);
+        formData.append('isTestPerformance', isPerfMode);
         return formData;
     }
 
-    static _saveToHistory(content, steps, suggestions, downloadUrl, downloadFileName, rawData, duration, isAmbiguous = false, msgId = null) {
+    static _saveToHistory(content, steps, suggestions, downloadUrl, downloadFileName, rawData, duration, isAmbiguous = false, msgId = null, metadata = null) {
         if (!content && steps.length === 0) return;
         
         state.addMessageToHistory(state.currentConversationId, { 
@@ -87,7 +96,8 @@ export class ChatService {
             downloadFileName,
             rawData,
             duration,
-            isAmbiguous
+            isAmbiguous,
+            metadata
         });
     }
 

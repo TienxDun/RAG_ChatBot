@@ -208,6 +208,26 @@ export class ChatAreaComponent {
             case 'copy-rules': this._copyRules(btn); break;
             case 'export-msg-excel': this._handleExportMessageExcel(btn); break;
             case 'download-template-excel': this._handleTemplateDownload(btn); break;
+            case 'toggle-perf': {
+                const perfToggle = btn;
+                const perfMetric = perfToggle.closest('.perf-metric');
+                if (perfMetric) {
+                    const contentEl = perfMetric.querySelector('.perf-metric__content');
+                    if (contentEl) {
+                        const isHidden = contentEl.classList.contains('hidden');
+                        if (isHidden) {
+                            contentEl.classList.remove('hidden');
+                            contentEl.classList.add('animate-slide-down');
+                            perfToggle.classList.add('active');
+                        } else {
+                            contentEl.classList.add('hidden');
+                            contentEl.classList.remove('animate-slide-down');
+                            perfToggle.classList.remove('active');
+                        }
+                    }
+                }
+                break;
+            }
         }
     }
 
@@ -647,7 +667,7 @@ export class ChatAreaComponent {
                 },
                 onFinal: (data) => {
                     if (aiMessageEl) {
-                        MessageRenderer.updateMessage(aiMessageEl, data.text, aiSteps, data.suggestedQuestions, data.downloadUrl, data.downloadFileName, data.rawData, null, null, data.duration, data.isAmbiguous);
+                        MessageRenderer.updateMessage(aiMessageEl, data.text, aiSteps, data.suggestedQuestions, data.downloadUrl, data.downloadFileName, data.rawData, null, null, data.duration, data.isAmbiguous, data.metadata);
                         // Cập nhật thời gian tổng kết
                         const timerEl = aiMessageEl.querySelector('.loading-timer');
                         if (timerEl) {
@@ -730,7 +750,7 @@ export class ChatAreaComponent {
         if (conversation.messages?.length > 0) {
             conversation.messages.forEach(msg => {
                 messagesList.appendChild(
-                    MessageRenderer.createMessageElement(msg.role, msg.content, msg.steps, msg.suggestions, msg.downloadUrl, msg.downloadFileName, msg.rawData, msg.userFile, null, msg.duration, msg.isAmbiguous)
+                    MessageRenderer.createMessageElement(msg.role, msg.content, msg.steps, msg.suggestions, msg.downloadUrl, msg.downloadFileName, msg.rawData, msg.userFile, null, msg.duration, msg.isAmbiguous, msg.metadata)
                 );
             });
 

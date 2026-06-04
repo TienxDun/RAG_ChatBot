@@ -47,6 +47,13 @@ public sealed class RagOrchestrator
         bool isExcelTemplate = false)
     {
         var steps = new List<RagStep>();
+        var tracker = Backend.Models.PerformanceContext.Current;
+        var totalSw = System.Diagnostics.Stopwatch.StartNew();
+        var stepSw = System.Diagnostics.Stopwatch.StartNew();
+        if (tracker != null && tracker.IsEnabled)
+        {
+            tracker.CurrentPhase = Backend.Models.PerformancePhase.Embedding;
+        }
 
         // 0. Khởi tạo & 1. Get Embeddings song song
         var initTask = onStep(new RagStep("System Initialization", "Đang khởi tạo luồng xử lý và chuẩn bị kết nối tới AI Engine..."));
@@ -83,6 +90,13 @@ public sealed class RagOrchestrator
         
         await initTask;
         var vector = await vectorTask;
+        stepSw.Stop();
+        if (tracker != null && tracker.IsEnabled)
+        {
+            tracker.EmbeddingMs = stepSw.ElapsedMilliseconds;
+            tracker.CurrentPhase = Backend.Models.PerformancePhase.SchemaRetrieval;
+        }
+        stepSw.Restart();
 
         var step1 = new RagStep("Vectorization", $"Câu hỏi đã được chuyển đổi thành vector 3072 chiều.");
         steps.Add(step1);
@@ -100,7 +114,7 @@ public sealed class RagOrchestrator
         {
             if (i > 0) schemaInfoBuilder.AppendLine("\n---\n");
             schemaInfoBuilder.AppendLine($"**[{i + 1}/{orderedContexts.Count}]**");
-            schemaInfoBuilder.AppendLine(orderedContexts[i]);
+            schemaInfoBuilder.AppendLine(CompressSchemaMarkdown(orderedContexts[i]));
         }
         var schemaInfo = schemaInfoBuilder.ToString();
         
@@ -110,6 +124,13 @@ public sealed class RagOrchestrator
         var step2 = new RagStep("Schema Retrieval", step2Content);
         steps.Add(step2);
         await onStep(step2);
+        stepSw.Stop();
+        if (tracker != null && tracker.IsEnabled)
+        {
+            tracker.SchemaRetrievalMs = stepSw.ElapsedMilliseconds;
+            tracker.CurrentPhase = Backend.Models.PerformancePhase.Planning;
+        }
+        stepSw.Restart();
 
 
 
@@ -125,7 +146,7 @@ public sealed class RagOrchestrator
 
         {
             await onStep(new RagStep("Execution Planning", "AI đang phân tích câu hỏi và lập kế hoạch truy vấn..."));
-            var globalRules = await _ruleProvider.GetGlobalRulesAsync();
+            var globalRules = await _ruleProvider.GetGlobalRulesAsync(userQuery, isExcelTemplate: isExcelTemplate);
             var planningPrompt = $@"Bạn là chuyên gia phân tích yêu cầu và lập kế hoạch truy vấn SQL.
                 Thời gian hệ thống hiện tại: {currentTimeStr} (Việt Nam, UTC+7).
                 Dựa trên CẤU TRÚC DATABASE được cung cấp dưới đây (được trích xuất động từ Qdrant dựa trên ngữ cảnh câu hỏi):
@@ -188,6 +209,13 @@ public sealed class RagOrchestrator
                 stepsToExecute = new List<string> { userQuery }; 
             }
         }
+        stepSw.Stop();
+        if (tracker != null && tracker.IsEnabled)
+        {
+            tracker.PlanningMs = stepSw.ElapsedMilliseconds;
+            tracker.CurrentPhase = Backend.Models.PerformancePhase.SqlGeneration;
+        }
+        stepSw.Restart();
 
 
 
@@ -255,6 +283,13 @@ public sealed class RagOrchestrator
                 steps.AddRange(execResult.ExecutedSteps);
             }
         }
+        stepSw.Stop();
+        if (tracker != null && tracker.IsEnabled)
+        {
+            tracker.ExecutionMs = stepSw.ElapsedMilliseconds;
+            tracker.CurrentPhase = Backend.Models.PerformancePhase.FinalGeneration;
+        }
+        stepSw.Restart();
 
         // 5. Final Generation
         var finalPrompt = $@"Bạn là trợ lý ảo phân tích dữ liệu doanh nghiệp thông minh.
@@ -355,13 +390,21 @@ public sealed class RagOrchestrator
                 await onFinalChunk(finalChunk);
             }
         }
+        stepSw.Stop();
+        totalSw.Stop();
+        if (tracker != null && tracker.IsEnabled)
+        {
+            tracker.GenerationMs = stepSw.ElapsedMilliseconds;
+            tracker.TotalMs = totalSw.ElapsedMilliseconds;
+            tracker.CurrentPhase = Backend.Models.PerformancePhase.None;
+        }
 
         string finalText = foundSeparator ? accumulatedText.ToString().Substring(0, separatorIndex).Trim() : accumulatedText.ToString().Trim();
         string metadataJson = metadataBuilder.ToString().Trim();
         
         List<string> suggestions = new();
         string rawDataForExport = lastStepJson; 
-        Dictionary<string, string>? metadata = null;
+        Dictionary<string, string>? metadata = tracker != null && tracker.IsEnabled ? tracker.ToMetadata() : null;
 
         if (!string.IsNullOrEmpty(metadataJson))
         {
@@ -377,7 +420,15 @@ public sealed class RagOrchestrator
                 // Trích xuất metadata nếu có
                 if (result.TryGetProperty("metadata", out var metaProp) && metaProp.ValueKind == JsonValueKind.Object) {
                     try {
-                        metadata = JsonSerializer.Deserialize<Dictionary<string, string>>(metaProp.GetRawText());
+                        var parsedMeta = JsonSerializer.Deserialize<Dictionary<string, string>>(metaProp.GetRawText());
+                        if (parsedMeta != null)
+                        {
+                            metadata ??= new Dictionary<string, string>();
+                            foreach (var kv in parsedMeta)
+                            {
+                                metadata[kv.Key] = kv.Value;
+                            }
+                        }
                     } catch { }
                 }
 
@@ -449,5 +500,70 @@ public sealed class RagOrchestrator
         }
 
         return new ChatResponse(finalText, steps, suggestions, rawDataForExport, lastDataTable, Metadata: metadata);
+    }
+
+    private static string CompressSchemaMarkdown(string schemaMd)
+    {
+        if (string.IsNullOrWhiteSpace(schemaMd)) return string.Empty;
+
+        var lines = schemaMd.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+        var sb = new StringBuilder();
+        bool inColumnsTable = false;
+
+        foreach (var line in lines)
+        {
+            var trimmed = line.Trim();
+            
+            // 1. Loại bỏ Ví dụ SAI/SAI: để tiết kiệm token
+            if (trimmed.Contains("Ví dụ SAI:") || trimmed.Contains("wrong_example"))
+            {
+                continue;
+            }
+
+            // 2. Nén cấu trúc cột từ bảng markdown sang danh sách dòng
+            if (trimmed.Contains("## Cấu trúc cột"))
+            {
+                inColumnsTable = true;
+                sb.AppendLine(line);
+                continue;
+            }
+
+            if (inColumnsTable)
+            {
+                if (trimmed.StartsWith("|"))
+                {
+                    // Bỏ qua dòng tiêu đề và dòng phân cách bảng
+                    if (trimmed.Contains("Tên cột") || trimmed.Contains("---") || trimmed.Contains("Vai trò"))
+                    {
+                        continue;
+                    }
+
+                    var parts = trimmed.Split('|');
+                    if (parts.Length >= 5)
+                    {
+                        var colName = parts[1].Trim();
+                        var colType = parts[2].Trim();
+                        var colRole = parts[3].Trim();
+                        var colDesc = parts[4].Trim();
+
+                        sb.AppendLine($"- {colName} ({colType}, {colRole}): {colDesc}");
+                    }
+                    continue;
+                }
+                else if (trimmed == "" && sb.Length > 0 && sb.ToString().EndsWith("- "))
+                {
+                    // Vẫn ở trong bảng, bỏ qua dòng trống thừa
+                    continue;
+                }
+                else
+                {
+                    inColumnsTable = false;
+                }
+            }
+
+            sb.AppendLine(line);
+        }
+
+        return sb.ToString().Trim();
     }
 }
