@@ -7,9 +7,8 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace Backend.Endpoints;
 
-/// <summary>
+
 /// Các endpoint chung: health, testcases, documents, embeddings, sql execute, download, export.
-/// </summary>
 public static class GeneralEndpoints
 {
     private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web)

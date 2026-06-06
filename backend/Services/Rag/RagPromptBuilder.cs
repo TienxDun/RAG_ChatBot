@@ -1,13 +1,9 @@
 namespace Backend.Services.Rag;
 
-/// <summary>
 /// Tách toàn bộ prompt templates ra file riêng — dễ chỉnh sửa prompt mà không phải đọc qua logic orchestration.
-/// </summary>
 public static class RagPromptBuilder
 {
-    /// <summary>
     /// Prompt cho bước Planning: AI đánh giá phạm vi câu hỏi và lập kế hoạch truy vấn SQL.
-    /// </summary>
     public static string BuildPlanningPrompt(string userQuery, string schemaInfo, string globalRules, string currentTimeStr)
     {
         return $@"Bạn là chuyên gia phân tích yêu cầu và lập kế hoạch truy vấn SQL.
@@ -47,9 +43,7 @@ public static class RagPromptBuilder
                 }}";
     }
 
-    /// <summary>
     /// Prompt cho bước Final Generation: AI tổng hợp kết quả SQL thành câu trả lời Markdown.
-    /// </summary>
     public static string BuildFinalPrompt(string userQuery, bool isOutOfScope, string planningReason, string workingContext, string currentTimeStr)
     {
         return $@"Bạn là trợ lý ảo phân tích dữ liệu doanh nghiệp thông minh.
@@ -84,9 +78,7 @@ public static class RagPromptBuilder
             - TUYỆT ĐỐI KHÔNG đính kèm bất kỳ thông tin bổ sung, mã JSON, metadata hay cấu trúc mapping/excelData nào ở cuối câu trả lời văn bản này.";
     }
 
-    /// <summary>
     /// Prompt cho bước Metadata Generation: AI sinh JSON metadata cho xuất Excel.
-    /// </summary>
     public static string BuildMetadataPrompt(string userQuery, string metadataContext)
     {
         return $@"Bạn là chuyên gia phân tích dữ liệu doanh nghiệp. Hãy phân tích ngữ cảnh, câu hỏi của người dùng và cấu trúc dữ liệu đã truy vấn để tạo ra siêu dữ liệu (metadata) dưới dạng JSON.

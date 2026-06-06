@@ -7,14 +7,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Backend.Endpoints;
 
-/// <summary>
 /// Định nghĩa các API endpoints cho việc quản lý bộ nhớ đệm Template Excel.
-/// </summary>
 public static class TemplateCacheEndpoints
 {
-    /// <summary>
     /// Đăng ký các route cho Template Cache API.
-    /// </summary>
     public static void MapRoutes(IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/templates/cache")
@@ -62,9 +58,7 @@ public static class TemplateCacheEndpoints
             .DisableAntiforgery();
     }
 
-    /// <summary>
     /// Xử lý việc upload file Excel template trống.
-    /// </summary>
     public static async Task<IResult> HandleUploadAsync(HttpRequest request, TemplateCacheService cacheService)
     {
         if (!request.HasFormContentType)
@@ -113,9 +107,7 @@ public static class TemplateCacheEndpoints
         }
     }
 
-    /// <summary>
     /// Trả về danh sách các template đang lưu trong RAM.
-    /// </summary>
     public static IResult HandleList(TemplateCacheService cacheService)
     {
         var templates = cacheService.GetAllTemplates()
@@ -132,9 +124,8 @@ public static class TemplateCacheEndpoints
         return Results.Ok(templates);
     }
 
-    /// <summary>
+    
     /// Trả về file vật lý từ memory để người dùng tải về.
-    /// </summary>
     public static IResult HandleDownload(string id, TemplateCacheService cacheService)
     {
         var template = cacheService.GetTemplate(id);
@@ -150,9 +141,7 @@ public static class TemplateCacheEndpoints
         );
     }
 
-    /// <summary>
     /// Xóa 1 bản ghi cache.
-    /// </summary>
     public static IResult HandleDelete(string id, TemplateCacheService cacheService)
     {
         var success = cacheService.RemoveTemplate(id);
@@ -161,18 +150,14 @@ public static class TemplateCacheEndpoints
             : Results.NotFound(new { error = "Không tìm thấy template để xóa." });
     }
 
-    /// <summary>
     /// Xóa toàn bộ cache.
-    /// </summary>
     public static IResult HandleClearAll(TemplateCacheService cacheService)
     {
         cacheService.ClearAll();
         return Results.Ok(new { message = "Đã làm sạch toàn bộ bộ nhớ đệm template." });
     }
 
-    /// <summary>
     /// Xử lý phân tích cấu trúc template Excel trả về danh sách các cột tiêu đề
-    /// </summary>
     public static async Task<IResult> HandleAnalyzeAsync(HttpRequest request, Backend.Services.Excel.IExcelTemplateAnalyzer analyzer, Backend.Services.Excel.IExcelMappingService mappingService)
     {
         if (!request.HasFormContentType)
@@ -233,9 +218,7 @@ public static class TemplateCacheEndpoints
         public Dictionary<string, string> MetadataCellMappings { get; set; } = new();
     }
 
-    /// <summary>
     /// Xử lý lưu các chú thích/ánh xạ cột Excel của người dùng
-    /// </summary>
     public static async Task<IResult> HandleSaveMappingAsync(SaveMappingRequest request, Backend.Services.Excel.IExcelMappingService mappingService)
     {
         if (request == null || string.IsNullOrWhiteSpace(request.FileName))
@@ -273,9 +256,7 @@ public static class TemplateCacheEndpoints
         public List<AutoMapColumnDto> Columns { get; set; } = new();
     }
 
-    /// <summary>
     /// Xử lý tự động ánh xạ giải nghĩa cột bằng Qdrant schema search và LLM sinh text
-    /// </summary>
     public static async Task<IResult> HandleAutoMapAsync(
         AutoMapRequest request,
         QdrantService qdrantService,
