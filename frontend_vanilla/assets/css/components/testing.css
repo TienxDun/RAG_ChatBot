@@ -37,14 +37,47 @@
     display: flex;
     flex-direction: column;
     height: 100%;
+    flex-shrink: 0;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .testing-sidebar__header {
     padding: 1.25rem;
     border-bottom: 1px solid var(--border);
     display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.testing-sidebar__header-top {
+    display: flex;
     align-items: center;
     justify-content: space-between;
+    width: 100%;
+}
+
+.testing-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.testing-header-actions .btn {
+    flex: 1;
+    justify-content: center;
+}
+
+.testing-edit-actions-group {
+    display: flex;
+    gap: 0.4rem;
+    flex: 1;
+}
+
+.testing-edit-actions-group .btn {
+    flex: 1;
+    justify-content: center;
 }
 
 .testing-sidebar__header h3 {
@@ -186,8 +219,6 @@
 /* Main Area - Queue & Results */
 .testing-main {
     width: 440px;
-    min-width: 440px;
-    max-width: 440px;
     border-right: 1px solid var(--border);
     padding: 1.25rem;
     overflow-y: auto;
@@ -196,6 +227,8 @@
     gap: 1.25rem;
     background: color-mix(in srgb, var(--background) 10%, transparent);
     height: 100%;
+    flex-shrink: 0;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .testing-detail-view {
@@ -1112,4 +1145,209 @@
     color: var(--muted-foreground);
     font-size: 0.775rem;
 }
+
+/* --- Edit Mode Styles for Test Cases --- */
+.testcase-accordion.editing .testcase-item {
+    cursor: default;
+    transform: none !important;
+}
+
+.testcase-accordion.editing .testcase-item:hover {
+    background: none;
+}
+
+.testcase-edit-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.testcase-edit-input {
+    width: 100%;
+    min-height: 50px;
+    background: color-mix(in srgb, var(--card) 60%, transparent);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0.45rem 0.6rem;
+    color: var(--foreground);
+    font-size: 0.8rem;
+    outline: none;
+    font-family: inherit;
+    resize: vertical;
+    transition: border-color 0.2s ease;
+}
+
+.testcase-edit-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+.testcase-edit-actions-local {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.4rem;
+}
+
+.testcase-edit-actions-local button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.7rem;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.testcase-actions-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.btn-icon-action {
+    background: none;
+    border: none;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    padding: 0.2rem;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.btn-icon-action:hover {
+    background-color: color-mix(in srgb, var(--foreground) 5%, transparent);
+    color: var(--foreground);
+}
+
+.btn-icon-action.delete:hover {
+    background-color: color-mix(in srgb, var(--destructive) 10%, transparent);
+    color: var(--destructive);
+}
+
+.section-edit-input {
+    background: color-mix(in srgb, var(--card) 80%, transparent);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0.2rem 0.4rem;
+    color: var(--foreground);
+    font-size: 0.85rem;
+    font-weight: 600;
+    outline: none;
+    width: 100%;
+}
+
+.section-edit-input:focus {
+    border-color: var(--primary);
+}
+
+.btn-add-item-dashed {
+    width: 100%;
+    padding: 0.5rem;
+    background: transparent;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    transition: all 0.2s ease;
+    margin-top: 0.25rem;
+}
+
+.btn-add-item-dashed:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 3%, transparent);
+}
+
+.accordion-header-edit-group {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    width: 100%;
+    padding-right: 0.5rem;
+}
+
+/* Resizer Bar */
+.testing-resizer {
+    width: 6px;
+    background: transparent;
+    cursor: col-resize;
+    position: relative;
+    flex-shrink: 0;
+    transition: background-color 0.2s ease;
+    z-index: 10;
+}
+
+.testing-resizer:hover,
+.testing-resizer.resizing {
+    background-color: var(--primary);
+    box-shadow: 0 0 8px var(--primary);
+}
+
+/* Collapsed Bars */
+.testing-sidebar-collapsed,
+.testing-main-collapsed {
+    width: 44px;
+    background: color-mix(in srgb, var(--card) 60%, transparent);
+    backdrop-filter: blur(10px);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1.25rem 0;
+    gap: 1.25rem;
+    flex-shrink: 0;
+    animation: fadeIn 0.2s ease;
+}
+
+.testing-sidebar-collapsed button,
+.testing-main-collapsed button {
+    background: none;
+    border: none;
+    color: var(--primary);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 1.1rem;
+    padding: 0.5rem;
+    border-radius: var(--radius-sm);
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.testing-sidebar-collapsed button:hover,
+.testing-main-collapsed button:hover {
+    background-color: color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+/* Collapsed States */
+.testing-sidebar.collapsed,
+.testing-main.collapsed {
+    width: 0px !important;
+    min-width: 0px !important;
+    max-width: 0px !important;
+    padding: 0px !important;
+    margin: 0px !important;
+    border-right-color: transparent !important;
+    overflow: hidden;
+}
+
+/* Disable transitions during drag resize */
+.testing-container.panel-resizing .testing-sidebar,
+.testing-container.panel-resizing .testing-main {
+    transition: none !important;
+}
+
 

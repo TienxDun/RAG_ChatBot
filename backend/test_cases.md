@@ -1,4 +1,4 @@
-## Phần 1 – Các câu hỏi liên quan tới tỉ lệ lỗi của các chuyền
+﻿## Phần 1 – Các câu hỏi liên quan tới tỉ lệ lỗi của các chuyền
 
 1. **Tỉ lệ lỗi ở chuyền Daisy vào ngày 16/9/2025**
 2. **Tỉ lệ lỗi ở chuyền Cherry vào ngày 19/9/2025**
@@ -61,7 +61,7 @@
 39. **Số lượng hoàn thành size S là bao nhiêu**
 40. **Đối với mã hàng TEA25_Y_XR20R màu ORANGE-OR, những size nào đã được kiểm tra lỗi trong ngày 31/01/2026 ở chuyền Cherry, và số lượng lỗi của từng size là bao nhiêu?**
 41. **Tên lệnh "SA_893_208_133" được tạo ngày 13/09/2025 thuộc về mã khách hàng nào, và tên đầy đủ của khách hàng đó trong từ điển khách hàng là gì?**
-42. **Hãy cho biết trong ngày 13/09/2025, công đoạn "BTP" đã được thực hiện ở những chuyền nào và đạt số lượng là bao nhiêu tại từng chuyền?** (có hai bảng: một theo mã số, một theo tên chuyền)
+42. **Hãy cho biết trong ngày 13/09/2025, công đoạn "BTP" đã được thực hiện ở những chuyền nào và đạt số lượng là bao nhiêu tại từng chuyền?**
 43. **Mã đơn hàng "0088 521 04 V0.0" được sản xuất cho khách hàng nào? Tại chuyền Cherry vào ngày 16/09/2025, nhân viên KCS nào đã thực hiện kiểm tra lỗi cho size 100 của mã hàng này và phát hiện bao nhiêu sản phẩm lỗi?**
 44. **Hãy so sánh số lượng của công đoạn "BTP" và công đoạn "RA CHUYỀN" tại chuyền Pansy đối với StyleId "0088_342_29_V0_2" trong ngày 13/09/2025. Chênh lệch số lượng giữa 2 công đoạn này là bao nhiêu?**
 45. **Tính tổng số lượng lỗi (SpLoi) mà nhân viên KCS Cherry đã phát hiện trong hệ thống.**
@@ -73,7 +73,7 @@
 
 47. **Tôi muốn biết tổng quan xưởng đang mắc phải những lỗi gì từ trước đến nay**
 48. **Tôi muốn biết top 3 tên lỗi xuất hiện nhiều nhất ở các đơn hàng trong năm 2025**
-49. **Tôi muốn biết 2 lỗi xuất hiện nhiều nhất của từng chuyền trong khoảng thời gian trong quý 1 năm 2026. Kết quả trả về gồm mã chuyền, tên lỗi, số lần xuất hiện và thứ hạng lỗi trong chuyền đó** (có hai bảng: mã chuyền và tên chuyền)
+49. **Tôi muốn biết 2 lỗi xuất hiện nhiều nhất của từng chuyền trong khoảng thời gian trong quý 1 năm 2026. Kết quả trả về gồm mã chuyền, tên lỗi, số lần xuất hiện và thứ hạng lỗi trong chuyền đó**
 50. **Trong ngày 14/11/2025, lỗi đứt chỉ đã xảy ra tổng cộng bao nhiêu lần tại chuyền Lotus**
 51. **Thống kê top 3 Tên lỗi xuất hiện nhiều nhất đối với mã hàng 0088_342_29_V0_3 trong tháng 11/2025**
 52. **Nhân viên Kcs tulip đã ghi nhận bao nhiêu lỗi "Sót phấn" trong ngày 17/11/2025?**

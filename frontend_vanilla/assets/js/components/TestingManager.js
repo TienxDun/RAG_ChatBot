@@ -15,6 +15,9 @@ export class TestingManagerComponent {
         this.currentAbortController = null;
         this.results = []; // Lưu kết quả thực thi chi tiết
         this.activeResultIndex = -1; // Index câu hỏi đang được xem chi tiết
+        this.isEditing = false;
+        this.originalTestCases = [];
+        this.editingQuestionKey = null;
         
         // Khôi phục hàng đợi từ localStorage nếu có
         try {
@@ -39,6 +42,7 @@ export class TestingManagerComponent {
                     
                     // Khởi tạo các sự kiện và tải test cases lần đầu tiên
                     this.setupUI();
+                    this.setupPanelResizers();
                     if (this.testCases.length === 0) {
                         this.loadTestCases();
                     }
@@ -109,6 +113,25 @@ export class TestingManagerComponent {
             btnAddAll.dataset.bound = 'true';
         }
 
+        const btnToggleEdit = document.getElementById('btn-toggle-edit-testcases');
+        const btnSaveTestCases = document.getElementById('btn-save-testcases');
+        const btnCancelEdit = document.getElementById('btn-cancel-edit-testcases');
+
+        if (btnToggleEdit && !btnToggleEdit.dataset.bound) {
+            btnToggleEdit.addEventListener('click', () => this.toggleEditMode());
+            btnToggleEdit.dataset.bound = 'true';
+        }
+
+        if (btnSaveTestCases && !btnSaveTestCases.dataset.bound) {
+            btnSaveTestCases.addEventListener('click', () => this.saveTestCasesToServer());
+            btnSaveTestCases.dataset.bound = 'true';
+        }
+
+        if (btnCancelEdit && !btnCancelEdit.dataset.bound) {
+            btnCancelEdit.addEventListener('click', () => this.cancelEditing());
+            btnCancelEdit.dataset.bound = 'true';
+        }
+
         this.renderQueue();
         this.setupResponsiveCollapse();
     }
@@ -141,43 +164,115 @@ export class TestingManagerComponent {
             return;
         }
 
-        accordionContainer.innerHTML = this.testCases.map((sec, secIndex) => {
+        // Preserve expanded section
+        let activeSectionIndex = -1;
+        if (this.editingQuestionKey) {
+            const parts = this.editingQuestionKey.split('-');
+            if (parts.length > 0) {
+                activeSectionIndex = parseInt(parts[0]);
+            }
+        } else {
+            const activeItem = accordionContainer.querySelector('.accordion-item.active');
+            if (activeItem) {
+                const idMatch = activeItem.id.match(/accordion-sec-(\d+)/);
+                if (idMatch) {
+                    activeSectionIndex = parseInt(idMatch[1]);
+                }
+            }
+        }
+
+        let accordionHtml = this.testCases.map((sec, secIndex) => {
             const sectionId = `accordion-sec-${secIndex}`;
+            const isActive = secIndex === activeSectionIndex;
             return `
-                <div class="accordion-item" id="${sectionId}">
+                <div class="accordion-item ${isActive ? 'active' : ''}" id="${sectionId}">
                     <div class="accordion-header">
-                        <div class="accordion-header-left">
+                        <div class="accordion-header-edit-group">
                             <i class="ph-bold ph-caret-right accordion-icon"></i>
-                            <span>${sec.section}</span>
+                            ${this.isEditing ? `
+                                <input type="text" class="section-edit-input" value="${sec.section}" data-index="${secIndex}" placeholder="Tên phần..." />
+                            ` : `
+                                <span>${sec.section}</span>
+                            `}
                         </div>
                         <div class="accordion-actions">
-                            <span class="badge" style="background: var(--muted); color: var(--foreground);">${sec.questions.length}</span>
-                            <button class="btn btn-secondary btn-sm btn-add-section" title="Thêm tất cả câu hỏi của phần này" data-index="${secIndex}">
-                                <i class="ph-bold ph-plus"></i>
-                            </button>
+                            ${this.isEditing ? `
+                                <button class="btn-icon-action delete btn-delete-section" title="Xóa phần này" data-index="${secIndex}">
+                                    <i class="ph-bold ph-trash"></i>
+                                </button>
+                            ` : `
+                                <span class="badge" style="background: var(--muted); color: var(--foreground);">${sec.questions.length}</span>
+                                <button class="btn btn-secondary btn-sm btn-add-section" title="Thêm tất cả câu hỏi của phần này" data-index="${secIndex}">
+                                    <i class="ph-bold ph-plus"></i>
+                                </button>
+                            `}
                         </div>
                     </div>
                     <div class="accordion-content">
                         <div class="testcase-list">
-                            ${sec.questions.map((q, qIndex) => `
-                                <div class="testcase-item" data-question="${encodeURIComponent(q)}">
-                                    <span class="testcase-text">${qIndex + 1}. ${q}</span>
-                                    <button class="btn-add-tc" title="Thêm vào hàng đợi">
-                                        <i class="ph-bold ph-plus-circle"></i>
-                                    </button>
-                                </div>
-                            `).join('')}
+                            ${sec.questions.map((q, qIndex) => {
+                                const isItemEditing = this.editingQuestionKey === `${secIndex}-${qIndex}`;
+                                return `
+                                    <div class="testcase-item ${this.isEditing ? 'editing' : ''}" data-sec="${secIndex}" data-q="${qIndex}" data-question="${encodeURIComponent(q)}">
+                                        ${isItemEditing ? `
+                                            <div class="testcase-edit-wrapper">
+                                                <textarea class="testcase-edit-input" placeholder="Nhập câu hỏi...">${q}</textarea>
+                                                <div class="testcase-edit-actions-local">
+                                                    <button class="btn btn-primary btn-save-tc-local" data-sec="${secIndex}" data-q="${qIndex}" style="padding: 0.25rem 0.5rem; font-size: 0.7rem;">
+                                                        <i class="ph-bold ph-check"></i> OK
+                                                    </button>
+                                                    <button class="btn btn-outline btn-cancel-tc-local" style="padding: 0.25rem 0.5rem; font-size: 0.7rem;">
+                                                        <i class="ph-bold ph-x"></i> Hủy
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ` : `
+                                            <span class="testcase-text">${qIndex + 1}. ${q}</span>
+                                            ${this.isEditing ? `
+                                                <div class="testcase-actions-row">
+                                                    <button class="btn-icon-action btn-edit-tc-local" title="Sửa câu hỏi" data-sec="${secIndex}" data-q="${qIndex}">
+                                                        <i class="ph-bold ph-pencil-simple"></i>
+                                                    </button>
+                                                    <button class="btn-icon-action delete btn-delete-tc-local" title="Xóa câu hỏi" data-sec="${secIndex}" data-q="${qIndex}">
+                                                        <i class="ph-bold ph-trash"></i>
+                                                    </button>
+                                                </div>
+                                            ` : `
+                                                <button class="btn-add-tc" title="Thêm vào hàng đợi">
+                                                    <i class="ph-bold ph-plus-circle"></i>
+                                                </button>
+                                            `}
+                                        `}
+                                    </div>
+                                `;
+                            }).join('')}
+                            
+                            ${this.isEditing ? `
+                                <button class="btn-add-item-dashed btn-add-tc-new" data-sec="${secIndex}">
+                                    <i class="ph-bold ph-plus"></i> Thêm câu hỏi
+                                </button>
+                            ` : ''}
                         </div>
                     </div>
                 </div>
             `;
         }).join('');
 
+        if (this.isEditing) {
+            accordionHtml += `
+                <button class="btn-add-item-dashed btn-add-section-new" style="margin-top: 0.5rem; padding: 0.75rem;">
+                    <i class="ph-bold ph-folder-plus"></i> Thêm phần mới
+                </button>
+            `;
+        }
+
+        accordionContainer.innerHTML = accordionHtml;
+
         // Gán sự kiện click accordion toggle
         accordionContainer.querySelectorAll('.accordion-header').forEach(header => {
             header.addEventListener('click', (e) => {
-                // Nếu click vào nút thêm section thì bỏ qua việc toggle accordion
-                if (e.target.closest('.btn-add-section')) return;
+                // Nếu click vào nút thêm section, xóa section hoặc input thì bỏ qua việc toggle accordion
+                if (e.target.closest('.btn-add-section') || e.target.closest('.btn-delete-section') || e.target.closest('.section-edit-input')) return;
 
                 const item = header.closest('.accordion-item');
                 const isActive = item.classList.contains('active');
@@ -193,7 +288,7 @@ export class TestingManagerComponent {
             });
         });
 
-        // Gán sự kiện thêm section
+        // Gán sự kiện thêm section (chỉ khi không edit)
         accordionContainer.querySelectorAll('.btn-add-section').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -208,13 +303,243 @@ export class TestingManagerComponent {
             });
         });
 
-        // Gán sự kiện thêm từng câu hỏi
+        // Gán sự kiện thêm từng câu hỏi vào hàng đợi (khi không edit)
         accordionContainer.querySelectorAll('.testcase-item').forEach(item => {
-            item.addEventListener('click', () => {
-                const question = decodeURIComponent(item.getAttribute('data-question'));
-                this.addToQueue(question);
+            item.addEventListener('click', (e) => {
+                if (this.isEditing) return; // Không làm gì trong chế độ sửa
+                
+                // Tránh trigger khi click vào nút icon (mặc dù nút icon nằm trong item)
+                if (e.target.closest('.btn-add-tc')) {
+                    const question = decodeURIComponent(item.getAttribute('data-question'));
+                    this.addToQueue(question);
+                } else {
+                    // Click vào bất kỳ đâu trên item cũng thêm vào queue
+                    const question = decodeURIComponent(item.getAttribute('data-question'));
+                    this.addToQueue(question);
+                }
             });
         });
+
+        // --- Edit Mode Event Bindings ---
+        if (this.isEditing) {
+            // Lắng nghe thay đổi tên phần
+            accordionContainer.querySelectorAll('.section-edit-input').forEach(input => {
+                input.addEventListener('click', (e) => e.stopPropagation());
+                input.addEventListener('input', () => {
+                    const secIndex = parseInt(input.getAttribute('data-index'));
+                    if (this.testCases[secIndex]) {
+                        this.testCases[secIndex].section = input.value;
+                    }
+                });
+            });
+
+            // Xóa phần
+            accordionContainer.querySelectorAll('.btn-delete-section').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const secIndex = parseInt(btn.getAttribute('data-index'));
+                    if (confirm(`Bạn có chắc chắn muốn xóa phần "${this.testCases[secIndex].section}" và toàn bộ câu hỏi trong đó không?`)) {
+                        this.testCases.splice(secIndex, 1);
+                        this.editingQuestionKey = null;
+                        this.renderTestCases();
+                    }
+                });
+            });
+
+            // Bắt đầu sửa câu hỏi cụ thể
+            accordionContainer.querySelectorAll('.btn-edit-tc-local').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const sec = btn.getAttribute('data-sec');
+                    const q = btn.getAttribute('data-q');
+                    this.editingQuestionKey = `${sec}-${q}`;
+                    this.renderTestCases();
+                });
+            });
+
+            // Hủy sửa câu hỏi cụ thể
+            accordionContainer.querySelectorAll('.btn-cancel-tc-local').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.editingQuestionKey = null;
+                    this.renderTestCases();
+                });
+            });
+
+            // Lưu sửa câu hỏi cụ thể
+            accordionContainer.querySelectorAll('.btn-save-tc-local').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const secIndex = parseInt(btn.getAttribute('data-sec'));
+                    const qIndex = parseInt(btn.getAttribute('data-q'));
+                    const wrapper = btn.closest('.testcase-edit-wrapper');
+                    const textarea = wrapper.querySelector('.testcase-edit-input');
+                    const newValue = textarea.value.trim();
+                    
+                    if (newValue) {
+                        this.testCases[secIndex].questions[qIndex] = newValue;
+                        this.editingQuestionKey = null;
+                        this.renderTestCases();
+                    } else {
+                        Toast.show('Câu hỏi không được để trống', 'warning');
+                    }
+                });
+            });
+
+            // Xóa câu hỏi cụ thể
+            accordionContainer.querySelectorAll('.btn-delete-tc-local').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const secIndex = parseInt(btn.getAttribute('data-sec'));
+                    const qIndex = parseInt(btn.getAttribute('data-q'));
+                    if (confirm('Bạn có chắc chắn muốn xóa câu hỏi này?')) {
+                        this.testCases[secIndex].questions.splice(qIndex, 1);
+                        this.editingQuestionKey = null;
+                        this.renderTestCases();
+                    }
+                });
+            });
+
+            // Thêm câu hỏi mới vào phần
+            accordionContainer.querySelectorAll('.btn-add-tc-new').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const secIndex = parseInt(btn.getAttribute('data-sec'));
+                    this.testCases[secIndex].questions.push("Câu hỏi mới");
+                    const newQIndex = this.testCases[secIndex].questions.length - 1;
+                    this.editingQuestionKey = `${secIndex}-${newQIndex}`;
+                    this.renderTestCases();
+                    
+                    setTimeout(() => {
+                        const textarea = accordionContainer.querySelector('.testcase-edit-input');
+                        if (textarea) {
+                            textarea.focus();
+                            textarea.select();
+                        }
+                    }, 50);
+                });
+            });
+
+            // Thêm phần mới
+            const btnAddSectionNew = accordionContainer.querySelector('.btn-add-section-new');
+            if (btnAddSectionNew) {
+                btnAddSectionNew.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.testCases.push({
+                        section: "Phần mới tạo",
+                        questions: ["Câu hỏi đầu tiên"]
+                    });
+                    this.editingQuestionKey = `${this.testCases.length - 1}-0`;
+                    this.renderTestCases();
+                    
+                    setTimeout(() => {
+                        const inputs = accordionContainer.querySelectorAll('.section-edit-input');
+                        const lastInput = inputs[inputs.length - 1];
+                        if (lastInput) {
+                            lastInput.focus();
+                            lastInput.select();
+                        }
+                    }, 50);
+                });
+            }
+        }
+    }
+
+    toggleEditMode() {
+        if (this.isRunning) {
+            Toast.show('Không thể chỉnh sửa khi đang chạy kiểm thử', 'warning');
+            return;
+        }
+
+        this.isEditing = !this.isEditing;
+        
+        // Lưu backup dữ liệu gốc khi bắt đầu sửa
+        if (this.isEditing) {
+            this.originalTestCases = JSON.parse(JSON.stringify(this.testCases));
+        } else {
+            this.editingQuestionKey = null;
+        }
+
+        this.updateEditUI();
+        this.renderTestCases();
+    }
+
+    updateEditUI() {
+        const btnToggleEdit = document.getElementById('btn-toggle-edit-testcases');
+        const editActions = document.getElementById('testcases-edit-actions');
+        const btnAddAll = document.getElementById('btn-add-all-testcases');
+        const accordionContainer = document.getElementById('testcase-list-accordion');
+
+        if (this.isEditing) {
+            if (btnToggleEdit) {
+                btnToggleEdit.innerHTML = '<i class="ph-bold ph-eye"></i> Xem';
+                btnToggleEdit.title = 'Thoát chế độ chỉnh sửa';
+                btnToggleEdit.classList.add('btn-secondary');
+            }
+            if (editActions) editActions.classList.remove('hidden');
+            if (btnAddAll) btnAddAll.classList.add('hidden');
+            if (accordionContainer) accordionContainer.classList.add('editing');
+        } else {
+            if (btnToggleEdit) {
+                btnToggleEdit.innerHTML = '<i class="ph-bold ph-pencil-simple"></i> Sửa';
+                btnToggleEdit.title = 'Bật chỉnh sửa';
+                btnToggleEdit.classList.remove('btn-secondary');
+            }
+            if (editActions) editActions.classList.add('hidden');
+            if (btnAddAll) btnAddAll.classList.remove('hidden');
+            if (accordionContainer) accordionContainer.classList.remove('editing');
+        }
+    }
+
+    cancelEditing() {
+        if (confirm('Bạn có chắc chắn muốn hủy bỏ mọi thay đổi chưa lưu không?')) {
+            this.testCases = JSON.parse(JSON.stringify(this.originalTestCases));
+            this.isEditing = false;
+            this.editingQuestionKey = null;
+            this.updateEditUI();
+            this.renderTestCases();
+            Toast.show('Đã hủy bỏ các thay đổi', 'info');
+        }
+    }
+
+    async saveTestCasesToServer() {
+        if (this.testCases.length === 0) {
+            Toast.show('Danh sách test cases trống', 'warning');
+            return;
+        }
+
+        // Chuẩn hóa dữ liệu gửi lên
+        const cleanedData = this.testCases.map(sec => ({
+            section: sec.section.trim(),
+            questions: sec.questions.map(q => q.trim()).filter(q => q !== '')
+        })).filter(sec => sec.section !== '' && sec.questions.length > 0);
+
+        if (cleanedData.length === 0) {
+            Toast.show('Không thể lưu danh sách trống hoặc không hợp lệ', 'error');
+            return;
+        }
+
+        try {
+            const btnSave = document.getElementById('btn-save-testcases');
+            if (btnSave) btnSave.disabled = true;
+
+            const res = await ApiClient.post('/testcases', cleanedData);
+            
+            Toast.show('Đã lưu các thay đổi lên máy chủ thành công!', 'success');
+            
+            this.testCases = cleanedData;
+            this.originalTestCases = JSON.parse(JSON.stringify(this.testCases));
+            this.isEditing = false;
+            this.editingQuestionKey = null;
+            this.updateEditUI();
+            this.renderTestCases();
+        } catch (error) {
+            console.error('Lỗi khi lưu test cases:', error);
+            Toast.show(`Lỗi khi lưu: ${error.message}`, 'error');
+        } finally {
+            const btnSave = document.getElementById('btn-save-testcases');
+            if (btnSave) btnSave.disabled = false;
+        }
     }
 
     addToQueue(question) {
@@ -1026,6 +1351,160 @@ export class TestingManagerComponent {
                 if (header && window.innerWidth <= 1024) {
                     detailView.classList.toggle('collapsed');
                 }
+            });
+        }
+    }
+
+    setupPanelResizers() {
+        const container = document.querySelector('.testing-container');
+        if (!container || container.dataset.resizersBound) return;
+        container.dataset.resizersBound = 'true';
+
+        const sidebar = document.getElementById('testing-sidebar');
+        const main = document.getElementById('testing-main');
+        const detail = document.getElementById('testing-detail-view');
+        const resizer1 = document.getElementById('resizer-1');
+        const resizer2 = document.getElementById('resizer-2');
+
+        const sidebarCollapsed = document.getElementById('testing-sidebar-collapsed');
+        const mainCollapsed = document.getElementById('testing-main-collapsed');
+
+        const btnCollapseSidebar = document.getElementById('btn-collapse-sidebar');
+        const btnCollapseMain = document.getElementById('btn-collapse-main');
+
+        const btnExpandSidebar = sidebarCollapsed?.querySelector('.btn-expand-sidebar');
+        const btnExpandMain = mainCollapsed?.querySelector('.btn-expand-main');
+
+        if (!sidebar || !main || !detail) return;
+
+        // Restore sizes from localStorage
+        const savedSidebarWidth = localStorage.getItem('dodo_panel_sidebar_width');
+        const savedMainWidth = localStorage.getItem('dodo_panel_main_width');
+        const savedSidebarCollapsed = localStorage.getItem('dodo_panel_sidebar_collapsed') === 'true';
+        const savedMainCollapsed = localStorage.getItem('dodo_panel_main_collapsed') === 'true';
+
+        if (savedSidebarWidth && !savedSidebarCollapsed) {
+            sidebar.style.width = savedSidebarWidth;
+        }
+        if (savedMainWidth && !savedMainCollapsed) {
+            main.style.width = savedMainWidth;
+            main.style.minWidth = '0px';
+            main.style.maxWidth = 'none';
+        }
+
+        if (savedSidebarCollapsed) {
+            sidebar.classList.add('collapsed');
+            if (sidebarCollapsed) sidebarCollapsed.classList.remove('hidden');
+            if (resizer1) resizer1.style.display = 'none';
+        }
+        if (savedMainCollapsed) {
+            main.classList.add('collapsed');
+            if (mainCollapsed) mainCollapsed.classList.remove('hidden');
+            if (resizer2) resizer2.style.display = 'none';
+        }
+
+        // --- Collapse/Expand Events ---
+        const collapseSidebar = () => {
+            sidebar.classList.add('collapsed');
+            if (sidebarCollapsed) sidebarCollapsed.classList.remove('hidden');
+            if (resizer1) resizer1.style.display = 'none';
+            localStorage.setItem('dodo_panel_sidebar_collapsed', 'true');
+        };
+
+        const expandSidebar = () => {
+            sidebar.classList.remove('collapsed');
+            if (sidebarCollapsed) sidebarCollapsed.classList.add('hidden');
+            if (resizer1) resizer1.style.display = 'block';
+            localStorage.setItem('dodo_panel_sidebar_collapsed', 'false');
+        };
+
+        const collapseMain = () => {
+            main.classList.add('collapsed');
+            if (mainCollapsed) mainCollapsed.classList.remove('hidden');
+            if (resizer2) resizer2.style.display = 'none';
+            localStorage.setItem('dodo_panel_main_collapsed', 'true');
+        };
+
+        const expandMain = () => {
+            main.classList.remove('collapsed');
+            if (mainCollapsed) mainCollapsed.classList.add('hidden');
+            if (resizer2) resizer2.style.display = 'block';
+            localStorage.setItem('dodo_panel_main_collapsed', 'false');
+        };
+
+        if (btnCollapseSidebar) btnCollapseSidebar.addEventListener('click', collapseSidebar);
+        if (btnExpandSidebar) btnExpandSidebar.addEventListener('click', expandSidebar);
+        if (btnCollapseMain) btnCollapseMain.addEventListener('click', collapseMain);
+        if (btnExpandMain) btnExpandMain.addEventListener('click', expandMain);
+
+        // --- Resizer 1 (Sidebar / Main) ---
+        if (resizer1) {
+            resizer1.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                resizer1.classList.add('resizing');
+                container.classList.add('panel-resizing');
+                document.body.style.cursor = 'col-resize';
+
+                const onMouseMove = (moveEvent) => {
+                    const containerRect = container.getBoundingClientRect();
+                    let newWidth = moveEvent.clientX - containerRect.left;
+                    
+                    // Min/Max constraints
+                    if (newWidth < 200) newWidth = 200;
+                    if (newWidth > 500) newWidth = 500;
+
+                    sidebar.style.width = `${newWidth}px`;
+                };
+
+                const onMouseUp = () => {
+                    resizer1.classList.remove('resizing');
+                    container.classList.remove('panel-resizing');
+                    document.body.style.cursor = 'default';
+                    localStorage.setItem('dodo_panel_sidebar_width', sidebar.style.width);
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('mouseup', onMouseUp);
+                };
+
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            });
+        }
+
+        // --- Resizer 2 (Main / Detail) ---
+        if (resizer2) {
+            resizer2.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                resizer2.classList.add('resizing');
+                container.classList.add('panel-resizing');
+                document.body.style.cursor = 'col-resize';
+
+                const onMouseMove = (moveEvent) => {
+                    const sidebarRect = sidebar.getBoundingClientRect();
+                    const sidebarWidth = sidebar.classList.contains('collapsed') ? 0 : sidebarRect.width;
+                    const resizer1Width = sidebar.classList.contains('collapsed') ? 0 : 6;
+                    
+                    let newWidth = moveEvent.clientX - sidebarRect.left - sidebarWidth - resizer1Width;
+                    
+                    // Min/Max constraints
+                    if (newWidth < 300) newWidth = 300;
+                    if (newWidth > 600) newWidth = 600;
+
+                    main.style.width = `${newWidth}px`;
+                    main.style.minWidth = '0px';
+                    main.style.maxWidth = 'none';
+                };
+
+                const onMouseUp = () => {
+                    resizer2.classList.remove('resizing');
+                    container.classList.remove('panel-resizing');
+                    document.body.style.cursor = 'default';
+                    localStorage.setItem('dodo_panel_main_width', main.style.width);
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('mouseup', onMouseUp);
+                };
+
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
             });
         }
     }

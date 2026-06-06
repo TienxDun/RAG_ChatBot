@@ -122,6 +122,65 @@ public static class GeneralEndpoints
                 return Results.Problem(ex.Message);
             }
         });
+
+        app.MapPost("/api/testcases", async ([FromBody] List<TestCaseSectionDto> sections) =>
+        {
+            try
+            {
+                var currentDir = Directory.GetCurrentDirectory();
+                var testCasesPath = Path.Combine(currentDir, "test_cases.md");
+
+                if (!File.Exists(testCasesPath))
+                {
+                    testCasesPath = Path.GetFullPath(Path.Combine(currentDir, "..", "test_cases.md"));
+                }
+
+                if (!File.Exists(testCasesPath))
+                {
+                    testCasesPath = Path.Combine(currentDir, "test_cases.md");
+                }
+
+                var sb = new System.Text.StringBuilder();
+                int qIndex = 1;
+                for (int i = 0; i < sections.Count; i++)
+                {
+                    var sec = sections[i];
+                    if (string.IsNullOrWhiteSpace(sec.Section)) continue;
+
+                    sb.AppendLine($"## {sec.Section.Trim()}");
+                    sb.AppendLine();
+                    foreach (var q in sec.Questions)
+                    {
+                        if (string.IsNullOrWhiteSpace(q)) continue;
+                        sb.AppendLine($"{qIndex}. **{q.Trim()}**");
+                        qIndex++;
+                    }
+
+                    if (i < sections.Count - 1)
+                    {
+                        sb.AppendLine();
+                        sb.AppendLine("---");
+                        sb.AppendLine();
+                    }
+                }
+
+                await File.WriteAllTextAsync(testCasesPath, sb.ToString(), System.Text.Encoding.UTF8);
+
+                // Copy to build output folder if we are running in a different dir
+                var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+                var buildOutputFilePath = Path.Combine(baseDir, "test_cases.md");
+                if (Path.GetFullPath(baseDir) != Path.GetFullPath(currentDir))
+                {
+                    File.Copy(testCasesPath, buildOutputFilePath, true);
+                }
+
+                return Results.Ok(new { message = "Lưu test cases thành công" });
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(ex.Message);
+            }
+        });
     }
 
     // ==================== DOCUMENTS ====================
@@ -310,3 +369,4 @@ public static class GeneralEndpoints
 }
 
 public record ExecuteSqlRequest(string Sql);
+public record TestCaseSectionDto(string Section, List<string> Questions);
