@@ -163,8 +163,17 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
             }
             else if (val is double || val is float || val is decimal)
             {
-                cell.Value = Convert.ToDouble(val);
-                cell.Style.Numberformat.Format = "#,##0.00";
+                double dVal = Convert.ToDouble(val);
+                cell.Value = dVal;
+                double testVal = Math.Round(dVal, 2);
+                if (testVal == Math.Truncate(testVal))
+                {
+                    cell.Style.Numberformat.Format = "#,##0";
+                }
+                else
+                {
+                    cell.Style.Numberformat.Format = "#,##0.##";
+                }
                 cell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Right;
             }
             else if (val is int || val is long || val is short || val is byte)
@@ -512,7 +521,15 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
                     {
                         double rateVal = (double)groupTotalLoi / groupTotalKiem * 100;
                         rateCell.Value = rateVal;
-                        rateCell.Style.Numberformat.Format = "#,##0.00";
+                        double testVal = Math.Round(rateVal, 2);
+                        if (testVal == Math.Truncate(testVal))
+                        {
+                            rateCell.Style.Numberformat.Format = "#,##0";
+                        }
+                        else
+                        {
+                            rateCell.Style.Numberformat.Format = "#,##0.##";
+                        }
                     }
                     else
                     {
@@ -588,8 +605,17 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
                             var startCell = worksheet.Cells[groupStartRow, colIdx];
                             if (rateVal.HasValue)
                             {
-                                startCell.Value = rateVal.Value;
-                                startCell.Style.Numberformat.Format = "#,##0.00";
+                                double rVal = rateVal.Value;
+                                startCell.Value = rVal;
+                                double testVal = Math.Round(rVal, 2);
+                                if (testVal == Math.Truncate(testVal))
+                                {
+                                    startCell.Style.Numberformat.Format = "#,##0";
+                                }
+                                else
+                                {
+                                    startCell.Style.Numberformat.Format = "#,##0.##";
+                                }
                             }
                             else
                             {
@@ -694,7 +720,15 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
                     {
                         double rateVal = (double)grandTotalLoi / grandTotalKiem * 100;
                         rateCell.Value = rateVal;
-                        rateCell.Style.Numberformat.Format = "#,##0.00";
+                        double testVal = Math.Round(rateVal, 2);
+                        if (testVal == Math.Truncate(testVal))
+                        {
+                            rateCell.Style.Numberformat.Format = "#,##0";
+                        }
+                        else
+                        {
+                            rateCell.Style.Numberformat.Format = "#,##0.##";
+                        }
                     }
                     else
                     {

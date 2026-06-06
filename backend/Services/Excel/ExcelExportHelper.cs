@@ -90,7 +90,16 @@ public static class ExcelExportHelper
                 // Căn lề phải và format dấu phẩy cho các cột số cho chuyên nghiệp
                 if (cell.Value is double || cell.Value is float || cell.Value is decimal)
                 {
-                    cell.Style.Numberformat.Format = "#,##0.00";
+                    double dVal = Convert.ToDouble(cell.Value);
+                    double testVal = Math.Round(dVal, 2);
+                    if (testVal == Math.Truncate(testVal))
+                    {
+                        cell.Style.Numberformat.Format = "#,##0";
+                    }
+                    else
+                    {
+                        cell.Style.Numberformat.Format = "#,##0.##";
+                    }
                     cell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Right;
                 }
                 else if (cell.Value is long || cell.Value is int)
