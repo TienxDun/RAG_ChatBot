@@ -25,10 +25,10 @@ public sealed class VertexAiClient
     // Gửi yêu cầu sinh nội dung văn bản tới mô hình Gemini của Vertex AI dựa trên prompt đầu vào.
     public async Task<string> GenerateContentAsync(string message, CancellationToken ct, string responseMimeType = "text/plain")
     {
-        // 1. Tạo URL endpoint API bằng cách thay thế các placeholder trong cấu hình template và đính kèm khóa API
+        // 1. Tạo URL endpoint API bằng cách thay thế các placeholder trong cấu hình template
         var url = _options.ApiUrlTemplate
             .Replace("{modelId}", _options.LlmModelId)
-            .Replace("{action}", "generateContent") + $"?key={_options.ApiKey}";
+            .Replace("{action}", "generateContent");
 
         // 2. Thiết lập cấu trúc dữ liệu JSON payload để gửi tới API (theo chuẩn đặc tả của Google Vertex AI / Gemini API)
         var payload = new
@@ -55,11 +55,12 @@ public sealed class VertexAiClient
             }
         };
 
-        // 3. Khởi tạo HttpRequestMessage dạng POST với dữ liệu payload được tuần tự hóa thành chuỗi JSON dạng UTF-8
+        // 3. Khởi tạo HttpRequestMessage dạng POST — API key truyền qua header để tránh lộ trong URL/logs
         using var request = new HttpRequestMessage(HttpMethod.Post, url)
         {
             Content = new StringContent(JsonSerializer.Serialize(payload, _jsonOptions), Encoding.UTF8, "application/json")
         };
+        request.Headers.Add("x-goog-api-key", _options.ApiKey);
 
         // 4. Gửi yêu cầu HTTP POST bất đồng bộ tới API Vertex AI và đọc kết quả trả về dưới dạng chuỗi
         using var response = await _httpClient.SendAsync(request, ct);
@@ -116,7 +117,7 @@ public sealed class VertexAiClient
     {
         var url = _options.ApiUrlTemplate
             .Replace("{modelId}", _options.LlmModelId)
-            .Replace("{action}", "streamGenerateContent") + $"?key={_options.ApiKey}";
+            .Replace("{action}", "streamGenerateContent");
 
         var payload = new
         {
@@ -145,6 +146,7 @@ public sealed class VertexAiClient
         {
             Content = new StringContent(JsonSerializer.Serialize(payload, _jsonOptions), Encoding.UTF8, "application/json")
         };
+        request.Headers.Add("x-goog-api-key", _options.ApiKey);
 
         using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
 
@@ -203,7 +205,7 @@ public sealed class VertexAiClient
 
         var url = baseUrl
             .Replace("{modelId}", _options.EmbeddingModelId)
-            .Replace("{action}", "predict") + $"?key={_options.ApiKey}";
+            .Replace("{action}", "predict");
         var resolvedTaskType = string.IsNullOrWhiteSpace(taskType) ? "RETRIEVAL_QUERY" : taskType;
         var parameters = new Dictionary<string, object>
         {
@@ -232,6 +234,7 @@ public sealed class VertexAiClient
         {
             Content = new StringContent(JsonSerializer.Serialize(payload, _jsonOptions), Encoding.UTF8, "application/json")
         };
+        request.Headers.Add("x-goog-api-key", _options.ApiKey);
 
         using var response = await _httpClient.SendAsync(request, ct);
         var body = await response.Content.ReadAsStringAsync(ct);
@@ -269,7 +272,7 @@ public sealed class VertexAiClient
 
         var url = _options.ApiUrlTemplate
             .Replace("{modelId}", _options.LlmModelId)
-            .Replace("{action}", "generateContent") + $"?key={_options.ApiKey}";
+            .Replace("{action}", "generateContent");
 
         var payload = new
         {
@@ -315,6 +318,7 @@ public sealed class VertexAiClient
         {
             Content = new StringContent(JsonSerializer.Serialize(payload, _jsonOptions), Encoding.UTF8, "application/json")
         };
+        request.Headers.Add("x-goog-api-key", _options.ApiKey);
 
         using var response = await _httpClient.SendAsync(request, ct);
         var body = await response.Content.ReadAsStringAsync(ct);

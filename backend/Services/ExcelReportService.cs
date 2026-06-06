@@ -31,7 +31,6 @@ public class ExcelReportService
     private readonly ITextUtility _textUtility;
     private readonly IExcelMappingService _mappingService;
 
-    private static readonly TextUtility _staticTextUtility = new();
 
     public ExcelReportService(
         RagOrchestrator ragOrchestrator,
@@ -328,30 +327,6 @@ public class ExcelReportService
     public byte[] ExportMarkdownToExcelDynamic(string markdownText)
     {
         return _excelExporter.ExportMarkdownToExcelDynamic(markdownText);
-    }
-
-    // =========================================================
-    // CÁC HÀM REFLECTION ĐƯỢC GỌI TỪ UNIT TEST (DELEGATED TO UTILITY)
-    // =========================================================
-
-    private static Dictionary<string, string> BuildSoftColumnMapping(DataTable source, List<FlattenedColumn> templateColumns)
-    {
-        return _staticTextUtility.BuildSoftColumnMapping(source, templateColumns);
-    }
-
-    private static string RemoveDiacriticsKeepSpaces(string text)
-    {
-        return _staticTextUtility.RemoveDiacriticsKeepSpaces(text);
-    }
-
-    private static string? FindBestMetadataValue(Dictionary<string, string> metadata, string key)
-    {
-        return _staticTextUtility.FindBestMetadataValue(metadata, key);
-    }
-
-    private static TemplateAnalysisResult MergeTemplateAnalysis(TemplateAnalysisResult llm, TemplateAnalysisResult ruleBased)
-    {
-        return _staticTextUtility.MergeTemplateAnalysis(llm, ruleBased);
     }
 
 

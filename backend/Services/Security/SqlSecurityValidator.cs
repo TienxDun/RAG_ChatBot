@@ -19,7 +19,6 @@ public class SqlSecurityValidator : ISqlSecurityValidator
         // Execution
         "EXEC", "EXECUTE", "SP_EXECUTESQL",
         // Dangerous system features
-        "XP_CMDSHELL", "XP_",         // toàn bộ xp_ extended procs
         "OPENROWSET", "OPENQUERY", "OPENDATASOURCE",
         "BULK",                        // BULK INSERT
         "DBCC",
@@ -32,31 +31,52 @@ public class SqlSecurityValidator : ISqlSecurityValidator
         if (string.IsNullOrWhiteSpace(sql))
             throw new InvalidOperationException("SQL query is empty.");
 
-        var upperSql = sql.Trim().ToUpper();
+        // 0. Strip SQL comments trước khi validate để chặn bypass bằng comment injection
+        var cleanedSql = StripSqlComments(sql);
+        var upperSql = cleanedSql.Trim().ToUpperInvariant();
 
         // 1. Chỉ cho phép câu lệnh truy vấn dữ liệu (SELECT hoặc CTE)
-        // Dùng Regex thay vì StartsWith để chặn bypass bằng SQL comment (-- hoặc /* */)
         if (!Regex.IsMatch(upperSql, @"^\s*(SELECT|WITH)\s", RegexOptions.None))
         {
             throw new InvalidOperationException("Hệ thống chỉ cho phép thực thi các câu lệnh truy vấn dữ liệu (SELECT).");
         }
 
         // 2. Chặn tất cả multi-statement SQL — bất kỳ dấu ; nào đều là dấu hiệu injection
-        // (SQL Server không cần ; để kết thúc câu SELECT hợp lệ)
-        if (sql.Contains(";"))
+        if (cleanedSql.Contains(";"))
         {
             throw new InvalidOperationException("Không được phép sử dụng dấu chấm phẩy (;) trong câu truy vấn.");
         }
 
-        // 3. Kiểm tra các từ khóa nguy hiểm
+        // 3. Chặn batch separator GO (SQL Server batch separator)
+        if (Regex.IsMatch(upperSql, @"\bGO\b"))
+        {
+            throw new InvalidOperationException("Không được phép sử dụng lệnh GO trong câu truy vấn.");
+        }
+
+        // 4. Kiểm tra các từ khóa nguy hiểm
         foreach (var keyword in ForbiddenKeywords)
         {
-            // Sử dụng Regex để tránh chặn nhầm các từ nằm trong tên cột (ví dụ: UpdateDate)
-            var pattern = $@"\b{keyword}\b";
+            var pattern = $@"\b{Regex.Escape(keyword)}\b";
             if (Regex.IsMatch(upperSql, pattern))
             {
                 throw new InvalidOperationException($"Phát hiện từ khóa nguy hiểm bị cấm: {keyword}");
             }
         }
+
+        // 5. Chặn toàn bộ XP_ extended stored procedures bằng Contains (word boundary không bắt được XP_CMDSHELL)
+        if (upperSql.Contains("XP_"))
+        {
+            throw new InvalidOperationException("Phát hiện từ khóa nguy hiểm bị cấm: XP_ extended procedures");
+        }
+    }
+
+    // Loại bỏ SQL comments (block /* */ và line --) để chặn bypass bằng comment injection
+    private static string StripSqlComments(string sql)
+    {
+        // Xóa block comments /* ... */ (bao gồm nested)
+        var result = Regex.Replace(sql, @"/\*[\s\S]*?\*/", " ", RegexOptions.None);
+        // Xóa line comments -- ... (đến cuối dòng)
+        result = Regex.Replace(result, @"--[^\r\n]*", " ", RegexOptions.None);
+        return result;
     }
 }

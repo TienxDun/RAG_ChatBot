@@ -96,6 +96,9 @@ public class TemplateCacheService
         if (bytes.Length > MaxFileSizeBytes)
             throw new ArgumentException($"Kích thước file vượt quá giới hạn cho phép ({MaxFileSizeBytes / 1024 / 1024}MB).");
 
+        // Sanitize fileName để chặn Path Traversal (../../../etc)
+        fileName = SanitizeFileName(fileName);
+
         lock (_lock)
         {
             // Kiểm tra trùng lặp: cùng tên file và SHA256 hash khớp — O(1) thay vì SequenceEqual O(n)
@@ -157,6 +160,21 @@ public class TemplateCacheService
             return template;
         }
     }
+
+    // Chặn Path Traversal: chỉ giữ tên file thuần, loại bỏ đường dẫn ../..
+    private string SanitizeFileName(string fileName)
+    {
+        var safeName = Path.GetFileName(fileName);
+        if (string.IsNullOrWhiteSpace(safeName))
+            throw new ArgumentException("Tên file không hợp lệ.");
+        
+        var fullPath = Path.GetFullPath(Path.Combine(_templatesDir, safeName));
+        if (!fullPath.StartsWith(Path.GetFullPath(_templatesDir), StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Tên file không hợp lệ — phát hiện Path Traversal.");
+        
+        return safeName;
+    }
+
 
     // Lấy một template từ cache theo ID.
     public CachedTemplate? GetTemplate(string id)
