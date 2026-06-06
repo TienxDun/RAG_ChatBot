@@ -7,9 +7,9 @@
     {
       "id": "T_QTY_QA_NK_001",
       "severity": "CRITICAL",
-      "rule": "Bảng này KHÔNG có cột StyleID. Khi lọc theo mã kiểu dáng có dấu gạch dưới '_' (ví dụ: 'SA_893_208_133'), BẮT BUỘC JOIN với ERP_LENHSX (qua LenhSX = MaLenh) và lọc trên cột ERP_LENHSX.TenLenh, HOẶC tự động chuyển đổi '_' thành '-' (ví dụ: 'SA-893-208-133') để lọc trên cột MaHang.",
-      "correct_example": "SELECT SUM(q.SoLuongLoi) FROM QTY_KiemQA_NgayKiem q JOIN ERP_LENHSX e ON q.LenhSX = e.MaLenh WHERE e.TenLenh = 'SA_893_208_133'",
-      "wrong_example": "SELECT SUM(SoLuongLoi) FROM QTY_KiemQA_NgayKiem WHERE StyleID = 'SA_893_208_133'"
+      "rule": "Bảng này KHÔNG có cột StyleID. Quy tắc lọc theo mã hàng/tên sản phẩm: BẮT BUỘC lọc trực tiếp trên cột MaHang (kiểu nvarchar, có tiền tố N) sử dụng đúng giá trị mã hàng người dùng cung cấp (giữ nguyên dấu gạch dưới '_' nếu có, ví dụ: 'XF5-AI_PX1YG'). TUYỆT ĐỐI CẤM JOIN với bảng ERP_LENHSX để lọc cột TenLenh khi tìm kiếm mã hàng, vì TenLenh là tên lệnh sản xuất, không phải cột mã hàng.",
+      "correct_example": "SELECT SUM(ISNULL(q.SoLuongLoi, 0)) FROM QTY_KiemQA_NgayKiem q WHERE q.MaHang = N'XF5-AI_PX1YG'",
+      "wrong_example": "SELECT SUM(ISNULL(q.SoLuongLoi, 0)) FROM QTY_KiemQA_NgayKiem q JOIN ERP_LENHSX e ON q.LenhSX = e.MaLenh WHERE e.TenLenh = 'XF5-AI_PX1YG' -- SAI: Lọc mã hàng trên cột TenLenh (tên lệnh) là sai ngữ nghĩa"
     },
     {
       "id": "T_QTY_QA_NK_002",

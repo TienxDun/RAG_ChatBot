@@ -7,9 +7,9 @@
     {
       "id": "T_QTY_QA_CD_001",
       "severity": "CRITICAL",
-      "rule": "Bảng này KHÔNG có cột StyleID. Quy tắc lọc theo mã hàng/tên sản phẩm gồm 3 trường hợp: (A) Giá trị chứa dấu gạch dưới '_' (ví dụ: 'TEA25_Y_XR20R') → BẮT BUỘC JOIN ERP_LENHSX (qua LenhSX = MaLenh) và lọc ERP_LENHSX.TenLenh. (B) Giá trị chứa dấu gạch ngang '-', dấu chấm '.', hoặc dấu cách kèm số (ví dụ: 'SA-893-208-133') → lọc trực tiếp trên MaHang với tiền tố N. (C) Giá trị là tên sản phẩm chỉ gồm chữ cái và dấu cách (ví dụ: 'KAIJI JUMPSUIT') → MaHang LIKE trực tiếp, TUYỆT ĐỐI KHÔNG JOIN ERP_LENHSX.",
-      "correct_example": "-- Case A: SELECT q.Code FROM QTY_KiemQA_CHITIET q JOIN ERP_LENHSX e ON q.LenhSX = e.MaLenh WHERE e.TenLenh = 'TEA25_Y_XR20R' | -- Case B: WHERE q.MaHang = N'SA-893-208-133' | -- Case C: WHERE q.MaHang LIKE N'%KAIJI JUMPSUIT%'",
-      "wrong_example": "WHERE q.MaHang = N'TEA25-Y-XR20R' -- SAI: dấu gạch dưới phải JOIN ERP_LENHSX.TenLenh, không tự chuyển sang gạch ngang"
+      "rule": "Bảng này KHÔNG có cột StyleID. Quy tắc lọc theo mã hàng/tên sản phẩm: BẮT BUỘC lọc trực tiếp trên cột MaHang (kiểu nvarchar, có tiền tố N) sử dụng đúng giá trị mã hàng người dùng cung cấp (giữ nguyên dấu gạch dưới '_' nếu có, ví dụ: 'XF5-AI_PX1YG'). TUYỆT ĐỐI CẤM JOIN với bảng ERP_LENHSX để lọc cột TenLenh khi tìm kiếm mã hàng, vì TenLenh là tên lệnh sản xuất, không phải cột mã hàng.",
+      "correct_example": "SELECT SUM(ISNULL(c.SLLoi, 0)) FROM QTY_KiemQA_CHITIET c WHERE c.MaHang = N'XF5-AI_PX1YG'",
+      "wrong_example": "SELECT SUM(ISNULL(c.SLLoi, 0)) FROM QTY_KiemQA_CHITIET c JOIN ERP_LENHSX e ON c.LenhSX = e.MaLenh WHERE e.TenLenh = 'XF5-AI_PX1YG' -- SAI: Lọc mã hàng trên cột TenLenh (tên lệnh) là sai ngữ nghĩa"
     },
     {
       "id": "T_QTY_QA_CD_002",
@@ -35,9 +35,9 @@
     {
       "id": "T_QTY_QA_CD_005",
       "severity": "CRITICAL",
-      "rule": "Khi cần liên kết dữ liệu lỗi chi tiết QA với thông tin tổng hợp của QA (ví dụ: cần lọc phiếu Pass/Fail bằng StatusHT, cần lấy số lượng mẫu kiểm AQL SoLuongKiem), mới JOIN bảng QTY_KiemQA_CHITIET (c) với QTY_KiemQA_NgayKiem (q) qua các cột: LenhSX, LineX, MaHang, Size và ép kiểu DATE cho NgayKiem. TUYỆT ĐỐI CẤM JOIN với QTY_KiemQA_NgayKiem nếu câu hỏi chỉ yêu cầu đếm số lỗi/thống kê lỗi theo chuyền, ngày, size, màu thông thường vì bảng chi tiết đã có sẵn các cột này.",
+      "rule": "Khi cần liên kết dữ liệu lỗi chi tiết QA với thông tin tổng hợp của QA (ví dụ: cần lọc phiếu Pass/Fail bằng StatusHT, cần lấy số lượng mẫu kiểm AQL SoLuongKiem), mới JOIN bảng QTY_KiemQA_CHITIET (c) với QTY_KiemQA_NgayKiem (q) qua các cột: LenhSX, LineX, MaHang, Size và ép kiểu DATE cho NgayKiem. TUYỆT ĐỐI CẤM JOIN với QTY_KiemQA_NgayKiem nếu câu hỏi chỉ yêu cầu đếm số lỗi/thống kê lỗi theo chuyền (LineX), ngày (NgayKiem), mã hàng (MaHang), size (Size), màu (MaMau), hoặc mức độ lỗi (LoaiLoi) vì bảng chi tiết QTY_KiemQA_CHITIET đã có sẵn tất cả các cột này.",
       "correct_example": "-- ĐÚNG: JOIN khi cần kiểm tra StatusHT của phiếu đầu ngày\nSELECT SUM(ISNULL(c.SLLoi, 0)) FROM QTY_KiemQA_CHITIET c JOIN QTY_KiemQA_NgayKiem q ON c.LenhSX = q.LenhSX AND c.LineX = q.LineX AND c.MaHang = q.MaHang AND c.Size = q.Size AND CAST(c.NgayKiem AS DATE) = CAST(q.NgayKiem AS DATE) WHERE q.StatusHT = 3",
-      "wrong_example": "-- SAI: JOIN không cần thiết khi chỉ đếm lỗi thông thường\nSELECT SUM(ISNULL(c.SLLoi, 0)) FROM QTY_KiemQA_CHITIET c JOIN QTY_KiemQA_NgayKiem q ON c.LenhSX = q.LenhSX AND c.LineX = q.LineX AND c.MaHang = q.MaHang AND c.Size = q.Size AND CAST(c.NgayKiem AS DATE) = CAST(q.NgayKiem AS DATE) WHERE c.Size = 'L'"
+      "wrong_example": "-- SAI: JOIN không cần thiết khi chỉ đếm lỗi hoặc lọc theo chuyền/ngày/loại lỗi\nSELECT SUM(ISNULL(c.SLLoi, 0)) FROM QTY_KiemQA_CHITIET c JOIN QTY_KiemQA_NgayKiem q ON c.LenhSX = q.LenhSX AND c.LineX = q.LineX AND c.MaHang = q.MaHang AND c.Size = q.Size AND CAST(c.NgayKiem AS DATE) = CAST(q.NgayKiem AS DATE) WHERE c.Size = 'L'"
     },
     {
       "id": "T_QTY_QA_CD_006",

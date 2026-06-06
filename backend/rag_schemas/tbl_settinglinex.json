@@ -7,7 +7,7 @@
     {
       "id": "T_SET_LX_001",
       "severity": "CRITICAL",
-      "rule": "TÊN CỘT KHÓA CHÍNH (MÃ CHUYỀN) LÀ ID (kiểu varchar). maps với cột LineX hoặc Line trong các bảng khác (ví dụ: CAST(ID AS VARCHAR) = LineX).",
+      "rule": "TÊN CỘT KHÓA CHÍNH (MÃ CHUYỀN) LÀ ID (kiểu varchar). maps với cột LineX hoặc Line trong các bảng khác (ví dụ: ID = LineX).",
       "correct_example": "SELECT Name FROM tbl_SettingLineX WHERE ID = '101'",
       "wrong_example": "SELECT Name FROM tbl_SettingLineX WHERE LineX = '101'"
     },

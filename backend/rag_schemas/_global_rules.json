@@ -19,7 +19,7 @@
       "id": "G003",
       "category": "identifier_routing",
       "severity": "CRITICAL",
-      "rule": "PHÂN BIỆT StyleID/StyleId VÀ MaHang: (1) Mã chứa gạch dưới '_' (ví dụ: 'XF_MY_XA7YG') bắt buộc phải lọc qua StyleID (hoặc StyleId). TUYỆT ĐỐI CẤM dùng cột MaHang để lọc khi mã chứa gạch dưới. (2) Chỉ dùng MaHang khi mã chứa dấu cách hoặc gạch ngang '-' (kèm tiền tố N). (3) TUYỆT ĐỐI CẤM sử dụng cột MaHang trong bảng SEW_CoefficientSize vì bảng này không hề có cột MaHang (gây lỗi Invalid column name 'MaHang')."
+      "rule": "PHÂN BIỆT StyleID/StyleId VÀ MaHang: (1) Cột StyleID/StyleId trong DB luôn lưu dạng gạch dưới '_' thay vì gạch ngang. Nếu lọc theo StyleID/StyleId, bắt buộc phải đổi tất cả gạch ngang '-' hoặc dấu cách thành gạch dưới '_' (ví dụ: StyleID = '112157_181_H3Z9'). TUYỆT ĐỐI CẤM so sánh StyleID/StyleId trực tiếp với chuỗi chứa gạch ngang hoặc dấu cách (như StyleID = '112157-181-H3Z9'). (2) Chỉ dùng MaHang khi mã chứa dấu cách hoặc gạch ngang '-' (kèm tiền tố N, ví dụ: MaHang = N'112157-181-H3Z9'). (3) TUYỆT ĐỐI CẤM sử dụng cột MaHang trong bảng SEW_CoefficientSize vì bảng này không có cột MaHang."
     },
     {
       "id": "G004",
@@ -31,7 +31,7 @@
       "id": "G005",
       "category": "anti_double_count",
       "severity": "CRITICAL",
-      "rule": "CHỐNG NHÂN ĐÔI DÒNG (FAN-OUT): Cấm tuyệt đối việc JOIN trực tiếp bảng chất lượng (QTY_MAHANG_NGAYKIEM, QTY_KiemQA_CHITIET...) với bảng sản lượng (SEW_CoefficientSize, SEW_CoefficientStyle...) ở mức bảng thô để tính tổng đạt và tổng lỗi (ví dụ: cấm JOIN `QTY_MAHANG_NGAYKIEM q JOIN SEW_CoefficientSize s ON q.PlanCode = s.PoId` trực tiếp ở câu SELECT). Hành vi này sẽ nhân bản chéo số dòng và làm sai lệch số liệu hoàn toàn. Bắt buộc phải dùng 2 CTE độc lập để tính tổng lỗi (SUM(SpLoi)) và tổng đạt (SUM(Quantity+SuaDat)) riêng biệt theo nhóm (chuyền LineX/mã hàng StyleId), sau đó mới JOIN kết quả tổng hợp của 2 CTE này lại với nhau."
+      "rule": "CHỐNG NHÂN ĐÔI DÒNG (FAN-OUT): Cấm tuyệt đối việc JOIN bảng chất lượng (QTY_MAHANG_NGAYKIEM, QTY_KiemQA_CHITIET...) với bảng sản lượng (SEW_CoefficientSize, SEW_CoefficientStyle...) trong cùng một câu lệnh SELECT, CTE hoặc subquery (cho dù là JOIN trực tiếp hay JOIN bắc cầu qua bảng trung gian như ERP_LENHSX, ví dụ: cấm JOIN q JOIN e ON ... JOIN s ON e.MaLenh = s.PoId). Hành vi này sẽ nhân bản chéo số dòng và làm sai lệch số liệu hoàn toàn. Bắt buộc phải dùng 2 CTE hoàn toàn độc lập: một CTE tính tổng lỗi (SUM(SpLoi)), một CTE tính tổng đạt (SUM(Quantity+SuaDat)) riêng biệt theo nhóm (chuyền LineX/mã hàng StyleId), sau đó mới JOIN kết quả tổng hợp của 2 CTE này ở câu SELECT ngoài cùng."
     },
     {
       "id": "G006",

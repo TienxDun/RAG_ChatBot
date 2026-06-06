@@ -14,9 +14,9 @@
     {
       "id": "T_SEW_STYLE_002",
       "severity": "HIGH",
-      "rule": "TÊN CỘT CHUYỀN BẮT BUỘC viết thường chữ x: Linex (kiểu INT). Tuyệt đối không dùng chữ X hoa. Dùng Linex = 105 (không dùng nháy đơn). Khi cần JOIN với LineX (kiểu varchar) ở bảng khác, phải CAST: Linex = CAST(LineX AS INT).",
-      "correct_example": "WHERE Linex = 105",
-      "wrong_example": "WHERE Linex = '105' hoặc WHERE LineX = 105"
+      "rule": "TÊN CỘT CHUYỀN BẮT BUỘC viết thường chữ x: Linex (kiểu varchar). Tuyệt đối không dùng chữ X hoa. Dùng Linex = '105' (sử dụng nháy đơn). Khi kết nối (JOIN) với LineX hoặc ID (cũng là kiểu varchar) ở bảng khác thì so khớp trực tiếp không cần CAST.",
+      "correct_example": "WHERE Linex = '105'",
+      "wrong_example": "WHERE Linex = 105 hoặc WHERE LineX = '105'"
     },
     {
       "id": "T_SEW_STYLE_003",
@@ -35,9 +35,9 @@
     },
     {
       "name": "Linex",
-      "type": "int",
+      "type": "varchar",
       "role": "filter",
-      "desc": "Mã chuyền (kiểu INT). Viết chữ 'x' thường. Áp dụng rule T_SEW_STYLE_002."
+      "desc": "Mã chuyền (kiểu varchar). Viết chữ 'x' thường. Áp dụng rule T_SEW_STYLE_002."
     },
     {
       "name": "PoId",
@@ -119,7 +119,7 @@
     },
     {
       "target_table": "tbl_SettingLineX",
-      "join_on": "CAST(tbl_SettingLineX.ID AS INT) = SEW_CoefficientStyle.Linex",
+      "join_on": "tbl_SettingLineX.ID = SEW_CoefficientStyle.Linex",
       "notes": "BẮT BUỘC kết nối (JOIN) khi cần lấy tên chuyền hiển thị (Name) thay vì mã ID."
     }
   ]

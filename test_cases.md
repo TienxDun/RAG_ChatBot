@@ -100,11 +100,11 @@
 
 64. **Tính tỉ lệ lỗi QA (AQL) của mã hàng 'XF5-AI_PX1YG' trong tháng 3.**
 65. **Lô hàng ngày 2026-01-17 của chuyền Cherry có tổng số lượng hàng được KCS duyệt là bao nhiêu và QA đã lấy bao nhiêu mẫu để kiểm?**
-66. **Tìm những mã hàng kiểm QA có số lượng lỗi ghi nhận lớn hơn cả số lượng mẫu được kiểm tra.**
+66. **Tìm tất cả ngày kiểm,tên chuyền,mã hàng,size,số lượng kiểm và số lượng lỗi kiểm QA có số lượng lỗi ghi nhận lớn hơn cả số lượng mẫu được kiểm tra.**
 67. **Tổng số lỗi thực tế phát hiện trong kiểm tra QA chi tiết của mã hàng 'XF5-AI_PX1YG' là bao nhiêu?**
-68. **Đếm số lỗi nghiêm trọng và lỗi đặc biệt nghiêm trọng của chuyền Cosmos trong tháng 1-2026.**
+68. **Đếm số lỗi nghiêm trọng và lỗi đặc biệt nghiêm trọng trong kiểm tra QA của chuyền Cosmos trong tháng 1-2026.**
 69. **Mã lỗi nào xuất hiện nhiều nhất trong các lần kiểm QA bị Fail?**
-70. **Tìm tổng số lượng mẫu kiểm QA (SoLuongKiem) của mã kiểu dáng TEA25_Y_XR20R từ trước đến nay**
+70. **Tìm tổng số lượng mẫu kiểm QA (SoLuongKiem) của mã hàng TEA25-Y_XR20R từ trước đến nay**
 71. **Đếm số lượng lỗi chi tiết QA của size L tại chuyền Cosmos trong năm 2026**
 
 ---
