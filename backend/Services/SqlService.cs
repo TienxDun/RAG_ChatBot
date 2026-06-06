@@ -35,6 +35,7 @@ public sealed class SqlService
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync(ct);
         using var command = new SqlCommand(sql, connection);
+        command.CommandTimeout = 25; // Giới hạn 25s — thấp hơn pipeline timeout 60s để query treo sẽ bị hủy trước
         using var reader = await command.ExecuteReaderAsync(ct);
         
         var dataTable = new DataTable();

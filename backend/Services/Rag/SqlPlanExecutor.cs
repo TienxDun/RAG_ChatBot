@@ -236,7 +236,7 @@ public class SqlPlanExecutor : ISqlPlanExecutor
         return (fullJson, fullJson, string.Empty, rows);
     }
 
-    private static string GetCompactContext(List<Dictionary<string, object>> rows, int threshold = 50)
+    private static string GetCompactContext(List<Dictionary<string, object>> rows, int threshold = 15)
     {
         if (rows == null || rows.Count == 0) return "[]";
 

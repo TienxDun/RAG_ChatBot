@@ -19,7 +19,7 @@
       "id": "G003",
       "category": "identifier_routing",
       "severity": "CRITICAL",
-      "rule": "Mã chứa gạch dưới '_' (0088_521_04_V0_0) dùng StyleID. Mã chứa dấu cách, gạch ngang, dấu chấm (SA-893-208-133, 0088 521 04 V0.0) dùng MaHang (kèm N). Ví dụ ĐÚNG: `StyleID = '0088_521_04_V0_0'` hoặc `MaHang = N'SA-893-208-133'`"
+      "rule": "PHÂN BIỆT StyleID/StyleId VÀ MaHang: (1) Mã chứa gạch dưới '_' (ví dụ: 'XF_MY_XA7YG') bắt buộc phải lọc qua StyleID (hoặc StyleId). TUYỆT ĐỐI CẤM dùng cột MaHang để lọc khi mã chứa gạch dưới. (2) Chỉ dùng MaHang khi mã chứa dấu cách hoặc gạch ngang '-' (kèm tiền tố N). (3) TUYỆT ĐỐI CẤM sử dụng cột MaHang trong bảng SEW_CoefficientSize vì bảng này không hề có cột MaHang (gây lỗi Invalid column name 'MaHang')."
     },
     {
       "id": "G004",
@@ -31,7 +31,7 @@
       "id": "G005",
       "category": "anti_double_count",
       "severity": "CRITICAL",
-      "rule": "CHỐNG NHÂN ĐÔI DÒNG: Cấm JOIN trực tiếp bảng chất lượng (QTY_*) với bảng sản lượng (SEW_*). Bắt buộc dùng CTE/Subquery tính SUM/COUNT riêng cho từng bảng trước rồi mới JOIN."
+      "rule": "CHỐNG NHÂN ĐÔI DÒNG (FAN-OUT): Cấm tuyệt đối việc JOIN trực tiếp bảng chất lượng (QTY_MAHANG_NGAYKIEM, QTY_KiemQA_CHITIET...) với bảng sản lượng (SEW_CoefficientSize, SEW_CoefficientStyle...) ở mức bảng thô để tính tổng đạt và tổng lỗi (ví dụ: cấm JOIN `QTY_MAHANG_NGAYKIEM q JOIN SEW_CoefficientSize s ON q.PlanCode = s.PoId` trực tiếp ở câu SELECT). Hành vi này sẽ nhân bản chéo số dòng và làm sai lệch số liệu hoàn toàn. Bắt buộc phải dùng 2 CTE độc lập để tính tổng lỗi (SUM(SpLoi)) và tổng đạt (SUM(Quantity+SuaDat)) riêng biệt theo nhóm (chuyền LineX/mã hàng StyleId), sau đó mới JOIN kết quả tổng hợp của 2 CTE này lại với nhau."
     },
     {
       "id": "G006",
@@ -61,7 +61,7 @@
       "id": "G010",
       "category": "spelling_accuracy",
       "severity": "CRITICAL",
-      "rule": "Bắt buộc ghi đúng chính tả tên cột: 'StyleID' (ID hoa) trong QTY_MAHANG_NGAYKIEM; 'StyleId' (Id thường) trong SEW_CoefficientSize; 'StypeId' (chữ y, không có l) trong SEW_CoefficientStyle."
+      "rule": "BẮT BUỘC ghi đúng chính tả tên cột đại diện cho Mã Hàng / Kiểu Dáng: (1) Cột trong bảng QTY_MAHANG_NGAYKIEM và các bảng QTY_* là 'StyleID' (ID viết HOA hoàn toàn). (2) Cột trong bảng SEW_CoefficientSize là 'StyleId' (chữ I hoa, d thường). (3) Chỉ có duy nhất bảng SEW_CoefficientStyle mới dùng cột 'StypeId' (chữ y, không có l). TUYỆT ĐỐI CẤM VIẾT NHẦM 'StyleId' THÀNH 'StypeId' trong bảng SEW_CoefficientSize (gây lỗi Invalid column name 'StypeId')."
     },
     {
       "id": "G011",
@@ -139,7 +139,7 @@
       "id": "G023",
       "category": "column_name_accuracy",
       "severity": "CRITICAL",
-      "rule": "Tránh nhầm cột lỗi: `SLLoi` chỉ có ở QTY_KiemQA_CHITIET; `SoLuongLoi` chỉ có ở InLineQC và KiemQA; `SpLoi` chỉ có ở QTY_MAHANG_NGAYKIEM. Dùng SUM(ISNULL(SpLoi, 0)) cho QTY_MAHANG_NGAYKIEM."
+      "rule": "TRÁNH NHẦM LẪN CỘT LỖI VÀ MÃ HÀNG: (1) Cột số lỗi: `SLLoi` chỉ có ở QTY_KiemQA_CHITIET; `SoLuongLoi` chỉ có ở InLineQC và KiemQA; `SpLoi` chỉ có ở QTY_MAHANG_NGAYKIEM. (2) Cột mã hàng: Bảng SEW_CoefficientSize và QTY_MAHANG_NGAYKIEM tuyệt đối KHÔNG có cột 'MaHang' (dùng StyleId hoặc StyleID). Việc dùng sai tên cột sẽ gây lỗi nghiêm trọng."
     },
     {
       "id": "G024",

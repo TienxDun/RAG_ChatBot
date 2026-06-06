@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 
 namespace Backend.Services;
 
@@ -12,6 +14,7 @@ public class CachedTemplate
     public byte[] FileBytes { get; set; } = Array.Empty<byte>(); // Nội dung file (byte array)
     public DateTime CachedAt { get; set; }                   // Thời điểm lưu cache
     public long FileSize { get; set; }                       // Kích thước (bytes)
+    public string ContentHash { get; set; } = string.Empty;  // SHA256 hash — dùng để so sánh trùng lặp O(1) thay vì SequenceEqual O(n)
 }
 
 // Service Singleton quản lý bộ nhớ đệm (in-memory) cho các template Excel trống.
@@ -72,7 +75,8 @@ public class TemplateCacheService
                             FileName = fileInfo.Name,
                             FileBytes = bytes,
                             CachedAt = fileInfo.LastWriteTimeUtc,
-                            FileSize = fileInfo.Length
+                            FileSize = fileInfo.Length,
+                            ContentHash = ComputeHash(bytes)
                         };
                         _cache.Add(template);
                     }
@@ -94,11 +98,11 @@ public class TemplateCacheService
 
         lock (_lock)
         {
-            // Kiểm tra trùng lặp: Cùng tên, cùng kích thước và nội dung byte giống hệt nhau
-            var existing = _cache.FirstOrDefault(t => 
-                t.FileName == fileName && 
-                t.FileSize == bytes.Length && 
-                t.FileBytes.SequenceEqual(bytes));
+            // Kiểm tra trùng lặp: cùng tên file và SHA256 hash khớp — O(1) thay vì SequenceEqual O(n)
+            var incomingHash = ComputeHash(bytes);
+            var existing = _cache.FirstOrDefault(t =>
+                t.FileName == fileName &&
+                t.ContentHash == incomingHash);
 
             if (existing != null)
             {
@@ -145,7 +149,8 @@ public class TemplateCacheService
                 FileName = fileName,
                 FileBytes = bytes,
                 CachedAt = DateTime.UtcNow,
-                FileSize = bytes.Length
+                FileSize = bytes.Length,
+                ContentHash = incomingHash
             };
 
             _cache.Add(template);
@@ -237,4 +242,8 @@ public class TemplateCacheService
             };
         }
     }
+
+    // Tính SHA256 hash của byte array và trả về hex string — dùng để so sánh nội dung file O(1)
+    private static string ComputeHash(byte[] bytes)
+        => Convert.ToHexString(SHA256.HashData(bytes));
 }

@@ -350,8 +350,13 @@ public sealed class RagOrchestrator
         {
             // Tối ưu token: metadataPrompt chỉ cần danh sách tên cột để dịch (columnMapping case)
             // hoặc workingContext rút gọn cho excelData case. Không cần full SQL data thô.
-            string metadataContext;
-            if (lastDataTable != null && lastDataTable.Columns.Count > 0)
+            string? metadataContext = null;
+            if (lastDataTable == null || lastDataTable.Columns.Count == 0)
+            {
+                // Không có dữ liệu thì trả về metadata trống ngay lập tức mà không gọi LLM
+                metadataTask = Task.FromResult(JsonSerializer.Serialize(new { excelData = Array.Empty<object>(), columnMapping = new Dictionary<string, string>() }));
+            }
+            else
             {
                 // Chỉ gửi tên cột + 2 dòng mẫu đầu tiên — đủ để LLM hiểu cấu trúc và dịch tên cột
                 var columnNames = lastDataTable.Columns.Cast<System.Data.DataColumn>()
@@ -372,14 +377,10 @@ public sealed class RagOrchestrator
                                   $"Tổng số dòng: {lastDataTable.Rows.Count}\n" +
                                   $"2 dòng mẫu:\n{sampleRows}";
             }
-            else
-            {
-                // Fallback: dùng workingContext nhưng giới hạn ký tự để tiết kiệm token
-                var ctx = workingContext.ToString();
-                metadataContext = ctx.Length > 2000 ? ctx.Substring(0, 2000) + "\n...(rút gọn)" : ctx;
-            }
 
-            var metadataPrompt = $@"Bạn là chuyên gia phân tích dữ liệu doanh nghiệp. Hãy phân tích ngữ cảnh, câu hỏi của người dùng và cấu trúc dữ liệu đã truy vấn để tạo ra siêu dữ liệu (metadata) dưới dạng JSON.
+            if (metadataTask == null)
+            {
+                var metadataPrompt = $@"Bạn là chuyên gia phân tích dữ liệu doanh nghiệp. Hãy phân tích ngữ cảnh, câu hỏi của người dùng và cấu trúc dữ liệu đã truy vấn để tạo ra siêu dữ liệu (metadata) dưới dạng JSON.
 
             Câu hỏi gốc của người dùng: ""{userQuery}""
             CẤU TRÚC DỮ LIỆU ĐÃ TRUY VẤN:
@@ -403,6 +404,7 @@ public sealed class RagOrchestrator
             }}";
 
             metadataTask = _aiClient.GenerateContentAsync(metadataPrompt, pipelineCt, responseMimeType: "application/json");
+            }
         }
 
         var accumulatedText = new StringBuilder();
