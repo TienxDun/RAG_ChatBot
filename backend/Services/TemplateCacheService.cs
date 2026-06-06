@@ -39,10 +39,16 @@ public class TemplateCacheService
             dataDir = Path.Combine(backendDir, "data");
             if (!Directory.Exists(dataDir))
             {
-                dataDir = Path.Combine(Directory.GetCurrentDirectory(), "data");
+                // Thử tìm data ở ngay thư mục build/publish (AppContext.BaseDirectory)
+                dataDir = Path.Combine(rootDir, "data");
+                
                 if (!Directory.Exists(dataDir))
                 {
-                    Directory.CreateDirectory(dataDir);
+                    dataDir = Path.Combine(Directory.GetCurrentDirectory(), "data");
+                    if (!Directory.Exists(dataDir))
+                    {
+                        Directory.CreateDirectory(dataDir);
+                    }
                 }
             }
         }

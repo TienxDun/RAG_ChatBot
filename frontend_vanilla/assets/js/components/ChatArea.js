@@ -877,7 +877,7 @@ export class ChatAreaComponent {
         if (!panel) return;
         const contentEl = panel.querySelector('.rag-step__content-inner');
         if (contentEl) {
-            const text = contentEl.innerText.trim();
+            const text = contentEl.textContent.trim();
             InteractionService.copyToClipboard(text, btn);
         }
     }

@@ -35,11 +35,17 @@ public class ExcelMappingService : IExcelMappingService
             
             if (!Directory.Exists(dataDir))
             {
-                // Fallback về thư mục chạy hiện tại
-                dataDir = Path.Combine(Directory.GetCurrentDirectory(), "data");
+                // Thử tìm data ở ngay thư mục build/publish (AppContext.BaseDirectory)
+                dataDir = Path.Combine(rootDir, "data");
+                
                 if (!Directory.Exists(dataDir))
                 {
-                    Directory.CreateDirectory(dataDir);
+                    // Fallback về thư mục chạy hiện tại
+                    dataDir = Path.Combine(Directory.GetCurrentDirectory(), "data");
+                    if (!Directory.Exists(dataDir))
+                    {
+                        Directory.CreateDirectory(dataDir);
+                    }
                 }
             }
         }

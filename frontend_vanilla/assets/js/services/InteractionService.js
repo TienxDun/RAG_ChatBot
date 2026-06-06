@@ -4,19 +4,36 @@
 import { Toast } from '../components/Toast.js';
 
 export class InteractionService {
-    static async copyToClipboard(text, btn, isFooter = false) {
-        if (!text) return;
+    static copyToClipboard(text, btn, isFooter = false) {
+        if (!text) return false;
 
-        try {
-            await navigator.clipboard.writeText(text);
-            this.showCopyFeedback(btn, isFooter);
-            Toast.success("Đã sao chép!");
-            return true;
-        } catch (err) {
-            console.error('Copy failed:', err);
-            Toast.error("Không thể sao chép");
-            return false;
+        // Phản hồi UI lập tức để loại bỏ hoàn toàn cảm giác lag
+        this.showCopyFeedback(btn, isFooter);
+        Toast.success("Đã sao chép!");
+
+        // Thực hiện ghi vào clipboard bất đồng bộ
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).catch(err => {
+                console.error('Async clipboard copy failed:', err);
+                Toast.error("Không thể sao chép");
+            });
+        } else {
+            try {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                const success = document.execCommand('copy');
+                document.body.removeChild(textarea);
+                if (!success) throw new Error('execCommand copy returned false');
+            } catch (err) {
+                console.error('Fallback copy failed:', err);
+                Toast.error("Không thể sao chép");
+            }
         }
+        return true;
     }
 
     static showCopyFeedback(btn, isFooter = false) {
@@ -41,6 +58,6 @@ export class InteractionService {
     }
 
     static getTerminalCode(btn) {
-        return btn.closest('.terminal-code')?.querySelector('code')?.innerText || "";
+        return btn.closest('.terminal-code')?.querySelector('code')?.textContent || "";
     }
 }

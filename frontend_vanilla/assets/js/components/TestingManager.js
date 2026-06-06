@@ -4,6 +4,7 @@ import { ApiClient } from '../core/ApiClient.js';
 import { ENDPOINTS } from '../core/Config.js';
 import { Toast } from './Toast.js';
 import { MessageRenderer } from './MessageRenderer.js';
+import { InteractionService } from '../services/InteractionService.js';
 
 export class TestingManagerComponent {
     constructor() {
@@ -1123,21 +1124,6 @@ export class TestingManagerComponent {
             const formattedContent = MessageRenderer.formatRagStepContent(contentText);
             let contentHtml = `<div class="markdown-content text-sm" style="opacity: 0.95;">${formattedContent}</div>`;
 
-            // Bổ sung Action Bar của SQL nếu có câu truy vấn SQL
-            if (hasSql) {
-                contentHtml += `
-                    <div class="sql-actions-bar" style="margin-top: 1rem;">
-                        <button class="btn-sql-action btn-copy-sql" data-sql="${encodeURIComponent(sqlQuery)}">
-                            <i class="ph-bold ph-copy"></i> Sao chép SQL
-                        </button>
-                        <button class="btn-sql-action btn-run-sql" data-sql="${encodeURIComponent(sqlQuery)}" data-preview-id="sql-preview-${stepIndex}">
-                            <i class="ph-bold ph-play"></i> Chạy thử SQL
-                        </button>
-                    </div>
-                    <div class="sql-preview-container" id="sql-preview-${stepIndex}"></div>
-                `;
-            }
-
             stepHtml = `
                 <div class="testing-step-item collapsible" id="${stepId}">
                     <div class="testing-step-header">
@@ -1182,122 +1168,10 @@ export class TestingManagerComponent {
                     stepContent.style.maxHeight = 'none'; // Sử dụng none để nội dung tự co giãn
                 }
             });
-
-            // Đăng ký sự kiện nút Sao chép & Chạy thử SQL
-            if (hasSql) {
-                const copyBtn = stepContent.querySelector('.btn-copy-sql');
-                const runBtn = stepContent.querySelector('.btn-run-sql');
-
-                if (copyBtn) {
-                    copyBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const sql = decodeURIComponent(copyBtn.getAttribute('data-sql'));
-                        navigator.clipboard.writeText(sql).then(() => {
-                            Toast.show('Đã sao chép câu lệnh SQL vào clipboard', 'success');
-                        }).catch(err => {
-                            console.error('Không thể sao chép:', err);
-                            Toast.show('Lỗi sao chép SQL', 'error');
-                        });
-                    });
-                }
-
-                if (runBtn) {
-                    runBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const sql = decodeURIComponent(runBtn.getAttribute('data-sql'));
-                        const previewId = runBtn.getAttribute('data-preview-id');
-                        this.executeSqlPreview(sql, previewId, runBtn);
-                    });
-                }
-            }
         }
     }
 
-    /**
-     * Gọi API backend để thực thi câu lệnh SQL và vẽ bảng kết quả
-     */
-    async executeSqlPreview(sql, previewId, runBtn) {
-        const previewContainer = document.getElementById(previewId);
-        if (!previewContainer) return;
 
-        const originalText = runBtn.innerHTML;
-        runBtn.disabled = true;
-        runBtn.innerHTML = `<i class="ph-bold ph-circle-notch animate-spin"></i> Đang chạy...`;
-
-        previewContainer.innerHTML = `
-            <div class="loading-state" style="padding: 1rem 0; font-size: 0.72rem;">
-                <i class="ph-bold ph-circle-notch animate-spin"></i> Đang truy vấn cơ sở dữ liệu...
-            </div>
-        `;
-
-        try {
-            const response = await ApiClient.post('/sql/execute', { sql: sql });
-            
-            if (response.error) {
-                previewContainer.innerHTML = `<div class="sql-preview-error">Lỗi: ${response.error}</div>`;
-            } else if (!response.data || response.data.length === 0) {
-                previewContainer.innerHTML = `<div class="sql-preview-empty">Không tìm thấy bản ghi nào khớp với điều kiện truy vấn.</div>`;
-            } else {
-                const columns = response.columns || [];
-                const rows = response.data || [];
-                
-                const maxRows = Math.min(rows.length, 50);
-                const isTruncated = rows.length > 50;
-
-                let tableHtml = `
-                    <div class="sql-preview-table-wrapper">
-                        <table class="sql-preview-table">
-                            <thead>
-                                <tr>
-                                    ${columns.map(col => `<th>${col}</th>`).join('')}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${rows.slice(0, maxRows).map(row => `
-                                    <tr>
-                                        ${columns.map(col => {
-                                            const cellVal = row[col];
-                                            return `<td>${cellVal === null || cellVal === undefined ? '<em style="color:var(--muted-foreground);">NULL</em>' : this.escapeHtml(cellVal.toString())}</td>`;
-                                        }).join('')}
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                `;
-
-                if (isTruncated) {
-                    tableHtml += `
-                        <div style="font-size: 0.72rem; color: var(--muted-foreground); margin-top: 0.4rem; font-style: italic;">
-                            * Chỉ hiển thị tối đa 50 trên tổng số ${rows.length} hàng dữ liệu.
-                        </div>
-                    `;
-                }
-
-                previewContainer.innerHTML = tableHtml;
-            }
-        } catch (err) {
-            previewContainer.innerHTML = `<div class="sql-preview-error">Lỗi: ${err.message}</div>`;
-        } finally {
-            runBtn.disabled = false;
-            runBtn.innerHTML = originalText;
-            
-            // Tự động điều chỉnh chiều cao của step-content
-            const stepContent = previewContainer.closest('.testing-step-content');
-            if (stepContent && stepContent.style.maxHeight !== 'none' && stepContent.style.maxHeight !== '0px') {
-                stepContent.style.maxHeight = `${stepContent.scrollHeight + 50}px`;
-            }
-        }
-    }
-
-    escapeHtml(str) {
-        return str
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
-    }
 
     stopTesting() {
         if (!this.isRunning) return;
@@ -1343,13 +1217,35 @@ export class TestingManagerComponent {
             });
         }
 
-        // Lắng nghe click trên detail header (delegation)
+        // Lắng nghe click trên detail header và các nút actions (delegation)
         const detailView = document.getElementById('testing-detail-view');
-        if (detailView) {
+        if (detailView && !detailView.dataset.boundActions) {
+            detailView.dataset.boundActions = 'true';
             detailView.addEventListener('click', (e) => {
                 const header = e.target.closest('.detail-header');
                 if (header && window.innerWidth <= 1024) {
                     detailView.classList.toggle('collapsed');
+                    return;
+                }
+
+                const btn = e.target.closest('[data-action]');
+                if (btn) {
+                    const action = btn.getAttribute('data-action');
+                    if (action === 'copy-code') {
+                        e.stopPropagation();
+                        const text = InteractionService.getTerminalCode(btn);
+                        InteractionService.copyToClipboard(text, btn);
+                    } else if (action === 'copy-rules') {
+                        e.stopPropagation();
+                        const panel = btn.closest('.rag-step__panel');
+                        if (panel) {
+                            const contentEl = panel.querySelector('.rag-step__content-inner');
+                            if (contentEl) {
+                                const text = contentEl.textContent.trim();
+                                InteractionService.copyToClipboard(text, btn);
+                            }
+                        }
+                    }
                 }
             });
         }
