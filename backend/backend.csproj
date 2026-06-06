@@ -29,8 +29,7 @@
     <None Update="test_cases.md">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="..\data\**\*">
-      <Link>data\%(RecursiveDir)%(Filename)%(Extension)</Link>
+    <None Include="data\**\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
