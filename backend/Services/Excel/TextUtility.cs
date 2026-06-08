@@ -60,10 +60,23 @@ public class TextUtility : ITextUtility
         return sb.ToString().Normalize(NormalizationForm.FormC);
     }
 
+    /// <summary>
+    /// Loại bỏ nội dung nằm trong dấu ngoặc đơn (...) khỏi chuỗi.
+    /// Ví dụ: "Thành Phẩm (Finished)" → "Thành Phẩm"
+    /// </summary>
+    private static string StripParentheses(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return text;
+        return System.Text.RegularExpressions.Regex.Replace(text, @"\s*\([^)]*\)", "").Trim();
+    }
+
     public string GenerateUniqueKey(string parent, string child)
     {
-        string p = RemoveDiacritics(parent ?? "").Trim();
-        string c = RemoveDiacritics(child ?? "").Trim();
+        // Strategy A: Loại bỏ phần dịch song ngữ trong ngoặc đơn trước khi tạo key
+        // "Thành Phẩm (Finished)" → "Thành Phẩm" → "ThanhPham"
+        // "SL kiểm (Quantity)"    → "SL kiểm"    → "SLkiem"
+        string p = RemoveDiacritics(StripParentheses(parent ?? "")).Trim();
+        string c = RemoveDiacritics(StripParentheses(child ?? "")).Trim();
 
         if (string.IsNullOrEmpty(p)) return c;
         if (string.IsNullOrEmpty(c)) return p;
@@ -271,6 +284,40 @@ public class TextUtility : ITextUtility
                 }
             }
         }
+
+        // Strategy B: Ordinal fallback — map các cột chưa match được theo vị trí thứ tự.
+        // Chỉ áp dụng khi đã match được ít nhất 50% cột (đảm bảo thứ tự đáng tin cậy).
+        int matchedCount = mapping.Count;
+        int totalCount = templateColumns.Count;
+
+        if (matchedCount > 0 && matchedCount >= totalCount / 2)
+        {
+            var unmappedTemplate = new List<(FlattenedColumn Col, int Index)>();
+            for (int i = 0; i < templateColumns.Count; i++)
+            {
+                if (!mapping.ContainsKey(templateColumns[i].UniqueKey))
+                {
+                    unmappedTemplate.Add((templateColumns[i], i));
+                }
+            }
+
+            var unmappedSource = new List<(DataColumn Col, int Index)>();
+            for (int i = 0; i < source.Columns.Count; i++)
+            {
+                if (!mappedColumns.Contains(source.Columns[i].ColumnName))
+                {
+                    unmappedSource.Add((source.Columns[i], i));
+                }
+            }
+
+            int pairCount = Math.Min(unmappedTemplate.Count, unmappedSource.Count);
+            for (int i = 0; i < pairCount; i++)
+            {
+                mapping[unmappedTemplate[i].Col.UniqueKey] = unmappedSource[i].Col.ColumnName;
+                mappedColumns.Add(unmappedSource[i].Col.ColumnName);
+            }
+        }
+
         return mapping;
     }
 
