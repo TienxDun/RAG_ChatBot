@@ -39,7 +39,14 @@ export class ChatAreaComponent {
             
             inputWrapper: document.querySelector('.input-wrapper'),
             collectionSelect: document.getElementById('chat-collection-select'),
-            inputContainer: document.querySelector(SELECTORS.CHAT_CONTAINER || '#input-container')
+            inputContainer: document.querySelector(SELECTORS.CHAT_CONTAINER || '#input-container'),
+
+            // Prompt Helper elements
+            togglePromptHelperBtn: document.getElementById('toggle-prompt-helper'),
+            promptHelperPanel: document.getElementById('prompt-helper-panel'),
+            closePromptHelperBtn: document.getElementById('close-prompt-helper'),
+            promptFieldsContainer: document.getElementById('prompt-fields-container'),
+            btnGeneratePrompt: document.getElementById('btn-generate-prompt')
         };
 
         // 2. Initialize UI State
@@ -48,7 +55,8 @@ export class ChatAreaComponent {
             selectedFile: null,
             lastRawData: null,
             lastDownloadUrl: null,
-            lastDownloadFileName: null
+            lastDownloadFileName: null,
+            promptDataLoaded: false
         };
 
         this.minimap = new Minimap(this.elements.minimap, this.elements.chatArea, this.elements.messagesList);
@@ -103,6 +111,8 @@ export class ChatAreaComponent {
 
         this._bindSuggestionTags();
         this._initTemplateCacheUI();
+        this._initPromptHelper();
+        this._updateInputUI();
     }
 
     _initDragAndDrop(container) {
@@ -324,6 +334,9 @@ export class ChatAreaComponent {
             this._renderFilePreview();
             this._updateInputUI();
             this.elements.chatInput.focus();
+            
+            // Tự động mở trợ lý Prompt Excel khi đính kèm file Excel
+            this._showPromptHelper(true);
         } else {
             this.elements.chatFile.value = '';
         }
@@ -421,20 +434,30 @@ export class ChatAreaComponent {
     }
 
     _updateInputUI() {
-        const { chatInput, sendBtn, inputWrapper, micBtn } = this.elements;
+        const { chatInput, sendBtn, inputWrapper, micBtn, togglePromptHelperBtn } = this.elements;
         if (!chatInput) return;
         
         const hasValue = chatInput.value.trim().length > 0;
         const isFocused = document.activeElement === chatInput;
+        const hasFile = !!this.uiState.selectedFile;
         
         if (sendBtn) sendBtn.disabled = !hasValue;
         
         if (inputWrapper) {
-            inputWrapper.classList.toggle('is-expanded', hasValue || isFocused);
+            inputWrapper.classList.toggle('is-expanded', hasValue || isFocused || hasFile);
         }
 
         if (micBtn) {
-            micBtn.style.display = (hasValue || this.uiState.selectedFile) ? 'none' : 'flex';
+            micBtn.style.display = (hasValue || hasFile) ? 'none' : 'flex';
+        }
+
+        if (togglePromptHelperBtn) {
+            togglePromptHelperBtn.style.display = hasFile ? 'flex' : 'none';
+        }
+
+        // Tự động đóng trợ lý prompt nếu file bị gỡ
+        if (!hasFile) {
+            this._showPromptHelper(false);
         }
     }
 
@@ -1064,6 +1087,358 @@ export class ChatAreaComponent {
         messages.forEach((msgEl, index) => {
             msgEl.setAttribute('data-msg-index', index);
         });
+    }
+
+    _showPromptHelper(show) {
+        const { promptHelperPanel, togglePromptHelperBtn } = this.elements;
+        if (!promptHelperPanel) return;
+
+        if (show) {
+            promptHelperPanel.classList.remove('hidden');
+            togglePromptHelperBtn?.classList.add('active');
+            this._loadPromptHelperData();
+        } else {
+            promptHelperPanel.classList.add('hidden');
+            togglePromptHelperBtn?.classList.remove('active');
+        }
+    }
+
+    async _loadPromptHelperData() {
+        const { promptFieldsContainer, btnGeneratePrompt } = this.elements;
+        if (!promptFieldsContainer) return;
+
+        // Show loading state inside the fields container
+        promptFieldsContainer.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 1.5rem; font-size: 0.85rem; color: var(--muted-foreground);">
+                <i class="ph-bold ph-circle-notch animate-spin" style="color: var(--primary);"></i>
+                <span>Đang tải cấu hình...</span>
+            </div>
+        `;
+        if (btnGeneratePrompt) btnGeneratePrompt.disabled = true;
+
+        try {
+            // 1. Fetch DB lists (lines and codes) for fallback/general usage
+            const [dbLines, dbCodes] = await Promise.all([
+                ApiClient.get('/lines').catch(() => []),
+                ApiClient.get('/command-codes').catch(() => [])
+            ]);
+
+            // 2. Determine fields to render based on the attached file's Metadata mappings
+            let metadataVariables = [];
+            let hasDateMapping = false;
+
+            if (this.uiState.selectedFile) {
+                const fileName = this.uiState.selectedFile.name;
+                try {
+                    const mapping = await ApiClient.get(`/templates/mapping/${encodeURIComponent(fileName)}`);
+                    if (mapping && mapping.metadataCellMappings) {
+                        metadataVariables = Object.values(mapping.metadataCellMappings);
+                    }
+                } catch (e) {
+                    console.warn('Không lấy được mappings cho file này:', e);
+                }
+            }
+
+            // Fallback default variables if none found
+            if (metadataVariables.length === 0) {
+                metadataVariables = [
+                    "Tên chuyền | tbl_SettingLineX.Name",
+                    "PlanCode | QTY_MAHANG_NGAYKIEM.PlanCode"
+                ];
+            }
+
+            // Parse each variable and extract source if available (format: Display Label | Table.Column)
+            // Only include fields that have a database source mapped after the '|'
+            const fieldsToLoad = [];
+            metadataVariables.forEach(v => {
+                const parts = v.split('|');
+                const displayName = parts[0].trim();
+                const source = parts[1] ? parts[1].trim() : '';
+                if (source) {
+                    fieldsToLoad.push({ displayName, source, original: v });
+                }
+            });
+
+            // Fetch dynamic sources in parallel
+            const fetchPromises = fieldsToLoad.map(async (field) => {
+                let type = 'text'; // default
+                let data = null;
+
+                if (field.source) {
+                    const parts = field.source.split('.');
+                    const colLower = (parts[1] || parts[0]).toLowerCase();
+                    // Check if it's a date field (check only column name, not table name like QTY_MAHANG_NGAYKIEM)
+                    if (colLower.includes('ngay') || colLower.includes('date') || colLower.includes('time')) {
+                        type = 'date';
+                        hasDateMapping = true;
+                    } else {
+                        type = 'dynamic-select';
+                        try {
+                            data = await ApiClient.get(`/dropdown?source=${encodeURIComponent(field.source)}`);
+                        } catch (e) {
+                            console.error(`Lỗi tải dữ liệu dropdown cho nguồn ${field.source}:`, e);
+                            data = [];
+                        }
+                    }
+                } else {
+                    // Fallback to normalized checking if no source is specified
+                    const normalized = field.displayName.toLowerCase();
+                    if (normalized.includes('chuyền') || normalized.includes('line')) {
+                        type = 'line-select';
+                        data = dbLines;
+                    } else if (normalized.includes('lệnh') || normalized.includes('plan') || normalized.includes('mahang') || normalized.includes('tenlenh')) {
+                        type = 'code-select';
+                        data = dbCodes;
+                    } else if (normalized.includes('ngày') || normalized.includes('tháng') || normalized.includes('năm') || normalized.includes('thời gian') || normalized.includes('date') || normalized.includes('time')) {
+                        type = 'date';
+                        hasDateMapping = true;
+                    }
+                }
+
+                return {
+                    name: field.displayName,
+                    type,
+                    data,
+                    source: field.source
+                };
+            });
+
+            const resolvedFields = await Promise.all(fetchPromises);
+
+            // Re-evaluate hasDateMapping on resolved fields
+            hasDateMapping = resolvedFields.some(f => 
+                f.type === 'date' || /ngày|tháng|năm|thời gian|date|time/i.test(f.name.toLowerCase())
+            );
+
+            // Nếu chưa có trường thời gian/ngày, luôn tự động thêm vào để lọc dữ liệu RAG
+            if (!hasDateMapping) {
+                resolvedFields.push({ name: "Thời gian", type: "date", data: null, source: "" });
+            }
+
+            // 3. Render the dynamic fields HTML
+            promptFieldsContainer.innerHTML = resolvedFields.map((field, idx) => {
+                const fieldId = `prompt-dynamic-field-${idx}`;
+                const cleanName = field.name.replace(/--.*$/, '').trim(); // Remove suffixes like PlanCode -- MH: MaHang
+                
+                if (field.type === 'line-select') {
+                    const options = (field.data || []).map(item => 
+                        `<option value="${item.id}">${item.name}</option>`
+                    ).join('');
+                    return `
+                        <div class="prompt-field-group" data-field-name="${cleanName}" data-field-type="line">
+                            <label for="${fieldId}">${cleanName}</label>
+                            <div class="prompt-select-wrapper">
+                                <select id="${fieldId}" class="prompt-dynamic-input">
+                                    <option value="">-- Chọn chuyền --</option>
+                                    ${options}
+                                </select>
+                                <i class="ph ph-caret-down select-arrow"></i>
+                            </div>
+                        </div>
+                    `;
+                } else if (field.type === 'code-select') {
+                    const options = (field.data || []).map(code => 
+                        `<option value="${code}">${code}</option>`
+                    ).join('');
+                    return `
+                        <div class="prompt-field-group" data-field-name="${cleanName}" data-field-type="code">
+                            <label for="${fieldId}">${cleanName}</label>
+                            <div class="prompt-select-wrapper">
+                                <select id="${fieldId}" class="prompt-dynamic-input">
+                                    <option value="">-- Chọn mã lệnh --</option>
+                                    ${options}
+                                </select>
+                                <i class="ph ph-caret-down select-arrow"></i>
+                            </div>
+                        </div>
+                    `;
+                } else if (field.type === 'dynamic-select') {
+                    const options = (field.data || []).map(val => 
+                        `<option value="${val}">${val}</option>`
+                    ).join('');
+                    
+                    // Determine semantic type for prompt building based on field name or source
+                    const normName = cleanName.toLowerCase();
+                    let fieldType = 'text';
+                    if (normName.includes('chuyền') || normName.includes('line')) {
+                        fieldType = 'line';
+                    } else if (normName.includes('lệnh') || normName.includes('plan') || normName.includes('mahang') || normName.includes('tenlenh')) {
+                        fieldType = 'code';
+                    }
+
+                    return `
+                        <div class="prompt-field-group" data-field-name="${cleanName}" data-field-type="${fieldType}">
+                            <label for="${fieldId}">${cleanName}</label>
+                            <div class="prompt-select-wrapper">
+                                <select id="${fieldId}" class="prompt-dynamic-input">
+                                    <option value="">-- Chọn ${cleanName.toLowerCase()} --</option>
+                                    ${options}
+                                </select>
+                                <i class="ph ph-caret-down select-arrow"></i>
+                            </div>
+                        </div>
+                    `;
+                } else if (field.type === 'date') {
+                    const today = new Date().toISOString().split('T')[0];
+                    return `
+                        <div class="prompt-field-group" data-field-name="${cleanName}" data-field-type="date-range">
+                            <label>${cleanName}</label>
+                            <div style="display: flex; gap: 0.5rem; align-items: center; width: 100%;">
+                                <div style="flex: 1; min-width: 0;">
+                                    <span style="font-size: 0.7rem; color: var(--muted-foreground); display: block; margin-bottom: 0.2rem;">Từ ngày</span>
+                                    <input type="date" id="${fieldId}-start" class="prompt-date-input prompt-dynamic-input prompt-date-start" value="${today}">
+                                </div>
+                                <div style="flex: 1; min-width: 0;">
+                                    <span style="font-size: 0.7rem; color: var(--muted-foreground); display: block; margin-bottom: 0.2rem;">Đến ngày</span>
+                                    <input type="date" id="${fieldId}-end" class="prompt-date-input prompt-dynamic-input prompt-date-end" value="${today}">
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    return `
+                        <div class="prompt-field-group" data-field-name="${cleanName}" data-field-type="text">
+                            <label for="${fieldId}">${cleanName}</label>
+                            <input type="text" id="${fieldId}" class="prompt-date-input prompt-dynamic-input" placeholder="Nhập ${cleanName.toLowerCase()}...">
+                        </div>
+                    `;
+                }
+            }).join('');
+
+            // 4. Bind event listeners to dynamic fields to validate and enable Generate button
+            const dynamicInputs = promptFieldsContainer.querySelectorAll('.prompt-dynamic-input');
+            const validateForm = () => {
+                let allFilled = true;
+                dynamicInputs.forEach(input => {
+                    if (!input.value.trim()) {
+                        allFilled = false;
+                    }
+                });
+                if (btnGeneratePrompt) {
+                    btnGeneratePrompt.disabled = !allFilled;
+                }
+            };
+
+            dynamicInputs.forEach(input => {
+                input.addEventListener('change', validateForm);
+                input.addEventListener('input', validateForm);
+            });
+
+            validateForm(); // initial check
+        } catch (error) {
+            console.error('Lỗi khi tải cấu hình prompt:', error);
+            promptFieldsContainer.innerHTML = `
+                <div style="color: #ef4444; text-align: center; padding: 1rem; font-size: 0.85rem;">
+                    <i class="ph-bold ph-warning-circle" style="font-size: 1.25rem;"></i>
+                    <p style="margin-top: 0.25rem;">Lỗi tải dữ liệu cấu hình.</p>
+                </div>
+            `;
+        }
+    }
+
+    _initPromptHelper() {
+        const { togglePromptHelperBtn, closePromptHelperBtn, promptFieldsContainer, btnGeneratePrompt, chatInput } = this.elements;
+
+        if (togglePromptHelperBtn) {
+            togglePromptHelperBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isHidden = this.elements.promptHelperPanel.classList.contains('hidden');
+                this._showPromptHelper(isHidden);
+            });
+        }
+
+        if (closePromptHelperBtn) {
+            closePromptHelperBtn.addEventListener('click', () => {
+                this._showPromptHelper(false);
+            });
+        }
+
+        if (btnGeneratePrompt) {
+            btnGeneratePrompt.addEventListener('click', () => {
+                if (!promptFieldsContainer) return;
+
+                // Collect all inputs and construct prompt
+                const fieldGroups = promptFieldsContainer.querySelectorAll('.prompt-field-group');
+                let lineVal = '';
+                let codeVal = '';
+                let dateRangeStr = '';
+                let extraParts = [];
+
+                fieldGroups.forEach(group => {
+                    const name = group.getAttribute('data-field-name');
+                    const type = group.getAttribute('data-field-type');
+
+                    if (type === 'date-range') {
+                        const startInput = group.querySelector('.prompt-date-start');
+                        const endInput = group.querySelector('.prompt-date-end');
+                        const startVal = startInput ? startInput.value.trim() : '';
+                        const endVal = endInput ? endInput.value.trim() : '';
+
+                        if (startVal && endVal) {
+                            if (startVal === endVal) {
+                                const parts = startVal.split('-');
+                                if (parts.length === 3) {
+                                    dateRangeStr = `vào ngày ${parseInt(parts[2], 10)} tháng ${parseInt(parts[1], 10)} năm ${parts[0]}`;
+                                }
+                            } else {
+                                const sParts = startVal.split('-');
+                                const eParts = endVal.split('-');
+                                if (sParts.length === 3 && eParts.length === 3) {
+                                    const sDay = parseInt(sParts[2], 10);
+                                    const sMonth = parseInt(sParts[1], 10);
+                                    const sYear = sParts[0];
+                                    const eDay = parseInt(eParts[2], 10);
+                                    const eMonth = parseInt(eParts[1], 10);
+                                    const eYear = eParts[0];
+
+                                    if (sYear === eYear) {
+                                        if (sMonth === eMonth) {
+                                            dateRangeStr = `từ ngày ${sDay} đến ngày ${eDay} tháng ${sMonth} năm ${sYear}`;
+                                        } else {
+                                            dateRangeStr = `từ ngày ${sDay} tháng ${sMonth} đến ngày ${eDay} tháng ${eMonth} năm ${sYear}`;
+                                        }
+                                    } else {
+                                        dateRangeStr = `từ ngày ${sDay} tháng ${sMonth} năm ${sYear} đến ngày ${eDay} tháng ${eMonth} năm ${eYear}`;
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        const input = group.querySelector('.prompt-dynamic-input');
+                        const value = input ? input.value.trim() : '';
+
+                        if (!value) return;
+
+                        if (type === 'line') {
+                            const select = input;
+                            const lineText = select.options[select.selectedIndex].text;
+                            lineVal = lineText.toLowerCase();
+                        } else if (type === 'code') {
+                            codeVal = value;
+                        } else {
+                            extraParts.push(`${name.toLowerCase()} ${value}`);
+                        }
+                    }
+                });
+
+                // Construct prompt
+                let promptText = 'dữ liệu';
+                if (lineVal) promptText += ` chuyền ${lineVal}`;
+                if (codeVal) promptText += ` mã lệnh ${codeVal}`;
+                if (dateRangeStr) promptText += ` ${dateRangeStr}`;
+                if (extraParts.length > 0) promptText += ` với ${extraParts.join(' và ')}`;
+
+                if (chatInput) {
+                    chatInput.value = promptText;
+                    this._handleInputAutoResize();
+                    chatInput.focus();
+                }
+
+                // Đóng panel sau khi nạp
+                this._showPromptHelper(false);
+                Toast.success("Đã nạp prompt thành công!");
+            });
+        }
     }
 
 }

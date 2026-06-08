@@ -241,34 +241,61 @@
                         <!-- Dynamic file preview chip will be injected here -->
                     </div>
 
-                    <div id="input-container" class="input-container glass-panel shadow-2xl">
-                        <div class="input-actions-left">
-                        </div>
+                    <div class="chat-input-row-wrapper">
+                        <div id="input-container" class="input-container glass-panel shadow-2xl">
+                            <div class="input-actions-left">
+                                <button id="toggle-prompt-helper" class="prompt-helper-toggle-btn" title="Trợ lý Prompt Excel">
+                                    <i class="ph-bold ph-sparkles"></i>
+                                </button>
+                            </div>
 
-                        <textarea id="chat-input" placeholder="Hỏi về cơ sở dữ liệu của bạn..." rows="1"></textarea>
-                        
-                        <div class="input-actions-wrapper">
-                            <!-- Right Actions -->
-                            <div class="input-actions-right">
-                                <!-- Sound Wave Visualizer -->
-                                <div id="voice-visualizer" class="voice-visualizer hidden">
-                                    <div class="wave-bar"></div>
-                                    <div class="wave-bar"></div>
-                                    <div class="wave-bar"></div>
-                                    <div class="wave-bar"></div>
-                                </div>
+                            <textarea id="chat-input" placeholder="Hỏi về cơ sở dữ liệu của bạn..." rows="1"></textarea>
+                            
+                            <div class="input-actions-wrapper">
+                                <!-- Right Actions -->
+                                <div class="input-actions-right">
+                                    <!-- Sound Wave Visualizer -->
+                                    <div id="voice-visualizer" class="voice-visualizer hidden">
+                                        <div class="wave-bar"></div>
+                                        <div class="wave-bar"></div>
+                                        <div class="wave-bar"></div>
+                                        <div class="wave-bar"></div>
+                                    </div>
 
-                                <!-- Mic Button -->
-                                <div class="mic-wrapper">
-                                    <div id="mic-ripple" class="mic-ripple hidden"></div>
-                                    <button id="mic-btn" class="mic-btn" title="Nói để nhập liệu">
-                                        <i class="ph-duotone ph-microphone"></i>
+                                    <!-- Mic Button -->
+                                    <div class="mic-wrapper">
+                                        <div id="mic-ripple" class="mic-ripple hidden"></div>
+                                        <button id="mic-btn" class="mic-btn" title="Nói để nhập liệu">
+                                            <i class="ph-duotone ph-microphone"></i>
+                                        </button>
+                                    </div>
+
+                                    <!-- Send Button -->
+                                    <button id="send-btn" class="send-btn" disabled title="Gửi câu hỏi">
+                                        <i class="ph-bold ph-arrow-up"></i>
                                     </button>
                                 </div>
+                            </div>
+                        </div>
 
-                                <!-- Send Button -->
-                                <button id="send-btn" class="send-btn" disabled title="Gửi câu hỏi">
-                                    <i class="ph-bold ph-arrow-up"></i>
+                        <!-- Prompt Helper Panel -->
+                        <div id="prompt-helper-panel" class="prompt-helper-panel glass-panel shadow-2xl hidden">
+                            <div class="prompt-helper-header">
+                                <span class="prompt-helper-title">
+                                    <i class="ph-bold ph-sparkles"></i>
+                                    <span>Trợ lý Prompt Excel</span>
+                                </span>
+                                <button id="close-prompt-helper" class="prompt-helper-close" title="Đóng">
+                                    <i class="ph-bold ph-x"></i>
+                                </button>
+                            </div>
+                            <div class="prompt-helper-body">
+                                <div id="prompt-fields-container" class="prompt-fields-container" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                                    <!-- Các trường nhập liệu động được sinh ra dựa trên mappings template -->
+                                </div>
+                                <button id="btn-generate-prompt" class="btn btn-primary btn-generate-prompt" disabled>
+                                    <i class="ph-bold ph-plus-circle"></i>
+                                    <span>Nạp vào Khung Chat</span>
                                 </button>
                             </div>
                         </div>
