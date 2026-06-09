@@ -1121,12 +1121,19 @@ textarea::placeholder {
     transition: all 0.3s;
 }
 
+.prompt-helper-toggle-btn i {
+    font-size: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .prompt-helper-toggle-btn:hover,
 .prompt-helper-toggle-btn.active {
     background: var(--muted);
-    border-color: var(--primary);
-    color: var(--primary);
-    box-shadow: 0 0 10px color-mix(in srgb, var(--primary) 20%, transparent);
+    border-color: #1d6f42;
+    color: #1d6f42;
+    box-shadow: 0 0 10px rgba(29, 111, 66, 0.25);
 }
 
 @media (max-width: 768px) {
