@@ -7,8 +7,8 @@
     {
       "id": "T_ERP_001",
       "severity": "CRITICAL",
-      "rule": "CÔNG THỨC TÍNH DOANH THU CHUẨN: Doanh thu VNĐ phải dùng SUM(SLTong * VND). Doanh thu USD phải dùng SUM(SLTong * USD). Thêm điều kiện lọc Status = 3 (Đã hoàn thành) trừ khi người dùng hỏi doanh thu dự kiến hoặc tất cả lệnh. TUYỆT ĐỐI KHÔNG sử dụng cột GiaTong hoặc GiaDuPhong để tính doanh thu vì dữ liệu này không chính xác hoặc bằng 0.",
-      "correct_example": "SELECT SUM(SLTong * VND) AS DoanhThu_VND FROM ERP_LENHSX WHERE Status = 3",
+      "rule": "CÔNG THỨC TÍNH DOANH THU CHUẨN: Doanh thu VNĐ phải dùng SUM(SLTong * VND). Doanh thu USD phải dùng SUM(SLTong * USD). TUYỆT ĐỐI KHÔNG sử dụng cột GiaTong hoặc GiaDuPhong để tính doanh thu vì dữ liệu này không chính xác hoặc bằng 0. QUY TẮC MẶC ĐỊNH (FALLBACK): (1) Trạng thái: Mặc định lọc Status = 3 (Đã hoàn thành/Thực tế) trừ khi người dùng hỏi doanh thu dự kiến hoặc tất cả lệnh. (2) Ngày tháng: Nếu câu hỏi hỏi về doanh thu theo ngày/tháng/năm chung chung mà không ghi rõ loại ngày nào, mặc định lọc điều kiện thời gian trên cột NgayTao.",
+      "correct_example": "SELECT SUM(SLTong * VND) AS DoanhThu_VND FROM ERP_LENHSX WHERE Status = 3 AND CAST(NgayTao AS DATE) = '2025-09-13'",
       "wrong_example": "SELECT SUM(GiaTong) FROM ERP_LENHSX"
     },
     {

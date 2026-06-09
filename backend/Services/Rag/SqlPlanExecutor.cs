@@ -212,12 +212,8 @@ public class SqlPlanExecutor : ISqlPlanExecutor
                 dict[col.ColumnName] = val switch
                 {
                     DBNull => null!,
-                    DateTime d => d.TimeOfDay == TimeSpan.Zero
-                        ? d.ToString("dd/MM/yyyy")
-                        : d.ToString("dd/MM/yyyy HH:mm:ss"),
-                    DateTimeOffset dto => dto.TimeOfDay == TimeSpan.Zero
-                        ? dto.ToString("dd/MM/yyyy")
-                        : dto.ToString("dd/MM/yyyy HH:mm:ss"),
+                    DateTime d => d.ToString("dd/MM/yyyy HH:mm:ss"),
+                    DateTimeOffset dto => dto.ToString("dd/MM/yyyy HH:mm:ss"),
                     _ => val
                 };
             }
