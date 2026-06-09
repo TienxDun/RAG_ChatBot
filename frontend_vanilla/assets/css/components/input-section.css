@@ -948,5 +948,197 @@ textarea::placeholder {
     line-height: 1.3;
 }
 
+/* Chat Input Row Wrapper */
+.chat-input-row-wrapper {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-end;
+    width: 100%;
+}
+
+/* Prompt Helper Panel styles */
+.prompt-helper-panel {
+    width: 320px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 1.5rem;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
+    flex-shrink: 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-theme="dark"] .prompt-helper-panel {
+    background: rgba(30, 41, 59, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+.prompt-helper-panel.hidden {
+    display: none !important;
+}
+
+.prompt-helper-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.5rem;
+}
+
+.prompt-helper-title {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.prompt-helper-close {
+    background: transparent;
+    border: none;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    border-radius: 50%;
+    transition: all 0.2s;
+}
+
+.prompt-helper-close:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.prompt-helper-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.prompt-field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.prompt-field-group label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--muted-foreground);
+}
+
+.prompt-select-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.prompt-select-wrapper select {
+    width: 100%;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    padding: 0.5rem 2.25rem 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    color: var(--foreground);
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    transition: all 0.2s;
+}
+
+.prompt-select-wrapper select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 15%, transparent);
+}
+
+.prompt-select-wrapper select:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.prompt-select-wrapper .select-arrow {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+}
+
+.prompt-date-input {
+    width: 100%;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    color: var(--foreground);
+    outline: none;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.prompt-date-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 15%, transparent);
+}
+
+.btn-generate-prompt {
+    width: 100%;
+    margin-top: 0.25rem;
+    border-radius: 0.75rem;
+    padding: 0.6rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+/* Toggle Sparkles button inside input actions */
+.prompt-helper-toggle-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted-foreground);
+    display: none; /* Hidden by default, toggled via JS when template is selected */
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.prompt-helper-toggle-btn:hover,
+.prompt-helper-toggle-btn.active {
+    background: var(--muted);
+    border-color: var(--primary);
+    color: var(--primary);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+@media (max-width: 768px) {
+    .chat-input-row-wrapper {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    .prompt-helper-panel {
+        width: 100%;
+        border-radius: 1rem;
+    }
+}
+
 
 

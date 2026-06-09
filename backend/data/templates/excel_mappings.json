@@ -16,9 +16,9 @@
       "PO": "Mã đơn hàng PO. Bắt buộc tính toán trong CTE [Metadata] ở đầu câu SQL (sử dụng GROUP BY và CROSS JOIN ở ngoài cùng). Nếu số lượng mã PO duy nhất của chuyền trong khoảng thời gian lọc lớn hơn 1 (COUNT(DISTINCT q.PO) > 1) thì hiển thị chữ N'Tất cả', ngược lại hiển thị chính mã PO đó (dùng MAX(q.PO)). Tránh dùng OVER() cho cột này."
     },
     "MetadataCellMappings": {
-      "B5": "Tên chuyền",
+      "B5": "Tên chuyền | tbl_SettingLineX.Name",
       "E4": "tên khách hàng",
-      "H4": "PO",
+      "H4": "PO | QTY_InLineQC_NgayKiem.PO",
       "B4": "TenLenh"
     },
     "SubtotalConfig": {
@@ -64,8 +64,8 @@
       "Lotlan_Tileloi": "Tỉ lệ lỗi lót lăn, tính bằng SUM(SpLoi) / NULLIF(SUM(SpLoi) + SUM(Quantity + SuaDat), 0) * 100, sử dụng CTE riêng biệt cho lỗi (QTY_MAHANG_NGAYKIEM) và sản lượng (SEW_CoefficientSize) với CheckType = 3."
     },
     "MetadataCellMappings": {
-      "F5": "Tên chuyền",
-      "C5": "PlanCode -- MH: MaHang"
+      "F5": "Tên chuyền | tbl_SettingLineX.Name",
+      "C5": "PlanCode -- MH: MaHang | QTY_MAHANG_NGAYKIEM.PlanCode"
     }
   },
   "BaoCao_InLineQC_All_1780023089422 (1).xlsx": {
