@@ -100,24 +100,44 @@ public class ExcelReportService
 
         if (templateInfo.Type == TemplateType.Hierarchical)
         {
-            var colMappings = string.Join("\n", templateInfo.Columns.Select(col =>
-                $"- Cột vật lý {col.ColumnIndex}: nhóm '{col.ParentHeader}' -> cột con '{col.ChildHeader}' -> Bạn BẮT BUỘC SELECT alias (AS) là [{col.UniqueKey}]"
-            ));
+            var colMappingsList = new List<string>();
+            foreach (var col in templateInfo.Columns)
+            {
+                string colDesc = "";
+                if (savedMappings.TryGetValue(col.UniqueKey, out var desc) && !string.IsNullOrWhiteSpace(desc))
+                {
+                    colDesc = $" (Chỉ dẫn lấy dữ liệu: {desc.Trim()})";
+                }
+                colMappingsList.Add($"- Cột vật lý {col.ColumnIndex}: nhóm '{col.ParentHeader}' -> cột con '{col.ChildHeader}' -> Bạn BẮT BUỘC SELECT alias (AS) là [{col.UniqueKey}]{colDesc}");
+            }
+            var colMappings = string.Join("\n", colMappingsList);
 
             mappingInstructions = $"\n\nYÊU CẦU ĐẶC BIỆT CHO BÁO CÁO EXCEL PHÂN CẤP (HIERARCHICAL TEMPLATE):\n" +
                                   $"- Hệ thống phát hiện đây là mẫu báo cáo có cấu trúc tiêu đề phân cấp hai tầng (Parent-Child).\n" +
-                                  $"- Bạn BẮT BUỘC sử dụng ALIAS (AS) để tên cột trong kết quả SQL SELECT cuối cùng khớp hoàn toàn với các UniqueKey sau đây:\n" +
+                                  $"- Bạn BẮT BUỘC sử dụng ALIAS (AS) bọc trong dấu ngoặc vuông (ví dụ: SELECT cot_goc AS [{templateInfo.Columns.FirstOrDefault()?.UniqueKey ?? "UniqueKey"}]) để tên cột trong kết quả SQL SELECT cuối cùng khớp hoàn toàn với các UniqueKey sau đây:\n" +
                                   $"{colMappings}\n" +
                                   $"- CẢNH BÁO BẮT BUỘC: Bạn TUYỆT ĐỐI KHÔNG ĐƯỢC bỏ sót bất kỳ cột nào trong danh sách UniqueKey trên! Câu SELECT cuối cùng của bạn phải chứa ĐẦY ĐỦ tất cả các cột UniqueKey đã liệt kê theo đúng thứ tự. Nếu thiếu dù chỉ 1 cột, file Excel sẽ không thể điền dữ liệu và hệ thống sẽ bị lỗi!\n" +
                                   $"- Nếu không tìm thấy cột tương ứng trong database, hãy trả về NULL có ép kiểu để tránh lỗi SQL (ví dụ: CAST(NULL AS VARCHAR(100)) AS [UniqueKey]), tuyệt đối không được tự ý xóa cột khỏi câu SELECT.\n";
         }
         else
         {
-            var columnsStr = string.Join(", ", templateInfo.Columns.Select(c => c.UniqueKey));
+            var colMappingsList = new List<string>();
+            foreach (var col in templateInfo.Columns)
+            {
+                string colDesc = "";
+                if (savedMappings.TryGetValue(col.UniqueKey, out var desc) && !string.IsNullOrWhiteSpace(desc))
+                {
+                    colDesc = $" (Chỉ dẫn lấy dữ liệu: {desc.Trim()})";
+                }
+                colMappingsList.Add($"- Cột tiêu đề '{col.UniqueKey}' -> Bạn BẮT BUỘC SELECT alias (AS) là [{col.UniqueKey}]{colDesc}");
+            }
+            var colMappings = string.Join("\n", colMappingsList);
+
             mappingInstructions = $"\n\nYÊU CẦU ĐẶC BIỆT CHO BÁO CÁO EXCEL:\n" +
-                                  $"- Dữ liệu SQL SELECT trả về BẮT BUỘC phải có đầy đủ các cột tiêu đề sau: {columnsStr}.\n" +
+                                  $"- Dữ liệu SQL SELECT trả về BẮT BUỘC phải có đầy đủ các cột tiêu đề sau theo đúng thứ tự:\n" +
+                                  $"{colMappings}\n" +
                                   $"- CẢNH BÁO BẮT BUỘC: Bạn TUYỆT ĐỐI KHÔNG ĐƯỢC bỏ sót bất kỳ cột nào! Câu SELECT cuối cùng phải chứa ĐẦY ĐỦ tất cả các cột UniqueKey theo đúng thứ tự. Nếu thiếu dù chỉ 1 cột, hệ thống sẽ lỗi.\n" +
-                                  $"- BẮT BUỘC sử dụng ALIAS (AS) để tên cột trong kết quả trả về khớp hoàn toàn với tên tiêu đề Excel (ví dụ: SELECT KhachHang AS [{templateInfo.Columns.FirstOrDefault()?.UniqueKey ?? "ColName"}] ...).\n" +
+                                  $"- BẮT BUỘC sử dụng ALIAS (AS) bọc trong dấu ngoặc vuông (ví dụ: SELECT cot_goc AS [{templateInfo.Columns.FirstOrDefault()?.UniqueKey ?? "UniqueKey"}]) để tên cột trong kết quả trả về khớp hoàn toàn với tên tiêu đề Excel.\n" +
                                   $"- Nếu không tìm thấy cột tương ứng trong database, hãy trả về NULL có ép kiểu để tránh lỗi SQL (ví dụ: CAST(NULL AS VARCHAR(100)) AS [UniqueKey]).\n";
         }
 

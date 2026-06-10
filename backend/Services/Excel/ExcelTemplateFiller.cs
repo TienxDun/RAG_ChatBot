@@ -144,14 +144,26 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
         double maxRowHeight = worksheet.Row(excelRowIndex).Height;
         if (maxRowHeight <= 0) maxRowHeight = 20;
 
+        var numericCols = GetNumericColumns(dataRow.Table);
+
         foreach (var map in mappings)
         {
             var cell = worksheet.Cells[excelRowIndex, map.ExcelColumnIndex];
             var val = dataRow[map.DataTableColumnName];
+            bool isNumericCol = numericCols.TryGetValue(map.DataTableColumnName, out var colFormat);
 
             if (val == null || val == DBNull.Value)
             {
-                cell.Value = null;
+                if (isNumericCol)
+                {
+                    cell.Value = 0;
+                    cell.Style.Numberformat.Format = colFormat;
+                    cell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Right;
+                }
+                else
+                {
+                    cell.Value = null;
+                }
                 continue;
             }
 
@@ -161,37 +173,25 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
                 cell.Style.Numberformat.Format = "dd/MM/yyyy";
                 cell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
             }
-            else if (val is double || val is float || val is decimal)
+            else if (isNumericCol)
             {
-                double dVal = Convert.ToDouble(val);
-                cell.Value = dVal;
-                double testVal = Math.Round(dVal, 2);
-                if (testVal == Math.Truncate(testVal))
+                double dVal;
+                if (val is double || val is float || val is decimal || val is int || val is long || val is short || val is byte)
                 {
-                    cell.Style.Numberformat.Format = "#,##0";
+                    dVal = Convert.ToDouble(val);
                 }
                 else
                 {
-                    cell.Style.Numberformat.Format = "#,##0.##";
+                    dVal = double.TryParse(val.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out double parsed) ? parsed : 0;
                 }
-                cell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Right;
-            }
-            else if (val is int || val is long || val is short || val is byte)
-            {
-                cell.Value = Convert.ToInt64(val);
-                cell.Style.Numberformat.Format = "#,##0";
+                cell.Value = dVal;
+                cell.Style.Numberformat.Format = colFormat;
                 cell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Right;
             }
             else
             {
                 string strVal = val.ToString() ?? "";
-                if (double.TryParse(strVal, NumberStyles.Any, CultureInfo.InvariantCulture, out double dbl))
-                {
-                    cell.Value = dbl;
-                    cell.Style.Numberformat.Format = "#,##0";
-                    cell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Right;
-                }
-                else if (DateTime.TryParse(strVal, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime dtParsed))
+                if (DateTime.TryParse(strVal, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime dtParsed))
                 {
                     cell.Value = dtParsed;
                     cell.Style.Numberformat.Format = "dd/MM/yyyy";
@@ -1088,5 +1088,93 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
                 }
             }
         }
+    }
+
+    private Dictionary<string, string> GetNumericColumns(DataTable table)
+    {
+        const string cacheKey = "NumericColumnsFormatCache";
+        if (table.ExtendedProperties.Contains(cacheKey))
+        {
+            if (table.ExtendedProperties[cacheKey] is Dictionary<string, string> cached)
+            {
+                return cached;
+            }
+        }
+
+        var numericCols = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (DataColumn dc in table.Columns)
+        {
+            string columnName = dc.ColumnName;
+            string lowerColName = columnName.ToLowerInvariant();
+            
+            // Loại trừ các cột định danh/mã số và ngày tháng, ký tên, ghi chú
+            if (lowerColName.EndsWith("id") || lowerColName.Contains("id_") || lowerColName.StartsWith("id") ||
+                lowerColName.Contains("ma") || lowerColName.Contains("code") || lowerColName.Contains("key") ||
+                lowerColName.Contains("ngay") || lowerColName.Contains("date") || lowerColName.Contains("ten") ||
+                lowerColName.Contains("name") || lowerColName.Contains("note") || lowerColName.Contains("ghichu") ||
+                lowerColName.Contains("kyten") || lowerColName.Contains("signature"))
+            {
+                continue;
+            }
+
+            bool hasNumericValue = false;
+            bool isNumeric = true;
+            bool hasDecimalValue = false;
+
+            foreach (DataRow row in table.Rows)
+            {
+                var val = row[columnName];
+                if (val == null || val == DBNull.Value)
+                {
+                    continue;
+                }
+
+                double dVal;
+                if (val is double || val is float || val is decimal || val is int || val is long || val is short || val is byte)
+                {
+                    hasNumericValue = true;
+                    dVal = Convert.ToDouble(val);
+                    if (dVal != Math.Truncate(dVal))
+                    {
+                        hasDecimalValue = true;
+                    }
+                }
+                else
+                {
+                    string strVal = val.ToString() ?? "";
+                    if (double.TryParse(strVal, NumberStyles.Any, CultureInfo.InvariantCulture, out dVal))
+                    {
+                        hasNumericValue = true;
+                        if (dVal != Math.Truncate(dVal))
+                        {
+                            hasDecimalValue = true;
+                        }
+                    }
+                    else
+                    {
+                        isNumeric = false;
+                        break;
+                    }
+                }
+            }
+
+            if (isNumeric && hasNumericValue)
+            {
+                // Chọn định dạng cho toàn bộ cột
+                string format = "#,##0"; // Mặc định cho số nguyên
+                
+                // Nếu cột chứa số thập phân hoặc tên cột chứa các từ khóa tỉ lệ/phần trăm
+                if (hasDecimalValue || lowerColName.Contains("tile") || lowerColName.Contains("rate") || 
+                    lowerColName.Contains("percent") || lowerColName.Contains("%"))
+                {
+                    format = "#,##0.00;-#,##0.00;0"; // Định dạng 2 chữ số thập phân cho tỉ lệ, riêng số 0 chỉ hiện một số 0 nguyên
+                }
+
+                numericCols[columnName] = format;
+            }
+        }
+
+        table.ExtendedProperties[cacheKey] = numericCols;
+        return numericCols;
     }
 }

@@ -124,16 +124,10 @@
       "rule": "Có nhắc đến tên công đoạn (may tp, ra chuyền, túi hông, túi xéo, đóng gói...) bắt buộc JOIN tbl_Steps (qua StepId = Id_cd) và lọc cd_name LIKE N'tên%'."
     },
     {
-      "id": "G021",
-      "category": "case_when_base_table",
-      "severity": "CRITICAL",
-      "rule": "Excel CheckType: so sánh CheckType trong CASE WHEN bắt buộc ghi rõ alias bảng gốc (types.CheckType). Tạo tổ hợp [Ngay x CheckType] bằng CROSS JOIN trước khi LEFT JOIN."
-    },
-    {
       "id": "G022",
       "category": "excel_notes_query",
       "severity": "CRITICAL",
-      "rule": "Excel ghi chú lỗi: Bắt buộc lấy chi tiết từ QTY_MaHang_KiemQC_ChiTiet JOIN QTY_NHOMLOI_CHITIET, dùng CTE GROUP BY nối chuỗi bằng STRING_AGG(TenLoi, ' | ')."
+      "rule": "Excel ghi chú lỗi: Bắt buộc lấy chi tiết từ QTY_MaHang_KiemQC_ChiTiet JOIN QTY_NHOMLOI_CHITIET, dùng CTE GROUP BY theo ngày đã CAST(NgayKiem AS DATE) để nối chuỗi bằng STRING_AGG(TenLoi, ' | '). TUYỆT ĐỐI CẤM group by theo cột NgayKiem thô (kiểu DATETIME chứa cả giờ) vì sẽ gây nhân chéo số dòng kết quả."
     },
     {
       "id": "G023",
