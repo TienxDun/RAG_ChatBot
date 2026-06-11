@@ -100,9 +100,11 @@ public class TextUtility : ITextUtility
     {
         if (metadata == null || string.IsNullOrEmpty(key)) return null;
 
-        string keyNorm = RemoveDiacritics(key).ToLowerInvariant().Replace(" ", "").Replace("/", "").Replace("-", "").Replace("_", "");
+        // Làm sạch key: Cắt bỏ phần chú dẫn kỹ thuật sau dấu gạch đứng '|' nếu có
+        string baseKey = key.Contains('|') ? key.Split('|')[0].Trim() : key;
+        string keyNorm = RemoveDiacritics(baseKey).ToLowerInvariant().Replace(" ", "").Replace("/", "").Replace("-", "").Replace("_", "");
 
-        string cleanSearch = RemoveDiacriticsKeepSpaces(key).ToLowerInvariant();
+        string cleanSearch = RemoveDiacriticsKeepSpaces(baseKey).ToLowerInvariant();
         cleanSearch = System.Text.RegularExpressions.Regex.Replace(cleanSearch, @"([a-z])([A-Z])", "$1 $2");
         var searchTokens = cleanSearch.Split(new[] { ' ', '/', '_', '-', ':' }, StringSplitOptions.RemoveEmptyEntries);
 
@@ -111,9 +113,11 @@ public class TextUtility : ITextUtility
 
         foreach (var kvp in metadata)
         {
-            string metaKeyNorm = RemoveDiacritics(kvp.Key).ToLowerInvariant().Replace(" ", "").Replace("/", "").Replace("-", "").Replace("_", "");
+            // Làm sạch key từ dữ liệu SQL: Cắt bỏ phần chú dẫn sau dấu '|' nếu có
+            string baseMetaKey = kvp.Key.Contains('|') ? kvp.Key.Split('|')[0].Trim() : kvp.Key;
+            string metaKeyNorm = RemoveDiacritics(baseMetaKey).ToLowerInvariant().Replace(" ", "").Replace("/", "").Replace("-", "").Replace("_", "");
 
-            string cleanMetaKey = RemoveDiacriticsKeepSpaces(kvp.Key).ToLowerInvariant();
+            string cleanMetaKey = RemoveDiacriticsKeepSpaces(baseMetaKey).ToLowerInvariant();
             cleanMetaKey = System.Text.RegularExpressions.Regex.Replace(cleanMetaKey, @"([a-z])([A-Z])", "$1 $2");
             var metaTokens = cleanMetaKey.Split(new[] { ' ', '/', '_', '-', ':' }, StringSplitOptions.RemoveEmptyEntries);
 
