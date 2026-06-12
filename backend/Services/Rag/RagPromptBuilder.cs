@@ -79,8 +79,24 @@ public static class RagPromptBuilder
     }
 
     /// Prompt cho bước Metadata Generation: AI sinh JSON metadata cho xuất Excel.
-    public static string BuildMetadataPrompt(string userQuery, string metadataContext)
+    public static string BuildMetadataPrompt(string userQuery, string metadataContext, System.Collections.Generic.List<string>? metadataKeys = null)
     {
+        string metadataInstruction = "";
+        if (metadataKeys != null && metadataKeys.Count > 0)
+        {
+            var keysJson = System.Text.Json.JsonSerializer.Serialize(metadataKeys);
+            metadataInstruction = $@"
+            3. PHÂN TÍCH VÀ ĐIỀN THÔNG TIN CHUNG (METADATA):
+            - Danh sách các nhãn metadata cần xác định giá trị: {keysJson}
+            - Với mỗi nhãn trong danh sách trên, hãy phân tích kỹ câu hỏi gốc của người dùng (`userQuery`) xem người dùng có thực sự chỉ định/lọc một giá trị cụ thể cho nhãn đó hay không.
+              * Ví dụ: Nếu người dùng hỏi ""lỗi của chuyền Cosmos"" thì chuyền được chỉ định cụ thể là ""Cosmos"".
+              * Ví dụ: Nếu người dùng chỉ hỏi ""lỗi của các chuyền"" hoặc không nhắc gì đến chuyền, tức là không có chuyền cụ thể nào được chỉ định.
+            - Đối với nhãn được chỉ định cụ thể: Hãy tìm giá trị thực tế tương ứng trong 'CẤU TRÚC DỮ LIỆU ĐÃ TRUY VẤN' (từ 2 dòng mẫu hoặc tên cột) để điền vào.
+            - Đối với nhãn KHÔNG được chỉ định cụ thể hoặc được hỏi chung chung: BẮT BUỘC đặt giá trị là ""Tất cả"".
+            - Điền kết quả phân tích này vào đối tượng ""metadata"" trong JSON trả về (dưới dạng key-value, ví dụ: {{ ""Chuyền/Line:"": ""Cosmos"", ""PO/Cut:"": ""Tất cả"" }}).
+            ";
+        }
+
         return $@"Bạn là chuyên gia phân tích dữ liệu doanh nghiệp. Hãy phân tích ngữ cảnh, câu hỏi của người dùng và cấu trúc dữ liệu đã truy vấn để tạo ra siêu dữ liệu (metadata) dưới dạng JSON.
 
             Câu hỏi gốc của người dùng: ""{userQuery}""
@@ -88,7 +104,7 @@ public static class RagPromptBuilder
             {metadataContext}
 
             NHIỆM VỤ:
-            Tạo ra thông tin xuất file Excel (excelData hoặc columnMapping) liên quan trực tiếp đến dữ liệu và câu hỏi.
+            Tạo ra thông tin xuất file Excel (excelData hoặc columnMapping, và metadata) liên quan trực tiếp đến dữ liệu và câu hỏi.
 
             QUY TẮC QUAN TRỌNG VỀ DỮ LIỆU EXCEL:
             1. Nếu dữ liệu đã truy vấn được là một danh sách dài hoặc bảng dữ liệu gốc từ database:
@@ -97,11 +113,13 @@ public static class RagPromptBuilder
             2. Nếu câu hỏi yêu cầu một bảng tổng hợp/tóm tắt số liệu mới (không có sẵn trực tiếp dạng bảng):
             - Tính toán dữ liệu đó dựa vào 2 dòng mẫu và điền vào mảng đối tượng `excelData` (mỗi đối tượng đại diện cho một hàng).
             - Đặt `columnMapping` là đối tượng rỗng `{{}}`.
+            {metadataInstruction}
 
             YÊU CẦU ĐỊNH DẠNG (BẮT BUỘC TRẢ VỀ JSON KHÔNG BỌC TRONG CODEBLOCK):
             {{
                 ""excelData"": [],
-                ""columnMapping"": {{}}
+                ""columnMapping"": {{}},
+                ""metadata"": {{}}
             }}";
     }
 }

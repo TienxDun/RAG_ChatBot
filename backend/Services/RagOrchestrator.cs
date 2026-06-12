@@ -44,7 +44,8 @@ public sealed class RagOrchestrator
         Func<RagStep, Task> onStep,
         Func<string, Task> onFinalChunk,
         CancellationToken ct,
-        bool isExcelTemplate = false)
+        bool isExcelTemplate = false,
+        List<string>? metadataKeys = null)
     {
         var steps = new List<RagStep>();
         var tracker = PerformanceContext.Current;
@@ -107,17 +108,27 @@ public sealed class RagOrchestrator
             userQuery, planResult.IsOutOfScope, planResult.PlanningReason,
             execResult.WorkingContext, currentTimeStr,
             execResult.LastStepJson, execResult.LastDataTable,
-            onFinalChunk, pipelineCt);
+            onFinalChunk, pipelineCt,
+            metadataKeys);
 
         stepSw.Stop();
         totalSw.Stop();
         TrackLatency(tracker, t => { t.GenerationMs = stepSw.ElapsedMilliseconds; t.TotalMs = totalSw.ElapsedMilliseconds; });
         TrackPhase(tracker, PerformancePhase.None);
 
+        var chatMetadata = tracker != null && tracker.IsEnabled ? tracker.ToMetadata() : new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (response.ReportMetadata != null)
+        {
+            foreach (var kvp in response.ReportMetadata)
+            {
+                chatMetadata[kvp.Key] = kvp.Value;
+            }
+        }
+
         return new ChatResponse(
             response.FinalText, steps, null, 
             response.RawDataForExport, execResult.LastDataTable,
-            Metadata: tracker != null && tracker.IsEnabled ? tracker.ToMetadata() : null);
+            Metadata: chatMetadata);
     }
 
     // ==================== Private: Embedding ====================
@@ -272,17 +283,18 @@ public sealed class RagOrchestrator
 
     // ==================== Private: Final Generation ====================
 
-    private sealed record FinalGenerationResult(string FinalText, string RawDataForExport);
+    private sealed record FinalGenerationResult(string FinalText, string RawDataForExport, Dictionary<string, string>? ReportMetadata);
 
     private async Task<FinalGenerationResult> GenerateFinalResponseAsync(
         string userQuery, bool isOutOfScope, string planningReason, string workingContext,
         string currentTimeStr, string lastStepJson, DataTable? lastDataTable,
-        Func<string, Task> onFinalChunk, CancellationToken ct)
+        Func<string, Task> onFinalChunk, CancellationToken ct,
+        List<string>? metadataKeys = null)
     {
         var finalPrompt = RagPromptBuilder.BuildFinalPrompt(userQuery, isOutOfScope, planningReason, workingContext, currentTimeStr);
 
         // Khởi tạo task sinh metadata song song với luồng stream
-        var metadataTask = BuildMetadataTaskAsync(userQuery, isOutOfScope, lastDataTable, ct);
+        var metadataTask = BuildMetadataTaskAsync(userQuery, isOutOfScope, lastDataTable, metadataKeys, ct);
 
         var accumulatedText = new StringBuilder();
         await foreach (var chunk in _aiClient.GenerateContentStreamAsync(finalPrompt, ct))
@@ -293,18 +305,21 @@ public sealed class RagOrchestrator
 
         string finalText = accumulatedText.ToString().Trim();
         string rawDataForExport = lastStepJson;
+        Dictionary<string, string>? reportMetadata = null;
 
         if (metadataTask != null)
         {
-            rawDataForExport = await ProcessMetadataAsync(metadataTask, rawDataForExport, lastDataTable);
+            var metaResult = await ProcessMetadataAsync(metadataTask, rawDataForExport, lastDataTable);
+            rawDataForExport = metaResult.rawData;
+            reportMetadata = metaResult.reportMetadata;
         }
 
-        return new FinalGenerationResult(finalText, rawDataForExport);
+        return new FinalGenerationResult(finalText, rawDataForExport, reportMetadata);
     }
 
     // ==================== Private: Metadata ====================
 
-    private Task<string>? BuildMetadataTaskAsync(string userQuery, bool isOutOfScope, DataTable? lastDataTable, CancellationToken ct)
+    private Task<string>? BuildMetadataTaskAsync(string userQuery, bool isOutOfScope, DataTable? lastDataTable, List<string>? metadataKeys, CancellationToken ct)
     {
         if (isOutOfScope) return null;
         if (lastDataTable == null || lastDataTable.Columns.Count == 0)
@@ -330,17 +345,27 @@ public sealed class RagOrchestrator
                               $"Tổng số dòng: {lastDataTable.Rows.Count}\n" +
                               $"2 dòng mẫu:\n{sampleRows}";
 
-        var metadataPrompt = RagPromptBuilder.BuildMetadataPrompt(userQuery, metadataContext);
+        var metadataPrompt = RagPromptBuilder.BuildMetadataPrompt(userQuery, metadataContext, metadataKeys);
         return _aiClient.GenerateContentAsync(metadataPrompt, ct, responseMimeType: "application/json");
     }
 
-    private static async Task<string> ProcessMetadataAsync(Task<string> metadataTask, string rawDataForExport, DataTable? lastDataTable)
+    private static async Task<(string rawData, Dictionary<string, string>? reportMetadata)> ProcessMetadataAsync(
+        Task<string> metadataTask, string rawDataForExport, DataTable? lastDataTable)
     {
+        var reportMetadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         try
         {
             var metadataResponse = await metadataTask;
             using var metaDoc = JsonDocument.Parse(metadataResponse);
             var root = metaDoc.RootElement;
+
+            if (root.TryGetProperty("metadata", out var metaProp) && metaProp.ValueKind == JsonValueKind.Object)
+            {
+                foreach (var prop in metaProp.EnumerateObject())
+                {
+                    reportMetadata[prop.Name] = prop.Value.GetString() ?? "";
+                }
+            }
 
             if (root.TryGetProperty("excelData", out var excelProp) && excelProp.ValueKind == JsonValueKind.Array && excelProp.GetArrayLength() > 0)
             {
@@ -371,7 +396,7 @@ public sealed class RagOrchestrator
             Console.WriteLine($"⚠️ Error generating metadata JSON: {ex.Message}");
         }
 
-        return rawDataForExport;
+        return (rawDataForExport, reportMetadata.Count > 0 ? reportMetadata : null);
     }
 
     // ==================== Private: Utilities ====================

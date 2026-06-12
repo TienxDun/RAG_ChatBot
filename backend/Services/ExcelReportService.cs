@@ -196,7 +196,8 @@ public class ExcelReportService
             onStep,
             onFinalChunk,
             ct,
-            isExcelTemplate: true);
+            isExcelTemplate: true,
+            metadataKeys: templateInfo.Metadata.Keys.ToList());
 
         // 4. Chuyển đổi dữ liệu trả về sang DataTable
         DataTable dataTable = new DataTable();
@@ -265,10 +266,28 @@ public class ExcelReportService
             foreach (DataColumn col in ragResponse.RawDataTable.Columns)
             {
                 var val = firstRow[col]?.ToString()?.Trim();
-                if (!string.IsNullOrEmpty(val) && !metadataValues.ContainsKey(col.ColumnName))
+                if (!string.IsNullOrEmpty(val))
                 {
-                    metadataValues[col.ColumnName] = val;
+                    // Nếu là cột metadata của Template, ta BẮT BUỘC dùng giá trị do LLM xác định (hoặc mặc định "Tất cả")
+                    // Chỉ bổ sung từ dòng đầu tiên nếu key đó chưa có trong metadataValues và không nằm trong templateInfo.Metadata
+                    bool isTemplateMetadata = templateInfo.Metadata.Keys.Any(k => 
+                        string.Equals(_textUtility.RemoveDiacritics(k), _textUtility.RemoveDiacritics(col.ColumnName), StringComparison.OrdinalIgnoreCase));
+                    
+                    if (!isTemplateMetadata && !metadataValues.ContainsKey(col.ColumnName))
+                    {
+                        metadataValues[col.ColumnName] = val;
+                    }
                 }
+            }
+        }
+
+        // Đảm bảo tất cả các nhãn metadata trong Template đều được gán giá trị (nếu chưa có thì gán "Tất cả")
+        foreach (var key in templateInfo.Metadata.Keys)
+        {
+            string? matchedValue = _textUtility.FindBestMetadataValue(metadataValues, key);
+            if (matchedValue == null)
+            {
+                metadataValues[key] = "Tất cả";
             }
         }
 
