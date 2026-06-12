@@ -95,7 +95,7 @@ public class SqlPlanExecutor : ISqlPlanExecutor
                     {workingContextBuilder}
 
                     NHIỆM VỤ HIỆN TẠI: {currentStepDesc}
-                    {(isMultiStep ? "" : $@"CÂU HỎI GỐC: ""{userQuery}""")}
+                    CÂU HỎI GỐC: ""{userQuery}""
 
                     {globalRules}
 
@@ -103,6 +103,7 @@ public class SqlPlanExecutor : ISqlPlanExecutor
                     0. XỬ LÝ MỐC THỜI GIAN TƯƠNG ĐỐI: Đối với các khoảng thời gian như ""gần đây"", ""gần nhất"", ""mới nhất"", ""hôm nay"", ""tuần này"", ""tháng này"", bạn BẮT BUỘC phải dựa vào 'Thời gian hệ thống hiện tại' ({currentTimeStr}) để tính toán lùi ngày tháng tương ứng trong câu SQL (ví dụ: lọc từ ({currentTimeStr} - 30 ngày) đến {currentTimeStr} nếu là 30 ngày gần nhất).
                     1. CHỈ thực hiện nhiệm vụ trong 'NHIỆM VỤ HIỆN TẠI'. 
                     {(isMultiStep ? "TUYỆT ĐỐI KHÔNG giải quyết toàn bộ yêu cầu của người dùng nếu nó đòi hỏi nhiều bước xử lý. Chỉ tập trung lấy dữ liệu trung gian cho bước này." : "")}
+                    {(isMultiStep && i == stepsToExecute.Count - 1 ? "\n                       - ĐÂY LÀ BƯỚC CUỐI CÙNG: Câu truy vấn này sẽ trả về kết quả cuối để điền vào Excel. Bạn BẮT BUỘC phải đặt ALIAS (AS) cho các cột trong câu lệnh SELECT trùng khớp hoàn toàn với các UniqueKey/Nhãn được yêu cầu trong phần 'YÊU CẦU ĐẶC BIỆT CHO BÁO CÁO EXCEL' của Câu hỏi gốc." : "")}
                     
                     2. TRUYỀN THAM SỐ GIỮA CÁC BƯỚC: BẮT BUỘC sử dụng giá trị thực tế lấy từ phần 'KẾT QUẢ CÁC BƯỚC TRƯỚC ĐÓ' bên trên (nhìn vào SampleData) và các TÊN CỘT tương ứng để làm điều kiện lọc (WHERE) cho bước này.
                        - Nếu bước trước trả về danh sách nhiều ID, hãy sử dụng toán tử IN (ví dụ: WHERE MaKhachHang IN ('KH001', 'KH002')) thay vì chỉ lọc một giá trị.

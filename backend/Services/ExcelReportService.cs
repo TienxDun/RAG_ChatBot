@@ -197,7 +197,8 @@ public class ExcelReportService
             onFinalChunk,
             ct,
             isExcelTemplate: true,
-            metadataKeys: templateInfo.Metadata.Keys.ToList());
+            metadataKeys: templateInfo.Metadata.Keys.ToList(),
+            originalPrompt: additionalQuery);
 
         // 4. Chuyển đổi dữ liệu trả về sang DataTable
         DataTable dataTable = new DataTable();
@@ -270,8 +271,16 @@ public class ExcelReportService
                 {
                     // Nếu là cột metadata của Template, ta BẮT BUỘC dùng giá trị do LLM xác định (hoặc mặc định "Tất cả")
                     // Chỉ bổ sung từ dòng đầu tiên nếu key đó chưa có trong metadataValues và không nằm trong templateInfo.Metadata
-                    bool isTemplateMetadata = templateInfo.Metadata.Keys.Any(k => 
-                        string.Equals(_textUtility.RemoveDiacritics(k), _textUtility.RemoveDiacritics(col.ColumnName), StringComparison.OrdinalIgnoreCase));
+                    bool isTemplateMetadata = false;
+                    foreach (var k in templateInfo.Metadata.Keys)
+                    {
+                        var tempDict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { { col.ColumnName, "true" } };
+                        if (_textUtility.FindBestMetadataValue(tempDict, k) != null)
+                        {
+                            isTemplateMetadata = true;
+                            break;
+                        }
+                    }
                     
                     if (!isTemplateMetadata && !metadataValues.ContainsKey(col.ColumnName))
                     {

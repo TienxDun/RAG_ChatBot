@@ -45,7 +45,8 @@ public sealed class RagOrchestrator
         Func<string, Task> onFinalChunk,
         CancellationToken ct,
         bool isExcelTemplate = false,
-        List<string>? metadataKeys = null)
+        List<string>? metadataKeys = null,
+        string? originalPrompt = null)
     {
         var steps = new List<RagStep>();
         var tracker = PerformanceContext.Current;
@@ -109,7 +110,8 @@ public sealed class RagOrchestrator
             execResult.WorkingContext, currentTimeStr,
             execResult.LastStepJson, execResult.LastDataTable,
             onFinalChunk, pipelineCt,
-            metadataKeys);
+            metadataKeys,
+            originalPrompt);
 
         stepSw.Stop();
         totalSw.Stop();
@@ -289,12 +291,13 @@ public sealed class RagOrchestrator
         string userQuery, bool isOutOfScope, string planningReason, string workingContext,
         string currentTimeStr, string lastStepJson, DataTable? lastDataTable,
         Func<string, Task> onFinalChunk, CancellationToken ct,
-        List<string>? metadataKeys = null)
+        List<string>? metadataKeys = null,
+        string? originalPrompt = null)
     {
-        var finalPrompt = RagPromptBuilder.BuildFinalPrompt(userQuery, isOutOfScope, planningReason, workingContext, currentTimeStr);
+        var finalPrompt = RagPromptBuilder.BuildFinalPrompt(originalPrompt ?? userQuery, isOutOfScope, planningReason, workingContext, currentTimeStr);
 
         // Khởi tạo task sinh metadata song song với luồng stream
-        var metadataTask = BuildMetadataTaskAsync(userQuery, isOutOfScope, lastDataTable, metadataKeys, ct);
+        var metadataTask = BuildMetadataTaskAsync(originalPrompt ?? userQuery, isOutOfScope, lastDataTable, metadataKeys, ct);
 
         var accumulatedText = new StringBuilder();
         await foreach (var chunk in _aiClient.GenerateContentStreamAsync(finalPrompt, ct))
