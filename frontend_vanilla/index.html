@@ -243,12 +243,6 @@
 
                     <div class="chat-input-row-wrapper">
                         <div id="input-container" class="input-container glass-panel shadow-2xl">
-                            <div class="input-actions-left">
-                                <button id="toggle-prompt-helper" class="prompt-helper-toggle-btn" title="Trợ lý Prompt Excel">
-                                    <i class="ph-bold ph-microsoft-excel-logo"></i>
-                                </button>
-                            </div>
-
                             <textarea id="chat-input" placeholder="Hỏi về cơ sở dữ liệu của bạn..." rows="1"></textarea>
                             
                             <div class="input-actions-wrapper">
@@ -278,27 +272,6 @@
                             </div>
                         </div>
 
-                        <!-- Prompt Helper Panel -->
-                        <div id="prompt-helper-panel" class="prompt-helper-panel glass-panel shadow-2xl hidden">
-                            <div class="prompt-helper-header">
-                                <span class="prompt-helper-title">
-                                    <i class="ph-bold ph-microsoft-excel-logo"></i>
-                                    <span>Trợ lý Prompt Excel</span>
-                                </span>
-                                <button id="close-prompt-helper" class="prompt-helper-close" title="Đóng">
-                                    <i class="ph-bold ph-x"></i>
-                                </button>
-                            </div>
-                            <div class="prompt-helper-body">
-                                <div id="prompt-fields-container" class="prompt-fields-container" style="display: flex; flex-direction: column; gap: 0.75rem;">
-                                    <!-- Các trường nhập liệu động được sinh ra dựa trên mappings template -->
-                                </div>
-                                <button id="btn-generate-prompt" class="btn btn-primary btn-generate-prompt" disabled>
-                                    <i class="ph-bold ph-plus-circle"></i>
-                                    <span>Nạp vào Khung Chat</span>
-                                </button>
-                            </div>
-                        </div>
                     </div>
 
                     <!-- Suggestions moved here -->

@@ -51,7 +51,7 @@ export class TestingManagerComponent {
                     this.container.classList.add('hidden');
                     // Nếu đang chạy mà chuyển trang khác thì dừng chạy
                     if (this.isRunning) {
-                        this.stopTesting();
+                        this.stopTesting(true);
                     }
                 }
             }
@@ -627,7 +627,14 @@ export class TestingManagerComponent {
 
         // Cập nhật trạng thái các nút bấm điều khiển
         document.getElementById('btn-run-testing').classList.add('hidden');
-        document.getElementById('btn-stop-testing').classList.remove('hidden');
+        
+        const btnStop = document.getElementById('btn-stop-testing');
+        if (btnStop) {
+            btnStop.classList.remove('hidden');
+            btnStop.disabled = false;
+            btnStop.innerHTML = `<i class="ph-bold ph-stop"></i> Dừng chạy`;
+        }
+
         document.getElementById('btn-clear-queue').disabled = true;
         document.getElementById('btn-add-all-testcases').disabled = true;
         document.getElementById('btn-add-custom-question').disabled = true;
@@ -646,13 +653,13 @@ export class TestingManagerComponent {
         let successCount = 0;
         let failCount = 0;
         let totalDuration = 0;
+        let lastProcessedIndex = 0;
         const totalQuestions = this.queue.length;
 
         this.updateSummary(0, 0, 0);
 
         for (let i = 0; i < totalQuestions; i++) {
             if (this.shouldStop) {
-                Toast.show('Đã dừng chạy kiểm thử tuần tự.', 'info');
                 break;
             }
 
@@ -748,15 +755,35 @@ export class TestingManagerComponent {
             // Cập nhật bảng tổng hợp kết quả
             const avgTime = Math.round(totalDuration / (successCount + failCount));
             this.updateSummary(successCount, failCount, avgTime);
+
+            lastProcessedIndex = i + 1;
+
+            if (this.shouldStop) {
+                break;
+            }
         }
 
-        // Cập nhật hoàn thành tiến trình
-        this.updateProgressBar(totalQuestions, totalQuestions, 'Hoàn thành kiểm thử');
+        // Cập nhật tiến trình
+        if (this.shouldStop) {
+            this.updateProgressBar(lastProcessedIndex, totalQuestions, null, `Đã dừng kiểm thử: ${lastProcessedIndex}/${totalQuestions}`);
+        } else {
+            this.updateProgressBar(totalQuestions, totalQuestions, 'Hoàn thành kiểm thử');
+        }
 
         // Khôi phục trạng thái nút bấm
         this.isRunning = false;
-        document.getElementById('btn-run-testing').classList.remove('hidden');
-        document.getElementById('btn-stop-testing').classList.add('hidden');
+        
+        const btnRun = document.getElementById('btn-run-testing');
+        if (btnRun) {
+            btnRun.classList.remove('hidden');
+            btnRun.disabled = false;
+        }
+        if (btnStop) {
+            btnStop.classList.add('hidden');
+            btnStop.disabled = false;
+            btnStop.innerHTML = `<i class="ph-bold ph-stop"></i> Dừng chạy`;
+        }
+
         document.getElementById('btn-clear-queue').disabled = false;
         document.getElementById('btn-add-all-testcases').disabled = false;
         document.getElementById('btn-add-custom-question').disabled = false;
@@ -764,19 +791,27 @@ export class TestingManagerComponent {
         document.querySelectorAll('.btn-remove-queue').forEach(b => b.disabled = false);
         this.renderQueue();
 
-        Toast.show(`Đã hoàn thành lượt chạy kiểm thử. Thành công: ${successCount}, Thất bại: ${failCount}`, successCount > 0 ? 'success' : 'error');
+        if (this.shouldStop) {
+            Toast.show(`Đã dừng lượt chạy kiểm thử. Đã chạy: ${lastProcessedIndex}/${totalQuestions}. Thành công: ${successCount}, Thất bại: ${failCount}`, 'info');
+        } else {
+            Toast.show(`Đã hoàn thành lượt chạy kiểm thử. Thành công: ${successCount}, Thất bại: ${failCount}`, successCount > 0 ? 'success' : 'error');
+        }
     }
 
-    updateProgressBar(current, total, currentQuestion) {
+    updateProgressBar(current, total, currentQuestion, customStatusText = null) {
         const percent = Math.round((current / total) * 100);
         const statusText = document.getElementById('progress-status-text');
         const percentText = document.getElementById('progress-percentage-text');
         const progressBar = document.getElementById('testing-progress-bar');
 
         if (statusText) {
-            statusText.innerText = current === total 
-                ? `Hoàn thành kiểm thử: ${total}/${total}`
-                : `Đang chạy: ${current + 1}/${total} - ${currentQuestion}`;
+            if (customStatusText) {
+                statusText.innerText = customStatusText;
+            } else {
+                statusText.innerText = current === total 
+                    ? `Hoàn thành kiểm thử: ${total}/${total}`
+                    : `Đang chạy: ${current + 1}/${total} - ${currentQuestion}`;
+            }
         }
         if (percentText) percentText.innerText = `${percent}%`;
         if (progressBar) progressBar.style.width = `${percent}%`;
@@ -1173,13 +1208,24 @@ export class TestingManagerComponent {
 
 
 
-    stopTesting() {
+    stopTesting(immediate = false) {
         if (!this.isRunning) return;
         this.shouldStop = true;
-        if (this.currentAbortController) {
-            this.currentAbortController.abort();
+        
+        if (immediate) {
+            if (this.currentAbortController) {
+                this.currentAbortController.abort();
+            }
+            Toast.show('Đã hủy bài kiểm thử ngay lập tức.', 'warning');
+        } else {
+            // Vô hiệu hóa nút dừng chạy và hiển thị trạng thái đang xử lý dừng câu hiện tại
+            const btnStop = document.getElementById('btn-stop-testing');
+            if (btnStop) {
+                btnStop.disabled = true;
+                btnStop.innerHTML = `<i class="ph-bold ph-circle-notch animate-spin"></i> Đang dừng...`;
+            }
+            Toast.show('Đã nhận lệnh dừng. Sẽ dừng sau khi hoàn thành câu hiện tại.', 'info');
         }
-        Toast.show('Đang dừng kiểm thử...', 'warning');
     }
 
     setupResponsiveCollapse() {

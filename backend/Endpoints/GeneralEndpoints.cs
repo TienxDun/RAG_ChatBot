@@ -24,9 +24,7 @@ public static class GeneralEndpoints
         MapEmbeddingsEndpoint(app);
         MapChatEndpoints(app);
         MapExcelEndpoints(app);
-        MapLinesEndpoint(app);
-        MapCommandCodesEndpoint(app);
-        MapDropdownEndpoint(app);
+
         
         if (env.IsDevelopment())
         {
@@ -329,100 +327,6 @@ public static class GeneralEndpoints
             .WithOpenApi();
     }
 
-    // ==================== LINES & COMMAND CODES ====================
-
-    private static void MapLinesEndpoint(IEndpointRouteBuilder app)
-    {
-        app.MapGet("/api/lines", async (SqlService sqlService, CancellationToken ct) =>
-        {
-            try
-            {
-                var dt = await sqlService.ExecuteQueryAsDataTableAsync("SELECT ID, Name FROM tbl_SettingLineX WHERE Name IS NOT NULL AND Name <> '' ORDER BY Name", ct);
-                var list = new List<object>();
-                foreach (System.Data.DataRow row in dt.Rows)
-                {
-                    list.Add(new { id = row["ID"]?.ToString(), name = row["Name"]?.ToString() });
-                }
-                return Results.Ok(list);
-            }
-            catch (Exception ex)
-            {
-                return Results.Problem(ex.Message);
-            }
-        })
-        .WithName("GetLines")
-        .WithOpenApi();
-    }
-
-    private static void MapCommandCodesEndpoint(IEndpointRouteBuilder app)
-    {
-        app.MapGet("/api/command-codes", async (SqlService sqlService, CancellationToken ct) =>
-        {
-            try
-            {
-                var dt = await sqlService.ExecuteQueryAsDataTableAsync("SELECT TenLenh FROM (SELECT TenLenh, MAX(NgayTao) as MaxNgayTao FROM ERP_LENHSX WHERE TenLenh IS NOT NULL AND TenLenh <> '' GROUP BY TenLenh) t ORDER BY MaxNgayTao DESC", ct);
-                var list = new List<string>();
-                foreach (System.Data.DataRow row in dt.Rows)
-                {
-                    list.Add(row["TenLenh"]?.ToString() ?? "");
-                }
-                return Results.Ok(list);
-            }
-            catch (Exception ex)
-            {
-                return Results.Problem(ex.Message);
-            }
-        })
-        .WithName("GetCommandCodes")
-        .WithOpenApi();
-    }
-
-    // ==================== DYNAMIC DROPDOWN ====================
-
-    private static void MapDropdownEndpoint(IEndpointRouteBuilder app)
-    {
-        app.MapGet("/api/dropdown", async (string source, SqlService sqlService, CancellationToken ct) =>
-        {
-            if (string.IsNullOrWhiteSpace(source))
-            {
-                return Results.BadRequest(new { error = "Source parameter is required." });
-            }
-
-            var parts = source.Split('.');
-            if (parts.Length != 2)
-            {
-                return Results.BadRequest(new { error = "Source must be in format Table.Column" });
-            }
-
-            var tableName = parts[0];
-            var columnName = parts[1];
-
-            // Sanitize names to avoid SQL injection
-            var validNameRegex = new System.Text.RegularExpressions.Regex(@"^[a-zA-Z0-9_]+$");
-            if (!validNameRegex.IsMatch(tableName) || !validNameRegex.IsMatch(columnName))
-            {
-                return Results.BadRequest(new { error = "Invalid characters in table or column name." });
-            }
-
-            try
-            {
-                var sql = $"SELECT DISTINCT [{columnName}] FROM [{tableName}] WHERE [{columnName}] IS NOT NULL AND [{columnName}] <> '' ORDER BY [{columnName}]";
-                var dt = await sqlService.ExecuteQueryAsDataTableAsync(sql, ct);
-                var list = new List<string>();
-                foreach (System.Data.DataRow row in dt.Rows)
-                {
-                    list.Add(row[columnName]?.ToString() ?? "");
-                }
-                return Results.Ok(list);
-            }
-            catch (Exception ex)
-            {
-                return Results.Problem(ex.Message);
-            }
-        })
-        .WithName("GetDynamicDropdown")
-        .WithOpenApi();
-    }
 
     // ==================== SQL EXECUTE (Development Only) ====================
 

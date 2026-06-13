@@ -95,6 +95,7 @@ export class ApiClient {
         }
     }
 
+    // Gửi yêu cầu và tải xuống tệp tin
     static async downloadFile(endpoint, suggestedFileName = null, options = {}) {
         const url = this._resolveUrl(endpoint);
         this._group(options, `📥 API DOWNLOAD: ${url}`);
@@ -182,6 +183,7 @@ export class ApiClient {
         } catch (error) {
             if (error.name === 'AbortError') {
                 this._log(options, '⏹️ Stream aborted');
+                throw error;
             } else {
                 if (!options.silent) console.error('🔴 API Stream Error:', error);
                 throw error;

@@ -52,24 +52,6 @@ public static class TemplateCacheEndpoints
             .WithName("SaveTemplateMapping")
             .DisableAntiforgery();
 
-        // GET /api/templates/mapping/{fileName} - Lấy chú thích và metadata mapping của Excel template
-        app.MapGet("/api/templates/mapping/{fileName}", (string fileName, IExcelMappingService mappingService) =>
-        {
-            try
-            {
-                var mapping = mappingService.GetTemplateMapping(fileName);
-                return Results.Ok(new
-                {
-                    columnMappings = mapping.ColumnMappings ?? new(),
-                    metadataCellMappings = mapping.MetadataCellMappings ?? new()
-                });
-            }
-            catch (Exception ex)
-            {
-                return Results.Problem(ex.Message);
-            }
-        })
-        .WithName("GetTemplateMappingByFileName");
 
         // POST /api/templates/auto-map - Tự động ánh xạ giải nghĩa cột bằng Qdrant + Gemini
         app.MapPost("/api/templates/auto-map", HandleAutoMapAsync)
