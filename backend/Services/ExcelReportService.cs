@@ -145,12 +145,13 @@ public class ExcelReportService
         {
             var metadataList = templateInfo.Metadata.Keys.Select(m =>
             {
-                string desc = $"- Nhãn '{m}' -> Bạn BẮT BUỘC SELECT cột tương ứng từ database trong câu SELECT cuối cùng và đặt ALIAS (AS) khớp hoàn toàn với tên nhãn này (Dùng MAX/MIN nếu có GROUP BY, ví dụ: MAX(StyleID) AS [{m}] hoặc MAX(PlanCode) AS [{m}]).";
+                // Nếu có custom note từ ColumnMappings → dùng làm hướng dẫn chính, không thêm ví dụ MAX mặc định
                 if (savedMappings.TryGetValue(m, out var customNote) && !string.IsNullOrWhiteSpace(customNote))
                 {
-                    desc += $" Chi tiết cách lấy/ý nghĩa: {customNote}";
+                    return $"- Nhãn '{m}' -> BẮT BUỘC SELECT AS [{m}] theo đúng hướng dẫn sau: {customNote}";
                 }
-                return desc;
+                // Không có custom note → dùng hướng dẫn mặc định với ví dụ MAX
+                return $"- Nhãn '{m}' -> Bạn BẮT BUỘC SELECT cột tương ứng từ database trong câu SELECT cuối cùng và đặt ALIAS (AS) khớp hoàn toàn với tên nhãn này (Dùng MAX/MIN nếu có GROUP BY, ví dụ: MAX(StyleID) AS [{m}] hoặc MAX(PlanCode) AS [{m}]).";
             });
             var metadataInstructions = string.Join("\n", metadataList);
             mappingInstructions += $"\n\nYÊU CẦU BẮT BUỘC TRUY VẤN THÔNG TIN CHUNG (METADATA):\n" +

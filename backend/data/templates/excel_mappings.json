@@ -11,15 +11,15 @@
       "Cosmos_Ketqua": "Kết quả kiểm tra (Đạt/Không đạt). Bạn BẮT BUỘC dùng CASE WHEN để chuyển đổi kết quả thành chữ hiển thị: CASE WHEN q.KetQua = 1 THEN N'Đạt' ELSE N'Không đạt' END.",
       "Cosmos_TBloiNgay": "Tỷ lệ lỗi trung bình ngày. Vì hệ thống C# (SubtotalConfig) sẽ tự động tính toán giá trị này cho dòng tổng ngày, bạn chỉ cần trả về CAST(NULL AS FLOAT) AS [Cosmos_TBloiNgay]. Nếu muốn tính trong SQL, hãy sử dụng CASE WHEN để tránh chia for 0 (ví dụ: CASE WHEN SUM(q.SoLuongKiem) OVER(...) = 0 THEN 0 ELSE ... END) thay vì dùng NULLIF với OVER() vì SQL Server không hỗ trợ lồng OVER() trong NULLIF.",
       "Kyten": "",
-      "tên khách hàng": "Tên đối tác/khách hàng. Bắt buộc tính toán trong CTE [Metadata] ở đầu câu SQL (sử dụng GROUP BY và CROSS JOIN ở ngoài cùng). Bắt buộc kết nối (JOIN) từ QTY_InLineQC_NgayKiem (qua cột LenhSX) sang ERP_LENHSX (cột MaLenh), sau đó kết nối sang bảng danh mục DIC_KHACHHANG (qua cột MaKhachHang = DIC_KHACHHANG.MaKhachHang) và chọn lấy cột DIC_KHACHHANG.KhachHang làm kết quả.",
-      "TenLenh": "Tên lệnh sản xuất hiển thị. Bắt buộc tính toán trong CTE [Metadata] ở đầu câu SQL (sử dụng GROUP BY và CROSS JOIN ở ngoài cùng). Bắt buộc kết nối (JOIN) từ QTY_InLineQC_NgayKiem (cột LenhSX) sang ERP_LENHSX (cột MaLenh) và chọn lấy cột MAX(ERP_LENHSX.TenLenh).",
-      "PO": "Mã đơn hàng PO. Bắt buộc tính toán trong CTE [Metadata] ở đầu câu SQL (sử dụng GROUP BY và CROSS JOIN ở ngoài cùng). Nếu số lượng mã PO duy nhất của chuyền trong khoảng thời gian lọc lớn hơn 1 (COUNT(DISTINCT q.PO) > 1) thì hiển thị chữ N'Tất cả', ngược lại hiển thị chính mã PO đó (dùng MAX(q.PO)). Tránh dùng OVER() cho cột này."
+      "tên khách hàng": "Tên đối tác/khách hàng. Bắt buộc tính toán trong CTE [Metadata] ở đầu câu SQL. TUYỆT ĐỐI KHÔNG dùng TOP 1. Phải dùng hàm tổng hợp MAX() để lấy giá trị duy nhất, không GROUP BY thêm cột nào. Kết nối (JOIN) từ QTY_InLineQC_NgayKiem (qua cột LenhSX) sang ERP_LENHSX (cột MaLenh), sau đó kết nối sang DIC_KHACHHANG (qua MaKhachHang). Dùng MAX(k.KhachHang) AS [tên khách hàng].",
+      "MaLenh -- MH: MaHang | ERP_LENHSX.MaLenh": "Mã lệnh sản xuất và mã hàng (tương tự PlanCode -- MH: MaHang ở báo cáo Endline). Bắt buộc tính toán trong CTE [Metadata] ở đầu câu SQL. TUYỆT ĐỐI KHÔNG dùng TOP 1. Kết nối (JOIN) từ QTY_InLineQC_NgayKiem (cột LenhSX) sang ERP_LENHSX (cột MaLenh). Dùng MAX(e.MaLenh) và MAX(e.MaHang), sau đó nối thành: CONCAT(MAX(e.MaLenh), ' -- MH: ', MAX(e.MaHang)) AS [MaLenh -- MH: MaHang | ERP_LENHSX.MaLenh].",
+      "PO | QTY_InLineQC_NgayKiem.PO": "BẮT BUỘC dùng đúng cú pháp sau trong CTE [Metadata]: CASE WHEN COUNT(DISTINCT q.PO) > 1 THEN N'Tất cả' ELSE MAX(q.PO) END AS [PO | QTY_InLineQC_NgayKiem.PO]. TUYỆT ĐỐI KHÔNG dùng MAX(q.PO) một mình vì sẽ in sai PO khi có nhiều PO. Nếu người dùng không cung cấp tham số PO → KHÔNG thêm WHERE PO vào truy vấn, để COUNT(DISTINCT q.PO) tự đếm tất cả PO trong kết quả."
     },
     "MetadataCellMappings": {
       "B5": "Tên chuyền | tbl_SettingLineX.Name",
       "E4": "tên khách hàng",
       "H4": "PO | QTY_InLineQC_NgayKiem.PO",
-      "B4": "TenLenh"
+      "B4": "MaLenh -- MH: MaHang | ERP_LENHSX.MaLenh"
     },
     "SubtotalConfig": {
       "GroupByColumn": "Cosmos_Ngaykiem",
