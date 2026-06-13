@@ -41,7 +41,61 @@
         "Cosmos_TBloiNgay",
         "Kyten"
       ]
-    }
+    },
+    "Parameters": [
+      {
+        "Key": "Tên chuyền | tbl_SettingLineX.Name",
+        "Label": "Tên chuyền",
+        "Type": "select",
+        "Required": true,
+        "DataSource": "tbl_SettingLineX",
+        "DataColumn": "Name",
+        "DisplayColumn": null,
+        "Placeholder": "Chọn chuyền sản xuất...",
+        "DefaultValue": null,
+        "PromptTemplate": "Chuyền: {value}",
+        "Order": 0
+      },
+      {
+        "Key": "date_range",
+        "Label": "Khoảng thời gian kiểm tra",
+        "Type": "daterange",
+        "Required": true,
+        "DataSource": null,
+        "DataColumn": null,
+        "DisplayColumn": null,
+        "Placeholder": null,
+        "DefaultValue": "today",
+        "PromptTemplate": "Từ ngày {start} đến ngày {end}",
+        "Order": 1
+      },
+      {
+        "Key": "lenh_sx",
+        "Label": "Mã lệnh sản xuất",
+        "Type": "text",
+        "Required": false,
+        "DataSource": null,
+        "DataColumn": null,
+        "DisplayColumn": null,
+        "Placeholder": "Nhập mã lệnh sản xuất (nếu có)...",
+        "DefaultValue": null,
+        "PromptTemplate": "Lệnh sản xuất: {value}",
+        "Order": 2
+      },
+      {
+        "Key": "PO | QTY_InLineQC_NgayKiem.PO",
+        "Label": "Mã PO",
+        "Type": "text",
+        "Required": false,
+        "DataSource": null,
+        "DataColumn": null,
+        "DisplayColumn": null,
+        "Placeholder": "Nhập mã PO (nếu có)...",
+        "DefaultValue": null,
+        "PromptTemplate": "PO: {value}",
+        "Order": 3
+      }
+    ]
   },
   "BCEndlineNgay (22)_Empty.xlsx": {
     "ColumnMappings": {
@@ -66,12 +120,56 @@
     "MetadataCellMappings": {
       "F5": "Tên chuyền | tbl_SettingLineX.Name",
       "C5": "PlanCode -- MH: MaHang | QTY_MAHANG_NGAYKIEM.PlanCode"
-    }
+    },
+    "SubtotalConfig": null,
+    "Parameters": [
+      {
+        "Key": "line_name",
+        "Label": "Tên chuyền",
+        "Type": "select",
+        "Required": true,
+        "DataSource": "tbl_settingLineX",
+        "DataColumn": "Name",
+        "DisplayColumn": null,
+        "Placeholder": "Chọn chuyền...",
+        "DefaultValue": null,
+        "PromptTemplate": "Tên chuyền: {value}",
+        "Order": 0
+      },
+      {
+        "Key": "plan_code",
+        "Label": "Mã kế hoạch (PlanCode)",
+        "Type": "text",
+        "Required": true,
+        "DataSource": null,
+        "DataColumn": null,
+        "DisplayColumn": null,
+        "Placeholder": "Nhập mã kế hoạch...",
+        "DefaultValue": null,
+        "PromptTemplate": "Mã kế hoạch: {value}",
+        "Order": 1
+      },
+      {
+        "Key": "date_range",
+        "Label": "Khoảng thời gian",
+        "Type": "daterange",
+        "Required": true,
+        "DataSource": null,
+        "DataColumn": null,
+        "DisplayColumn": null,
+        "Placeholder": "Chọn khoảng ngày...",
+        "DefaultValue": null,
+        "PromptTemplate": "Từ ngày {start} đến ngày {end}",
+        "Order": 2
+      }
+    ]
   },
   "BaoCao_InLineQC_All_1780023089422 (1).xlsx": {
     "ColumnMappings": {},
     "MetadataCellMappings": {
       "B5": "tên chuyền"
-    }
+    },
+    "SubtotalConfig": null,
+    "Parameters": null
   }
 }

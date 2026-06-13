@@ -50,4 +50,28 @@ public sealed class SqlService
 
         return dataTable;
     }
+
+    /// Thực thi câu lệnh SQL nội bộ (whitelist) và trả về list of dict.
+    /// Dùng cho data lookup endpoint — SQL được build từ whitelist bảng/cột nên không cần security validator.
+    public async Task<List<Dictionary<string, object?>>> QueryAsync(string sql, CancellationToken ct)
+    {
+        using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync(ct);
+        using var command = new SqlCommand(sql, connection);
+        command.CommandTimeout = 10;
+        using var reader = await command.ExecuteReaderAsync(ct);
+
+        var results = new List<Dictionary<string, object?>>();
+        while (await reader.ReadAsync(ct))
+        {
+            var row = new Dictionary<string, object?>();
+            for (int i = 0; i < reader.FieldCount; i++)
+            {
+                var colName = reader.GetName(i);
+                row[colName] = reader.IsDBNull(i) ? null : reader.GetValue(i);
+            }
+            results.Add(row);
+        }
+        return results;
+    }
 }

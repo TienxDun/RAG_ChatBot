@@ -139,9 +139,27 @@ public class ExcelMappingService : IExcelMappingService
                     Console.WriteLine($"⚠️ Lỗi khi parse SubtotalConfig: {ex.Message}");
                 }
             }
+
+            // Parse danh sách parameters (tính năng Dynamic Form)
+            bool hasParameters = element.TryGetProperty("parameters", out var paramsProp) || 
+                                 element.TryGetProperty("Parameters", out paramsProp);
+            if (hasParameters && paramsProp.ValueKind == JsonValueKind.Array)
+            {
+                try
+                {
+                    mapping.Parameters = JsonSerializer.Deserialize<List<TemplateParameter>>(
+                        paramsProp.GetRawText(),
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"⚠️ Lỗi khi parse Parameters: {ex.Message}");
+                }
+            }
         }
         return mapping;
     }
+
 
     private void SaveToFile()
     {

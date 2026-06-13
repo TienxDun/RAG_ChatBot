@@ -198,3 +198,497 @@
         transform: translateY(0) scale(1);
     }
 }
+
+/* Dynamic Parameter Modal styling */
+.param-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.param-modal-overlay.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.param-modal-container {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transform: translateY(20px) scale(0.95);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.param-modal-overlay.visible .param-modal-container {
+    transform: translateY(0) scale(1);
+}
+
+[data-theme="dark"] .param-modal-container {
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    background: #1e293b;
+}
+
+.param-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.param-modal-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.param-modal-title h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--foreground);
+    margin: 0;
+}
+
+.param-modal-title i {
+    font-size: 1.25rem;
+    color: #1d6f42; /* Excel Green */
+}
+
+.param-modal-subtitle {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    margin-top: 2px;
+    font-weight: 500;
+}
+
+.param-modal-close {
+    background: transparent;
+    color: var(--muted-foreground);
+    border: none;
+    cursor: pointer;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.param-modal-close:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--foreground);
+}
+
+[data-theme="dark"] .param-modal-close:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.param-modal-body {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.param-form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.param-form-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--foreground);
+}
+
+.param-form-label span {
+    color: var(--destructive);
+    margin-left: 2px;
+}
+
+.param-form-input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 0.875rem;
+    background: var(--background);
+    color: var(--foreground);
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.param-form-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent);
+}
+
+.param-date-range-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.param-date-range-sep {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    font-weight: 600;
+}
+
+.param-modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 1.25rem 1.5rem;
+    border-top: 1px solid var(--border);
+    background: color-mix(in srgb, var(--primary) 2%, var(--card));
+}
+
+.param-modal-btn {
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.param-modal-btn-cancel {
+    background: transparent;
+    color: var(--muted-foreground);
+    border-color: var(--border);
+}
+
+.param-modal-btn-cancel:hover {
+    background: rgba(0, 0, 0, 0.03);
+    color: var(--foreground);
+}
+
+[data-theme="dark"] .param-modal-btn-cancel:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.param-modal-btn-submit {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.2);
+}
+
+.param-modal-btn-submit:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(124, 58, 237, 0.3);
+}
+
+.param-modal-btn-submit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Custom Flatpickr styled to match system theme */
+.flatpickr-calendar {
+    background: var(--card) !important;
+    border: 1px solid var(--border) !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1) !important;
+    border-radius: 12px !important;
+    font-family: var(--font-sans) !important;
+    z-index: 99999 !important; /* Đảm bảo nổi lên trên modal */
+    overflow: visible !important;
+}
+
+[data-theme="dark"] .flatpickr-calendar {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4) !important;
+    background: #1e293b !important;
+}
+
+.flatpickr-months {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: color-mix(in srgb, var(--primary) 4%, var(--card)) !important;
+    border-bottom: 1px solid var(--border);
+    padding: 8px 12px !important;
+    height: 46px !important;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    overflow: visible !important;
+    z-index: 5 !important;
+}
+
+.flatpickr-months .flatpickr-month {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    height: 100%;
+    overflow: visible !important;
+}
+
+/* Các nút chuyển tháng trước / sau */
+.flatpickr-months .flatpickr-prev-month,
+.flatpickr-months .flatpickr-next-month {
+    position: absolute !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    height: 28px !important;
+    width: 28px !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 50% !important;
+    color: var(--foreground) !important;
+    fill: var(--foreground) !important;
+    transition: all 0.2s ease !important;
+    cursor: pointer !important;
+    z-index: 10 !important;
+}
+
+.flatpickr-months .flatpickr-prev-month:hover,
+.flatpickr-months .flatpickr-next-month:hover {
+    background: rgba(124, 58, 237, 0.08) !important;
+    color: var(--primary) !important;
+    fill: var(--primary) !important;
+}
+
+.flatpickr-months .flatpickr-prev-month {
+    left: 8px !important;
+}
+
+.flatpickr-months .flatpickr-next-month {
+    right: 8px !important;
+}
+
+/* Container chính của tháng & năm */
+.flatpickr-current-month {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    position: relative !important;
+    width: calc(100% - 70px) !important;
+    margin: 0 auto !important;
+    left: 0 !important;
+    text-align: center !important;
+    height: 30px !important;
+    padding: 0 !important;
+    overflow: visible !important;
+}
+
+/* Dropdown chọn tháng */
+.flatpickr-current-month .flatpickr-monthDropdown-months {
+    color: var(--foreground) !important;
+    font-weight: 700 !important;
+    font-size: 0.925rem !important;
+    font-family: var(--font-sans) !important;
+    border: 1px solid transparent !important;
+    background: transparent !important;
+    border-radius: 6px !important;
+    padding: 4px 8px !important;
+    cursor: pointer !important;
+    margin: 0 !important;
+    outline: none !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    transition: all 0.2s ease !important;
+    text-align: center !important;
+}
+
+.flatpickr-current-month .flatpickr-monthDropdown-months:hover {
+    background: rgba(124, 58, 237, 0.05) !important;
+    border-color: rgba(124, 58, 237, 0.1) !important;
+}
+
+/* Bộ chọn năm custom (custom scrollable dropdown) */
+.flatpickr-current-month .flatpickr-custom-year-wrapper {
+    position: relative !important;
+    display: inline-block !important;
+}
+
+.flatpickr-current-month .flatpickr-year-trigger {
+    color: var(--foreground) !important;
+    font-weight: 700 !important;
+    font-size: 0.925rem !important;
+    font-family: var(--font-sans) !important;
+    border: 1px solid transparent !important;
+    background: transparent !important;
+    border-radius: 6px !important;
+    padding: 4px 8px !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    text-align: center !important;
+}
+
+.flatpickr-current-month .flatpickr-year-trigger:hover {
+    background: rgba(124, 58, 237, 0.05) !important;
+    border-color: rgba(124, 58, 237, 0.1) !important;
+}
+
+.flatpickr-current-month .flatpickr-year-dropdown {
+    position: absolute !important;
+    top: calc(100% + 6px) !important;
+    left: 50% !important;
+    transform: translateX(-50%) translateY(8px) scale(0.95) !important;
+    z-index: 10000 !important;
+    width: 90px !important;
+    max-height: 180px !important;
+    overflow-y: auto !important;
+    background: var(--card) !important;
+    border: 1px solid var(--border) !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15) !important;
+    border-radius: 8px !important;
+    padding: 4px !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+    transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s !important;
+}
+
+.flatpickr-current-month .flatpickr-year-dropdown.open {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    visibility: visible !important;
+    transform: translateX(-50%) translateY(0) scale(1) !important;
+}
+
+.flatpickr-current-month .flatpickr-year-dropdown-item {
+    padding: 6px 12px !important;
+    font-size: 0.875rem !important;
+    font-weight: 500 !important;
+    color: var(--foreground) !important;
+    text-align: center !important;
+    border-radius: 6px !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+}
+
+.flatpickr-current-month .flatpickr-year-dropdown-item:hover {
+    background: rgba(124, 58, 237, 0.08) !important;
+    color: var(--primary) !important;
+}
+
+.flatpickr-current-month .flatpickr-year-dropdown-item.selected {
+    background: var(--primary) !important;
+    color: white !important;
+}
+
+/* Custom scrollbar cho dropdown năm */
+.flatpickr-current-month .flatpickr-year-dropdown::-webkit-scrollbar {
+    width: 5px !important;
+}
+
+.flatpickr-current-month .flatpickr-year-dropdown::-webkit-scrollbar-track {
+    background: transparent !important;
+}
+
+.flatpickr-current-month .flatpickr-year-dropdown::-webkit-scrollbar-thumb {
+    background: var(--border) !important;
+    border-radius: 4px !important;
+}
+
+.flatpickr-current-month .flatpickr-year-dropdown::-webkit-scrollbar-thumb:hover {
+    background: var(--muted-foreground) !important;
+}
+
+/* Wrapper cho ô năm */
+.flatpickr-current-month .numInputWrapper {
+    display: none !important;
+}
+
+/* Ô nhập năm */
+.flatpickr-current-month input.cur-year {
+    color: var(--foreground) !important;
+    font-weight: 700 !important;
+    font-size: 0.925rem !important;
+    font-family: var(--font-sans) !important;
+    width: 100% !important;
+    padding: 4px 6px !important;
+    margin: 0 !important;
+    height: auto !important;
+    border: 1px solid transparent !important;
+    background: transparent !important;
+    border-radius: 6px !important;
+    transition: all 0.2s ease !important;
+    outline: none !important;
+    box-sizing: border-box !important;
+    text-align: center !important;
+}
+
+.flatpickr-current-month input.cur-year:hover,
+.flatpickr-current-month input.cur-year:focus {
+    background: rgba(124, 58, 237, 0.05) !important;
+    border-color: rgba(124, 58, 237, 0.1) !important;
+}
+
+/* Ẩn các nút tăng giảm năm mặc định của Flatpickr để tránh bị lệch */
+.flatpickr-current-month .numInputWrapper span.arrowUp,
+.flatpickr-current-month .numInputWrapper span.arrowDown {
+    display: none !important;
+}
+
+span.flatpickr-weekday {
+    color: var(--muted-foreground) !important;
+    font-weight: 600 !important;
+}
+
+.flatpickr-day {
+    color: var(--foreground) !important;
+    border-radius: 8px !important;
+    transition: all 0.15s ease !important;
+}
+
+.flatpickr-day:hover,
+.flatpickr-day.prevMonthDay:hover,
+.flatpickr-day.nextMonthDay:hover,
+.flatpickr-day.today:hover {
+    background: rgba(124, 58, 237, 0.1) !important;
+    border-color: transparent !important;
+    color: var(--primary) !important;
+}
+
+.flatpickr-day.today {
+    border-color: var(--primary) !important;
+    color: var(--primary) !important;
+}
+
+.flatpickr-day.selected,
+.flatpickr-day.selected:hover {
+    background: var(--primary) !important;
+    border-color: var(--primary) !important;
+    color: white !important;
+}
+
+.flatpickr-day.flatpickr-disabled,
+.flatpickr-day.flatpickr-disabled:hover {
+    color: var(--border) !important;
+}
+
+.flatpickr-calendar.arrowTop:after {
+    border-bottom-color: var(--card) !important;
+}
+.flatpickr-calendar.arrowBottom:after {
+    border-top-color: var(--card) !important;
+}
+

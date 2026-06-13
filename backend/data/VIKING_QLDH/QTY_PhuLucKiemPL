@@ -1,0 +1,17 @@
+ID	MaPhuLuc	STT	PhuLuc
+1	PhuLucPL_1	0	Chụp hình tất cả loại Phụ liệu.
+2	PhuLucPL_2	1	Mã phụ liệu của công ty và NCC/Accessory code  of Viking & supplier
+3	PhuLucPL_3	2	Màu sắc theo mã của cty và NCC   Color code of Viking &supplier
+4	PhuLucPL_4	4	Số Batch/LOT/năm sản xuất  Batch/LOT No. & Year of Manufacture
+5	PhuLucPL_5	3	Số lượng nhập((m/cuộn/cái))  Receiving quantity (m,roll, piece)
+6	PhuLucPL_6	3	S.lượng cần kiểm kiểm(m/cuộn/cái)  Checking quantity (m,roll, piece)
+7	PhuLucPL_7	6	Kích thước đặt hàng / Order dimension
+8	PhuLucPL_8	8	Độ bóng-mờ-phản quang/Gloss-matt- reflective
+9	PhuLucPL_9	9	Độ co giãn/Elasticity
+10	PhuLucPL_10	10	Nội dung/Layout 
+11	PhuLucPL_11	11	Hình dạng/Shape
+12	PhuLucPL_12	12	Độ bền/độ bám dính của nhung gai  Strength/hook and loop fastening
+13	PhuLucPL_13	13	Không nhiễm kim loại(nếu có yêu cầu)/ Non-metallic accessories, if required.
+14	PhuLucPL_14	5	Số lượng kiểm thực tế (m/cuộn/cái) actual checking quantity (m.roll,piece)
+15	PhuLucPL_15	7	Kích thước thực tế / Actual imension 
+16	PhuLucPL_16	14	Kết quả sau giặt (Result alter wash)

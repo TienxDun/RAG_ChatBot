@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 
 namespace Backend.Endpoints;
 
@@ -52,10 +53,22 @@ public static class TemplateCacheEndpoints
             .WithName("SaveTemplateMapping")
             .DisableAntiforgery();
 
-
         // POST /api/templates/auto-map - Tự động ánh xạ giải nghĩa cột bằng Qdrant + Gemini
         app.MapPost("/api/templates/auto-map", HandleAutoMapAsync)
             .WithName("AutoMapTemplateColumns")
+            .DisableAntiforgery();
+
+        // GET /api/templates/params?fileName=X - Lấy parameter definitions theo tên file template
+        app.MapGet("/api/templates/params", HandleGetParamsAsync)
+            .WithName("GetTemplateParams");
+
+        // GET /api/data/lookup?table=X&column=Y&display=Z - Lấy distinct values cho dropdown form
+        app.MapGet("/api/data/lookup", HandleDataLookupAsync)
+            .WithName("DataLookup");
+
+        // POST /api/templates/suggest-params - AI gợi ý tham số từ metadata + mappings
+        app.MapPost("/api/templates/suggest-params", HandleSuggestParamsAsync)
+            .WithName("SuggestTemplateParams")
             .DisableAntiforgery();
     }
 
@@ -217,6 +230,8 @@ public static class TemplateCacheEndpoints
         public string FileName { get; set; } = string.Empty;
         public Dictionary<string, string> Mappings { get; set; } = new();
         public Dictionary<string, string> MetadataCellMappings { get; set; } = new();
+        /// Danh sách tham số động (null = không thay đổi tham số hiện tại)
+        public List<TemplateParameter>? Parameters { get; set; }
     }
 
     /// Xử lý lưu các chú thích/ánh xạ cột Excel của người dùng
@@ -229,10 +244,14 @@ public static class TemplateCacheEndpoints
 
         try
         {
+            // Lấy mapping hiện tại để giữ nguyên SubtotalConfig và Parameters nếu request không gửi lên
+            var existing = mappingService.GetTemplateMapping(request.FileName);
             var templateMapping = new ExcelTemplateMapping
             {
                 ColumnMappings = request.Mappings ?? new(),
-                MetadataCellMappings = request.MetadataCellMappings ?? new()
+                MetadataCellMappings = request.MetadataCellMappings ?? new(),
+                SubtotalConfig = existing.SubtotalConfig,
+                Parameters = request.Parameters ?? existing.Parameters
             };
             mappingService.SaveTemplateMapping(request.FileName, templateMapping);
             return Results.Ok(new { message = "Đã lưu thông tin ánh xạ cột Excel thành công." });
@@ -242,6 +261,122 @@ public static class TemplateCacheEndpoints
             return Results.Problem($"Lỗi khi lưu cấu hình ánh xạ: {ex.Message}");
         }
     }
+
+    /// Lấy danh sách parameter definitions theo tên file template
+    public static IResult HandleGetParamsAsync(
+        [Microsoft.AspNetCore.Mvc.FromQuery] string fileName,
+        Backend.Services.Excel.IExcelMappingService mappingService)
+    {
+        if (string.IsNullOrWhiteSpace(fileName))
+            return Results.BadRequest(new { error = "Thiếu tham số fileName" });
+
+        var mapping = mappingService.GetTemplateMapping(fileName);
+        return Results.Ok(new
+        {
+            fileName,
+            parameters = mapping.Parameters ?? new List<TemplateParameter>()
+        });
+    }
+
+    /// Lấy danh sách distinct values từ bảng SQL Server để populate dropdown form
+    public static async Task<IResult> HandleDataLookupAsync(
+        [Microsoft.AspNetCore.Mvc.FromQuery] string table,
+        [Microsoft.AspNetCore.Mvc.FromQuery] string column,
+        [Microsoft.AspNetCore.Mvc.FromQuery] string? display,
+        SqlService sqlService,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(table) || string.IsNullOrWhiteSpace(column))
+            return Results.BadRequest(new { error = "Thiếu tham số table hoặc column" });
+
+        // Whitelist các bảng được phép tra cứu để tránh SQL injection qua tên bảng
+        var allowedTables = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "tbl_settingLineX", "tbl_SettingLineX", "SettingLine",
+            "ERP_LenhSX", "DIC_KhachHang", "TSKFinal", "tbl_Steps"
+        };
+
+        if (!allowedTables.Any(t => table.Equals(t, StringComparison.OrdinalIgnoreCase)))
+            return Results.BadRequest(new { error = $"Bảng '{table}' không được phép tra cứu." });
+
+        try
+        {
+            var displayCol = string.IsNullOrWhiteSpace(display) ? column : display;
+            var sql = $"SELECT DISTINCT TOP 500 [{column}] AS value, [{displayCol}] AS label FROM [{table}] WHERE [{column}] IS NOT NULL ORDER BY [{displayCol}]";
+            var data = await sqlService.QueryAsync(sql, ct);
+            return Results.Ok(data);
+        }
+        catch (Exception ex)
+        {
+            return Results.Problem($"Lỗi khi tra cứu dữ liệu: {ex.Message}");
+        }
+    }
+
+    public sealed class SuggestParamsRequest
+    {
+        public string FileName { get; set; } = string.Empty;
+    }
+
+    /// AI phân tích metadata cells + column mappings của template → gợi ý tham số cần thiết
+    public static async Task<IResult> HandleSuggestParamsAsync(
+        SuggestParamsRequest request,
+        Backend.Services.Excel.IExcelMappingService mappingService,
+        VertexAiClient aiClient,
+        CancellationToken ct)
+    {
+        if (request == null || string.IsNullOrWhiteSpace(request.FileName))
+            return Results.BadRequest(new { error = "Thiếu tên file template." });
+
+        try
+        {
+            var mapping = mappingService.GetTemplateMapping(request.FileName);
+
+            var metaDesc = mapping.MetadataCellMappings.Count > 0
+                ? string.Join(", ", mapping.MetadataCellMappings.Values.Where(v => !string.IsNullOrWhiteSpace(v)))
+                : "(Không có metadata cell)";
+
+            var colDesc = mapping.ColumnMappings.Count > 0
+                ? string.Join(", ", mapping.ColumnMappings.Take(20).Select(kvp => $"{kvp.Key}: {kvp.Value}"))
+                : "(Không có column mappings)";
+
+            var prompt = $@"Bạn là chuyên gia phân tích báo cáo Excel trong nhà máy may.
+Dựa vào thông tin template Excel dưới đây, hãy xác định các THAM SỐ mà người dùng cần nhập để lọc và xuất báo cáo.
+
+Tên file template: {request.FileName}
+
+Các ô metadata (thông tin đầu trang báo cáo): {metaDesc}
+
+Các cột chú thích: {colDesc}
+
+YÊU CẦU:
+- Phân tích và liệt kê các tham số lọc cần thiết (ví dụ: tên chuyền, ngày, mã kế hoạch, mã PO...)
+- Nếu tham số liên quan đến chuyền sản xuất → type=""select"", dataSource=""tbl_settingLineX"", dataColumn=""LineName""
+- Nếu liên quan đến mã kế hoạch/PO → type=""text""
+- Nếu liên quan đến 1 ngày → type=""date"", defaultValue=""today""
+- Nếu liên quan đến khoảng ngày → type=""daterange""
+- promptTemplate: cách ghép tham số vào câu hỏi (ví dụ: ""Chuyền: {{value}}"")
+
+TRẢ VỀ JSON ARRAY (KHÔNG bọc trong ```json codeblock):
+[
+  {{""key"": ""line_name"", ""label"": ""Tên chuyền"", ""type"": ""select"", ""required"": true, ""dataSource"": ""tbl_settingLineX"", ""dataColumn"": ""LineName"", ""placeholder"": ""Chọn chuyền..."", ""promptTemplate"": ""Tên chuyền: {{value}}"", ""order"": 1}},
+  {{""key"": ""report_date"", ""label"": ""Ngày báo cáo"", ""type"": ""date"", ""required"": true, ""defaultValue"": ""today"", ""promptTemplate"": ""Ngày {{value}}"", ""order"": 2}}
+]";
+
+            var responseText = await aiClient.GenerateContentAsync(prompt, ct);
+            responseText = CleanJsonResponse(responseText);
+
+            var parameters = JsonSerializer.Deserialize<List<TemplateParameter>>(
+                responseText,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+            return Results.Ok(new { parameters });
+        }
+        catch (Exception ex)
+        {
+            return Results.Problem($"Lỗi khi gợi ý tham số bằng AI: {ex.Message}");
+        }
+    }
+
 
     public sealed class AutoMapColumnDto
     {

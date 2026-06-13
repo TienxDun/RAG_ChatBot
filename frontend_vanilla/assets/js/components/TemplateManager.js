@@ -10,12 +10,14 @@ export class TemplateManagerComponent {
         this.templates = [];
         this.selectedTemplate = null;
         this.selectedTemplateData = null; // Chứa dữ liệu phân tích chi tiết (columns, grid, metadata, mappings)
-        this.activeTab = 'notes'; // 'notes' | 'grid'
+        this.activeTab = 'notes'; // 'notes' | 'grid' | 'params'
         this.selectedCellAddress = null; // Ô Excel đang được chọn để gán biến
         
         // Dữ liệu cấu hình tạm thời
         this.columnMappings = {};
         this.metadataCellMappings = {};
+        // Danh sách tham số động (tính năng Dynamic Parameter Form)
+        this.parameters = [];
 
         this.init();
     }
@@ -308,8 +310,17 @@ export class TemplateManagerComponent {
             this.columnMappings = result.savedMappings || {};
             this.metadataCellMappings = result.metadataCellMappings || {};
 
+            // Load parameters từ API (tính năng Dynamic Form)
+            try {
+                const paramsData = await ApiClient.get(`/templates/params?fileName=${encodeURIComponent(filename)}`);
+                this.parameters = paramsData?.parameters || [];
+            } catch (_) {
+                this.parameters = [];
+            }
+
             // Render workspace cấu hình
             this.renderWorkspace();
+
 
         } catch (error) {
             console.error('❌ Failed to analyze template:', error);
@@ -353,6 +364,10 @@ export class TemplateManagerComponent {
                     <button class="template-tab-btn ${this.activeTab === 'grid' ? 'active' : ''}" data-tab="grid">
                         <i class="ph-bold ph-grid-four"></i> Thiết lập lưới ô Metadata
                     </button>
+                    <button class="template-tab-btn ${this.activeTab === 'params' ? 'active' : ''}" data-tab="params">
+                        <i class="ph-bold ph-sliders"></i> Tham số báo cáo
+                        ${this.parameters.length > 0 ? `<span class="tab-badge">${this.parameters.length}</span>` : ''}
+                    </button>
                 </div>
 
                 <!-- Body chứa nội dung Tab -->
@@ -395,6 +410,11 @@ export class TemplateManagerComponent {
                                 ${this.renderExcelHtmlGrid()}
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Tab 3: Tham số báo cáo (Dynamic Parameter Form) -->
+                    <div class="template-tab-content ${this.activeTab === 'params' ? 'active' : ''}" id="tab-params-content">
+                        ${this.renderParamsTab()}
                     </div>
                 </div>
             </div>
@@ -554,12 +574,17 @@ export class TemplateManagerComponent {
                 tabBtns.forEach(b => b.classList.toggle('active', b === btn));
                 
                 // Toggle tab content visibility
-                document.getElementById('tab-notes-content').classList.toggle('active', targetTab === 'notes');
-                document.getElementById('tab-grid-content').classList.toggle('active', targetTab === 'grid');
+                document.getElementById('tab-notes-content')?.classList.toggle('active', targetTab === 'notes');
+                document.getElementById('tab-grid-content')?.classList.toggle('active', targetTab === 'grid');
+                document.getElementById('tab-params-content')?.classList.toggle('active', targetTab === 'params');
                 
                 // Tự động căn khít chiều cao khi quay lại tab notes
                 if (targetTab === 'notes') {
                     setTimeout(() => this.adjustTextareaHeights(), 50);
+                }
+                // Bind params events khi chuyển sang tab params
+                if (targetTab === 'params') {
+                    this.bindParamsTabEvents();
                 }
             });
         });
@@ -828,7 +853,7 @@ export class TemplateManagerComponent {
     }
 
     /**
-     * Gửi toàn bộ cấu hình ánh xạ Excel (Column Notes & Grid metadata cell mappings) lên server lưu trữ
+     * Gửi toàn bộ cấu hình ánh xạ Excel (Column Notes & Grid metadata cell mappings & Parameters) lên server lưu trữ
      */
     async handleSaveMappings() {
         if (!this.selectedTemplate) return;
@@ -839,11 +864,12 @@ export class TemplateManagerComponent {
         const payload = {
             fileName: this.selectedTemplate.fileName,
             mappings: this.columnMappings,
-            metadataCellMappings: this.metadataCellMappings
+            metadataCellMappings: this.metadataCellMappings,
+            parameters: this.parameters.length > 0 ? this.parameters : null
         };
 
         try {
-            const response = await ApiClient.post('/templates/save-mapping', payload);
+            await ApiClient.post('/templates/save-mapping', payload);
             this.showToast('Lưu cấu hình template Excel thành công!', 'success');
             
             // Cập nhật lại cache phân tích cục bộ
@@ -885,5 +911,263 @@ export class TemplateManagerComponent {
             // scrollHeight + 2px để bù trừ phần viền border
             textarea.style.height = (textarea.scrollHeight + 2) + 'px';
         });
+    }
+
+    // =====================================================================
+    // PARAMETERS TAB — Dynamic Parameter Form
+    // =====================================================================
+
+    /**
+     * Render nội dung tab "Tham số báo cáo"
+     */
+    renderParamsTab() {
+        const paramTypeOptions = [
+            { value: 'text',      label: 'Văn bản (Text)' },
+            { value: 'select',    label: 'Danh sách chọn (Select)' },
+            { value: 'date',      label: 'Ngày (Date)' },
+            { value: 'daterange', label: 'Khoảng ngày (Date Range)' },
+            { value: 'number',    label: 'Số (Number)' },
+        ];
+
+        const renderParamCard = (param, idx) => {
+            const typeOpts = paramTypeOptions.map(o =>
+                `<option value="${o.value}" ${param.type === o.value ? 'selected' : ''}>${o.label}</option>`
+            ).join('');
+
+            const isSelect = param.type === 'select';
+            const isDate   = param.type === 'date' || param.type === 'daterange';
+
+            return `
+            <div class="param-card" data-param-idx="${idx}">
+                <div class="param-card-header">
+                    <span class="param-card-order">#${idx + 1}</span>
+                    <div class="param-card-title-row">
+                        <div class="param-field-group">
+                            <label>Nhãn hiển thị *</label>
+                            <input type="text" class="param-input" data-field="label" value="${param.label || ''}" placeholder="Ví dụ: Tên chuyền..." />
+                        </div>
+                        <div class="param-field-group">
+                            <label>Key nội bộ *</label>
+                            <input type="text" class="param-input param-key-input" data-field="key" value="${param.key || ''}" placeholder="line_name" />
+                        </div>
+                    </div>
+                    <button class="param-remove-btn" data-idx="${idx}" title="Xóa tham số này">
+                        <i class="ph-bold ph-trash"></i>
+                    </button>
+                </div>
+                <div class="param-card-body">
+                    <div class="param-field-row">
+                        <div class="param-field-group">
+                            <label>Loại Input</label>
+                            <select class="param-input" data-field="type">${typeOpts}</select>
+                        </div>
+                        <div class="param-field-group">
+                            <label>Bắt buộc</label>
+                            <label class="param-toggle">
+                                <input type="checkbox" data-field="required" ${param.required ? 'checked' : ''} />
+                                <span class="param-toggle-track"></span>
+                                <span class="param-toggle-label">${param.required ? 'Có' : 'Không'}</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="param-source-row" style="display:${isSelect ? 'flex' : 'none'};">
+                        <div class="param-field-group">
+                            <label>Bảng dữ liệu (DataSource)</label>
+                            <select class="param-input" data-field="dataSource">
+                                <option value="" ${!param.dataSource ? 'selected' : ''}>(Chọn bảng...)</option>
+                                <option value="tbl_settingLineX" ${param.dataSource === 'tbl_settingLineX' ? 'selected' : ''}>tbl_settingLineX (Chuyền sản xuất)</option>
+                                <option value="ERP_LenhSX" ${param.dataSource === 'ERP_LenhSX' ? 'selected' : ''}>ERP_LenhSX (Lệnh sản xuất)</option>
+                                <option value="DIC_KhachHang" ${param.dataSource === 'DIC_KhachHang' ? 'selected' : ''}>DIC_KhachHang (Khách hàng)</option>
+                                <option value="TSKFinal" ${param.dataSource === 'TSKFinal' ? 'selected' : ''}>TSKFinal (Kế hoạch)</option>
+                            </select>
+                        </div>
+                        <div class="param-field-group">
+                            <label>Cột giá trị (DataColumn)</label>
+                            <input type="text" class="param-input" data-field="dataColumn" value="${param.dataColumn || ''}" placeholder="Ví dụ: LineName" />
+                        </div>
+                    </div>
+                    <div class="param-field-group" style="display:${isDate ? 'flex' : 'none'};" data-show-for="date daterange">
+                        <label>Giá trị mặc định</label>
+                        <input type="text" class="param-input" data-field="defaultValue" value="${param.defaultValue || ''}" placeholder="today (ngày hiện tại)" />
+                    </div>
+                    <div class="param-field-group">
+                        <label>Placeholder</label>
+                        <input type="text" class="param-input" data-field="placeholder" value="${param.placeholder || ''}" placeholder="Ví dụ: Chọn chuyền..." />
+                    </div>
+                    <div class="param-field-group">
+                        <label>Prompt Template <span style="font-size:0.7rem;color:var(--muted-foreground);">(dùng {value} làm chỗ điền)</span></label>
+                        <input type="text" class="param-input" data-field="promptTemplate" value="${param.promptTemplate || ''}" placeholder="Ví dụ: Tên chuyền: {value}" />
+                    </div>
+                </div>
+            </div>`;
+        };
+
+        const paramsHtml = this.parameters.length > 0
+            ? this.parameters.map((p, i) => renderParamCard(p, i)).join('')
+            : `<div class="params-empty">
+                <i class="ph-bold ph-sliders" style="font-size:2.5rem;opacity:0.3;"></i>
+                <p>Chưa có tham số nào được cấu hình cho template này.</p>
+                <p style="font-size:0.8rem;">Bấm <strong>"+ Thêm tham số"</strong> hoặc <strong>"AI Gợi ý"</strong> để bắt đầu.</p>
+               </div>`;
+
+        return `
+        <div class="params-tab-container">
+            <div class="params-toolbar">
+                <div class="params-toolbar-info">
+                    <i class="ph-bold ph-info-circle"></i>
+                    Cấu hình các tham số để hệ thống tự sinh form nhập liệu khi xuất báo cáo tại tab Chatbot.
+                </div>
+                <div class="params-toolbar-actions">
+                    <button class="btn-suggest-params" id="btn-suggest-params">
+                        <i class="ph-bold ph-sparkle"></i> AI Gợi ý
+                    </button>
+                    <button class="btn-add-param" id="btn-add-param">
+                        <i class="ph-bold ph-plus"></i> Thêm tham số
+                    </button>
+                </div>
+            </div>
+            <div class="params-list" id="params-list">
+                ${paramsHtml}
+            </div>
+        </div>`;
+    }
+
+    /**
+     * Gắn events cho tab Tham số sau khi render
+     */
+    bindParamsTabEvents() {
+        // Nút thêm tham số mới
+        document.getElementById('btn-add-param')?.addEventListener('click', () => {
+            this.parameters.push({
+                key: '',
+                label: '',
+                type: 'text',
+                required: true,
+                dataSource: null,
+                dataColumn: null,
+                placeholder: '',
+                defaultValue: null,
+                promptTemplate: '',
+                order: this.parameters.length
+            });
+            this._refreshParamsList();
+        });
+
+        // Nút AI Gợi ý
+        document.getElementById('btn-suggest-params')?.addEventListener('click', () => this.handleSuggestParams());
+
+        // Bind events cho các card hiện tại
+        this._bindParamCardEvents();
+    }
+
+    /** Refresh chỉ list tham số mà không render lại toàn bộ tab */
+    _refreshParamsList() {
+        const list = document.getElementById('params-list');
+        if (!list) return;
+        // Re-render renderParamsTab inline content
+        const tmp = document.createElement('div');
+        tmp.innerHTML = this.renderParamsTab();
+        const newList = tmp.querySelector('#params-list');
+        if (newList) {
+            list.innerHTML = newList.innerHTML;
+            this._bindParamCardEvents();
+        }
+    }
+
+    /** Gắn events cho các param card (input change, toggle, remove, type switch) */
+    _bindParamCardEvents() {
+        const list = document.getElementById('params-list');
+        if (!list) return;
+
+        // Xóa tham số
+        list.querySelectorAll('.param-remove-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const idx = parseInt(btn.getAttribute('data-idx'));
+                this.parameters.splice(idx, 1);
+                // Cập nhật lại order
+                this.parameters.forEach((p, i) => p.order = i);
+                this._refreshParamsList();
+            });
+        });
+
+        // Input thay đổi
+        list.querySelectorAll('.param-input').forEach(input => {
+            const card = input.closest('[data-param-idx]');
+            const idx = parseInt(card?.getAttribute('data-param-idx'));
+            const field = input.getAttribute('data-field');
+
+            const updateParam = () => {
+                if (!this.parameters[idx]) return;
+                if (input.type === 'checkbox') {
+                    this.parameters[idx][field] = input.checked;
+                    // Cập nhật label toggle
+                    const toggleLabel = input.parentElement.querySelector('.param-toggle-label');
+                    if (toggleLabel) toggleLabel.textContent = input.checked ? 'Có' : 'Không';
+                } else {
+                    this.parameters[idx][field] = input.value;
+                }
+
+                // Auto-generate key từ label nếu key rỗng
+                if (field === 'label' && !this.parameters[idx].key) {
+                    const autoKey = input.value.toLowerCase()
+                        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                        .replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+                    this.parameters[idx].key = autoKey;
+                    const keyInput = card.querySelector('[data-field="key"]');
+                    if (keyInput) keyInput.value = autoKey;
+                }
+
+                // Hiển/ẩn các trường phụ thuộc loại
+                if (field === 'type') {
+                    const isSelect = input.value === 'select';
+                    const isDate = input.value === 'date' || input.value === 'daterange';
+                    card.querySelector('.param-source-row').style.display = isSelect ? 'flex' : 'none';
+                    const dateField = card.querySelector('[data-show-for="date daterange"]');
+                    if (dateField) dateField.style.display = isDate ? 'flex' : 'none';
+                }
+            };
+
+            if (input.type === 'checkbox') input.addEventListener('change', updateParam);
+            else input.addEventListener('input', updateParam);
+        });
+    }
+
+    /**
+     * Gọi AI gợi ý tham số cho template hiện tại
+     */
+    async handleSuggestParams() {
+        if (!this.selectedTemplate) return;
+
+        const btn = document.getElementById('btn-suggest-params');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="ph-bold ph-spinner animate-spin"></i> Đang phân tích...';
+        }
+
+        try {
+            const response = await ApiClient.post('/templates/suggest-params', {
+                fileName: this.selectedTemplate.fileName
+            });
+
+            if (response?.parameters?.length > 0) {
+                // Merge: giữ tham số cũ và thêm tham số mới AI gợi ý (không đè lên key đã có)
+                const existingKeys = new Set(this.parameters.map(p => p.key));
+                const newParams = response.parameters.filter(p => !existingKeys.has(p.key));
+                this.parameters = [...this.parameters, ...newParams];
+                this.parameters.forEach((p, i) => p.order = i);
+                this._refreshParamsList();
+                this.showToast(`AI đã gợi ý ${newParams.length} tham số mới. Hãy kiểm tra và điều chỉnh trước khi lưu.`, 'success');
+            } else {
+                this.showToast('AI không tìm thấy tham số phù hợp cho template này.', 'info');
+            }
+        } catch (err) {
+            console.error(err);
+            this.showToast('Lỗi khi gọi AI gợi ý tham số.', 'error');
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="ph-bold ph-sparkle"></i> AI Gợi ý';
+            }
+        }
     }
 }

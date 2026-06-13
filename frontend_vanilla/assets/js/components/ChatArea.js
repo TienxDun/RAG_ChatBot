@@ -564,18 +564,45 @@ export class ChatAreaComponent {
 
             const file = new File([blob], fileName, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
             
-            this.uiState.selectedFile = file;
-            this._renderFilePreview();
-            this._updateInputUI();
-            
-            Toast.success(`Đã chọn: ${fileName}`);
-
-            // Close popups and dropdowns
-            if (this.templatePopup) {
-                this.templatePopup.classList.remove('visible');
+            // Gọi endpoint lấy parameters của template
+            let params = [];
+            try {
+                const paramsData = await ApiClient.get(`/templates/params?fileName=${encodeURIComponent(fileName)}`);
+                params = paramsData?.parameters || [];
+            } catch (err) {
+                console.error("Failed to load params for template", err);
             }
-            if (window.app && window.app.header) {
-                window.app.header.close();
+
+            const executeSelect = (promptText = "") => {
+                this.uiState.selectedFile = file;
+                this._renderFilePreview();
+                this._updateInputUI();
+                
+                if (promptText) {
+                    this.elements.chatInput.value = promptText;
+                    this._handleInputAutoResize();
+                    // Tự động gửi tin nhắn sau khi điền form
+                    setTimeout(() => this.handleSend(), 100);
+                } else {
+                    Toast.success(`Đã chọn: ${fileName}`);
+                }
+
+                // Close popups and dropdowns
+                if (this.templatePopup) {
+                    this.templatePopup.classList.remove('visible');
+                }
+                if (window.app && window.app.header) {
+                    window.app.header.close();
+                }
+            };
+
+            if (params.length > 0) {
+                // Nếu có params, hiện modal để điền
+                this.showTemplateParamModal(fileName, params, (promptText) => {
+                    executeSelect(promptText);
+                });
+            } else {
+                executeSelect();
             }
         } catch (error) {
             console.error('Failed to select template from cache', error);
@@ -1065,6 +1092,343 @@ export class ChatAreaComponent {
         const messages = messagesList.querySelectorAll('.message:not(#typing-indicator)');
         messages.forEach((msgEl, index) => {
             msgEl.setAttribute('data-msg-index', index);
+        });
+    }
+
+    /**
+     * Hiển thị Modal nhập tham số báo cáo động
+     */
+    showTemplateParamModal(fileName, params, onConfirm) {
+        // Xóa modal cũ nếu có
+        const oldModal = document.getElementById('template-param-modal');
+        if (oldModal) oldModal.remove();
+
+        // Sắp xếp parameters theo order
+        const sortedParams = [...params].sort((a, b) => (a.order || 0) - (b.order || 0));
+
+        // Tạo overlay
+        const overlay = document.createElement('div');
+        overlay.id = 'template-param-modal';
+        overlay.className = 'param-modal-overlay';
+
+        // Render body form fields
+        let fieldsHtml = '';
+        sortedParams.forEach(param => {
+            const requiredStar = param.required ? '<span>*</span>' : '';
+            const placeholder = param.placeholder || '';
+            
+            let inputHtml = '';
+            if (param.type === 'select') {
+                inputHtml = `<select class="param-form-input" data-key="${param.key}" ${param.required ? 'required' : ''}>
+                    <option value="" selected disabled>Đang tải dữ liệu...</option>
+                </select>`;
+            } else if (param.type === 'date') {
+                let defaultVal = '';
+                if (param.defaultValue?.toLowerCase() === 'today') {
+                    defaultVal = new Date().toISOString().split('T')[0];
+                } else if (param.defaultValue) {
+                    defaultVal = param.defaultValue;
+                }
+                inputHtml = `<input type="text" class="param-form-input param-datepicker" data-key="${param.key}" value="${defaultVal}" placeholder="Chọn ngày..." ${param.required ? 'required' : ''} readonly style="background: var(--background); cursor: pointer;" />`;
+            } else if (param.type === 'daterange') {
+                let defaultStart = '';
+                let defaultEnd = '';
+                if (param.defaultValue?.toLowerCase() === 'today') {
+                    const todayStr = new Date().toISOString().split('T')[0];
+                    defaultStart = todayStr;
+                    defaultEnd = todayStr;
+                }
+                inputHtml = `
+                    <div class="param-date-range-container">
+                        <input type="text" class="param-form-input param-datepicker param-date-start" data-key="${param.key}-start" value="${defaultStart}" placeholder="Từ ngày..." ${param.required ? 'required' : ''} readonly style="background: var(--background); cursor: pointer;" />
+                        <span class="param-date-range-sep">đến</span>
+                        <input type="text" class="param-form-input param-datepicker param-date-end" data-key="${param.key}-end" value="${defaultEnd}" placeholder="Đến ngày..." ${param.required ? 'required' : ''} readonly style="background: var(--background); cursor: pointer;" />
+                    </div>
+                `;
+            } else if (param.type === 'number') {
+                const defaultVal = param.defaultValue || '';
+                inputHtml = `<input type="number" class="param-form-input" data-key="${param.key}" value="${defaultVal}" placeholder="${placeholder}" ${param.required ? 'required' : ''} />`;
+            } else {
+                // Mặc định là text
+                const defaultVal = param.defaultValue || '';
+                inputHtml = `<input type="text" class="param-form-input" data-key="${param.key}" value="${defaultVal}" placeholder="${placeholder}" ${param.required ? 'required' : ''} />`;
+            }
+
+            fieldsHtml += `
+                <div class="param-form-field">
+                    <label class="param-form-label">${param.label} ${requiredStar}</label>
+                    ${inputHtml}
+                </div>
+            `;
+        });
+
+        overlay.innerHTML = `
+            <div class="param-modal-container">
+                <div class="param-modal-header">
+                    <div class="param-modal-title">
+                        <i class="ph-fill ph-file-xls"></i>
+                        <div>
+                            <h3>Tham số xuất báo cáo</h3>
+                            <div class="param-modal-subtitle">${fileName}</div>
+                        </div>
+                    </div>
+                    <button class="param-modal-close" id="param-modal-btn-close">
+                        <i class="ph-bold ph-x"></i>
+                    </button>
+                </div>
+                <div class="param-modal-body">
+                    ${fieldsHtml}
+                </div>
+                <div class="param-modal-footer">
+                    <button class="param-modal-btn param-modal-btn-cancel" id="param-modal-btn-cancel">Hủy</button>
+                    <button class="param-modal-btn param-modal-btn-submit" id="param-modal-btn-submit">
+                        <i class="ph-bold ph-paper-plane-tilt"></i> Xuất báo cáo
+                    </button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(overlay);
+
+        // Kích hoạt animation hiển thị
+        setTimeout(() => overlay.classList.add('visible'), 50);
+
+        // Helper biến ô nhập năm thành dropdown chọn năm tùy chỉnh (dạng select cuộn đẹp như month)
+        const initYearSelect = (instance) => {
+            const container = instance.calendarContainer.querySelector('.flatpickr-current-month');
+            if (!container) return;
+
+            const yearInput = instance.currentYearElement;
+            if (!yearInput) return;
+            const numInputWrapper = yearInput.parentNode;
+            if (!numInputWrapper) return;
+            
+            // Ẩn wrapper input gốc
+            numInputWrapper.style.display = 'none';
+
+            // Kiểm tra xem select chọn năm tùy chỉnh đã tồn tại chưa
+            let customWrapper = container.querySelector('.flatpickr-custom-year-wrapper');
+            if (customWrapper) {
+                // Nếu đã tồn tại, đồng bộ năm hiện tại và đảm bảo input gốc bị ẩn
+                const trigger = customWrapper.querySelector('.flatpickr-year-trigger');
+                if (trigger) trigger.textContent = instance.currentYear;
+                
+                // Đồng bộ class selected trong dropdown
+                const dropdown = customWrapper.querySelector('.flatpickr-year-dropdown');
+                if (dropdown) {
+                    dropdown.querySelectorAll('.flatpickr-year-dropdown-item').forEach(item => {
+                        const y = parseInt(item.getAttribute('data-year'), 10);
+                        if (y === instance.currentYear) {
+                            item.classList.add('selected');
+                        } else {
+                            item.classList.remove('selected');
+                        }
+                    });
+                }
+                return;
+            }
+
+            // Tạo custom year wrapper
+            customWrapper = document.createElement('div');
+            customWrapper.className = 'flatpickr-custom-year-wrapper';
+            
+            const trigger = document.createElement('div');
+            trigger.className = 'flatpickr-year-trigger';
+            trigger.textContent = instance.currentYear;
+            
+            const dropdown = document.createElement('div');
+            dropdown.className = 'flatpickr-year-dropdown';
+            
+            // Xác định khoảng năm hiển thị từ 1970 đến 2060
+            const currentYear = new Date().getFullYear();
+            const startYear = Math.min(1970, currentYear - 30);
+            const endYear = Math.max(2060, currentYear + 30);
+
+            for (let y = startYear; y <= endYear; y++) {
+                const item = document.createElement('div');
+                item.className = `flatpickr-year-dropdown-item ${y === instance.currentYear ? 'selected' : ''}`;
+                item.textContent = y;
+                item.setAttribute('data-year', y);
+                
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    instance.changeYear(y);
+                    trigger.textContent = y;
+                    dropdown.classList.remove('open');
+                });
+                dropdown.appendChild(item);
+            }
+
+            customWrapper.appendChild(trigger);
+            customWrapper.appendChild(dropdown);
+
+            // Chèn select chọn năm vào sau ô nhập năm gốc (đã ẩn)
+            numInputWrapper.parentNode.insertBefore(customWrapper, numInputWrapper.nextSibling);
+
+            // Xử lý sự kiện click mở dropdown
+            trigger.addEventListener('click', (e) => {
+                e.stopPropagation();
+                
+                // Đóng các dropdown chọn năm khác nếu có
+                document.querySelectorAll('.flatpickr-year-dropdown.open').forEach(d => {
+                    if (d !== dropdown) d.classList.remove('open');
+                });
+                
+                dropdown.classList.toggle('open');
+                
+                if (dropdown.classList.contains('open')) {
+                    // Tự động cuộn đến năm đang chọn
+                    const selectedItem = dropdown.querySelector('.flatpickr-year-dropdown-item.selected');
+                    if (selectedItem) {
+                        setTimeout(() => {
+                            dropdown.scrollTop = selectedItem.offsetTop - (dropdown.clientHeight / 2) + (selectedItem.clientHeight / 2);
+                        }, 50);
+                    }
+                }
+            });
+
+            // Click ra ngoài để đóng dropdown
+            const closeDropdown = () => {
+                dropdown.classList.remove('open');
+            };
+            document.addEventListener('click', closeDropdown);
+            
+            instance.closeYearDropdown = closeDropdown;
+        };
+
+        // Khởi tạo Flatpickr tiếng Việt cho các trường ngày
+        if (typeof flatpickr !== 'undefined') {
+            flatpickr(overlay.querySelectorAll('.param-datepicker'), {
+                locale: 'vn',
+                dateFormat: 'Y-m-d',
+                altInput: true,
+                altFormat: 'd/m/Y',
+                allowInput: true,
+                onReady: function(selectedDates, dateStr, instance) {
+                    initYearSelect(instance);
+                },
+                onMonthChange: function(selectedDates, dateStr, instance) {
+                    initYearSelect(instance);
+                },
+                onYearChange: function(selectedDates, dateStr, instance) {
+                    initYearSelect(instance);
+                },
+                onOpen: function(selectedDates, dateStr, instance) {
+                    initYearSelect(instance);
+                },
+                onDestroy: function(selectedDates, dateStr, instance) {
+                    if (instance.closeYearDropdown) {
+                        document.removeEventListener('click', instance.closeYearDropdown);
+                    }
+                }
+            });
+        }
+
+        // Gọi API lookup cho các dropdown select
+        sortedParams.forEach(param => {
+            if (param.type === 'select' && param.dataSource && param.dataColumn) {
+                ApiClient.get(`/data/lookup?table=${encodeURIComponent(param.dataSource)}&column=${encodeURIComponent(param.dataColumn)}`)
+                    .then(data => {
+                        const selectEl = overlay.querySelector(`select[data-key="${param.key}"]`);
+                        if (selectEl) {
+                            if (Array.isArray(data) && data.length > 0) {
+                                selectEl.innerHTML = `
+                                    <option value="" ${param.required ? 'disabled selected' : 'selected'}>Chọn ${param.label.toLowerCase()}...</option>
+                                    ` + data.map(opt => `<option value="${opt.value}">${opt.label || opt.value}</option>`).join('');
+                            } else {
+                                selectEl.innerHTML = `<option value="" disabled selected>Không có dữ liệu</option>`;
+                            }
+                        }
+                    })
+                    .catch(err => {
+                        console.error(`Lookup failed for ${param.key}:`, err);
+                        const selectEl = overlay.querySelector(`select[data-key="${param.key}"]`);
+                        if (selectEl) {
+                            selectEl.innerHTML = `<option value="" disabled selected>Lỗi tải dữ liệu</option>`;
+                        }
+                    });
+            }
+        });
+
+        // Close modal helper
+        const closeModal = () => {
+            overlay.classList.remove('visible');
+            setTimeout(() => overlay.remove(), 300);
+        };
+
+        // Gán events đóng modal
+        overlay.querySelector('#param-modal-btn-close').addEventListener('click', closeModal);
+        overlay.querySelector('#param-modal-btn-cancel').addEventListener('click', closeModal);
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) closeModal();
+        });
+
+        // Submit form
+        overlay.querySelector('#param-modal-btn-submit').addEventListener('click', () => {
+            // Validate required fields
+            let isValid = true;
+            const paramPrompts = [];
+
+            for (const param of sortedParams) {
+                if (param.type === 'daterange') {
+                    const startEl = overlay.querySelector(`input[data-key="${param.key}-start"]`);
+                    const endEl = overlay.querySelector(`input[data-key="${param.key}-end"]`);
+                    const startVal = startEl?.value;
+                    const endVal = endEl?.value;
+
+                    if (param.required && (!startVal || !endVal)) {
+                        isValid = false;
+                        if (startEl && !startVal) startEl.style.borderColor = 'var(--destructive)';
+                        if (endEl && !endVal) endEl.style.borderColor = 'var(--destructive)';
+                        continue;
+                    }
+
+                    if (startVal || endVal) {
+                        const valStr = `từ ${startVal || '...'} đến ${endVal || '...'}`;
+                        let promptSegment = '';
+                        if (param.promptTemplate) {
+                            if (param.promptTemplate.includes('{start}') && param.promptTemplate.includes('{end}')) {
+                                promptSegment = param.promptTemplate.replace('{start}', startVal || '').replace('{end}', endVal || '');
+                            } else if (param.promptTemplate.includes('{value}')) {
+                                promptSegment = param.promptTemplate.replace('{value}', valStr);
+                            } else {
+                                promptSegment = `${param.label}: ${valStr}`;
+                            }
+                        } else {
+                            promptSegment = `${param.label}: ${valStr}`;
+                        }
+                        paramPrompts.push(promptSegment);
+                    }
+                } else {
+                    const el = overlay.querySelector(`[data-key="${param.key}"]`);
+                    const val = el?.value?.trim();
+
+                    if (param.required && !val) {
+                        isValid = false;
+                        if (el) el.style.borderColor = 'var(--destructive)';
+                        continue;
+                    }
+
+                    if (el) el.style.borderColor = ''; // reset border
+
+                    if (val) {
+                        const template = param.promptTemplate || `${param.label}: {value}`;
+                        const promptSegment = template.replace('{value}', val);
+                        paramPrompts.push(promptSegment);
+                    }
+                }
+            }
+
+            if (!isValid) {
+                Toast.warning("Vui lòng điền đầy đủ các thông tin bắt buộc.");
+                return;
+            }
+
+            // Tạo câu prompt cuối cùng
+            const promptText = `Xuất báo cáo Excel theo mẫu ${fileName} với các tham số: ${paramPrompts.join(', ')}`;
+            
+            closeModal();
+            onConfirm(promptText);
         });
     }
 
