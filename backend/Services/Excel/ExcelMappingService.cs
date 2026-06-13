@@ -21,31 +21,24 @@ public class ExcelMappingService : IExcelMappingService
 
     public ExcelMappingService()
     {
-        // 1. Thử tìm thư mục gốc dự án (đi lên 4 cấp từ AppContext.BaseDirectory để đến thư mục RAG_ChatBot)
+        // 1. Xác định thư mục data nằm tại backend/data trước, sau đó là các fallback
         var rootDir = AppContext.BaseDirectory;
-        var projectDir = Path.GetFullPath(Path.Combine(rootDir, "..", "..", "..", ".."));
-        var dataDir = Path.Combine(projectDir, "data");
+        // Đi lên 3 cấp để tìm thư mục backend/data (bin/Debug/net8.0 -> backend)
+        var backendDir = Path.GetFullPath(Path.Combine(rootDir, "..", "..", ".."));
+        var dataDir = Path.Combine(backendDir, "data");
 
-        // 2. Nếu không tìm thấy hoặc không tồn tại (ví dụ chạy ở môi trường Publish / Docker)
         if (!Directory.Exists(dataDir))
         {
-            // Quay lại đi lên 3 cấp (thư mục backend)
-            var backendDir = Path.GetFullPath(Path.Combine(rootDir, "..", "..", ".."));
-            dataDir = Path.Combine(backendDir, "data");
+            // Thử tìm data ở ngay thư mục build/publish (AppContext.BaseDirectory)
+            dataDir = Path.Combine(rootDir, "data");
             
             if (!Directory.Exists(dataDir))
             {
-                // Thử tìm data ở ngay thư mục build/publish (AppContext.BaseDirectory)
-                dataDir = Path.Combine(rootDir, "data");
-                
+                // Fallback về thư mục chạy hiện tại
+                dataDir = Path.Combine(Directory.GetCurrentDirectory(), "data");
                 if (!Directory.Exists(dataDir))
                 {
-                    // Fallback về thư mục chạy hiện tại
-                    dataDir = Path.Combine(Directory.GetCurrentDirectory(), "data");
-                    if (!Directory.Exists(dataDir))
-                    {
-                        Directory.CreateDirectory(dataDir);
-                    }
+                    Directory.CreateDirectory(dataDir);
                 }
             }
         }

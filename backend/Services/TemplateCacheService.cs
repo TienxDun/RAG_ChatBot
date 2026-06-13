@@ -28,27 +28,24 @@ public class TemplateCacheService
 
     public TemplateCacheService()
     {
-        // 1. Xác định thư mục templates bền vững nằm tại data/templates ở thư mục gốc hoặc backend
+        // 1. Xác định thư mục templates nằm tại backend/data/templates trước, sau đó là các fallback
         var rootDir = AppContext.BaseDirectory;
-        var projectDir = Path.GetFullPath(Path.Combine(rootDir, "..", "..", "..", ".."));
-        var dataDir = Path.Combine(projectDir, "data");
+        // Đi lên 3 cấp để tìm thư mục backend/data (bin/Debug/net8.0 -> backend)
+        var backendDir = Path.GetFullPath(Path.Combine(rootDir, "..", "..", ".."));
+        var dataDir = Path.Combine(backendDir, "data");
 
         if (!Directory.Exists(dataDir))
         {
-            var backendDir = Path.GetFullPath(Path.Combine(rootDir, "..", "..", ".."));
-            dataDir = Path.Combine(backendDir, "data");
+            // Thử tìm data ở ngay thư mục build/publish (AppContext.BaseDirectory)
+            dataDir = Path.Combine(rootDir, "data");
+            
             if (!Directory.Exists(dataDir))
             {
-                // Thử tìm data ở ngay thư mục build/publish (AppContext.BaseDirectory)
-                dataDir = Path.Combine(rootDir, "data");
-                
+                // Fallback về thư mục chạy hiện tại
+                dataDir = Path.Combine(Directory.GetCurrentDirectory(), "data");
                 if (!Directory.Exists(dataDir))
                 {
-                    dataDir = Path.Combine(Directory.GetCurrentDirectory(), "data");
-                    if (!Directory.Exists(dataDir))
-                    {
-                        Directory.CreateDirectory(dataDir);
-                    }
+                    Directory.CreateDirectory(dataDir);
                 }
             }
         }

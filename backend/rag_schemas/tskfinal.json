@@ -14,9 +14,9 @@
     {
       "id": "T_TSK_FN_002",
       "severity": "CRITICAL",
-      "rule": "TÊN CỘT CHUYỀN LÀ Line (kiểu varchar). TUYỆT ĐỐI CẤM dùng LineX (chữ X viết hoa) hoặc Linex (chữ x viết thường). Lọc bằng so sánh bằng (ví dụ: Line = '109').",
-      "correct_example": "WHERE Line = '109'",
-      "wrong_example": "WHERE LineX = '109' hoặc WHERE Linex = 109"
+      "rule": "TÊN CỘT CHUYỀN LÀ Line (kiểu varchar). TUYỆT ĐỐI CẤM dùng LineX (chữ X viết hoa) hoặc Linex (chữ x viết thường). Khi liệt kê hoặc hiển thị chuyền, BẮT BUỘC kết nối (JOIN) với bảng tbl_SettingLineX qua Line = tbl_SettingLineX.ID để lấy Name đặt bí danh [Tên chuyền] hiển thị thay vì hiển thị mã ID.",
+      "correct_example": "SELECT t.IDF, l.Name AS [Tên chuyền] FROM TskFinal t JOIN tbl_SettingLineX l ON t.Line = l.ID WHERE t.Line = '109'",
+      "wrong_example": "SELECT t.IDF, t.Line FROM TskFinal t WHERE t.Line = '109'"
     },
     {
       "id": "T_TSK_FN_003",
