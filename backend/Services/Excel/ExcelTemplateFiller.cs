@@ -21,7 +21,9 @@ public interface IExcelTemplateFiller
         List<int>? fillableRowIndexes = null,
         int? totalRowIndex = null,
         bool isExplicitFillableOnly = false,
-        ExcelTemplateSubtotalConfig? subtotalConfig = null);
+        ExcelTemplateSubtotalConfig? subtotalConfig = null,
+        Dictionary<string, string>? columnFormats = null,
+        Dictionary<string, string>? metadataCellMappings = null);
     void FillHierarchicalTemplate(
         ExcelWorksheet worksheet,
         DataTable data,
@@ -32,7 +34,9 @@ public interface IExcelTemplateFiller
         List<int>? fillableRowIndexes = null,
         int? totalRowIndex = null,
         bool isExplicitFillableOnly = false,
-        ExcelTemplateSubtotalConfig? subtotalConfig = null);
+        ExcelTemplateSubtotalConfig? subtotalConfig = null,
+        Dictionary<string, string>? columnFormats = null,
+        Dictionary<string, string>? metadataCellMappings = null);
     void FillMetadata(
         ExcelWorksheet worksheet, 
         int headerRowIndex, 
@@ -139,12 +143,12 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
     }
 
     // Ghi một dòng dữ liệu vào Excel sheet
-    private void WriteRowData(ExcelWorksheet worksheet, DataRow dataRow, int excelRowIndex, List<ColumnMapping> mappings)
+    private void WriteRowData(ExcelWorksheet worksheet, DataRow dataRow, int excelRowIndex, List<ColumnMapping> mappings, Dictionary<string, string>? columnFormats)
     {
         double maxRowHeight = worksheet.Row(excelRowIndex).Height;
         if (maxRowHeight <= 0) maxRowHeight = 20;
 
-        var numericCols = GetNumericColumns(dataRow.Table);
+        var numericCols = GetNumericColumns(dataRow.Table, columnFormats);
 
         foreach (var map in mappings)
         {
@@ -157,7 +161,14 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
                 if (isNumericCol)
                 {
                     cell.Value = 0;
-                    cell.Style.Numberformat.Format = colFormat;
+                    if (colFormat != null && colFormat.Contains(".#"))
+                    {
+                        cell.Style.Numberformat.Format = colFormat.Replace(".##", "").Replace(".#", "");
+                    }
+                    else
+                    {
+                        cell.Style.Numberformat.Format = colFormat;
+                    }
                     cell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Right;
                 }
                 else
@@ -170,7 +181,14 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
             if (val is DateTime dt)
             {
                 cell.Value = dt;
-                cell.Style.Numberformat.Format = "dd/MM/yyyy";
+                if (columnFormats != null && columnFormats.TryGetValue(map.DataTableColumnName, out var customFormat) && !string.IsNullOrWhiteSpace(customFormat))
+                {
+                    cell.Style.Numberformat.Format = customFormat;
+                }
+                else
+                {
+                    cell.Style.Numberformat.Format = "dd/MM/yyyy";
+                }
                 cell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
             }
             else if (isNumericCol)
@@ -185,7 +203,14 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
                     dVal = double.TryParse(val.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out double parsed) ? parsed : 0;
                 }
                 cell.Value = dVal;
-                cell.Style.Numberformat.Format = colFormat;
+                if (colFormat != null && colFormat.Contains(".#") && dVal == Math.Truncate(dVal))
+                {
+                    cell.Style.Numberformat.Format = colFormat.Replace(".##", "").Replace(".#", "");
+                }
+                else
+                {
+                    cell.Style.Numberformat.Format = colFormat;
+                }
                 cell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Right;
             }
             else
@@ -194,7 +219,14 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
                 if (DateTime.TryParse(strVal, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime dtParsed))
                 {
                     cell.Value = dtParsed;
-                    cell.Style.Numberformat.Format = "dd/MM/yyyy";
+                    if (columnFormats != null && columnFormats.TryGetValue(map.DataTableColumnName, out var customFormat) && !string.IsNullOrWhiteSpace(customFormat))
+                    {
+                        cell.Style.Numberformat.Format = customFormat;
+                    }
+                    else
+                    {
+                        cell.Style.Numberformat.Format = "dd/MM/yyyy";
+                    }
                     cell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
                 }
                 else
@@ -261,7 +293,9 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
         int dataStartRowIndex,
         List<ColumnMapping> mappings,
         ExcelTemplateSubtotalConfig subtotalConfig,
-        int? totalRowIndex)
+        int? totalRowIndex,
+        Dictionary<string, string>? columnFormats = null,
+        Dictionary<string, string>? metadataCellMappings = null)
     {
         if (data == null || data.Rows.Count == 0 || mappings.Count == 0) return;
 
@@ -272,7 +306,7 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
         if (groupByMapping == null)
         {
             // Fallback nếu không cấu hình đúng cột group by
-            FillTemplateCore(worksheet, data, dataStartRowIndex, mappings, null, null, totalRowIndex, false);
+            FillTemplateCore(worksheet, data, dataStartRowIndex, mappings, null, null, totalRowIndex, false, columnFormats);
             return;
         }
 
@@ -361,7 +395,7 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
             // Điền các dòng chi tiết của nhóm
             foreach (var row in group.Rows)
             {
-                WriteRowData(worksheet, row, currentExcelRow, mappings);
+                WriteRowData(worksheet, row, currentExcelRow, mappings, columnFormats);
                 EnsureRowBorders(worksheet, currentExcelRow, mappings);
                 currentExcelRow++;
             }
@@ -521,14 +555,20 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
                     {
                         double rateVal = (double)groupTotalLoi / groupTotalKiem * 100;
                         rateCell.Value = rateVal;
-                        double testVal = Math.Round(rateVal, 2);
-                        if (testVal == Math.Truncate(testVal))
+                        
+                        string format = "#,##0.##";
+                        if (columnFormats != null && columnFormats.TryGetValue(rateColName, out var customFmt) && !string.IsNullOrWhiteSpace(customFmt))
                         {
-                            rateCell.Style.Numberformat.Format = "#,##0";
+                            format = customFmt;
+                        }
+
+                        if (format.Contains(".#") && rateVal == Math.Truncate(rateVal))
+                        {
+                            rateCell.Style.Numberformat.Format = format.Replace(".##", "").Replace(".#", "");
                         }
                         else
                         {
-                            rateCell.Style.Numberformat.Format = "#,##0.##";
+                            rateCell.Style.Numberformat.Format = format;
                         }
                     }
                     else
@@ -607,14 +647,20 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
                             {
                                 double rVal = rateVal.Value;
                                 startCell.Value = rVal;
-                                double testVal = Math.Round(rVal, 2);
-                                if (testVal == Math.Truncate(testVal))
+                                
+                                string format = "#,##0.##";
+                                if (columnFormats != null && columnFormats.TryGetValue(mergeColName, out var customFmt) && !string.IsNullOrWhiteSpace(customFmt))
                                 {
-                                    startCell.Style.Numberformat.Format = "#,##0";
+                                    format = customFmt;
+                                }
+
+                                if (format.Contains(".#") && rVal == Math.Truncate(rVal))
+                                {
+                                    startCell.Style.Numberformat.Format = format.Replace(".##", "").Replace(".#", "");
                                 }
                                 else
                                 {
-                                    startCell.Style.Numberformat.Format = "#,##0.##";
+                                    startCell.Style.Numberformat.Format = format;
                                 }
                             }
                             else
@@ -720,14 +766,20 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
                     {
                         double rateVal = (double)grandTotalLoi / grandTotalKiem * 100;
                         rateCell.Value = rateVal;
-                        double testVal = Math.Round(rateVal, 2);
-                        if (testVal == Math.Truncate(testVal))
+                        
+                        string format = "#,##0.##";
+                        if (columnFormats != null && columnFormats.TryGetValue(rateColName, out var customFmt) && !string.IsNullOrWhiteSpace(customFmt))
                         {
-                            rateCell.Style.Numberformat.Format = "#,##0";
+                            format = customFmt;
+                        }
+
+                        if (format.Contains(".#") && rateVal == Math.Truncate(rateVal))
+                        {
+                            rateCell.Style.Numberformat.Format = format.Replace(".##", "").Replace(".#", "");
                         }
                         else
                         {
-                            rateCell.Style.Numberformat.Format = "#,##0.##";
+                            rateCell.Style.Numberformat.Format = format;
                         }
                     }
                     else
@@ -750,6 +802,9 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
                 cell.Style.Border.Left.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
                 cell.Style.Border.Right.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
             }
+
+            // Đảm bảo độ rộng tối thiểu cho cột tỉ lệ %, text, ngày và tối ưu ô metadata
+            OptimizeExcelLayout(worksheet, mappings, columnFormats, metadataCellMappings, data);
         }
     }
 
@@ -764,7 +819,9 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
         List<int>? fillableRowIndexes = null,
         int? totalRowIndex = null,
         bool isExplicitFillableOnly = false,
-        ExcelTemplateSubtotalConfig? subtotalConfig = null)
+        ExcelTemplateSubtotalConfig? subtotalConfig = null,
+        Dictionary<string, string>? columnFormats = null,
+        Dictionary<string, string>? metadataCellMappings = null)
     {
         // 1. Tạo mapping cột
         var mappings = new List<ColumnMapping>();
@@ -793,7 +850,7 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
 
         if (subtotalConfig != null && (rowLabels == null || rowLabels.Count == 0))
         {
-            FillTemplateWithSubtotals(worksheet, data, dataStartRowIndex, mappings, subtotalConfig, totalRowIndex);
+            FillTemplateWithSubtotals(worksheet, data, dataStartRowIndex, mappings, subtotalConfig, totalRowIndex, columnFormats, metadataCellMappings);
             return;
         }
 
@@ -805,7 +862,9 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
             rowLabels,
             fillableRowIndexes,
             totalRowIndex,
-            isExplicitFillableOnly);
+            isExplicitFillableOnly,
+            columnFormats,
+            metadataCellMappings);
     }
 
     // Điền dữ liệu dạng Hierarchical (Bảng phân tầng)
@@ -819,7 +878,9 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
         List<int>? fillableRowIndexes = null,
         int? totalRowIndex = null,
         bool isExplicitFillableOnly = false,
-        ExcelTemplateSubtotalConfig? subtotalConfig = null)
+        ExcelTemplateSubtotalConfig? subtotalConfig = null,
+        Dictionary<string, string>? columnFormats = null,
+        Dictionary<string, string>? metadataCellMappings = null)
     {
         // 1. Tạo mapping cột từ FlattenedColumn truyền vào
         var mappings = new List<ColumnMapping>();
@@ -845,7 +906,7 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
 
         if (subtotalConfig != null && (rowLabels == null || rowLabels.Count == 0))
         {
-            FillTemplateWithSubtotals(worksheet, data, dataStartRowIndex, mappings, subtotalConfig, totalRowIndex);
+            FillTemplateWithSubtotals(worksheet, data, dataStartRowIndex, mappings, subtotalConfig, totalRowIndex, columnFormats, metadataCellMappings);
             return;
         }
 
@@ -857,7 +918,9 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
             rowLabels,
             fillableRowIndexes,
             totalRowIndex,
-            isExplicitFillableOnly);
+            isExplicitFillableOnly,
+            columnFormats,
+            metadataCellMappings);
     }
 
     // Core logic xử lý điền dữ liệu, chèn dòng và copy style
@@ -869,7 +932,9 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
         List<string>? rowLabels = null,
         List<int>? fillableRowIndexes = null,
         int? totalRowIndex = null,
-        bool isExplicitFillableOnly = false)
+        bool isExplicitFillableOnly = false,
+        Dictionary<string, string>? columnFormats = null,
+        Dictionary<string, string>? metadataCellMappings = null)
     {
         if (data == null || data.Rows.Count == 0 || mappings.Count == 0)
         {
@@ -932,7 +997,7 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
 
                     if (targetExcelRow != -1)
                     {
-                        WriteRowData(worksheet, dr, targetExcelRow, mappings);
+                        WriteRowData(worksheet, dr, targetExcelRow, mappings, columnFormats);
                         EnsureRowBorders(worksheet, targetExcelRow, mappings);
                     }
                 }
@@ -962,7 +1027,7 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
             // Điền bình thường không cần chèn dòng
             for (int i = 0; i < dataRowsCount; i++)
             {
-                WriteRowData(worksheet, data.Rows[i], targetRows[i], mappings);
+                WriteRowData(worksheet, data.Rows[i], targetRows[i], mappings, columnFormats);
                 EnsureRowBorders(worksheet, targetRows[i], mappings);
             }
 
@@ -981,7 +1046,7 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
                 // Chỉ điền tối đa số dòng trống có sẵn
                 for (int i = 0; i < availableRowsCount; i++)
                 {
-                    WriteRowData(worksheet, data.Rows[i], targetRows[i], mappings);
+                    WriteRowData(worksheet, data.Rows[i], targetRows[i], mappings, columnFormats);
                     EnsureRowBorders(worksheet, targetRows[i], mappings);
                 }
             }
@@ -1025,9 +1090,12 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
                 // Ghi dữ liệu tuần tự vào toàn bộ các dòng
                 for (int i = 0; i < dataRowsCount; i++)
                 {
-                    WriteRowData(worksheet, data.Rows[i], targetRows[i], mappings);
+                    WriteRowData(worksheet, data.Rows[i], targetRows[i], mappings, columnFormats);
                     EnsureRowBorders(worksheet, targetRows[i], mappings);
                 }
+
+                // Đảm bảo độ rộng tối thiểu cho cột tỉ lệ %, text, ngày và tối ưu ô metadata
+                OptimizeExcelLayout(worksheet, mappings, columnFormats, metadataCellMappings, data);
             }
         }
     }
@@ -1090,7 +1158,184 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
         }
     }
 
-    private Dictionary<string, string> GetNumericColumns(DataTable table)
+    private void OptimizeExcelLayout(
+        ExcelWorksheet worksheet,
+        List<ColumnMapping> mappings,
+        Dictionary<string, string>? columnFormats,
+        Dictionary<string, string>? metadataCellMappings,
+        DataTable dataTable)
+    {
+        if (worksheet == null) return;
+
+        // 1. Tối ưu độ rộng cho các Cột Dữ Liệu (Grid Columns)
+        if (mappings != null && mappings.Count > 0)
+        {
+            foreach (var map in mappings)
+            {
+                double curWidth = worksheet.Column(map.ExcelColumnIndex).Width;
+                if (curWidth <= 0) curWidth = 10; 
+
+                double targetWidth = curWidth;
+
+                string? format = null;
+                if (columnFormats != null && columnFormats.TryGetValue(map.DataTableColumnName, out format) && !string.IsNullOrWhiteSpace(format))
+                {
+                    string fmtLower = format.ToLowerInvariant();
+                    if (fmtLower.Contains("%"))
+                    {
+                        targetWidth = Math.Max(targetWidth, 10.5); // Tỷ lệ %
+                    }
+                    else if (fmtLower.Contains("d") || fmtLower.Contains("m") || fmtLower.Contains("y"))
+                    {
+                        targetWidth = Math.Max(targetWidth, 12.0); // Ngày tháng
+                    }
+                    else if (fmtLower.Contains("#") || fmtLower.Contains("0"))
+                    {
+                        targetWidth = Math.Max(targetWidth, 10.0); // Số
+                    }
+                }
+                else
+                {
+                    // Cột văn bản thường: tính theo chữ dài nhất
+                    int maxTextLen = 0;
+                    foreach (DataRow row in dataTable.Rows)
+                    {
+                        var val = row[map.DataTableColumnName];
+                        if (val != null && val != DBNull.Value)
+                        {
+                            int len = val.ToString()?.Length ?? 0;
+                            if (len > maxTextLen) maxTextLen = len;
+                        }
+                    }
+                    
+                    if (maxTextLen > 0)
+                    {
+                        double dynamicWidth = Math.Min(maxTextLen + 3, 35);
+                        targetWidth = Math.Max(targetWidth, dynamicWidth);
+                    }
+                }
+
+                if (targetWidth > curWidth)
+                {
+                    worksheet.Column(map.ExcelColumnIndex).Width = targetWidth;
+                }
+            }
+        }
+
+        // 2. Tối ưu độ rộng và Gộp ô an toàn cho Ô Metadata
+        if (metadataCellMappings != null && metadataCellMappings.Count > 0)
+        {
+            foreach (var kvp in metadataCellMappings)
+            {
+                // Nhận diện địa chỉ ô từ key hoặc value theo Format 1/Format 2
+                string cellAddress = System.Text.RegularExpressions.Regex.IsMatch(kvp.Key.Trim(), @"^[A-Za-z]{1,3}\d{1,7}$") 
+                    ? kvp.Key.Trim() 
+                    : kvp.Value.Trim();
+
+                if (string.IsNullOrWhiteSpace(cellAddress)) continue;
+
+                var cell = worksheet.Cells[cellAddress];
+                if (cell == null) continue;
+
+                int row = cell.Start.Row;
+                int col = cell.Start.Column;
+                string cellText = cell.Text ?? "";
+                
+                if (!string.IsNullOrEmpty(cellText))
+                {
+                    double safetyWidth = cellText.Length + 3; // Độ rộng cần thiết
+
+                    if (cell.Merge)
+                    {
+                        // Trường hợp ô đã được gộp sẵn trong template (Ví dụ: B4:D4)
+                        int mergeId = worksheet.GetMergeCellId(row, col);
+                        if (mergeId > 0)
+                        {
+                            var mergedRangeStr = worksheet.MergedCells[mergeId - 1];
+                            if (!string.IsNullOrEmpty(mergedRangeStr))
+                            {
+                                var addr = new ExcelAddress(mergedRangeStr);
+                                int startCol = addr.Start.Column;
+                                int endCol = addr.End.Column;
+
+                                double totalMergedWidth = 0;
+                                for (int c = startCol; c <= endCol; c++)
+                                {
+                                    double w = worksheet.Column(c).Width;
+                                    if (w <= 0) w = 10;
+                                    totalMergedWidth += w;
+                                }
+
+                                if (safetyWidth > totalMergedWidth)
+                                {
+                                    // Cộng thêm phần thiếu hụt vào cột cuối cùng của ô gộp
+                                    double diff = safetyWidth - totalMergedWidth;
+                                    double curEndColWidth = worksheet.Column(endCol).Width;
+                                    if (curEndColWidth <= 0) curEndColWidth = 10;
+                                    worksheet.Column(endCol).Width = curEndColWidth + diff;
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // Trường hợp ô đơn lẻ (chưa gộp)
+                        double curWidth = worksheet.Column(col).Width;
+                        if (curWidth <= 0) curWidth = 10;
+
+                        if (safetyWidth > curWidth)
+                        {
+                            int mergeExtend = 0;
+                            int nextCol = col + 1;
+                            int maxCol = worksheet.Dimension?.Columns ?? nextCol;
+                            double totalMergedWidth = curWidth;
+
+                            // Chạy vòng lặp kiểm tra và cộng dồn các ô trống bên phải
+                            while (nextCol <= maxCol)
+                            {
+                                var rightCell = worksheet.Cells[row, nextCol];
+                                
+                                // Điều kiện: Ô bên phải tồn tại, trống hoàn toàn và chưa bị gộp
+                                if (rightCell != null && 
+                                    (rightCell.Value == null || string.IsNullOrWhiteSpace(rightCell.Text)) && 
+                                    !rightCell.Merge)
+                                {
+                                    double rightWidth = worksheet.Column(nextCol).Width;
+                                    if (rightWidth <= 0) rightWidth = 10;
+                                    
+                                    totalMergedWidth += rightWidth;
+                                    mergeExtend++;
+
+                                    if (totalMergedWidth >= safetyWidth)
+                                    {
+                                        break; // Đã đủ rộng sau khi gộp, dừng vòng lặp
+                                    }
+                                    nextCol++;
+                                }
+                                else
+                                {
+                                    break; // Gặp ô có chữ hoặc nhãn có sẵn -> dừng ngay lập tức
+                                }
+                            }
+
+                            if (mergeExtend > 0)
+                            {
+                                // Thực hiện gộp ô an toàn (Không làm mất dữ liệu nhãn bên cạnh)
+                                worksheet.Cells[row, col, row, col + mergeExtend].Merge = true;
+                            }
+                            else
+                            {
+                                // Fallback: Nếu không gộp được ô nào, bắt buộc phải tăng độ rộng cột
+                                worksheet.Column(col).Width = safetyWidth;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private Dictionary<string, string> GetNumericColumns(DataTable table, Dictionary<string, string>? columnFormats)
     {
         const string cacheKey = "NumericColumnsFormatCache";
         if (table.ExtendedProperties.Contains(cacheKey))
@@ -1117,34 +1362,41 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
                 continue;
             }
 
+            bool isCustomNumeric = false;
+            string? customFormat = null;
+            if (columnFormats != null && columnFormats.TryGetValue(columnName, out customFormat) && !string.IsNullOrWhiteSpace(customFormat))
+            {
+                string fmtLower = customFormat.ToLowerInvariant();
+                if (!fmtLower.Contains("d") && !fmtLower.Contains("m") && !fmtLower.Contains("y"))
+                {
+                    isCustomNumeric = true;
+                }
+            }
+
             bool hasNumericValue = false;
             bool isNumeric = true;
             bool hasDecimalValue = false;
 
-            foreach (DataRow row in table.Rows)
+            if (isCustomNumeric)
             {
-                var val = row[columnName];
-                if (val == null || val == DBNull.Value)
+                hasNumericValue = true;
+                isNumeric = true;
+            }
+            else
+            {
+                foreach (DataRow row in table.Rows)
                 {
-                    continue;
-                }
-
-                double dVal;
-                if (val is double || val is float || val is decimal || val is int || val is long || val is short || val is byte)
-                {
-                    hasNumericValue = true;
-                    dVal = Convert.ToDouble(val);
-                    if (dVal != Math.Truncate(dVal))
+                    var val = row[columnName];
+                    if (val == null || val == DBNull.Value)
                     {
-                        hasDecimalValue = true;
+                        continue;
                     }
-                }
-                else
-                {
-                    string strVal = val.ToString() ?? "";
-                    if (double.TryParse(strVal, NumberStyles.Any, CultureInfo.InvariantCulture, out dVal))
+
+                    double dVal;
+                    if (val is double || val is float || val is decimal || val is int || val is long || val is short || val is byte)
                     {
                         hasNumericValue = true;
+                        dVal = Convert.ToDouble(val);
                         if (dVal != Math.Truncate(dVal))
                         {
                             hasDecimalValue = true;
@@ -1152,22 +1404,36 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
                     }
                     else
                     {
-                        isNumeric = false;
-                        break;
+                        string strVal = val.ToString() ?? "";
+                        if (double.TryParse(strVal, NumberStyles.Any, CultureInfo.InvariantCulture, out dVal))
+                        {
+                            hasNumericValue = true;
+                            if (dVal != Math.Truncate(dVal))
+                            {
+                                hasDecimalValue = true;
+                            }
+                        }
+                        else
+                        {
+                            isNumeric = false;
+                            break;
+                        }
                     }
                 }
             }
 
             if (isNumeric && hasNumericValue)
             {
-                // Chọn định dạng cho toàn bộ cột
                 string format = "#,##0"; // Mặc định cho số nguyên
                 
-                // Nếu cột chứa số thập phân hoặc tên cột chứa các từ khóa tỉ lệ/phần trăm
-                if (hasDecimalValue || lowerColName.Contains("tile") || lowerColName.Contains("rate") || 
+                if (isCustomNumeric && customFormat != null)
+                {
+                    format = customFormat;
+                }
+                else if (hasDecimalValue || lowerColName.Contains("tile") || lowerColName.Contains("rate") || 
                     lowerColName.Contains("percent") || lowerColName.Contains("%"))
                 {
-                    format = "#,##0.00;-#,##0.00;0"; // Định dạng 2 chữ số thập phân cho tỉ lệ, riêng số 0 chỉ hiện một số 0 nguyên
+                    format = "#,##0.##;-#,##0.##;0";
                 }
 
                 numericCols[columnName] = format;

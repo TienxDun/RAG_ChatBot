@@ -56,6 +56,7 @@ public class ExcelTemplateMapping
 {
     public Dictionary<string, string> ColumnMappings { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     public Dictionary<string, string> MetadataCellMappings { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    public Dictionary<string, string> ColumnFormats { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     public ExcelTemplateSubtotalConfig? SubtotalConfig { get; set; }
 
     /// Danh sách tham số động được admin cấu hình cho template này.

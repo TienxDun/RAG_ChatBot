@@ -291,7 +291,9 @@ public class ExcelReportService
                 templateInfo.FillableRowIndexes,
                 templateInfo.TotalRowIndex,
                 false,
-                templateMapping.SubtotalConfig);
+                templateMapping.SubtotalConfig,
+                templateMapping.ColumnFormats,
+                templateMapping.MetadataCellMappings);
         }
         else
         {
@@ -305,7 +307,9 @@ public class ExcelReportService
                 templateInfo.FillableRowIndexes,
                 templateInfo.TotalRowIndex,
                 false,
-                templateMapping.SubtotalConfig);
+                templateMapping.SubtotalConfig,
+                templateMapping.ColumnFormats,
+                templateMapping.MetadataCellMappings);
         }
 
         // 7. Kích hoạt tính năng tính toán công thức của EPPlus để cập nhật kết quả dòng Tổng cộng
