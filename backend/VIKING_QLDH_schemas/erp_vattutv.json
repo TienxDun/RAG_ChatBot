@@ -1,0 +1,70 @@
+{
+  "table": "ERP_VatTuTV",
+  "purpose": "Lưu trữ dữ liệu bảng ERP_VatTuTV của hệ thống Viking QLDH.",
+  "when_to_use": "Sử dụng khi câu hỏi yêu cầu truy vấn thông tin liên quan đến ERP_VatTuTV.",
+  "when_not_to_use": "Không sử dụng khi câu hỏi không nhắc tới các chỉ tiêu của ERP_VatTuTV.",
+  "table_rules": [],
+  "columns": [
+    {
+      "name": "ID",
+      "type": "int",
+      "role": "primary_key",
+      "desc": "Mô tả cho cột ID."
+    },
+    {
+      "name": "MaVTID",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaVTID."
+    },
+    {
+      "name": "MaVT",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaVT."
+    },
+    {
+      "name": "ChiTiet",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột ChiTiet."
+    },
+    {
+      "name": "NguoiTao",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột NguoiTao."
+    },
+    {
+      "name": "NgayTao",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột NgayTao."
+    },
+    {
+      "name": "NguoiSua",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột NguoiSua."
+    },
+    {
+      "name": "NgaySua",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột NgaySua."
+    },
+    {
+      "name": "TuoiTonKho",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột TuoiTonKho."
+    },
+    {
+      "name": "LeadTime",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột LeadTime."
+    }
+  ],
+  "relationships": []
+}

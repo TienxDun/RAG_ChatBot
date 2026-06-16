@@ -1,0 +1,122 @@
+{
+  "table": "BangSize",
+  "purpose": "Lưu trữ dữ liệu bảng BangSize của hệ thống Viking QLDH.",
+  "when_to_use": "Sử dụng khi câu hỏi yêu cầu truy vấn thông tin liên quan đến BangSize.",
+  "when_not_to_use": "Không sử dụng khi câu hỏi không nhắc tới các chỉ tiêu của BangSize.",
+  "table_rules": [],
+  "columns": [
+    {
+      "name": "ID",
+      "type": "int",
+      "role": "primary_key",
+      "desc": "Mô tả cho cột ID."
+    },
+    {
+      "name": "MaSize",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaSize."
+    },
+    {
+      "name": "MaHang",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaHang."
+    },
+    {
+      "name": "CodeSize",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột CodeSize."
+    },
+    {
+      "name": "TenSize",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột TenSize."
+    },
+    {
+      "name": "SizeSanXuat",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột SizeSanXuat."
+    },
+    {
+      "name": "GhiChu",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột GhiChu."
+    },
+    {
+      "name": "XacNhan",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột XacNhan."
+    },
+    {
+      "name": "SizeXacNhan",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột SizeXacNhan."
+    },
+    {
+      "name": "MaNhomSize",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaNhomSize."
+    },
+    {
+      "name": "NhomSize",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột NhomSize."
+    },
+    {
+      "name": "MaKH",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaKH."
+    },
+    {
+      "name": "Sort",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột Sort."
+    },
+    {
+      "name": "MaTheSize",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaTheSize."
+    },
+    {
+      "name": "MaTheInSeam",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaTheInSeam."
+    },
+    {
+      "name": "SortIs",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột SortIs."
+    }
+  ],
+  "relationships": [
+    {
+      "target_table": "ERP_NhapKhoNPL",
+      "join_on": "BangSize.MaHang = ERP_NhapKhoNPL.MaHang",
+      "notes": "Liên kết bảng size với bảng nhập kho nguyên phụ liệu qua MaHang để tra cứu theo mã hàng."
+    },
+    {
+      "target_table": "KhachHang",
+      "join_on": "BangSize.MaKH = KhachHang.MaKH",
+      "notes": "Liên kết với danh mục khách hàng qua MaKH."
+    },
+    {
+      "target_table": "ERP_KhachHangNK",
+      "join_on": "BangSize.MaKH = ERP_KhachHangNK.MaKH",
+      "notes": "Liên kết với danh mục khách hàng nhập khẩu qua MaKH."
+    }
+  ]
+}

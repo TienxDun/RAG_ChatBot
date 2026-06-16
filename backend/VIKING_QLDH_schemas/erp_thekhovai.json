@@ -1,0 +1,70 @@
+{
+  "table": "ERP_TheKhoVai",
+  "purpose": "Lưu trữ dữ liệu bảng ERP_TheKhoVai của hệ thống Viking QLDH.",
+  "when_to_use": "Sử dụng khi câu hỏi yêu cầu truy vấn thông tin liên quan đến ERP_TheKhoVai.",
+  "when_not_to_use": "Không sử dụng khi câu hỏi không nhắc tới các chỉ tiêu của ERP_TheKhoVai.",
+  "table_rules": [],
+  "columns": [
+    {
+      "name": "ID",
+      "type": "int",
+      "role": "primary_key",
+      "desc": "Mô tả cho cột ID."
+    },
+    {
+      "name": "TheKhoVai",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột TheKhoVai."
+    },
+    {
+      "name": "MaTheKhoVai",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaTheKhoVai."
+    },
+    {
+      "name": "MaCLVT",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaCLVT."
+    },
+    {
+      "name": "IsOriginal",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột IsOriginal."
+    },
+    {
+      "name": "NguoiTao",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột NguoiTao."
+    },
+    {
+      "name": "NgayTao",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột NgayTao."
+    },
+    {
+      "name": "NguoiSua",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột NguoiSua."
+    },
+    {
+      "name": "NgaySua",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột NgaySua."
+    }
+  ],
+  "relationships": [
+    {
+      "target_table": "ChungLoaiVatTu",
+      "join_on": "ERP_TheKhoVai.MaCLVT = ChungLoaiVatTu.MaCLVT",
+      "notes": "Liên kết với danh mục chủng loại vật tư qua MaCLVT."
+    }
+  ]
+}

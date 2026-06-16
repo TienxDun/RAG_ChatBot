@@ -1,0 +1,207 @@
+{
+  "table": "Qty_KiemPL_XacNhan",
+  "purpose": "Lưu trữ dữ liệu bảng Qty_KiemPL_XacNhan của hệ thống Viking QLDH.",
+  "when_to_use": "Sử dụng khi câu hỏi yêu cầu truy vấn thông tin liên quan đến Qty_KiemPL_XacNhan.",
+  "when_not_to_use": "Không sử dụng khi câu hỏi không nhắc tới các chỉ tiêu của Qty_KiemPL_XacNhan.",
+  "table_rules": [],
+  "columns": [
+    {
+      "name": "ID",
+      "type": "int",
+      "role": "primary_key",
+      "desc": "Mô tả cho cột ID."
+    },
+    {
+      "name": "MaPhieuKiem",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaPhieuKiem."
+    },
+    {
+      "name": "SoLoID",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột SoLoID."
+    },
+    {
+      "name": "NgayKiem",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột NgayKiem."
+    },
+    {
+      "name": "KL_QC_Pass",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột KL_QC_Pass."
+    },
+    {
+      "name": "NgayKiem_Pass",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột NgayKiem_Pass."
+    },
+    {
+      "name": "Sign_Pass",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột Sign_Pass."
+    },
+    {
+      "name": "KQ_Fail",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột KQ_Fail."
+    },
+    {
+      "name": "NgayKiem_Fail",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột NgayKiem_Fail."
+    },
+    {
+      "name": "Sign_Fail",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột Sign_Fail."
+    },
+    {
+      "name": "TPCL_ComfirmDate",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột TPCL_ComfirmDate."
+    },
+    {
+      "name": "TPCL_ComfirmSign",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột TPCL_ComfirmSign."
+    },
+    {
+      "name": "KQ_GiaiQuyet",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột KQ_GiaiQuyet."
+    },
+    {
+      "name": "KQ_GiaiQuyet_Sign",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột KQ_GiaiQuyet_Sign."
+    },
+    {
+      "name": "ReceivedInfo_Date",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột ReceivedInfo_Date."
+    },
+    {
+      "name": "ReceivedInfo_Sign",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột ReceivedInfo_Sign."
+    },
+    {
+      "name": "Result",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột Result."
+    },
+    {
+      "name": "MaNPL",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaNPL."
+    },
+    {
+      "name": "Result_Mer",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột Result_Mer."
+    },
+    {
+      "name": "Dot",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột Dot."
+    },
+    {
+      "name": "IsUpdate",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột IsUpdate."
+    },
+    {
+      "name": "Is_XN_SoLo",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột Is_XN_SoLo."
+    },
+    {
+      "name": "Is_SignQA_Mau",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột Is_SignQA_Mau."
+    },
+    {
+      "name": "Is_SignQA_Manager_Mau",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột Is_SignQA_Manager_Mau."
+    },
+    {
+      "name": "Is_SignQA_Mer_Mau",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột Is_SignQA_Mer_Mau."
+    },
+    {
+      "name": "GhiChu_QC",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột GhiChu_QC."
+    },
+    {
+      "name": "GhiChu_TBP_QC",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột GhiChu_TBP_QC."
+    },
+    {
+      "name": "GhiChu_Mer",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột GhiChu_Mer."
+    },
+    {
+      "name": "UserSign_QC",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột UserSign_QC."
+    },
+    {
+      "name": "UserSign_QC_Manager",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột UserSign_QC_Manager."
+    },
+    {
+      "name": "UserSign_Mer",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột UserSign_Mer."
+    }
+  ],
+  "relationships": [
+    {
+      "target_table": "ERP_NhapKhoNPL",
+      "join_on": "Qty_KiemPL_XacNhan.SoLoID = ERP_NhapKhoNPL.SoLoID",
+      "notes": "Liên kết với thông tin lô nhập kho chính qua SoLoID."
+    },
+    {
+      "target_table": "ERP_VatTuTV",
+      "join_on": "Qty_KiemPL_XacNhan.MaNPL = ERP_VatTuTV.MaVTID",
+      "notes": "Liên kết với danh mục vật tư qua MaNPL -> MaVTID."
+    }
+  ]
+}

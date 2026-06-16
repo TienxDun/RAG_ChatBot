@@ -1,0 +1,124 @@
+{
+  "table": "KhachHang",
+  "purpose": "Lưu trữ dữ liệu bảng KhachHang của hệ thống Viking QLDH.",
+  "when_to_use": "Sử dụng khi câu hỏi yêu cầu truy vấn thông tin liên quan đến KhachHang.",
+  "when_not_to_use": "Không sử dụng khi câu hỏi không nhắc tới các chỉ tiêu của KhachHang.",
+  "table_rules": [],
+  "columns": [
+    {
+      "name": "ID",
+      "type": "int",
+      "role": "primary_key",
+      "desc": "Mô tả cho cột ID."
+    },
+    {
+      "name": "MaKH",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaKH."
+    },
+    {
+      "name": "TenKH",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột TenKH."
+    },
+    {
+      "name": "GhiChu",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột GhiChu."
+    },
+    {
+      "name": "MaDT",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaDT."
+    },
+    {
+      "name": "SDT",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột SDT."
+    },
+    {
+      "name": "Email",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột Email."
+    },
+    {
+      "name": "DiaChi",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột DiaChi."
+    },
+    {
+      "name": "MaSoThue",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaSoThue."
+    },
+    {
+      "name": "NguoiDaiDien",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột NguoiDaiDien."
+    },
+    {
+      "name": "MaLoaiDT",
+      "type": "int",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaLoaiDT."
+    },
+    {
+      "name": "VietTat",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột VietTat."
+    },
+    {
+      "name": "MaQG",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaQG."
+    },
+    {
+      "name": "MaHoa",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaHoa."
+    },
+    {
+      "name": "NguoiTao",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột NguoiTao."
+    },
+    {
+      "name": "NgayTao",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột NgayTao."
+    },
+    {
+      "name": "NguoiSua",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột NguoiSua."
+    },
+    {
+      "name": "NgaySua",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột NgaySua."
+    }
+  ],
+  "relationships": [
+    {
+      "target_table": "ERP_KhachHangNK",
+      "join_on": "KhachHang.MaKH = ERP_KhachHangNK.MaKH",
+      "notes": "Liên kết với danh mục khách hàng nhập khẩu qua MaKH."
+    }
+  ]
+}

@@ -16,9 +16,9 @@ public static class RagPromptBuilder
                 CÂU HỎI CỦA NGƯỜI DÙNG: ""{userQuery}""
 
                 NHIỆM VỤ BẠN:
-                0. QUAN TRỌNG VỀ THỜI GIAN TRUY VẤN: Nếu người dùng hỏi về các khoảng thời gian tương đối/mơ hồ như ""gần đây"", ""gần nhất"", ""mới nhất"", ""hôm nay"", ""tuần này"", ""tháng này"":
-                   - Hãy kết hợp với 'Thời gian hệ thống hiện tại' ({currentTimeStr}) để xác định khoảng thời gian cụ thể (ví dụ: ""gần đây/gần nhất"" -> tính ngược từ {currentTimeStr} khoảng 7 ngày hoặc 30 ngày tùy loại dữ liệu).
-                   - Nêu rõ mốc thời gian lọc cụ thể này trong phần mô tả bước để bước SQL kế tiếp thực thi đúng.
+                0. QUAN TRỌNG VỀ THỜI GIAN TRUY VẤN: 
+                   - Nếu người dùng cung cấp NGÀY THÁNG CỤ THỂ hoặc KHOẢNG NGÀY TUYỆT ĐỐI (ví dụ: ""từ 2026-01-01 đến 2026-01-31"", ""tháng 1/2026"", ""ngày 2026-03-15""...): Bạn BẮT BUỘC phải giữ nguyên và sử dụng chính xác các ngày tuyệt đối này trong câu truy vấn SQL. TUYỆT ĐỐI CẤM tự ý thay đổi hoặc tính toán lại chúng dựa trên 'Thời gian hệ thống hiện tại'.
+                   - Chỉ khi người dùng hỏi về các khoảng thời gian tương đối/mơ hồ như ""gần đây"", ""gần nhất"", ""mới nhất"", ""hôm nay"", ""tuần này"", ""tháng này"": Kết hợp với 'Thời gian hệ thống hiện tại' ({currentTimeStr}) để xác định khoảng thời gian cụ thể (ví dụ: ""gần đây"" -> tính ngược từ {currentTimeStr} khoảng 7 ngày hoặc 30 ngày tùy loại dữ liệu) và nêu rõ mốc thời gian này.
                 1. Kiểm tra xem câu hỏi có liên quan đến dữ liệu trong các bảng trên hay không. Nếu không liên quan đến database, hãy đặt `isOutOfScope: true`.
                 2. Nếu câu hỏi liên quan đến database, hãy phân tích xem câu hỏi có bị mơ hồ, thiếu thông tin gom nhóm (GROUP BY) hoặc thống kê cụ thể hay không (ví dụ: 'top lỗi', 'sản lượng cao nhất'):
                    - Hãy tự động đưa ra quyết định hoặc giả định hợp lý nhất dựa trên cấu trúc CSDL thực tế được cung cấp bên trên 
