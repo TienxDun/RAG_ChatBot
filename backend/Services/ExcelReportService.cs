@@ -248,6 +248,11 @@ public class ExcelReportService
         // Sắp xếp DataTable theo ngày tăng dần (từ quá khứ tới gần nhất)
         SortDataTableByDate(dataTable, templateInfo.Columns);
 
+        if (dataTable.Rows.Count == 0)
+        {
+            throw new InvalidOperationException("Không tìm thấy dữ liệu phát sinh cho kế hoạch này trong khoảng thời gian đã chọn.");
+        }
+
         // 5. Điền Metadata
         var metadataValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         if (ragResponse.Metadata != null)
@@ -291,7 +296,9 @@ public class ExcelReportService
                 templateInfo.FillableRowIndexes,
                 templateInfo.TotalRowIndex,
                 false,
-                templateMapping.SubtotalConfig);
+                templateMapping.SubtotalConfig,
+                templateMapping.ColumnFormats,
+                templateMapping.MetadataCellMappings);
         }
         else
         {
@@ -305,7 +312,9 @@ public class ExcelReportService
                 templateInfo.FillableRowIndexes,
                 templateInfo.TotalRowIndex,
                 false,
-                templateMapping.SubtotalConfig);
+                templateMapping.SubtotalConfig,
+                templateMapping.ColumnFormats,
+                templateMapping.MetadataCellMappings);
         }
 
         // 7. Kích hoạt tính năng tính toán công thức của EPPlus để cập nhật kết quả dòng Tổng cộng

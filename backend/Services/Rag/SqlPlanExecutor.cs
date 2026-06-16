@@ -86,6 +86,7 @@ public class SqlPlanExecutor : ISqlPlanExecutor
             string generatedSql = string.Empty;
             string lastError = string.Empty;
             int stepMaxAttempts = 3;
+            var isFinalStep = !isMultiStep || i == stepsToExecute.Count - 1;
 
             for (int attempt = 1; attempt <= stepMaxAttempts; attempt++)
             {
@@ -95,7 +96,7 @@ public class SqlPlanExecutor : ISqlPlanExecutor
                     {workingContextBuilder}
 
                     NHIỆM VỤ HIỆN TẠI: {currentStepDesc}
-                    {(isMultiStep ? "" : $@"CÂU HỎI GỐC: ""{userQuery}""")}
+                    CÂU HỎI GỐC: ""{userQuery}""
 
                     {globalRules}
 
@@ -104,19 +105,21 @@ public class SqlPlanExecutor : ISqlPlanExecutor
                         - Nếu câu hỏi hoặc nhiệm vụ có chứa NGÀY THÁNG CỤ THỂ hoặc KHOẢNG NGÀY TUYỆT ĐỐI (ví dụ: ""từ 2026-01-01 đến 2026-01-31"", ""tháng 1/2026"", ""ngày 2026-03-15""...): Bạn BẮT BUỘC phải giữ nguyên và sử dụng chính xác các ngày tuyệt đối này trong câu truy vấn SQL. TUYỆT ĐỐI CẤM tự ý thay đổi hoặc tính toán lại chúng dựa trên 'Thời gian hệ thống hiện tại'.
                         - Chỉ đối với các khoảng thời gian tương đối/mơ hồ như ""gần đây"", ""gần nhất"", ""mới nhất"", ""hôm nay"", ""tuần này"", ""tháng này"", bạn mới dựa vào 'Thời gian hệ thống hiện tại' ({currentTimeStr}) để tính toán lùi ngày tháng tương ứng trong câu SQL (ví dụ: lọc từ ({currentTimeStr} - 30 ngày) đến {currentTimeStr} nếu là 30 ngày gần nhất).
                     1. CHỈ thực hiện nhiệm vụ trong 'NHIỆM VỤ HIỆN TẠI'. 
-                    {(isMultiStep ? "TUYỆT ĐỐI KHÔNG giải quyết toàn bộ yêu cầu của người dùng nếu nó đòi hỏi nhiều bước xử lý. Chỉ tập trung lấy dữ liệu trung gian cho bước này." : "")}
+                    {(isMultiStep && !isFinalStep ? "Hãy đọc kĩ 'CÂU HỎI GỐC' để trích xuất các điều kiện lọc (như PlanCode, Mã chuyền/LineX, Khoảng thời gian/NgayKiem, v.v.) và áp dụng chúng vào câu SQL của bước hiện tại để lọc dữ liệu sớm nhất có thể. TUYỆT ĐỐI KHÔNG giải quyết toàn bộ yêu cầu của người dùng nếu nó đòi hỏi nhiều bước xử lý. Chỉ tập trung lấy dữ liệu trung gian cho bước này." : "")}
                     
                     2. TRUYỀN THAM SỐ GIỮA CÁC BƯỚC: BẮT BUỘC sử dụng giá trị thực tế lấy từ phần 'KẾT QUẢ CÁC BƯỚC TRƯỚC ĐÓ' bên trên (nhìn vào SampleData) và các TÊN CỘT tương ứng để làm điều kiện lọc (WHERE) cho bước này.
                        - Nếu bước trước trả về danh sách nhiều ID, hãy sử dụng toán tử IN (ví dụ: WHERE MaKhachHang IN ('KH001', 'KH002')) thay vì chỉ lọc một giá trị.
 
-                    3. QUY TẮC ÁNH XẠ NGHIỆP VỤ THÔNG MINH (BẮT BUỘC TUÂN THỦ):
+                    {(isFinalStep ? @"3. QUY TẮC ÁNH XẠ NGHIỆP VỤ THÔNG MINH (BẮT BUỘC TUÂN THỦ):
                        - Hãy đọc kỹ phần 'DANH SÁCH Ý NGHĨA & CÔNG THỨC CỘT EXCEL TỰ ĐỊNH NGHĨA BỞI NGƯỜI DÙNG' trong Câu hỏi gốc.
                        - Bạn BẮT BUỘC phải phân tích kỹ mô tả ý nghĩa/công thức của từng cột (UniqueKey) do người dùng cung cấp và đối chiếu ngữ nghĩa (semantic matching) với các cột/bảng thực tế có trong Database để tìm ra trường dữ liệu tương ứng chính xác nhất.
                        - TUYỆT ĐỐI không được gán cột SQL một cách máy móc theo tên UniqueKey kỹ thuật nếu mô tả ý nghĩa của người dùng khác biệt hoặc mâu thuẫn với tên UniqueKey đó.
                        - Ví dụ minh họa: Nếu UniqueKey là `..._SLkiemQuantity` (tên hiển thị là SL kiểm) nhưng người dùng định nghĩa ý nghĩa cột này là 'Số lượng đạt' (lượng sản phẩm đạt tiêu chuẩn), bạn phải tìm cột biểu diễn số lượng đạt thực tế trong database (như `TongDat`, `Quantity`...) để gán cho cột này, TUYỆT ĐỐI không được cộng thêm số lượng sản phẩm lỗi (`SpLoi`) vào đây.
                        - Nếu người dùng cung cấp ghi chú chứa công thức toán học (ví dụ: 'Tỉ lệ lỗi = Số lượng lỗi / (số lượng lỗi + số lượng đạt)' hoặc tương tự), bạn BẮT BUỘC phải chuyển đổi chính xác công thức đó thành biểu thức SQL tương ứng dựa trên các cột database đã ánh xạ ở trên.
 
-                    4. Cú pháp phản hồi: Trả về mã SQL thô, không giải thích, không markdown.
+                    4. QUY TẮC BẮT BUỘC VỀ ALIAS CỘT KẾT QUẢ: Đây là bước truy vấn cuối cùng để lấy dữ liệu trả về cho người dùng. Bạn BẮT BUỘC phải đọc kỹ phần 'YÊU CẦU ĐẶC BIỆT CHO BÁO CÁO EXCEL' trong Câu hỏi gốc và đặt ALIAS (AS) cho các cột kết quả trong câu SELECT cuối cùng trùng khớp hoàn toàn với danh sách UniqueKey được yêu cầu (ví dụ: SELECT cot_goc AS [Cosmos_Loi])." : "")}
+
+                    {(isFinalStep ? "5" : "3")}. Cú pháp phản hồi: Trả về mã SQL thô, không giải thích, không markdown.
                     {(string.IsNullOrEmpty(lastError) ? "" : $"\nLỖI TRƯỚC ĐÓ: {lastError}\nHãy sửa SQL.")}";
 
                 var tracker = Backend.Models.PerformanceContext.Current;

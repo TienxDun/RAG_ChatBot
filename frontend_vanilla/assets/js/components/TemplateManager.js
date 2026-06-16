@@ -16,6 +16,7 @@ export class TemplateManagerComponent {
         // Dữ liệu cấu hình tạm thời
         this.columnMappings = {};
         this.metadataCellMappings = {};
+        this.columnFormats = {};
         // Danh sách tham số động (tính năng Dynamic Parameter Form)
         this.parameters = [];
 
@@ -309,6 +310,7 @@ export class TemplateManagerComponent {
             // Đồng bộ dữ liệu ánh xạ hiện tại
             this.columnMappings = result.savedMappings || {};
             this.metadataCellMappings = result.metadataCellMappings || {};
+            this.columnFormats = result.columnFormats || {};
 
             // Load parameters từ API (tính năng Dynamic Form)
             try {
@@ -436,9 +438,10 @@ export class TemplateManagerComponent {
             <table class="column-mapping-table">
                 <thead>
                     <tr>
-                        <th style="width: 35%;">Tên cột tiêu đề (Excel)</th>
-                        <th style="width: 20%;">Vị trí cột</th>
-                        <th style="width: 45%;">Ý nghĩa cột dữ liệu (AI Chú thích)</th>
+                        <th style="width: 30%;">Tên cột tiêu đề (Excel)</th>
+                        <th style="width: 15%;">Vị trí cột</th>
+                        <th style="width: 20%;">Định dạng (Format)</th>
+                        <th style="width: 35%;">Ý nghĩa cột dữ liệu (AI Chú thích)</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -449,8 +452,22 @@ export class TemplateManagerComponent {
                 ? `${col.parentHeader} ➔ ${col.childHeader}` 
                 : col.childHeader;
             const savedValue = this.columnMappings[col.uniqueKey] || '';
+            const savedFormat = this.columnFormats[col.uniqueKey] || '';
             const colLetter = this.getColumnLetter(col.columnIndex);
             
+            const formatOptions = [
+                { value: '', label: 'Mặc định (Tự nhận diện)' },
+                { value: 'dd/MM/yyyy', label: 'Ngày (dd/MM/yyyy)' },
+                { value: '#,##0', label: 'Số nguyên (20)' },
+                { value: '#,##0.##', label: 'Số lẻ tùy chọn (15.5)' },
+                { value: '#,##0.##"%"', label: 'Tỷ lệ % tự động (20%)' }
+            ];
+
+            const selectOptions = formatOptions.map(opt => {
+                const escapedValue = opt.value.replace(/"/g, '&quot;');
+                return `<option value="${escapedValue}" ${savedFormat === opt.value ? 'selected' : ''}>${opt.label}</option>`;
+            }).join('');
+
             return `
                 <tr class="column-mapping-row">
                     <td>
@@ -461,6 +478,11 @@ export class TemplateManagerComponent {
                             <i class="ph-bold ph-file-spreadsheet col-excel-icon"></i>
                             Cột ${colLetter} (Chỉ số: ${col.columnIndex})
                         </span>
+                    </td>
+                    <td>
+                        <select class="column-format-select" data-key="${col.uniqueKey}" style="width:100%; padding:6px; border:1px solid var(--border); border-radius:6px; background:var(--background); color:var(--foreground); font-size:0.825rem;">
+                            ${selectOptions}
+                        </select>
                     </td>
                     <td>
                         <div class="column-input-wrapper">
@@ -602,6 +624,20 @@ export class TemplateManagerComponent {
             });
         });
 
+        // Ghi nhận thay đổi của select Column Formats
+        const formatSelects = this.container.querySelectorAll('.column-format-select');
+        formatSelects.forEach(select => {
+            select.addEventListener('change', () => {
+                const key = select.getAttribute('data-key');
+                const val = select.value;
+                if (val) {
+                    this.columnFormats[key] = val;
+                } else {
+                    delete this.columnFormats[key];
+                }
+            });
+        });
+
         // Căn chỉnh chiều cao của các textarea ngay sau khi load xong giao diện
         setTimeout(() => this.adjustTextareaHeights(), 100);
 
@@ -702,6 +738,20 @@ export class TemplateManagerComponent {
                             // Co giãn chiều cao động khi thay đổi thủ công
                             input.style.height = 'auto';
                             input.style.height = (input.scrollHeight + 2) + 'px';
+                        });
+                    });
+
+                    // Gán lại sự kiện change cho select format mới
+                    const formatSelects = this.container.querySelectorAll('.column-format-select');
+                    formatSelects.forEach(select => {
+                        select.addEventListener('change', () => {
+                            const key = select.getAttribute('data-key');
+                            const val = select.value;
+                            if (val) {
+                                this.columnFormats[key] = val;
+                            } else {
+                                delete this.columnFormats[key];
+                            }
                         });
                     });
                     
@@ -865,6 +915,7 @@ export class TemplateManagerComponent {
             fileName: this.selectedTemplate.fileName,
             mappings: this.columnMappings,
             metadataCellMappings: this.metadataCellMappings,
+            columnFormats: this.columnFormats,
             parameters: this.parameters.length > 0 ? this.parameters : null
         };
 
@@ -876,6 +927,7 @@ export class TemplateManagerComponent {
             if (this.selectedTemplateData) {
                 this.selectedTemplateData.savedMappings = this.columnMappings;
                 this.selectedTemplateData.metadataCellMappings = this.metadataCellMappings;
+                this.selectedTemplateData.columnFormats = this.columnFormats;
             }
         } catch (error) {
             console.error('❌ Failed to save template mappings:', error);

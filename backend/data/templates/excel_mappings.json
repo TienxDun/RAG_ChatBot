@@ -21,6 +21,11 @@
       "H4": "PO | QTY_InLineQC_NgayKiem.PO",
       "B4": "MaLenh -- MH: MaHang | ERP_LENHSX.MaLenh"
     },
+    "ColumnFormats": {
+      "Cosmos_Ngaykiem": "dd/MM/yyyy",
+      "Cosmos_Loi": "#,##0.##\"%\"",
+      "Cosmos_TBloiNgay": "#,##0.##\"%\""
+    },
     "SubtotalConfig": {
       "GroupByColumn": "Cosmos_Ngaykiem",
       "SumColumns": [
@@ -121,6 +126,13 @@
       "F5": "Tên chuyền | tbl_SettingLineX.Name",
       "C5": "PlanCode -- MH: MaHang | QTY_MAHANG_NGAYKIEM.PlanCode"
     },
+    "ColumnFormats": {
+      "Ngay": "dd/MM/yyyy",
+      "ThanhPham_Tileloi": "#,##0.##\"%\"",
+      "Vo_Tileloi": "#,##0.##\"%\"",
+      "Lotthuong_Tileloi": "#,##0.##\"%\"",
+      "Lotlan_Tileloi": "#,##0.##\"%\""
+    },
     "SubtotalConfig": null,
     "Parameters": [
       {
@@ -169,6 +181,7 @@
     "MetadataCellMappings": {
       "B5": "tên chuyền"
     },
+    "ColumnFormats": {},
     "SubtotalConfig": null,
     "Parameters": null
   }

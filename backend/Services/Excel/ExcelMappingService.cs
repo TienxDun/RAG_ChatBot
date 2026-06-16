@@ -117,6 +117,16 @@ public class ExcelMappingService : IExcelMappingService
                 }
             }
 
+            bool hasColumnFormats = element.TryGetProperty("columnFormats", out var formatProp) || 
+                                    element.TryGetProperty("ColumnFormats", out formatProp);
+            if (hasColumnFormats && formatProp.ValueKind == JsonValueKind.Object)
+            {
+                foreach (var prop in formatProp.EnumerateObject())
+                {
+                    mapping.ColumnFormats[prop.Name] = prop.Value.GetString() ?? "";
+                }
+            }
+
             bool hasSubtotalConfig = element.TryGetProperty("subtotalConfig", out var subtotalProp) || 
                                      element.TryGetProperty("SubtotalConfig", out subtotalProp);
             if (hasSubtotalConfig && subtotalProp.ValueKind == JsonValueKind.Object)

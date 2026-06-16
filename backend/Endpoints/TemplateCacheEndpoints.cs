@@ -216,7 +216,8 @@ public static class TemplateCacheEndpoints
                 metadata = result.Metadata,
                 grid = result.Grid,
                 savedMappings = templateMapping.ColumnMappings,
-                metadataCellMappings = templateMapping.MetadataCellMappings
+                metadataCellMappings = templateMapping.MetadataCellMappings,
+                columnFormats = templateMapping.ColumnFormats
             });
         }
         catch (Exception ex)
@@ -230,6 +231,7 @@ public static class TemplateCacheEndpoints
         public string FileName { get; set; } = string.Empty;
         public Dictionary<string, string> Mappings { get; set; } = new();
         public Dictionary<string, string> MetadataCellMappings { get; set; } = new();
+        public Dictionary<string, string>? ColumnFormats { get; set; }
         /// Danh sách tham số động (null = không thay đổi tham số hiện tại)
         public List<TemplateParameter>? Parameters { get; set; }
     }
@@ -250,6 +252,7 @@ public static class TemplateCacheEndpoints
             {
                 ColumnMappings = request.Mappings ?? new(),
                 MetadataCellMappings = request.MetadataCellMappings ?? new(),
+                ColumnFormats = request.ColumnFormats ?? existing.ColumnFormats ?? new(),
                 SubtotalConfig = existing.SubtotalConfig,
                 Parameters = request.Parameters ?? existing.Parameters
             };
