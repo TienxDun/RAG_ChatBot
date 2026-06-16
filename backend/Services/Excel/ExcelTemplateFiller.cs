@@ -44,6 +44,12 @@ public interface IExcelTemplateFiller
         Dictionary<string, string>? metadataCellMappings = null);
 }
 
+public class ColumnMapping
+{
+    public string DataTableColumnName { get; set; } = string.Empty;
+    public int ExcelColumnIndex { get; set; }
+}
+
 public class ExcelTemplateFiller : IExcelTemplateFiller
 {
     private readonly ITextUtility _textUtility;
@@ -53,93 +59,10 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
         _textUtility = textUtility;
     }
 
-    private class ColumnMapping
-    {
-        public string DataTableColumnName { get; set; } = string.Empty;
-        public int ExcelColumnIndex { get; set; }
-    }
-
     // Chuyển đổi JSON sang DataTable case-insensitive theo các cột của template
     public DataTable ConvertJsonToDataTable(string jsonString, List<string> templateColumns)
     {
-        var dataTable = new DataTable();
-        var normalizedColumns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var col in templateColumns)
-        {
-            dataTable.Columns.Add(col, typeof(object));
-            normalizedColumns[col] = col;
-        }
-
-        if (string.IsNullOrWhiteSpace(jsonString))
-        {
-            return dataTable;
-        }
-
-        try
-        {
-            using var doc = JsonDocument.Parse(jsonString);
-            if (doc.RootElement.ValueKind != JsonValueKind.Array)
-            {
-                return dataTable;
-            }
-
-            foreach (var element in doc.RootElement.EnumerateArray())
-            {
-                var row = dataTable.NewRow();
-
-                foreach (var prop in element.EnumerateObject())
-                {
-                    if (normalizedColumns.TryGetValue(prop.Name, out var originalColName))
-                    {
-                        var valElement = prop.Value;
-                        object? value = null;
-
-                        switch (valElement.ValueKind)
-                        {
-                            case JsonValueKind.Number:
-                                value = valElement.GetDouble();
-                                break;
-                            case JsonValueKind.True:
-                            case JsonValueKind.False:
-                                value = valElement.GetBoolean();
-                                break;
-                            case JsonValueKind.String:
-                                var str = valElement.GetString();
-                                if (DateTime.TryParse(str, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime dt))
-                                {
-                                    value = dt;
-                                }
-                                else if (double.TryParse(str, NumberStyles.Any, CultureInfo.InvariantCulture, out double d))
-                                {
-                                    value = d;
-                                }
-                                else
-                                {
-                                    value = str;
-                                }
-                                break;
-                            case JsonValueKind.Null:
-                                value = DBNull.Value;
-                                break;
-                            default:
-                                value = valElement.ToString();
-                                break;
-                        }
-
-                        row[originalColName] = value ?? DBNull.Value;
-                    }
-                }
-
-                dataTable.Rows.Add(row);
-            }
-        }
-        catch
-        {
-            // Bỏ qua lỗi parse và trả về table rỗng hoặc phần đã parse được
-        }
-
-        return dataTable;
+        return ExcelDataHelper.ConvertJsonToDataTable(jsonString, templateColumns);
     }
 
     // Ghi một dòng dữ liệu vào Excel sheet
@@ -160,16 +83,7 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
             {
                 if (isNumericCol)
                 {
-                    cell.Value = 0;
-                    if (colFormat != null && colFormat.Contains(".#"))
-                    {
-                        cell.Style.Numberformat.Format = colFormat.Replace(".##", "").Replace(".#", "");
-                    }
-                    else
-                    {
-                        cell.Style.Numberformat.Format = colFormat;
-                    }
-                    cell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Right;
+                    WriteNumericCell(cell, 0, colFormat);
                 }
                 else
                 {
@@ -180,16 +94,9 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
 
             if (val is DateTime dt)
             {
-                cell.Value = dt;
-                if (columnFormats != null && columnFormats.TryGetValue(map.DataTableColumnName, out var customFormat) && !string.IsNullOrWhiteSpace(customFormat))
-                {
-                    cell.Style.Numberformat.Format = customFormat;
-                }
-                else
-                {
-                    cell.Style.Numberformat.Format = "dd/MM/yyyy";
-                }
-                cell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                string? customFormat = null;
+                columnFormats?.TryGetValue(map.DataTableColumnName, out customFormat);
+                WriteDateTimeCell(cell, dt, customFormat);
             }
             else if (isNumericCol)
             {
@@ -202,66 +109,76 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
                 {
                     dVal = double.TryParse(val.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out double parsed) ? parsed : 0;
                 }
-                cell.Value = dVal;
-                if (colFormat != null && colFormat.Contains(".#") && dVal == Math.Truncate(dVal))
-                {
-                    cell.Style.Numberformat.Format = colFormat.Replace(".##", "").Replace(".#", "");
-                }
-                else
-                {
-                    cell.Style.Numberformat.Format = colFormat;
-                }
-                cell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Right;
+                WriteNumericCell(cell, dVal, colFormat);
             }
             else
             {
                 string strVal = val.ToString() ?? "";
                 if (DateTime.TryParse(strVal, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime dtParsed))
                 {
-                    cell.Value = dtParsed;
-                    if (columnFormats != null && columnFormats.TryGetValue(map.DataTableColumnName, out var customFormat) && !string.IsNullOrWhiteSpace(customFormat))
-                    {
-                        cell.Style.Numberformat.Format = customFormat;
-                    }
-                    else
-                    {
-                        cell.Style.Numberformat.Format = "dd/MM/yyyy";
-                    }
-                    cell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                    string? customFormat = null;
+                    columnFormats?.TryGetValue(map.DataTableColumnName, out customFormat);
+                    WriteDateTimeCell(cell, dtParsed, customFormat);
                 }
                 else
                 {
-                    if (strVal.Contains("|"))
-                    {
-                        var uniqueItems = strVal.Split('|')
-                            .Select(item => item.Trim())
-                            .Where(item => !string.IsNullOrEmpty(item))
-                            .Distinct(StringComparer.OrdinalIgnoreCase);
-                        strVal = string.Join(" | ", uniqueItems);
-                    }
-                    
-                    cell.Value = strVal;
-
-                    if (strVal.Length > 20 || strVal.Contains("|"))
-                    {
-                        cell.Style.WrapText = true;
-                        double colWidth = worksheet.Column(map.ExcelColumnIndex).Width;
-                        if (colWidth <= 0) colWidth = 15;
-
-                        int charsPerLine = Math.Max(5, (int)(colWidth * 0.9));
-                        int lineCount = (int)Math.Ceiling((double)strVal.Length / charsPerLine);
-
-                        double estimatedHeight = lineCount * 16 + 8;
-                        if (estimatedHeight > maxRowHeight)
-                        {
-                            maxRowHeight = estimatedHeight;
-                        }
-                    }
+                    WriteTextCell(cell, strVal, map.ExcelColumnIndex, ref maxRowHeight, worksheet);
                 }
             }
         }
 
         worksheet.Row(excelRowIndex).Height = maxRowHeight;
+    }
+
+    private void WriteDateTimeCell(ExcelRange cell, DateTime dt, string? customFormat)
+    {
+        cell.Value = dt;
+        cell.Style.Numberformat.Format = !string.IsNullOrWhiteSpace(customFormat) ? customFormat : "dd/MM/yyyy";
+        cell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+    }
+
+    private void WriteNumericCell(ExcelRange cell, double dVal, string? colFormat)
+    {
+        cell.Value = dVal;
+        if (colFormat != null && colFormat.Contains(".#") && dVal == Math.Truncate(dVal))
+        {
+            cell.Style.Numberformat.Format = colFormat.Replace(".##", "").Replace(".#", "");
+        }
+        else
+        {
+            cell.Style.Numberformat.Format = colFormat;
+        }
+        cell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Right;
+    }
+
+    private void WriteTextCell(ExcelRange cell, string strVal, int excelColumnIndex, ref double maxRowHeight, ExcelWorksheet worksheet)
+    {
+        if (strVal.Contains("|"))
+        {
+            var uniqueItems = strVal.Split('|')
+                .Select(item => item.Trim())
+                .Where(item => !string.IsNullOrEmpty(item))
+                .Distinct(StringComparer.OrdinalIgnoreCase);
+            strVal = string.Join(" | ", uniqueItems);
+        }
+        
+        cell.Value = strVal;
+
+        if (strVal.Length > 20 || strVal.Contains("|"))
+        {
+            cell.Style.WrapText = true;
+            double colWidth = worksheet.Column(excelColumnIndex).Width;
+            if (colWidth <= 0) colWidth = 15;
+
+            int charsPerLine = Math.Max(5, (int)(colWidth * 0.9));
+            int lineCount = (int)Math.Ceiling((double)strVal.Length / charsPerLine);
+
+            double estimatedHeight = lineCount * 16 + 8;
+            if (estimatedHeight > maxRowHeight)
+            {
+                maxRowHeight = estimatedHeight;
+            }
+        }
     }
 
     private void EnsureRowBorders(ExcelWorksheet worksheet, int rowIndex, List<ColumnMapping> mappings)
@@ -281,11 +198,7 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
 
     private bool IsValidSizeLoiKiemFormat(string? valStr)
     {
-        if (string.IsNullOrEmpty(valStr)) return false;
-        var parts = valStr.Split('/');
-        return parts.Length >= 3 && 
-               long.TryParse(parts[parts.Length - 2].Trim(), out _) && 
-               long.TryParse(parts[parts.Length - 1].Trim(), out _);
+        return ExcelDataHelper.IsValidSizeLoiKiemFormat(valStr);
     }
 
     private void FillTemplateWithSubtotals(
@@ -1169,282 +1082,11 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
         Dictionary<string, string>? metadataCellMappings,
         DataTable dataTable)
     {
-        if (worksheet == null) return;
-
-        // 1. Tối ưu độ rộng cho các Cột Dữ Liệu (Grid Columns)
-        if (mappings != null && mappings.Count > 0)
-        {
-            foreach (var map in mappings)
-            {
-                double curWidth = worksheet.Column(map.ExcelColumnIndex).Width;
-                if (curWidth <= 0) curWidth = 10; 
-
-                double targetWidth = curWidth;
-
-                string? format = null;
-                if (columnFormats != null && columnFormats.TryGetValue(map.DataTableColumnName, out format) && !string.IsNullOrWhiteSpace(format))
-                {
-                    string fmtLower = format.ToLowerInvariant();
-                    if (fmtLower.Contains("%"))
-                    {
-                        targetWidth = Math.Max(targetWidth, 10.5); // Tỷ lệ %
-                    }
-                    else if (fmtLower.Contains("d") || fmtLower.Contains("m") || fmtLower.Contains("y"))
-                    {
-                        targetWidth = Math.Max(targetWidth, 12.0); // Ngày tháng
-                    }
-                    else if (fmtLower.Contains("#") || fmtLower.Contains("0"))
-                    {
-                        targetWidth = Math.Max(targetWidth, 10.0); // Số
-                    }
-                }
-                else
-                {
-                    // Cột văn bản thường: tính theo chữ dài nhất
-                    int maxTextLen = 0;
-                    foreach (DataRow row in dataTable.Rows)
-                    {
-                        var val = row[map.DataTableColumnName];
-                        if (val != null && val != DBNull.Value)
-                        {
-                            int len = val.ToString()?.Length ?? 0;
-                            if (len > maxTextLen) maxTextLen = len;
-                        }
-                    }
-                    
-                    if (maxTextLen > 0)
-                    {
-                        double dynamicWidth = Math.Min(maxTextLen + 3, 35);
-                        targetWidth = Math.Max(targetWidth, dynamicWidth);
-                    }
-                }
-
-                if (targetWidth > curWidth)
-                {
-                    worksheet.Column(map.ExcelColumnIndex).Width = targetWidth;
-                }
-            }
-        }
-
-        // 2. Tối ưu độ rộng và Gộp ô an toàn cho Ô Metadata
-        if (metadataCellMappings != null && metadataCellMappings.Count > 0)
-        {
-            foreach (var kvp in metadataCellMappings)
-            {
-                // Nhận diện địa chỉ ô từ key hoặc value theo Format 1/Format 2
-                string cellAddress = System.Text.RegularExpressions.Regex.IsMatch(kvp.Key.Trim(), @"^[A-Za-z]{1,3}\d{1,7}$") 
-                    ? kvp.Key.Trim() 
-                    : kvp.Value.Trim();
-
-                if (string.IsNullOrWhiteSpace(cellAddress)) continue;
-
-                var cell = worksheet.Cells[cellAddress];
-                if (cell == null) continue;
-
-                int row = cell.Start.Row;
-                int col = cell.Start.Column;
-                string cellText = cell.Text ?? "";
-                
-                if (!string.IsNullOrEmpty(cellText))
-                {
-                    double safetyWidth = cellText.Length + 3; // Độ rộng cần thiết
-
-                    if (cell.Merge)
-                    {
-                        // Trường hợp ô đã được gộp sẵn trong template (Ví dụ: B4:D4)
-                        int mergeId = worksheet.GetMergeCellId(row, col);
-                        if (mergeId > 0)
-                        {
-                            var mergedRangeStr = worksheet.MergedCells[mergeId - 1];
-                            if (!string.IsNullOrEmpty(mergedRangeStr))
-                            {
-                                var addr = new ExcelAddress(mergedRangeStr);
-                                int startCol = addr.Start.Column;
-                                int endCol = addr.End.Column;
-
-                                double totalMergedWidth = 0;
-                                for (int c = startCol; c <= endCol; c++)
-                                {
-                                    double w = worksheet.Column(c).Width;
-                                    if (w <= 0) w = 10;
-                                    totalMergedWidth += w;
-                                }
-
-                                if (safetyWidth > totalMergedWidth)
-                                {
-                                    // Cộng thêm phần thiếu hụt vào cột cuối cùng của ô gộp
-                                    double diff = safetyWidth - totalMergedWidth;
-                                    double curEndColWidth = worksheet.Column(endCol).Width;
-                                    if (curEndColWidth <= 0) curEndColWidth = 10;
-                                    worksheet.Column(endCol).Width = curEndColWidth + diff;
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        // Trường hợp ô đơn lẻ (chưa gộp)
-                        double curWidth = worksheet.Column(col).Width;
-                        if (curWidth <= 0) curWidth = 10;
-
-                        if (safetyWidth > curWidth)
-                        {
-                            int mergeExtend = 0;
-                            int nextCol = col + 1;
-                            int maxCol = worksheet.Dimension?.Columns ?? nextCol;
-                            double totalMergedWidth = curWidth;
-
-                            // Chạy vòng lặp kiểm tra và cộng dồn các ô trống bên phải
-                            while (nextCol <= maxCol)
-                            {
-                                var rightCell = worksheet.Cells[row, nextCol];
-                                
-                                // Điều kiện: Ô bên phải tồn tại, trống hoàn toàn và chưa bị gộp
-                                if (rightCell != null && 
-                                    (rightCell.Value == null || string.IsNullOrWhiteSpace(rightCell.Text)) && 
-                                    !rightCell.Merge)
-                                {
-                                    double rightWidth = worksheet.Column(nextCol).Width;
-                                    if (rightWidth <= 0) rightWidth = 10;
-                                    
-                                    totalMergedWidth += rightWidth;
-                                    mergeExtend++;
-
-                                    if (totalMergedWidth >= safetyWidth)
-                                    {
-                                        break; // Đã đủ rộng sau khi gộp, dừng vòng lặp
-                                    }
-                                    nextCol++;
-                                }
-                                else
-                                {
-                                    break; // Gặp ô có chữ hoặc nhãn có sẵn -> dừng ngay lập tức
-                                }
-                            }
-
-                            if (mergeExtend > 0)
-                            {
-                                // Thực hiện gộp ô an toàn (Không làm mất dữ liệu nhãn bên cạnh)
-                                worksheet.Cells[row, col, row, col + mergeExtend].Merge = true;
-                            }
-                            else
-                            {
-                                // Fallback: Nếu không gộp được ô nào, bắt buộc phải tăng độ rộng cột
-                                worksheet.Column(col).Width = safetyWidth;
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        ExcelLayoutOptimizer.OptimizeExcelLayout(worksheet, mappings, columnFormats, metadataCellMappings, dataTable);
     }
 
     private Dictionary<string, string> GetNumericColumns(DataTable table, Dictionary<string, string>? columnFormats)
     {
-        const string cacheKey = "NumericColumnsFormatCache";
-        if (table.ExtendedProperties.Contains(cacheKey))
-        {
-            if (table.ExtendedProperties[cacheKey] is Dictionary<string, string> cached)
-            {
-                return cached;
-            }
-        }
-
-        var numericCols = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (DataColumn dc in table.Columns)
-        {
-            string columnName = dc.ColumnName;
-            string lowerColName = columnName.ToLowerInvariant();
-            
-            // Loại trừ các cột định danh/mã số và ngày tháng, ký tên, ghi chú
-            if (lowerColName.EndsWith("id") || lowerColName.Contains("id_") || lowerColName.StartsWith("id") ||
-                lowerColName.Contains("ma") || lowerColName.Contains("code") || lowerColName.Contains("key") ||
-                lowerColName.Contains("ngay") || lowerColName.Contains("date") || lowerColName.Contains("ten") ||
-                lowerColName.Contains("name") || lowerColName.Contains("note") || lowerColName.Contains("ghichu") ||
-                lowerColName.Contains("kyten") || lowerColName.Contains("signature"))
-            {
-                continue;
-            }
-
-            bool isCustomNumeric = false;
-            string? customFormat = null;
-            if (columnFormats != null && columnFormats.TryGetValue(columnName, out customFormat) && !string.IsNullOrWhiteSpace(customFormat))
-            {
-                string fmtLower = customFormat.ToLowerInvariant();
-                if (!fmtLower.Contains("d") && !fmtLower.Contains("m") && !fmtLower.Contains("y"))
-                {
-                    isCustomNumeric = true;
-                }
-            }
-
-            bool hasNumericValue = false;
-            bool isNumeric = true;
-            bool hasDecimalValue = false;
-
-            if (isCustomNumeric)
-            {
-                hasNumericValue = true;
-                isNumeric = true;
-            }
-            else
-            {
-                foreach (DataRow row in table.Rows)
-                {
-                    var val = row[columnName];
-                    if (val == null || val == DBNull.Value)
-                    {
-                        continue;
-                    }
-
-                    double dVal;
-                    if (val is double || val is float || val is decimal || val is int || val is long || val is short || val is byte)
-                    {
-                        hasNumericValue = true;
-                        dVal = Convert.ToDouble(val);
-                        if (dVal != Math.Truncate(dVal))
-                        {
-                            hasDecimalValue = true;
-                        }
-                    }
-                    else
-                    {
-                        string strVal = val.ToString() ?? "";
-                        if (double.TryParse(strVal, NumberStyles.Any, CultureInfo.InvariantCulture, out dVal))
-                        {
-                            hasNumericValue = true;
-                            if (dVal != Math.Truncate(dVal))
-                            {
-                                hasDecimalValue = true;
-                            }
-                        }
-                        else
-                        {
-                            isNumeric = false;
-                            break;
-                        }
-                    }
-                }
-            }
-
-            if (isNumeric && hasNumericValue)
-            {
-                string format = "#,##0"; // Mặc định cho số nguyên
-                
-                if (isCustomNumeric && customFormat != null)
-                {
-                    format = customFormat;
-                }
-                else if (hasDecimalValue || lowerColName.Contains("tile") || lowerColName.Contains("rate") || 
-                    lowerColName.Contains("percent") || lowerColName.Contains("%"))
-                {
-                    format = "#,##0.##;-#,##0.##;0";
-                }
-
-                numericCols[columnName] = format;
-            }
-        }
-
-        table.ExtendedProperties[cacheKey] = numericCols;
-        return numericCols;
+        return ExcelDataHelper.GetNumericColumns(table, columnFormats);
     }
 }

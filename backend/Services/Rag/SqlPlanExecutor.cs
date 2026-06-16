@@ -96,14 +96,14 @@ public class SqlPlanExecutor : ISqlPlanExecutor
                     {workingContextBuilder}
 
                     NHIỆM VỤ HIỆN TẠI: {currentStepDesc}
-                    {(isFinalStep ? $@"CÂU HỎI GỐC: ""{userQuery}""" : "")}
+                    CÂU HỎI GỐC: ""{userQuery}""
 
                     {globalRules}
 
                     QUY TẮC BỔ SUNG & ĐIỀU KIỆN TRUYỀN DỮ LIỆU:
                     0. XỬ LÝ MỐC THỜI GIAN TƯƠNG ĐỐI: Đối với các khoảng thời gian như ""gần đây"", ""gần nhất"", ""mới nhất"", ""hôm nay"", ""tuần này"", ""tháng này"", bạn BẮT BUỘC phải dựa vào 'Thời gian hệ thống hiện tại' ({currentTimeStr}) để tính toán lùi ngày tháng tương ứng trong câu SQL (ví dụ: lọc từ ({currentTimeStr} - 30 ngày) đến {currentTimeStr} nếu là 30 ngày gần nhất).
                     1. CHỈ thực hiện nhiệm vụ trong 'NHIỆM VỤ HIỆN TẠI'. 
-                    {(isMultiStep && !isFinalStep ? "TUYỆT ĐỐI KHÔNG giải quyết toàn bộ yêu cầu của người dùng nếu nó đòi hỏi nhiều bước xử lý. Chỉ tập trung lấy dữ liệu trung gian cho bước này." : "")}
+                    {(isMultiStep && !isFinalStep ? "Hãy đọc kĩ 'CÂU HỎI GỐC' để trích xuất các điều kiện lọc (như PlanCode, Mã chuyền/LineX, Khoảng thời gian/NgayKiem, v.v.) và áp dụng chúng vào câu SQL của bước hiện tại để lọc dữ liệu sớm nhất có thể. TUYỆT ĐỐI KHÔNG giải quyết toàn bộ yêu cầu của người dùng nếu nó đòi hỏi nhiều bước xử lý. Chỉ tập trung lấy dữ liệu trung gian cho bước này." : "")}
                     
                     2. TRUYỀN THAM SỐ GIỮA CÁC BƯỚC: BẮT BUỘC sử dụng giá trị thực tế lấy từ phần 'KẾT QUẢ CÁC BƯỚC TRƯỚC ĐÓ' bên trên (nhìn vào SampleData) và các TÊN CỘT tương ứng để làm điều kiện lọc (WHERE) cho bước này.
                        - Nếu bước trước trả về danh sách nhiều ID, hãy sử dụng toán tử IN (ví dụ: WHERE MaKhachHang IN ('KH001', 'KH002')) thay vì chỉ lọc một giá trị.
