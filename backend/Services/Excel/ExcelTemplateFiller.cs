@@ -266,9 +266,10 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
 
     private void EnsureRowBorders(ExcelWorksheet worksheet, int rowIndex, List<ColumnMapping> mappings)
     {
-        int startCol = mappings.Count > 0 ? mappings.Min(m => m.ExcelColumnIndex) : 1;
-        int totalCols = worksheet.Dimension?.Columns ?? startCol;
-        for (int col = startCol; col <= totalCols; col++)
+        if (mappings == null || mappings.Count == 0) return;
+        int startCol = mappings.Min(m => m.ExcelColumnIndex);
+        int endCol = mappings.Max(m => m.ExcelColumnIndex);
+        for (int col = startCol; col <= endCol; col++)
         {
             var cell = worksheet.Cells[rowIndex, col];
             cell.Style.Border.Top.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
@@ -298,6 +299,9 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
         Dictionary<string, string>? metadataCellMappings = null)
     {
         if (data == null || data.Rows.Count == 0 || mappings.Count == 0) return;
+
+        int startCol = mappings.Min(m => m.ExcelColumnIndex);
+        int endCol = mappings.Max(m => m.ExcelColumnIndex);
 
         // 1. Tìm cột gom nhóm trong mappings
         var groupByMapping = mappings.FirstOrDefault(m => 
@@ -582,7 +586,7 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
 
             // Định dạng font Bold và viền đầy đủ cho dòng Subtotal
             worksheet.Row(subtotalRowIndex).Style.Font.Bold = true;
-            for (int col = 1; col <= totalColsCount; col++)
+            for (int col = startCol; col <= endCol; col++)
             {
                 var cell = worksheet.Cells[subtotalRowIndex, col];
                 cell.Style.Font.Bold = true;
@@ -793,7 +797,7 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
 
             // Định dạng font Bold và viền đầy đủ cho dòng Grand Total
             worksheet.Row(grandTotalRowIndex).Style.Font.Bold = true;
-            for (int col = 1; col <= totalColsCount; col++)
+            for (int col = startCol; col <= endCol; col++)
             {
                 var cell = worksheet.Cells[grandTotalRowIndex, col];
                 cell.Style.Font.Bold = true;
