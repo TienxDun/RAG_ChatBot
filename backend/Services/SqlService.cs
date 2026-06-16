@@ -13,17 +13,48 @@ namespace Backend.Services;
 public sealed class SqlService
 {
     private readonly string _connectionString;
+    private readonly string _vikingConnectionString;
     private readonly ISqlSecurityValidator _securityValidator;
     
     // Khởi tạo SqlService bằng cách lấy chuỗi kết nối từ SqlOptions và tiêm ISqlSecurityValidator.
     public SqlService(Backend.Models.SqlOptions options, ISqlSecurityValidator securityValidator)
     {
         _connectionString = options.ConnectionString;
+        _vikingConnectionString = options.VikingConnectionString;
         if (string.IsNullOrWhiteSpace(_connectionString))
         {
             throw new InvalidOperationException("MSSQL_CONNECTION_STRING is not set in configuration.");
         }
+        if (string.IsNullOrWhiteSpace(_vikingConnectionString))
+        {
+            throw new InvalidOperationException("MSSQL_VIKING_CONNECTION_STRING is not set in configuration.");
+        }
         _securityValidator = securityValidator;
+    }
+
+    private string GetConnectionString(string sql)
+    {
+        if (string.IsNullOrWhiteSpace(sql))
+            return _connectionString;
+
+        // List of Viking tables
+        var vikingTables = new[] 
+        { 
+            "BangSize", "ChungLoaiVatTu", "ERP_ChiTietNhapKhoNPL", "ERP_DonViVT", 
+            "ERP_KhachHangNK", "ERP_KhoVai", "ERP_MauVTTV", "ERP_NhapKhoNPL", 
+            "ERP_TheKhoVai", "ERP_VatTuTV", "KhachHang", "Qty_KiemPL", 
+            "Qty_KiemPL_XacNhan", "QTY_PhuLucKiemPL" 
+        };
+
+        foreach (var table in vikingTables)
+        {
+            if (sql.Contains(table, StringComparison.OrdinalIgnoreCase))
+            {
+                return _vikingConnectionString;
+            }
+        }
+
+        return _connectionString;
     }
 
     // Thực thi câu lệnh SQL truy vấn và trả về kết quả dưới dạng cấu trúc bảng DataTable của ADO.NET.
@@ -32,7 +63,8 @@ public sealed class SqlService
         // Kiểm tra an toàn bảo mật của câu lệnh trước khi thực thi
         _securityValidator.ValidateSqlSecurity(sql);
         
-        using var connection = new SqlConnection(_connectionString);
+        var connStr = GetConnectionString(sql);
+        using var connection = new SqlConnection(connStr);
         await connection.OpenAsync(ct);
         using var command = new SqlCommand(sql, connection);
         command.CommandTimeout = 25; // Giới hạn 25s — thấp hơn pipeline timeout 60s để query treo sẽ bị hủy trước
@@ -55,7 +87,8 @@ public sealed class SqlService
     /// Dùng cho data lookup endpoint — SQL được build từ whitelist bảng/cột nên không cần security validator.
     public async Task<List<Dictionary<string, object?>>> QueryAsync(string sql, CancellationToken ct)
     {
-        using var connection = new SqlConnection(_connectionString);
+        var connStr = GetConnectionString(sql);
+        using var connection = new SqlConnection(connStr);
         await connection.OpenAsync(ct);
         using var command = new SqlCommand(sql, connection);
         command.CommandTimeout = 10;

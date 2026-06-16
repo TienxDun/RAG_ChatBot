@@ -1,0 +1,105 @@
+{
+  "table": "ERP_KhoVai",
+  "purpose": "Lưu trữ dữ liệu bảng ERP_KhoVai của hệ thống Viking QLDH.",
+  "when_to_use": "Sử dụng khi câu hỏi yêu cầu truy vấn thông tin liên quan đến ERP_KhoVai.",
+  "when_not_to_use": "Không sử dụng khi câu hỏi không nhắc tới các chỉ tiêu của ERP_KhoVai.",
+  "table_rules": [],
+  "columns": [
+    {
+      "name": "ID",
+      "type": "int",
+      "role": "primary_key",
+      "desc": "Mô tả cho cột ID."
+    },
+    {
+      "name": "KhoVaiID",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột KhoVaiID."
+    },
+    {
+      "name": "KhoVai",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột KhoVai."
+    },
+    {
+      "name": "GhiChu",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột GhiChu."
+    },
+    {
+      "name": "NPL",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột NPL."
+    },
+    {
+      "name": "KhoVaiMet",
+      "type": "decimal",
+      "role": "info",
+      "desc": "Mô tả cho cột KhoVaiMet."
+    },
+    {
+      "name": "MaNhom",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaNhom."
+    },
+    {
+      "name": "IsOriginal",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột IsOriginal."
+    },
+    {
+      "name": "NguoiTao",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột NguoiTao."
+    },
+    {
+      "name": "NgayTao",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột NgayTao."
+    },
+    {
+      "name": "NguoiSua",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột NguoiSua."
+    },
+    {
+      "name": "NgaySua",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột NgaySua."
+    },
+    {
+      "name": "MaDVVT",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaDVVT."
+    },
+    {
+      "name": "MaTheKhoVai",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaTheKhoVai."
+    }
+  ],
+  "relationships": [
+    {
+      "target_table": "ERP_DonViVT",
+      "join_on": "ERP_KhoVai.MaDVVT = ERP_DonViVT.MaDVVT",
+      "notes": "Liên kết với danh mục đơn vị tính qua MaDVVT."
+    },
+    {
+      "target_table": "ERP_TheKhoVai",
+      "join_on": "ERP_KhoVai.MaTheKhoVai = ERP_TheKhoVai.MaTheKhoVai",
+      "notes": "Liên kết với thẻ khổ vải qua MaTheKhoVai."
+    }
+  ]
+}

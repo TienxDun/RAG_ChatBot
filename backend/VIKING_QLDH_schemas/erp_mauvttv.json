@@ -1,0 +1,100 @@
+{
+  "table": "ERP_MauVTTV",
+  "purpose": "Lưu trữ dữ liệu bảng ERP_MauVTTV của hệ thống Viking QLDH.",
+  "when_to_use": "Sử dụng khi câu hỏi yêu cầu truy vấn thông tin liên quan đến ERP_MauVTTV.",
+  "when_not_to_use": "Không sử dụng khi câu hỏi không nhắc tới các chỉ tiêu của ERP_MauVTTV.",
+  "table_rules": [],
+  "columns": [
+    {
+      "name": "ID",
+      "type": "int",
+      "role": "primary_key",
+      "desc": "Mô tả cho cột ID."
+    },
+    {
+      "name": "MaTheMau",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaTheMau."
+    },
+    {
+      "name": "MauVTID",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MauVTID."
+    },
+    {
+      "name": "MaMauVT",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaMauVT."
+    },
+    {
+      "name": "MauVT",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MauVT."
+    },
+    {
+      "name": "TenKhac",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột TenKhac."
+    },
+    {
+      "name": "CorelDraw",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột CorelDraw."
+    },
+    {
+      "name": "Hex",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột Hex."
+    },
+    {
+      "name": "CMYK",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột CMYK."
+    },
+    {
+      "name": "Image",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột Image."
+    },
+    {
+      "name": "GhiChu",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột GhiChu."
+    },
+    {
+      "name": "NguoiTao",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột NguoiTao."
+    },
+    {
+      "name": "NgayTao",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột NgayTao."
+    },
+    {
+      "name": "NguoiSua",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột NguoiSua."
+    },
+    {
+      "name": "NgaySua",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột NgaySua."
+    }
+  ],
+  "relationships": []
+}

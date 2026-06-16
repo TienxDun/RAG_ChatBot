@@ -1,0 +1,189 @@
+{
+  "table": "Qty_KiemPL",
+  "purpose": "Lưu trữ dữ liệu bảng Qty_KiemPL của hệ thống Viking QLDH.",
+  "when_to_use": "Sử dụng khi câu hỏi yêu cầu truy vấn thông tin liên quan đến Qty_KiemPL.",
+  "when_not_to_use": "Không sử dụng khi câu hỏi không nhắc tới các chỉ tiêu của Qty_KiemPL.",
+  "table_rules": [],
+  "columns": [
+    {
+      "name": "ID",
+      "type": "int",
+      "role": "primary_key",
+      "desc": "Mô tả cho cột ID."
+    },
+    {
+      "name": "MaPhuLuc",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaPhuLuc."
+    },
+    {
+      "name": "MaPhieuKiem",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaPhieuKiem."
+    },
+    {
+      "name": "SoLoID",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột SoLoID."
+    },
+    {
+      "name": "NgayKiem",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột NgayKiem."
+    },
+    {
+      "name": "Content",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột Content."
+    },
+    {
+      "name": "StatusKiem",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột StatusKiem."
+    },
+    {
+      "name": "Img",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột Img."
+    },
+    {
+      "name": "GhiChu",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột GhiChu."
+    },
+    {
+      "name": "SoLot",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột SoLot."
+    },
+    {
+      "name": "SoBatch",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột SoBatch."
+    },
+    {
+      "name": "MaVTID",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaVTID."
+    },
+    {
+      "name": "MauVTID",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MauVTID."
+    },
+    {
+      "name": "MaCLVTID",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaCLVTID."
+    },
+    {
+      "name": "MaKhoVai",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaKhoVai."
+    },
+    {
+      "name": "MaNPL",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaNPL."
+    },
+    {
+      "name": "SoRoll",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột SoRoll."
+    },
+    {
+      "name": "NguoiKiem",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột NguoiKiem."
+    },
+    {
+      "name": "MaDonVi",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaDonVi."
+    },
+    {
+      "name": "SoCuon",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột SoCuon."
+    },
+    {
+      "name": "SoMetThucTe",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột SoMetThucTe."
+    },
+    {
+      "name": "IsWash",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột IsWash."
+    },
+    {
+      "name": "Dot",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột Dot."
+    }
+  ],
+  "relationships": [
+    {
+      "target_table": "QTY_PhuLucKiemPL",
+      "join_on": "Qty_KiemPL.MaPhuLuc = QTY_PhuLucKiemPL.MaPhuLuc",
+      "notes": "Liên kết với bảng mục phụ lục kiểm phẩm qua MaPhuLuc."
+    },
+    {
+      "target_table": "Qty_KiemPL_XacNhan",
+      "join_on": "Qty_KiemPL.MaPhieuKiem = Qty_KiemPL_XacNhan.MaPhieuKiem",
+      "notes": "Liên kết với bảng xác nhận kết quả kiểm phẩm qua MaPhieuKiem."
+    },
+    {
+      "target_table": "ERP_NhapKhoNPL",
+      "join_on": "Qty_KiemPL.SoLoID = ERP_NhapKhoNPL.SoLoID",
+      "notes": "Liên kết với thông tin lô nhập kho chính qua SoLoID."
+    },
+    {
+      "target_table": "ERP_VatTuTV",
+      "join_on": "Qty_KiemPL.MaVTID = ERP_VatTuTV.MaVTID",
+      "notes": "Liên kết với danh mục vật tư qua MaVTID."
+    },
+    {
+      "target_table": "ERP_MauVTTV",
+      "join_on": "Qty_KiemPL.MauVTID = ERP_MauVTTV.MauVTID",
+      "notes": "Liên kết với danh mục màu sắc vật tư qua MauVTID."
+    },
+    {
+      "target_table": "ChungLoaiVatTu",
+      "join_on": "Qty_KiemPL.MaCLVTID = ChungLoaiVatTu.MaCLVT",
+      "notes": "Liên kết với danh mục chủng loại vật tư qua MaCLVTID -> MaCLVT."
+    },
+    {
+      "target_table": "ERP_KhoVai",
+      "join_on": "Qty_KiemPL.MaKhoVai = ERP_KhoVai.KhoVaiID",
+      "notes": "Liên kết với danh mục khổ vải qua MaKhoVai -> KhoVaiID."
+    },
+    {
+      "target_table": "ERP_VatTuTV",
+      "join_on": "Qty_KiemPL.MaNPL = ERP_VatTuTV.MaVTID",
+      "notes": "Liên kết với danh mục vật tư qua MaNPL -> MaVTID."
+    }
+  ]
+}

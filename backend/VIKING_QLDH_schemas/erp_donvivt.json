@@ -1,0 +1,70 @@
+{
+  "table": "ERP_DonViVT",
+  "purpose": "Lưu trữ dữ liệu bảng ERP_DonViVT của hệ thống Viking QLDH.",
+  "when_to_use": "Sử dụng khi câu hỏi yêu cầu truy vấn thông tin liên quan đến ERP_DonViVT.",
+  "when_not_to_use": "Không sử dụng khi câu hỏi không nhắc tới các chỉ tiêu của ERP_DonViVT.",
+  "table_rules": [],
+  "columns": [
+    {
+      "name": "ID",
+      "type": "int",
+      "role": "primary_key",
+      "desc": "Mô tả cho cột ID."
+    },
+    {
+      "name": "MaDVVT",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaDVVT."
+    },
+    {
+      "name": "TenDVVT",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột TenDVVT."
+    },
+    {
+      "name": "GhiChu",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột GhiChu."
+    },
+    {
+      "name": "Tile",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột Tile."
+    },
+    {
+      "name": "QDLamTronLe",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột QDLamTronLe."
+    },
+    {
+      "name": "NguoiTao",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột NguoiTao."
+    },
+    {
+      "name": "NgayTao",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột NgayTao."
+    },
+    {
+      "name": "NguoiSua",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột NguoiSua."
+    },
+    {
+      "name": "NgaySua",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột NgaySua."
+    }
+  ],
+  "relationships": []
+}

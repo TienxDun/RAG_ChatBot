@@ -100,7 +100,9 @@ public class SqlPlanExecutor : ISqlPlanExecutor
                     {globalRules}
 
                     QUY TẮC BỔ SUNG & ĐIỀU KIỆN TRUYỀN DỮ LIỆU:
-                    0. XỬ LÝ MỐC THỜI GIAN TƯƠNG ĐỐI: Đối với các khoảng thời gian như ""gần đây"", ""gần nhất"", ""mới nhất"", ""hôm nay"", ""tuần này"", ""tháng này"", bạn BẮT BUỘC phải dựa vào 'Thời gian hệ thống hiện tại' ({currentTimeStr}) để tính toán lùi ngày tháng tương ứng trong câu SQL (ví dụ: lọc từ ({currentTimeStr} - 30 ngày) đến {currentTimeStr} nếu là 30 ngày gần nhất).
+                     0. XỬ LÝ MỐC THỜI GIAN: 
+                        - Nếu câu hỏi hoặc nhiệm vụ có chứa NGÀY THÁNG CỤ THỂ hoặc KHOẢNG NGÀY TUYỆT ĐỐI (ví dụ: ""từ 2026-01-01 đến 2026-01-31"", ""tháng 1/2026"", ""ngày 2026-03-15""...): Bạn BẮT BUỘC phải giữ nguyên và sử dụng chính xác các ngày tuyệt đối này trong câu truy vấn SQL. TUYỆT ĐỐI CẤM tự ý thay đổi hoặc tính toán lại chúng dựa trên 'Thời gian hệ thống hiện tại'.
+                        - Chỉ đối với các khoảng thời gian tương đối/mơ hồ như ""gần đây"", ""gần nhất"", ""mới nhất"", ""hôm nay"", ""tuần này"", ""tháng này"", bạn mới dựa vào 'Thời gian hệ thống hiện tại' ({currentTimeStr}) để tính toán lùi ngày tháng tương ứng trong câu SQL (ví dụ: lọc từ ({currentTimeStr} - 30 ngày) đến {currentTimeStr} nếu là 30 ngày gần nhất).
                     1. CHỈ thực hiện nhiệm vụ trong 'NHIỆM VỤ HIỆN TẠI'. 
                     {(isMultiStep ? "TUYỆT ĐỐI KHÔNG giải quyết toàn bộ yêu cầu của người dùng nếu nó đòi hỏi nhiều bước xử lý. Chỉ tập trung lấy dữ liệu trung gian cho bước này." : "")}
                     

@@ -1,0 +1,327 @@
+{
+  "table": "ERP_NhapKhoNPL",
+  "purpose": "Lưu trữ dữ liệu bảng ERP_NhapKhoNPL của hệ thống Viking QLDH.",
+  "when_to_use": "Sử dụng khi câu hỏi yêu cầu truy vấn thông tin liên quan đến ERP_NhapKhoNPL.",
+  "when_not_to_use": "Không sử dụng khi câu hỏi không nhắc tới các chỉ tiêu của ERP_NhapKhoNPL.",
+  "table_rules": [],
+  "columns": [
+    {
+      "name": "ID",
+      "type": "int",
+      "role": "primary_key",
+      "desc": "Mô tả cho cột ID."
+    },
+    {
+      "name": "SoLoID",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột SoLoID."
+    },
+    {
+      "name": "SoLo",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột SoLo."
+    },
+    {
+      "name": "NhaCungCap",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột NhaCungCap."
+    },
+    {
+      "name": "SoChungTu",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột SoChungTu."
+    },
+    {
+      "name": "NgayChungTu",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột NgayChungTu."
+    },
+    {
+      "name": "SoBienBan",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột SoBienBan."
+    },
+    {
+      "name": "NgayBienBan",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột NgayBienBan."
+    },
+    {
+      "name": "SoHopDong",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột SoHopDong."
+    },
+    {
+      "name": "NguoiNhap",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột NguoiNhap."
+    },
+    {
+      "name": "NgayNhap",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột NgayNhap."
+    },
+    {
+      "name": "IsNPL",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột IsNPL."
+    },
+    {
+      "name": "MaHaiQuan",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaHaiQuan."
+    },
+    {
+      "name": "MaKeToan",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaKeToan."
+    },
+    {
+      "name": "NguoiGui",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột NguoiGui."
+    },
+    {
+      "name": "NgayTao",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột NgayTao."
+    },
+    {
+      "name": "SoHoaDon",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột SoHoaDon."
+    },
+    {
+      "name": "Tau",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột Tau."
+    },
+    {
+      "name": "NgayGui",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột NgayGui."
+    },
+    {
+      "name": "NoiGui",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột NoiGui."
+    },
+    {
+      "name": "DiemDen",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột DiemDen."
+    },
+    {
+      "name": "NguoiNhan",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột NguoiNhan."
+    },
+    {
+      "name": "DiaChiNhan",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột DiaChiNhan."
+    },
+    {
+      "name": "MaSoThue",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaSoThue."
+    },
+    {
+      "name": "SoDienThoai",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột SoDienThoai."
+    },
+    {
+      "name": "Cang",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột Cang."
+    },
+    {
+      "name": "NgayNhapBB",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột NgayNhapBB."
+    },
+    {
+      "name": "NhaCungCapBB",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột NhaCungCapBB."
+    },
+    {
+      "name": "KhachHang",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột KhachHang."
+    },
+    {
+      "name": "HopDongSo",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột HopDongSo."
+    },
+    {
+      "name": "NgayKyHD",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột NgayKyHD."
+    },
+    {
+      "name": "SoToKhai",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột SoToKhai."
+    },
+    {
+      "name": "NgayMoTK",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột NgayMoTK."
+    },
+    {
+      "name": "SoVanDon",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột SoVanDon."
+    },
+    {
+      "name": "LoBB",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột LoBB."
+    },
+    {
+      "name": "NgayNKDuKien",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột NgayNKDuKien."
+    },
+    {
+      "name": "MaKH",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaKH."
+    },
+    {
+      "name": "NgayHoaDon",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột NgayHoaDon."
+    },
+    {
+      "name": "NguoiSua",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột NguoiSua."
+    },
+    {
+      "name": "NgaySua",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột NgaySua."
+    },
+    {
+      "name": "MaHang",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaHang."
+    },
+    {
+      "name": "POMua",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột POMua."
+    },
+    {
+      "name": "QCKiem",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột QCKiem."
+    },
+    {
+      "name": "NW",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột NW."
+    },
+    {
+      "name": "GW",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột GW."
+    },
+    {
+      "name": "IsKiemKe",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột IsKiemKe."
+    },
+    {
+      "name": "NgayKiemKe",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột NgayKiemKe."
+    },
+    {
+      "name": "PDF",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột PDF."
+    },
+    {
+      "name": "IsDuyetNK",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột IsDuyetNK."
+    },
+    {
+      "name": "IsBuaChu",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột IsBuaChu."
+    },
+    {
+      "name": "E_Way_Bill",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột E_Way_Bill."
+    }
+  ],
+  "relationships": [
+    {
+      "target_table": "KhachHang",
+      "join_on": "ERP_NhapKhoNPL.MaKH = KhachHang.MaKH",
+      "notes": "Liên kết với danh mục khách hàng qua MaKH."
+    },
+    {
+      "target_table": "ERP_KhachHangNK",
+      "join_on": "ERP_NhapKhoNPL.MaKH = ERP_KhachHangNK.MaKH",
+      "notes": "Liên kết với danh mục khách hàng nhập khẩu qua MaKH."
+    }
+  ]
+}

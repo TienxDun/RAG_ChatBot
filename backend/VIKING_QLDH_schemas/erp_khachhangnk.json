@@ -1,0 +1,148 @@
+{
+  "table": "ERP_KhachHangNK",
+  "purpose": "Lưu trữ dữ liệu bảng ERP_KhachHangNK của hệ thống Viking QLDH.",
+  "when_to_use": "Sử dụng khi câu hỏi yêu cầu truy vấn thông tin liên quan đến ERP_KhachHangNK.",
+  "when_not_to_use": "Không sử dụng khi câu hỏi không nhắc tới các chỉ tiêu của ERP_KhachHangNK.",
+  "table_rules": [],
+  "columns": [
+    {
+      "name": "ID",
+      "type": "int",
+      "role": "primary_key",
+      "desc": "Mô tả cho cột ID."
+    },
+    {
+      "name": "MaKH",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaKH."
+    },
+    {
+      "name": "TenKH",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột TenKH."
+    },
+    {
+      "name": "DiaChi",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột DiaChi."
+    },
+    {
+      "name": "SoDienThoai",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột SoDienThoai."
+    },
+    {
+      "name": "NguoiDaiDien",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột NguoiDaiDien."
+    },
+    {
+      "name": "MaSoThue",
+      "type": "int",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaSoThue."
+    },
+    {
+      "name": "LoaiDT",
+      "type": "int",
+      "role": "filter",
+      "desc": "Mô tả cho cột LoaiDT."
+    },
+    {
+      "name": "MaLoaiNCC",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaLoaiNCC."
+    },
+    {
+      "name": "MaNhaCC",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaNhaCC."
+    },
+    {
+      "name": "MaChungLoai",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaChungLoai."
+    },
+    {
+      "name": "TIENTE",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột TIENTE."
+    },
+    {
+      "name": "Office",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột Office."
+    },
+    {
+      "name": "Factory",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột Factory."
+    },
+    {
+      "name": "Sales",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột Sales."
+    },
+    {
+      "name": "Mail",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột Mail."
+    },
+    {
+      "name": "Website",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột Website."
+    },
+    {
+      "name": "Group",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột Group."
+    },
+    {
+      "name": "Deliveryterms",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột Deliveryterms."
+    },
+    {
+      "name": "TermsOfPayment",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột TermsOfPayment."
+    },
+    {
+      "name": "Leadtime",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột Leadtime."
+    },
+    {
+      "name": "PaidBy",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột PaidBy."
+    }
+  ],
+  "relationships": [
+    {
+      "target_table": "KhachHang",
+      "join_on": "ERP_KhachHangNK.MaKH = KhachHang.MaKH",
+      "notes": "Liên kết với danh mục khách hàng qua MaKH."
+    }
+  ]
+}

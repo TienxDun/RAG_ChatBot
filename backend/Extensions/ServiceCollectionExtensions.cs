@@ -38,7 +38,9 @@ public static class ServiceCollectionExtensions
         var sqlOptions = new SqlOptions 
         { 
             ConnectionString = builder.Configuration["MSSQL_CONNECTION_STRING"] 
-                ?? throw new InvalidOperationException("MSSQL_CONNECTION_STRING is not set in configuration.") 
+                ?? throw new InvalidOperationException("MSSQL_CONNECTION_STRING is not set in configuration."),
+            VikingConnectionString = builder.Configuration["MSSQL_VIKING_CONNECTION_STRING"]
+                ?? throw new InvalidOperationException("MSSQL_VIKING_CONNECTION_STRING is not set in configuration.")
         };
 
         services.AddSingleton(options);

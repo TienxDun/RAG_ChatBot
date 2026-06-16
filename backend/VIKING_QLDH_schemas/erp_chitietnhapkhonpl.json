@@ -1,0 +1,382 @@
+{
+  "table": "ERP_ChiTietNhapKhoNPL",
+  "purpose": "Lưu trữ dữ liệu bảng ERP_ChiTietNhapKhoNPL của hệ thống Viking QLDH.",
+  "when_to_use": "Sử dụng khi câu hỏi yêu cầu truy vấn thông tin liên quan đến ERP_ChiTietNhapKhoNPL.",
+  "when_not_to_use": "Không sử dụng khi câu hỏi không nhắc tới các chỉ tiêu của ERP_ChiTietNhapKhoNPL.",
+  "table_rules": [],
+  "columns": [
+    {
+      "name": "ID",
+      "type": "int",
+      "role": "primary_key",
+      "desc": "Mô tả cho cột ID."
+    },
+    {
+      "name": "SoLoID",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột SoLoID."
+    },
+    {
+      "name": "MaNPL",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaNPL."
+    },
+    {
+      "name": "MaVTID",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaVTID."
+    },
+    {
+      "name": "MaMauVT",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaMauVT."
+    },
+    {
+      "name": "SoKien",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột SoKien."
+    },
+    {
+      "name": "SoLoT",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột SoLoT."
+    },
+    {
+      "name": "MaHaiQuan",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaHaiQuan."
+    },
+    {
+      "name": "MaKeToan",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaKeToan."
+    },
+    {
+      "name": "SoGhiDauCay",
+      "type": "decimal",
+      "role": "filter",
+      "desc": "Mô tả cho cột SoGhiDauCay."
+    },
+    {
+      "name": "NW",
+      "type": "decimal",
+      "role": "info",
+      "desc": "Mô tả cho cột NW."
+    },
+    {
+      "name": "GW",
+      "type": "decimal",
+      "role": "info",
+      "desc": "Mô tả cho cột GW."
+    },
+    {
+      "name": "BarCode",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột BarCode."
+    },
+    {
+      "name": "GhiChu",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột GhiChu."
+    },
+    {
+      "name": "IsNPL",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột IsNPL."
+    },
+    {
+      "name": "KhoVaiID",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột KhoVaiID."
+    },
+    {
+      "name": "SoKienParent",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột SoKienParent."
+    },
+    {
+      "name": "SoLuongThucTe",
+      "type": "decimal",
+      "role": "info",
+      "desc": "Mô tả cho cột SoLuongThucTe."
+    },
+    {
+      "name": "DonGia",
+      "type": "decimal",
+      "role": "info",
+      "desc": "Mô tả cho cột DonGia."
+    },
+    {
+      "name": "ThanhTien",
+      "type": "decimal",
+      "role": "info",
+      "desc": "Mô tả cho cột ThanhTien."
+    },
+    {
+      "name": "Pallet",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột Pallet."
+    },
+    {
+      "name": "MaDVVT",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaDVVT."
+    },
+    {
+      "name": "MauVTID",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MauVTID."
+    },
+    {
+      "name": "IsNK",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột IsNK."
+    },
+    {
+      "name": "NgayNhapKho",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột NgayNhapKho."
+    },
+    {
+      "name": "SoPhieu",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột SoPhieu."
+    },
+    {
+      "name": "NguoiTaoNhapKho",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột NguoiTaoNhapKho."
+    },
+    {
+      "name": "NgayTaoNhapKho",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột NgayTaoNhapKho."
+    },
+    {
+      "name": "NguoiSuaNhapKho",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột NguoiSuaNhapKho."
+    },
+    {
+      "name": "NgaySuaNhapKho",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột NgaySuaNhapKho."
+    },
+    {
+      "name": "STTPhieu",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột STTPhieu."
+    },
+    {
+      "name": "KienGoc",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột KienGoc."
+    },
+    {
+      "name": "BarCodeGoc",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột BarCodeGoc."
+    },
+    {
+      "name": "SoKienHienThi",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột SoKienHienThi."
+    },
+    {
+      "name": "NgayNKDuKien",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột NgayNKDuKien."
+    },
+    {
+      "name": "MaDVCD",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaDVCD."
+    },
+    {
+      "name": "TenDVCD",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột TenDVCD."
+    },
+    {
+      "name": "tileNW",
+      "type": "decimal",
+      "role": "info",
+      "desc": "Mô tả cho cột tileNW."
+    },
+    {
+      "name": "tileGW",
+      "type": "decimal",
+      "role": "info",
+      "desc": "Mô tả cho cột tileGW."
+    },
+    {
+      "name": "TienTe",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột TienTe."
+    },
+    {
+      "name": "MaVTGhep",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaVTGhep."
+    },
+    {
+      "name": "MaNhom",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaNhom."
+    },
+    {
+      "name": "QuyDoiID",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột QuyDoiID."
+    },
+    {
+      "name": "POMua",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột POMua."
+    },
+    {
+      "name": "Batch",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột Batch."
+    },
+    {
+      "name": "SLTong",
+      "type": "decimal",
+      "role": "info",
+      "desc": "Mô tả cho cột SLTong."
+    },
+    {
+      "name": "STTChonVT",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột STTChonVT."
+    },
+    {
+      "name": "IsKiemKe",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột IsKiemKe."
+    },
+    {
+      "name": "NgayKiemKe",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột NgayKiemKe."
+    },
+    {
+      "name": "TuoiTonKho",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột TuoiTonKho."
+    },
+    {
+      "name": "IsBuaChu",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột IsBuaChu."
+    },
+    {
+      "name": "IsDuyetNK",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột IsDuyetNK."
+    },
+    {
+      "name": "BarCodeOld",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột BarCodeOld."
+    },
+    {
+      "name": "Dot",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột Dot."
+    },
+    {
+      "name": "SoLuongThucTeBanDau",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột SoLuongThucTeBanDau."
+    },
+    {
+      "name": "NgayDuyet",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột NgayDuyet."
+    }
+  ],
+  "relationships": [
+    {
+      "target_table": "ERP_NhapKhoNPL",
+      "join_on": "ERP_ChiTietNhapKhoNPL.SoLoID = ERP_NhapKhoNPL.SoLoID",
+      "notes": "Liên kết với thông tin lô nhập kho chính qua SoLoID."
+    },
+    {
+      "target_table": "ERP_VatTuTV",
+      "join_on": "ERP_ChiTietNhapKhoNPL.MaNPL = ERP_VatTuTV.MaVTID",
+      "notes": "Liên kết với danh mục vật tư qua MaNPL -> MaVTID."
+    },
+    {
+      "target_table": "ERP_VatTuTV",
+      "join_on": "ERP_ChiTietNhapKhoNPL.MaVTID = ERP_VatTuTV.MaVTID",
+      "notes": "Liên kết với danh mục vật tư qua MaVTID."
+    },
+    {
+      "target_table": "ERP_MauVTTV",
+      "join_on": "ERP_ChiTietNhapKhoNPL.MaMauVT = ERP_MauVTTV.MauVTID",
+      "notes": "Liên kết với danh mục màu sắc vật tư qua MaMauVT -> MauVTID."
+    },
+    {
+      "target_table": "ERP_KhoVai",
+      "join_on": "ERP_ChiTietNhapKhoNPL.KhoVaiID = ERP_KhoVai.KhoVaiID",
+      "notes": "Liên kết với danh mục khổ vải qua KhoVaiID."
+    },
+    {
+      "target_table": "ERP_DonViVT",
+      "join_on": "ERP_ChiTietNhapKhoNPL.MaDVVT = ERP_DonViVT.MaDVVT",
+      "notes": "Liên kết với danh mục đơn vị tính qua MaDVVT."
+    },
+    {
+      "target_table": "ERP_MauVTTV",
+      "join_on": "ERP_ChiTietNhapKhoNPL.MauVTID = ERP_MauVTTV.MauVTID",
+      "notes": "Liên kết với danh mục màu sắc vật tư qua MauVTID."
+    }
+  ]
+}

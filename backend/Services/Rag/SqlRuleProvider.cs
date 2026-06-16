@@ -28,10 +28,10 @@ public class SqlRuleProvider : ISqlRuleProvider
 
     public async Task<string> GetGlobalRulesAsync(string? userQuery = null, bool isExcelTemplate = false)
     {
-        var path = Path.Combine(Directory.GetCurrentDirectory(), "rag_schemas", "_global_rules.json");
+        var path = Path.Combine(Directory.GetCurrentDirectory(), "VIKING_rag_schemas", "_global_rules.json");
         if (!File.Exists(path))
         {
-            path = Path.Combine(AppContext.BaseDirectory, "rag_schemas", "_global_rules.json");
+            path = Path.Combine(AppContext.BaseDirectory, "VIKING_rag_schemas", "_global_rules.json");
         }
 
         if (!File.Exists(path))

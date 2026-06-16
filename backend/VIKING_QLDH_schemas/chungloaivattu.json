@@ -1,0 +1,88 @@
+{
+  "table": "ChungLoaiVatTu",
+  "purpose": "Lưu trữ dữ liệu bảng ChungLoaiVatTu của hệ thống Viking QLDH.",
+  "when_to_use": "Sử dụng khi câu hỏi yêu cầu truy vấn thông tin liên quan đến ChungLoaiVatTu.",
+  "when_not_to_use": "Không sử dụng khi câu hỏi không nhắc tới các chỉ tiêu của ChungLoaiVatTu.",
+  "table_rules": [],
+  "columns": [
+    {
+      "name": "ID",
+      "type": "int",
+      "role": "primary_key",
+      "desc": "Mô tả cho cột ID."
+    },
+    {
+      "name": "MaCLVT",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaCLVT."
+    },
+    {
+      "name": "ChungLoaiVatTu",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột ChungLoaiVatTu."
+    },
+    {
+      "name": "VietTat",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột VietTat."
+    },
+    {
+      "name": "IsNPL",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột IsNPL."
+    },
+    {
+      "name": "Sort",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột Sort."
+    },
+    {
+      "name": "TenKhac",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột TenKhac."
+    },
+    {
+      "name": "IsOriginal",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột IsOriginal."
+    },
+    {
+      "name": "NguoiTao",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột NguoiTao."
+    },
+    {
+      "name": "NgayTao",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột NgayTao."
+    },
+    {
+      "name": "NguoiSua",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột NguoiSua."
+    },
+    {
+      "name": "NgaySua",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột NgaySua."
+    },
+    {
+      "name": "IsPS",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột IsPS."
+    }
+  ],
+  "relationships": []
+}
