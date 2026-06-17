@@ -682,6 +682,13 @@ export class TemplateManagerComponent {
                 this.closeCellMappingEditor();
             }
         });
+
+        // Tự động bind events hoặc căn chỉnh chiều cao cho tab đang active ngay sau khi render workspace
+        if (this.activeTab === 'params') {
+            this.bindParamsTabEvents();
+        } else if (this.activeTab === 'notes') {
+            setTimeout(() => this.adjustTextareaHeights(), 50);
+        }
     }
 
     /**
@@ -923,7 +930,7 @@ export class TemplateManagerComponent {
             mappings: this.columnMappings,
             metadataCellMappings: this.metadataCellMappings,
             columnFormats: this.columnFormats,
-            parameters: this.parameters.length > 0 ? this.parameters : null
+            parameters: this.parameters
         };
 
         try {
@@ -935,6 +942,7 @@ export class TemplateManagerComponent {
                 this.selectedTemplateData.savedMappings = this.columnMappings;
                 this.selectedTemplateData.metadataCellMappings = this.metadataCellMappings;
                 this.selectedTemplateData.columnFormats = this.columnFormats;
+                this.selectedTemplateData.parameters = this.parameters;
             }
         } catch (error) {
             console.error('❌ Failed to save template mappings:', error);
@@ -998,6 +1006,9 @@ export class TemplateManagerComponent {
 
             return `
             <div class="param-card" data-param-idx="${idx}">
+                <button class="param-remove-btn" data-idx="${idx}" title="Xóa tham số này">
+                    <i class="ph-bold ph-trash"></i>
+                </button>
                 <div class="param-card-header">
                     <span class="param-card-order">#${idx + 1}</span>
                     <div class="param-card-title-row">
@@ -1010,9 +1021,6 @@ export class TemplateManagerComponent {
                             <input type="text" class="param-input param-key-input" data-field="key" value="${param.key || ''}" placeholder="line_name" />
                         </div>
                     </div>
-                    <button class="param-remove-btn" data-idx="${idx}" title="Xóa tham số này">
-                        <i class="ph-bold ph-trash"></i>
-                    </button>
                 </div>
                 <div class="param-card-body">
                     <div class="param-field-row">
@@ -1023,7 +1031,7 @@ export class TemplateManagerComponent {
                         <div class="param-field-group">
                             <label>Bắt buộc</label>
                             <label class="param-toggle">
-                                <input type="checkbox" data-field="required" ${param.required ? 'checked' : ''} />
+                                <input type="checkbox" class="param-input" data-field="required" ${param.required ? 'checked' : ''} />
                                 <span class="param-toggle-track"></span>
                                 <span class="param-toggle-label">${param.required ? 'Có' : 'Không'}</span>
                             </label>
@@ -1095,25 +1103,34 @@ export class TemplateManagerComponent {
      * Gắn events cho tab Tham số sau khi render
      */
     bindParamsTabEvents() {
-        // Nút thêm tham số mới
-        document.getElementById('btn-add-param')?.addEventListener('click', () => {
-            this.parameters.push({
-                key: '',
-                label: '',
-                type: 'text',
-                required: true,
-                dataSource: null,
-                dataColumn: null,
-                placeholder: '',
-                defaultValue: null,
-                promptTemplate: '',
-                order: this.parameters.length
+        // Clone và thay thế nút để xóa sạch listener cũ tránh trùng lặp khi chuyển tab
+        const addBtn = document.getElementById('btn-add-param');
+        if (addBtn) {
+            const newAddBtn = addBtn.cloneNode(true);
+            addBtn.replaceWith(newAddBtn);
+            newAddBtn.addEventListener('click', () => {
+                this.parameters.push({
+                    key: '',
+                    label: '',
+                    type: 'text',
+                    required: false,
+                    dataSource: null,
+                    dataColumn: null,
+                    placeholder: '',
+                    defaultValue: null,
+                    promptTemplate: '',
+                    order: this.parameters.length
+                });
+                this._refreshParamsList();
             });
-            this._refreshParamsList();
-        });
+        }
 
-        // Nút AI Gợi ý
-        document.getElementById('btn-suggest-params')?.addEventListener('click', () => this.handleSuggestParams());
+        const suggestBtn = document.getElementById('btn-suggest-params');
+        if (suggestBtn) {
+            const newSuggestBtn = suggestBtn.cloneNode(true);
+            suggestBtn.replaceWith(newSuggestBtn);
+            newSuggestBtn.addEventListener('click', () => this.handleSuggestParams());
+        }
 
         // Bind events cho các card hiện tại
         this._bindParamCardEvents();
@@ -1163,7 +1180,8 @@ export class TemplateManagerComponent {
                     const toggleLabel = input.parentElement.querySelector('.param-toggle-label');
                     if (toggleLabel) toggleLabel.textContent = input.checked ? 'Có' : 'Không';
                 } else {
-                    this.parameters[idx][field] = input.value;
+                    const val = input.value.trim();
+                    this.parameters[idx][field] = val === '' ? null : val;
                 }
 
                 // Auto-generate key từ label nếu key rỗng

@@ -78,7 +78,15 @@ export class ChatAreaComponent {
         if (headerNewChatBtn) headerNewChatBtn.addEventListener('click', () => this.resetChat());
         if (exportBtn) exportBtn.addEventListener('click', () => this.handleExportExcel());
         if (micBtn) micBtn.addEventListener('click', () => this._toggleMic());
-        if (attachBtn) attachBtn.addEventListener('click', () => chatFile.click());
+        if (attachBtn) {
+            attachBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this._refreshTemplateList(true);
+                if (this.templatePopup) {
+                    this.templatePopup.classList.toggle('visible');
+                }
+            });
+        }
         if (chatFile) chatFile.addEventListener('change', (e) => this._handleFileSelect(e));
 
         this._initDragAndDrop(inputContainer);
@@ -397,6 +405,13 @@ export class ChatAreaComponent {
         
         // 1. Tải danh sách lần đầu ngay khi khởi tạo
         this._refreshTemplateList(true);
+
+        // Click ra ngoài để ẩn popup
+        document.addEventListener('click', (e) => {
+            if (this.templatePopup && !this.templatePopup.contains(e.target) && e.target !== attachBtn) {
+                this.templatePopup.classList.remove('visible');
+            }
+        });
     }
 
     _handleInputAutoResize() {
@@ -620,6 +635,8 @@ export class ChatAreaComponent {
         this.appendMessage('user', text, [], [], null, null, null, this.uiState.selectedFile);
         
         const currentFile = this.uiState.selectedFile;
+        const hasExcelTemplate = !!currentFile; // Ghi nhớ việc có gửi kèm mẫu Excel
+        
         // 🆕 Cache template trống song song và cập nhật danh sách ngầm
         if (currentFile) {
             TemplateCacheService.cacheTemplate(currentFile).then(() => {
@@ -712,6 +729,18 @@ export class ChatAreaComponent {
                     this.uiState.lastDownloadUrl = data.downloadUrl;
                     this.uiState.lastDownloadFileName = data.downloadFileName || null;
                     this.refreshMessageIndices();
+
+                    // Tự động tải file Excel về nếu gửi kèm mẫu Excel và nhận được link tải
+                    if (hasExcelTemplate && data.downloadUrl) {
+                        ApiClient.downloadFile(data.downloadUrl, data.downloadFileName)
+                            .then(() => {
+                                Toast.success("Đã tự động tải file Excel báo cáo!");
+                            })
+                            .catch(err => {
+                                console.error("Tự động tải file Excel thất bại", err);
+                                Toast.error("Lỗi khi tự động tải file Excel.");
+                            });
+                    }
                 },
                 onError: (msg) => {
                     if (typingIndicator.parentNode) messagesList.removeChild(typingIndicator);

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
+using Microsoft.AspNetCore.Hosting;
 
 namespace Backend.Services.Excel;
 
@@ -17,28 +18,35 @@ public class ExcelMappingService : IExcelMappingService
 {
     private readonly string _filePath;
     private readonly object _lock = new();
+    private readonly IWebHostEnvironment _env;
     private Dictionary<string, ExcelTemplateMapping> _mappingsStore = new(StringComparer.OrdinalIgnoreCase);
 
-    public ExcelMappingService()
+    public ExcelMappingService(IWebHostEnvironment env)
     {
-        // 1. Xác định thư mục data nằm tại backend/data trước, sau đó là các fallback
-        var rootDir = AppContext.BaseDirectory;
-        // Đi lên 3 cấp để tìm thư mục backend/data (bin/Debug/net8.0 -> backend)
-        var backendDir = Path.GetFullPath(Path.Combine(rootDir, "..", "..", ".."));
-        var dataDir = Path.Combine(backendDir, "data");
+        _env = env;
+        // 1. Xác định thư mục data bằng ContentRootPath của ứng dụng
+        var dataDir = Path.Combine(_env.ContentRootPath, "data");
 
         if (!Directory.Exists(dataDir))
         {
-            // Thử tìm data ở ngay thư mục build/publish (AppContext.BaseDirectory)
-            dataDir = Path.Combine(rootDir, "data");
+            // Fallback về cách cũ nếu thư mục không tồn tại ở ContentRootPath
+            var rootDir = AppContext.BaseDirectory;
+            var backendDir = Path.GetFullPath(Path.Combine(rootDir, "..", "..", ".."));
+            dataDir = Path.Combine(backendDir, "data");
             
             if (!Directory.Exists(dataDir))
             {
-                // Fallback về thư mục chạy hiện tại
-                dataDir = Path.Combine(Directory.GetCurrentDirectory(), "data");
+                // Thử tìm data ở ngay thư mục build/publish (AppContext.BaseDirectory)
+                dataDir = Path.Combine(rootDir, "data");
+                
                 if (!Directory.Exists(dataDir))
                 {
-                    Directory.CreateDirectory(dataDir);
+                    // Fallback về thư mục chạy hiện tại
+                    dataDir = Path.Combine(Directory.GetCurrentDirectory(), "data");
+                    if (!Directory.Exists(dataDir))
+                    {
+                        Directory.CreateDirectory(dataDir);
+                    }
                 }
             }
         }

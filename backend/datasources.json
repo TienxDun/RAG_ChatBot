@@ -8,17 +8,17 @@
       "connectionStringEnvVar": "MSSQL_CONNECTION_STRING",
       "connectionString": "",
       "rulesFolder": "VIKING_rag_schemas",
-      "isDefault": false
+      "isDefault": true
     },
     {
       "id": "viking",
       "displayName": "VIKING_2",
       "description": "Hệ thống quản lý đơn hàng Viking",
-      "qdrantCollection": "viking_qldh",
+      "qdrantCollection": "db_viking_qldh",
       "connectionStringEnvVar": "MSSQL_VIKING_CONNECTION_STRING",
       "connectionString": "",
       "rulesFolder": "VIKING_QLDH_schemas",
-      "isDefault": true
+      "isDefault": false
     }
   ]
 }

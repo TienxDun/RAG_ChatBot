@@ -70,22 +70,9 @@
         "DataColumn": null,
         "DisplayColumn": null,
         "Placeholder": null,
-        "DefaultValue": "today",
+        "DefaultValue": null,
         "PromptTemplate": "Từ ngày {start} đến ngày {end}",
         "Order": 1
-      },
-      {
-        "Key": "lenh_sx",
-        "Label": "Mã lệnh sản xuất",
-        "Type": "text",
-        "Required": false,
-        "DataSource": null,
-        "DataColumn": null,
-        "DisplayColumn": null,
-        "Placeholder": "Nhập mã lệnh sản xuất (nếu có)...",
-        "DefaultValue": null,
-        "PromptTemplate": "Lệnh sản xuất: {value}",
-        "Order": 2
       },
       {
         "Key": "PO | QTY_InLineQC_NgayKiem.PO",
@@ -98,6 +85,19 @@
         "Placeholder": "Nhập mã PO (nếu có)...",
         "DefaultValue": null,
         "PromptTemplate": "PO: {value}",
+        "Order": 2
+      },
+      {
+        "Key": "yeu_cau_khac",
+        "Label": "Yêu cầu khác",
+        "Type": "text",
+        "Required": false,
+        "DataSource": null,
+        "DataColumn": null,
+        "DisplayColumn": null,
+        "Placeholder": "Nhập thêm yêu cầu khác ngoài các tham số trên (nếu có)...",
+        "DefaultValue": null,
+        "PromptTemplate": "Yêu cầu thêm: {value}",
         "Order": 3
       }
     ]
@@ -173,6 +173,19 @@
         "DefaultValue": null,
         "PromptTemplate": "Từ ngày {start} đến ngày {end}",
         "Order": 2
+      },
+      {
+        "Key": "yeu_cau_khac",
+        "Label": "Yêu cầu khác",
+        "Type": "text",
+        "Required": false,
+        "DataSource": null,
+        "DataColumn": null,
+        "DisplayColumn": null,
+        "Placeholder": "Nhập thêm yêu cầu khác ngoài các tham số trên (nếu có)...",
+        "DefaultValue": null,
+        "PromptTemplate": "Yêu cầu thêm: {value}",
+        "Order": 3
       }
     ]
   },
