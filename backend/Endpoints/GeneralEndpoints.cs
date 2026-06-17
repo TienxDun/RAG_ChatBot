@@ -25,6 +25,8 @@ public static class GeneralEndpoints
         MapChatEndpoints(app);
         MapExcelEndpoints(app);
 
+        // Register Admin APIs
+        AdminEndpoints.MapRoutes(app);
         
         if (env.IsDevelopment())
         {
@@ -188,10 +190,17 @@ public static class GeneralEndpoints
 
     private static void MapDocumentEndpoints(IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/documents/collections", async (QdrantService qdrant) => 
+        app.MapGet("/api/documents/collections", (DataSourceRegistry registry) => 
         {
-            var collections = await qdrant.GetCollectionsAsync();
-            return Results.Ok(collections);
+            var dataSources = registry.GetAll().Select(ds => new 
+            {
+                id = ds.Id,
+                displayName = ds.DisplayName,
+                description = ds.Description,
+                qdrantCollection = ds.QdrantCollection,
+                isDefault = ds.IsDefault
+            });
+            return Results.Ok(dataSources);
         });
 
         app.MapPost("/api/documents/upload", async (HttpContext context, DocumentProcessor processor, CancellationToken ct) =>
@@ -332,7 +341,7 @@ public static class GeneralEndpoints
 
     private static void MapSqlExecuteEndpoint(IEndpointRouteBuilder app)
     {
-        app.MapPost("/api/sql/execute", async ([FromBody] ExecuteSqlRequest request, SqlService sqlService, CancellationToken ct) =>
+        app.MapPost("/api/sql/execute", async ([FromBody] ExecuteSqlRequest request, SqlService sqlService, DataSourceRegistry registry, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(request.Sql))
             {
@@ -341,7 +350,9 @@ public static class GeneralEndpoints
 
             try
             {
-                var dataTable = await sqlService.ExecuteQueryAsDataTableAsync(request.Sql, ct);
+                var dataSource = registry.GetByCollection(request.CollectionName) ?? registry.GetDefault();
+                var connectionString = registry.GetConnectionString(dataSource);
+                var dataTable = await sqlService.ExecuteQueryAsDataTableAsync(request.Sql, connectionString, ct);
                 
                 var rows = new List<Dictionary<string, object>>();
                 foreach (System.Data.DataRow row in dataTable.Rows)
@@ -370,5 +381,5 @@ public static class GeneralEndpoints
     }
 }
 
-public record ExecuteSqlRequest(string Sql);
+public record ExecuteSqlRequest(string Sql, string? CollectionName = null);
 public record TestCaseSectionDto(string Section, List<string> Questions);

@@ -1,0 +1,49 @@
+{
+  "type": "global_rules",
+  "version": "2.0",
+  "description": "Các quy tắc viết SQL chung bắt buộc tuân thủ cho hệ thống quản lý đơn hàng Viking.",
+  "rules": [
+    {
+      "id": "G001",
+      "category": "datetime",
+      "severity": "CRITICAL",
+      "rule": "Lọc/so sánh ngày trên cột DATETIME bắt buộc dùng CAST(cột AS DATE). Ví dụ ĐÚNG: `CAST(NgayNhap AS DATE) BETWEEN 'YYYY-MM-DD' AND 'YYYY-MM-DD'`"
+    },
+    {
+      "id": "G002",
+      "category": "unicode_prefix",
+      "severity": "CRITICAL",
+      "rule": "Thêm tiền tố N trước hằng chuỗi chứa ký tự tiếng Việt có dấu. KHÔNG thêm trước chuỗi ASCII."
+    },
+    {
+      "id": "G008",
+      "category": "row_limiting",
+      "severity": "CRITICAL",
+      "rule": "Cấm giới hạn số dòng (TOP, LIMIT) trừ khi người dùng yêu cầu rõ ràng."
+    },
+    {
+      "id": "G009",
+      "category": "rank_ties",
+      "severity": "CRITICAL",
+      "rule": "XỬ LÝ ĐỒNG HẠNG: Truy vấn Top xếp hạng bắt buộc dùng DENSE_RANK() OVER (...) trong CTE rồi lọc ở WHERE ngoài (WHERE Rk = 1), cấm dùng TOP 1 trực tiếp."
+    },
+    {
+      "id": "G018",
+      "category": "tsql_max_null_ban",
+      "severity": "CRITICAL",
+      "rule": "Cấm dùng MAX(NULL) hoặc MIN(NULL) trong T-SQL. SELECT giá trị NULL trực tiếp: `CAST(NULL AS VARCHAR(100)) AS [Tên Cột]` hoặc `NULL AS [Tên Cột]`."
+    },
+    {
+      "id": "G025",
+      "category": "alias_scoping",
+      "severity": "CRITICAL",
+      "rule": "Cấm dùng bí danh cột (alias) trong WHERE, GROUP BY hoặc các biểu thức tính toán cùng cấp SELECT."
+    },
+    {
+      "id": "G030",
+      "category": "time_range_between",
+      "severity": "HIGH",
+      "rule": "LỌC KHOẢNG THỜI GIAN: Bắt buộc sử dụng toán tử BETWEEN trên cột thời gian để bao gồm cả thời điểm kết thúc."
+    }
+  ]
+}

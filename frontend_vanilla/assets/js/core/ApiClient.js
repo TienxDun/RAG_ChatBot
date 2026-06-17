@@ -95,6 +95,53 @@ export class ApiClient {
         }
     }
 
+    // Gửi yêu cầu PUT thông thường (JSON)
+    static async put(endpoint, data, options = {}) {
+        const url = this._resolveUrl(endpoint);
+        this._group(options, `🌐 API PUT: ${url}`);
+        this._log(options, '📤 Payload:', data);
+
+        try {
+            const response = await fetch(url, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+            });
+
+            await this._handleResponse(response);
+            const result = await response.json();
+            this._log(options, '📥 Response:', result);
+            return result;
+        } catch (error) {
+            if (!options.silent) console.error('🔴 API Put Error:', error);
+            throw error;
+        } finally {
+            this._groupEnd(options);
+        }
+    }
+
+    // Gửi yêu cầu DELETE thông thường (JSON)
+    static async delete(endpoint, options = {}) {
+        const url = this._resolveUrl(endpoint);
+        this._group(options, `🌐 API DELETE: ${url}`);
+
+        try {
+            const response = await fetch(url, {
+                method: 'DELETE',
+            });
+
+            await this._handleResponse(response);
+            const result = await response.json();
+            this._log(options, '📥 Response:', result);
+            return result;
+        } catch (error) {
+            if (!options.silent) console.error('🔴 API Delete Error:', error);
+            throw error;
+        } finally {
+            this._groupEnd(options);
+        }
+    }
+
     // Gửi yêu cầu và tải xuống tệp tin
     static async downloadFile(endpoint, suggestedFileName = null, options = {}) {
         const url = this._resolveUrl(endpoint);

@@ -1,0 +1,24 @@
+{
+  "dataSources": [
+    {
+      "id": "xuongmay",
+      "displayName": "VIKING_1",
+      "description": "Database quản lý xưởng may chính",
+      "qdrantCollection": "db_schema",
+      "connectionStringEnvVar": "MSSQL_CONNECTION_STRING",
+      "connectionString": "",
+      "rulesFolder": "VIKING_rag_schemas",
+      "isDefault": false
+    },
+    {
+      "id": "viking",
+      "displayName": "VIKING_2",
+      "description": "Hệ thống quản lý đơn hàng Viking",
+      "qdrantCollection": "viking_qldh",
+      "connectionStringEnvVar": "MSSQL_VIKING_CONNECTION_STRING",
+      "connectionString": "",
+      "rulesFolder": "VIKING_QLDH_schemas",
+      "isDefault": true
+    }
+  ]
+}

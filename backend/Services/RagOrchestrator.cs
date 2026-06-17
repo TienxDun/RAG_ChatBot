@@ -20,6 +20,7 @@ public sealed class RagOrchestrator
     private readonly ISqlRuleProvider _ruleProvider;
     private readonly IAiResponseParser _responseParser;
     private readonly ISqlPlanExecutor _planExecutor;
+    private readonly DataSourceRegistry _registry;
 
     public RagOrchestrator(
         VertexAiClient aiClient,
@@ -27,7 +28,8 @@ public sealed class RagOrchestrator
         VertexAiOptions options,
         ISqlRuleProvider ruleProvider,
         IAiResponseParser responseParser,
-        ISqlPlanExecutor planExecutor)
+        ISqlPlanExecutor planExecutor,
+        DataSourceRegistry registry)
     {
         _aiClient = aiClient;
         _qdrantService = qdrantService;
@@ -35,6 +37,7 @@ public sealed class RagOrchestrator
         _ruleProvider = ruleProvider;
         _responseParser = responseParser;
         _planExecutor = planExecutor;
+        _registry = registry;
     }
 
     // Quy trình điều phối RAG chính
@@ -46,6 +49,9 @@ public sealed class RagOrchestrator
         CancellationToken ct,
         bool isExcelTemplate = false)
     {
+        var dataSource = _registry.GetByCollection(collectionName) ?? _registry.GetDefault();
+        var connectionString = _registry.GetConnectionString(dataSource);
+
         var steps = new List<RagStep>();
         var tracker = PerformanceContext.Current;
         var totalSw = System.Diagnostics.Stopwatch.StartNew();
@@ -70,7 +76,7 @@ public sealed class RagOrchestrator
         await onStep(steps.Last());
 
         // 2. Schema Retrieval
-        var schemaInfo = await RetrieveSchemaAsync(vector, collectionName);
+        var schemaInfo = await RetrieveSchemaAsync(vector, dataSource.QdrantCollection);
         var step2Content = $"Tìm thấy cấu trúc database liên quan.\n\n" +
                            "**Chi tiết cấu trúc được trích xuất từ Qdrant:**\n" +
                            $"```sql\n{schemaInfo}\n```";
@@ -86,7 +92,7 @@ public sealed class RagOrchestrator
         var currentTimeStr = now.ToString("dd/MM/yyyy HH:mm");
 
         // 3. Planning
-        var planResult = await CreatePlanAsync(userQuery, schemaInfo, currentTimeStr, isExcelTemplate, onStep, pipelineCt);
+        var planResult = await CreatePlanAsync(userQuery, schemaInfo, currentTimeStr, isExcelTemplate, dataSource.RulesFolder, onStep, pipelineCt);
 
         stepSw.Stop();
         TrackLatency(tracker, t => t.PlanningMs = stepSw.ElapsedMilliseconds);
@@ -94,7 +100,7 @@ public sealed class RagOrchestrator
         stepSw.Restart();
 
         // 4. Execution
-        var execResult = await ExecutePlanAsync(planResult, userQuery, currentTimeStr, schemaInfo, onStep, pipelineCt);
+        var execResult = await ExecutePlanAsync(planResult, userQuery, currentTimeStr, schemaInfo, connectionString, onStep, pipelineCt);
         steps.AddRange(execResult.ExecutedSteps);
 
         stepSw.Stop();
@@ -169,7 +175,7 @@ public sealed class RagOrchestrator
 
     // ==================== Private: Schema Retrieval ====================
 
-    private async Task<string> RetrieveSchemaAsync(IReadOnlyList<float> vector, string? collectionName)
+    private async Task<string> RetrieveSchemaAsync(IReadOnlyList<float> vector, string collectionName)
     {
         var schemaContexts = await _qdrantService.SearchSchemaAsync(vector, limit: _options.TopK, collectionName: collectionName);
         var orderedContexts = schemaContexts.OrderBy(s => s).ToList();
@@ -190,11 +196,11 @@ public sealed class RagOrchestrator
 
     private async Task<PlanResult> CreatePlanAsync(
         string userQuery, string schemaInfo, string currentTimeStr,
-        bool isExcelTemplate, Func<RagStep, Task> onStep, CancellationToken ct)
+        bool isExcelTemplate, string rulesFolder, Func<RagStep, Task> onStep, CancellationToken ct)
     {
         await onStep(new RagStep("Execution Planning", "AI đang phân tích câu hỏi và lập kế hoạch truy vấn..."));
         
-        var globalRules = await _ruleProvider.GetGlobalRulesAsync(userQuery, isExcelTemplate: isExcelTemplate);
+        var globalRules = await _ruleProvider.GetGlobalRulesAsync(rulesFolder, userQuery, isExcelTemplate: isExcelTemplate);
         var planningPrompt = RagPromptBuilder.BuildPlanningPrompt(userQuery, schemaInfo, globalRules, currentTimeStr);
         var planResponse = await _aiClient.GenerateContentAsync(planningPrompt, ct, responseMimeType: "application/json");
 
@@ -229,7 +235,7 @@ public sealed class RagOrchestrator
 
     private async Task<ExecutionResult> ExecutePlanAsync(
         PlanResult plan, string userQuery, string currentTimeStr, string schemaInfo,
-        Func<RagStep, Task> onStep, CancellationToken ct)
+        string connectionString, Func<RagStep, Task> onStep, CancellationToken ct)
     {
         if (plan.IsOutOfScope)
         {
@@ -245,7 +251,7 @@ public sealed class RagOrchestrator
             try
             {
                 execResult = await _planExecutor.ExecuteDirectSqlAsync(
-                    plan.DirectSql, userQuery, currentTimeStr, onStep, ct);
+                    plan.DirectSql, userQuery, currentTimeStr, connectionString, onStep, ct);
             }
             catch (Exception ex)
             {
@@ -254,13 +260,13 @@ public sealed class RagOrchestrator
                     $"Lỗi thực thi SQL trực tiếp: {ex.Message}. Đang tự động chuyển sang luồng phân tích từng bước..."));
                 
                 execResult = await _planExecutor.ExecutePlanStepsAsync(
-                    plan.Steps, userQuery, currentTimeStr, schemaInfo, plan.GlobalRules, onStep, ct);
+                    plan.Steps, userQuery, currentTimeStr, schemaInfo, plan.GlobalRules, connectionString, onStep, ct);
             }
         }
         else
         {
             execResult = await _planExecutor.ExecutePlanStepsAsync(
-                plan.Steps, userQuery, currentTimeStr, schemaInfo, plan.GlobalRules, onStep, ct);
+                plan.Steps, userQuery, currentTimeStr, schemaInfo, plan.GlobalRules, connectionString, onStep, ct);
         }
 
         return new ExecutionResult(

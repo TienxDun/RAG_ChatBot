@@ -19,6 +19,7 @@ public interface ISqlPlanExecutor
         string currentTimeStr,
         string schemaInfo,
         string globalRules,
+        string connectionString,
         Func<RagStep, Task> onStep,
         CancellationToken ct);
 
@@ -26,6 +27,7 @@ public interface ISqlPlanExecutor
         string directSql,
         string userQuery,
         string currentTimeStr,
+        string connectionString,
         Func<RagStep, Task> onStep,
         CancellationToken ct);
 }
@@ -68,6 +70,7 @@ public class SqlPlanExecutor : ISqlPlanExecutor
         string currentTimeStr,
         string schemaInfo,
         string globalRules,
+        string connectionString,
         Func<RagStep, Task> onStep,
         CancellationToken ct)
     {
@@ -133,7 +136,7 @@ public class SqlPlanExecutor : ISqlPlanExecutor
 
                 try
                 {
-                    var dt = await _sqlService.ExecuteQueryAsDataTableAsync(generatedSql, ct);
+                    var dt = await _sqlService.ExecuteQueryAsDataTableAsync(generatedSql, connectionString, ct);
                     result.LastDataTable = dt;
 
                     var (fullJson, uiJson, truncationNotice, rows) = BuildStepOutput(dt);
@@ -166,6 +169,7 @@ public class SqlPlanExecutor : ISqlPlanExecutor
         string directSql,
         string userQuery,
         string currentTimeStr,
+        string connectionString,
         Func<RagStep, Task> onStep,
         CancellationToken ct)
     {
@@ -179,7 +183,7 @@ public class SqlPlanExecutor : ISqlPlanExecutor
 
         try
         {
-            var dt = await _sqlService.ExecuteQueryAsDataTableAsync(directSql, ct);
+            var dt = await _sqlService.ExecuteQueryAsDataTableAsync(directSql, connectionString, ct);
             result.LastDataTable = dt;
 
             var (fullJson, uiJson, truncationNotice, rows) = BuildStepOutput(dt);

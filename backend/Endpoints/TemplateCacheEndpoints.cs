@@ -286,7 +286,9 @@ public static class TemplateCacheEndpoints
         [Microsoft.AspNetCore.Mvc.FromQuery] string table,
         [Microsoft.AspNetCore.Mvc.FromQuery] string column,
         [Microsoft.AspNetCore.Mvc.FromQuery] string? display,
+        [Microsoft.AspNetCore.Mvc.FromQuery] string? collectionName,
         SqlService sqlService,
+        DataSourceRegistry registry,
         CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(table) || string.IsNullOrWhiteSpace(column))
@@ -296,7 +298,8 @@ public static class TemplateCacheEndpoints
         var allowedTables = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "tbl_settingLineX", "tbl_SettingLineX", "SettingLine",
-            "ERP_LenhSX", "DIC_KhachHang", "TSKFinal", "tbl_Steps"
+            "ERP_LenhSX", "DIC_KhachHang", "TSKFinal", "tbl_Steps",
+            "bangsize", "chungloaivattu", "khachhang", "erp_khovai", "erp_mauvttv", "erp_donvivt"
         };
 
         if (!allowedTables.Any(t => table.Equals(t, StringComparison.OrdinalIgnoreCase)))
@@ -304,9 +307,11 @@ public static class TemplateCacheEndpoints
 
         try
         {
+            var dataSource = registry.GetByCollection(collectionName) ?? registry.GetDefault();
+            var connectionString = registry.GetConnectionString(dataSource);
             var displayCol = string.IsNullOrWhiteSpace(display) ? column : display;
             var sql = $"SELECT DISTINCT TOP 500 [{column}] AS value, [{displayCol}] AS label FROM [{table}] WHERE [{column}] IS NOT NULL ORDER BY [{displayCol}]";
-            var data = await sqlService.QueryAsync(sql, ct);
+            var data = await sqlService.QueryAsync(sql, connectionString, ct);
             return Results.Ok(data);
         }
         catch (Exception ex)

@@ -13,6 +13,7 @@ export class SidebarComponent {
         this.navChatBtn = document.getElementById('nav-chat-btn');
         this.navTemplatesBtn = document.getElementById('nav-templates-btn');
         this.navTestingBtn = document.getElementById('nav-testing-btn');
+        this.navDataSourcesBtn = document.getElementById('nav-datasources-btn');
         
         this.init();
     }
@@ -41,6 +42,11 @@ export class SidebarComponent {
         if (this.navTestingBtn) {
             this.navTestingBtn.addEventListener('click', () => {
                 state.activePage = 'testing';
+            });
+        }
+        if (this.navDataSourcesBtn) {
+            this.navDataSourcesBtn.addEventListener('click', () => {
+                state.activePage = 'datasources';
             });
         }
         
@@ -329,11 +335,15 @@ export class SidebarComponent {
         if (this.navTestingBtn) {
             this.navTestingBtn.classList.toggle('active', activePage === 'testing');
         }
+        if (this.navDataSourcesBtn) {
+            this.navDataSourcesBtn.classList.toggle('active', activePage === 'datasources');
+        }
         
         // Ẩn/Hiện các trang tương ứng
         document.getElementById('chat-area')?.classList.toggle('hidden', activePage !== 'chat');
         document.getElementById('template-manager-page')?.classList.toggle('hidden', activePage !== 'templates');
         document.getElementById('testing-page')?.classList.toggle('hidden', activePage !== 'testing');
+        document.getElementById('datasources-page')?.classList.toggle('hidden', activePage !== 'datasources');
         
         // Xử lý hiển thị Minimap
         if (activePage === 'chat') {

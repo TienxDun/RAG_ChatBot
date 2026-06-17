@@ -143,20 +143,19 @@ export class ChatAreaComponent {
         if (!collectionSelect) return;
 
         try {
-            const collections = await ApiClient.get(ENDPOINTS.COLLECTIONS);
-            if (!Array.isArray(collections)) return;
+            const dataSources = await ApiClient.get(ENDPOINTS.COLLECTIONS);
+            if (!Array.isArray(dataSources)) return;
 
-            const defaultOption = collectionSelect.options[0];
             collectionSelect.innerHTML = '';
-            collectionSelect.appendChild(defaultOption);
 
-            collections.forEach(col => {
-                if (col !== 'db_schema') {
-                    const option = document.createElement('option');
-                    option.value = col;
-                    option.textContent = col;
-                    collectionSelect.appendChild(option);
+            dataSources.forEach(ds => {
+                const option = document.createElement('option');
+                option.value = ds.qdrantCollection;
+                option.textContent = ds.displayName || ds.qdrantCollection;
+                if (ds.isDefault) {
+                    option.selected = true;
                 }
+                collectionSelect.appendChild(option);
             });
         } catch (error) {
             console.error('Failed to load collections:', error);

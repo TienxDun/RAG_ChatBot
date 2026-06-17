@@ -14,7 +14,11 @@ export const ENDPOINTS = {
     UPLOAD: '/documents/upload',
     EXPORT_EXCEL: '/chat/export-excel',
     HEALTH: '/health',
-    COLLECTIONS: '/documents/collections'
+    COLLECTIONS: '/documents/collections',
+    ADMIN_LOGIN: '/admin/login',
+    ADMIN_DATASOURCES: '/admin/datasources',
+    ADMIN_TEST_CONNECTION: '/admin/datasources/test',
+    ADMIN_QDRANT_COLLECTIONS: '/admin/qdrant/collections'
 };
 
 export const SELECTORS = {

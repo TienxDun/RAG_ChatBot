@@ -8,6 +8,7 @@ import { SearchComponent } from './components/Search.js';
 import { HeaderComponent } from './components/Header.js';
 import { TemplateManagerComponent } from './components/TemplateManager.js';
 import { TestingManagerComponent } from './components/TestingManager.js';
+import { DataSourcePanelComponent } from './components/DataSourcePanel.js';
 import { state } from './core/State.js';
 import { ENDPOINTS } from './core/Config.js';
 import { ApiClient } from './core/ApiClient.js';
@@ -31,6 +32,7 @@ class App {
         this.header = new HeaderComponent();
         this.templateManager = new TemplateManagerComponent();
         this.testingManager = new TestingManagerComponent();
+        this.dataSourcePanel = new DataSourcePanelComponent();
 
         this.initHealthCheck();
         console.log('✅ DODO AI - App Ready');

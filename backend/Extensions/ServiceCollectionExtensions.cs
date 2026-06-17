@@ -46,6 +46,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton(options);
         services.AddSingleton(qdrantOptions);
         services.AddSingleton(sqlOptions);
+        services.AddSingleton<DataSourceRegistry>();
 
         services.AddHttpClient<VertexAiClient>(client => 
         {

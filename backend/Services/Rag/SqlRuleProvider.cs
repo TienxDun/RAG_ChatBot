@@ -2,14 +2,16 @@ using System;
 using System.IO;
 using System.Text;
 using System.Text.Json;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace Backend.Services.Rag;
 
 public interface ISqlRuleProvider
 {
-    Task<string> GetGlobalRulesAsync(string? userQuery = null, bool isExcelTemplate = false);
+    Task<string> GetGlobalRulesAsync(string rulesFolder, string? userQuery = null, bool isExcelTemplate = false);
 }
 
 public class SqlRuleProvider : ISqlRuleProvider
@@ -21,17 +23,26 @@ public class SqlRuleProvider : ISqlRuleProvider
         public string Rule { get; set; } = string.Empty;
     }
 
-    private List<RuleItem>? _cachedRules;
-    private DateTime _lastRulesReadTime = DateTime.MinValue;
-    // Dùng SemaphoreSlim thay vì lock để hỗ trợ await bên trong critical section
+    private sealed class CachedRulesEntry
+    {
+        public List<RuleItem> Rules { get; set; } = new();
+        public DateTime LastReadTime { get; set; } = DateTime.MinValue;
+    }
+
+    private readonly ConcurrentDictionary<string, CachedRulesEntry> _cachedRulesMap = new(StringComparer.OrdinalIgnoreCase);
     private readonly SemaphoreSlim _rulesLock = new(1, 1);
 
-    public async Task<string> GetGlobalRulesAsync(string? userQuery = null, bool isExcelTemplate = false)
+    public async Task<string> GetGlobalRulesAsync(string rulesFolder, string? userQuery = null, bool isExcelTemplate = false)
     {
-        var path = Path.Combine(Directory.GetCurrentDirectory(), "VIKING_rag_schemas", "_global_rules.json");
+        if (string.IsNullOrWhiteSpace(rulesFolder))
+        {
+            return string.Empty;
+        }
+
+        var path = Path.Combine(Directory.GetCurrentDirectory(), rulesFolder, "_global_rules.json");
         if (!File.Exists(path))
         {
-            path = Path.Combine(AppContext.BaseDirectory, "VIKING_rag_schemas", "_global_rules.json");
+            path = Path.Combine(AppContext.BaseDirectory, rulesFolder, "_global_rules.json");
         }
 
         if (!File.Exists(path))
@@ -44,10 +55,12 @@ public class SqlRuleProvider : ISqlRuleProvider
         {
             var lastWrite = File.GetLastWriteTime(path);
 
+            _cachedRulesMap.TryGetValue(rulesFolder, out var cachedEntry);
+
             // Kiểm tra nhanh ngoài lock (read-only, chấp nhận stale check nhẹ)
-            if (_cachedRules != null && lastWrite <= _lastRulesReadTime)
+            if (cachedEntry != null && lastWrite <= cachedEntry.LastReadTime)
             {
-                rules = _cachedRules;
+                rules = cachedEntry.Rules;
             }
             else
             {
@@ -56,7 +69,8 @@ public class SqlRuleProvider : ISqlRuleProvider
                 try
                 {
                     // Double-check sau khi acquire semaphore để tránh reload trùng
-                    if (_cachedRules == null || lastWrite > _lastRulesReadTime)
+                    _cachedRulesMap.TryGetValue(rulesFolder, out cachedEntry);
+                    if (cachedEntry == null || lastWrite > cachedEntry.LastReadTime)
                     {
                         var content = await File.ReadAllTextAsync(path, Encoding.UTF8);
                         using var doc = JsonDocument.Parse(content);
@@ -73,10 +87,15 @@ public class SqlRuleProvider : ISqlRuleProvider
                                 });
                             }
                         }
-                        _cachedRules = tempRules;
-                        _lastRulesReadTime = lastWrite;
+                        
+                        cachedEntry = new CachedRulesEntry
+                        {
+                            Rules = tempRules,
+                            LastReadTime = lastWrite
+                        };
+                        _cachedRulesMap[rulesFolder] = cachedEntry;
                     }
-                    rules = _cachedRules;
+                    rules = cachedEntry.Rules;
                 }
                 finally
                 {
@@ -86,7 +105,14 @@ public class SqlRuleProvider : ISqlRuleProvider
         }
         catch
         {
-            rules = _cachedRules ?? new List<RuleItem>();
+            if (_cachedRulesMap.TryGetValue(rulesFolder, out var cachedEntry))
+            {
+                rules = cachedEntry.Rules;
+            }
+            else
+            {
+                rules = new List<RuleItem>();
+            }
         }
 
         if (rules == null || rules.Count == 0)
@@ -108,5 +134,4 @@ public class SqlRuleProvider : ISqlRuleProvider
 
         return sb.ToString();
     }
-
 }

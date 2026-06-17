@@ -391,9 +391,14 @@ export class TemplateManagerComponent {
                                 Hãy mô tả hoặc chú thích chi tiết thông tin cho từng cột tiêu đề của file Excel dưới đây. 
                                 Điều này giúp Trợ lý AI (RAG) hiểu rõ ý nghĩa của cột để truy vấn dữ liệu chính xác nhất.
                             </p>
-                            <button class="btn-auto-map" id="btn-auto-map-columns">
-                                <i class="ph-bold ph-sparkle"></i> Tự động điền bằng AI
-                            </button>
+                            <div style="display: flex; gap: 8px; align-items: center; flex-shrink: 0;">
+                                <select id="template-collection-select" style="padding: 8px 12px; font-size: 0.825rem; border-radius: 6px; border: 1px solid var(--border); background: var(--card); color: var(--foreground); cursor: pointer; max-width: 180px; height: 36px; box-sizing: border-box; font-family: inherit; font-weight: 500;">
+                                    <option value="">Đang tải nguồn dữ liệu...</option>
+                                </select>
+                                <button class="btn-auto-map" id="btn-auto-map-columns" style="height: 36px; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                                    <i class="ph-bold ph-sparkle"></i> Tự động điền bằng AI
+                                </button>
+                            </div>
                         </div>
                         <div class="column-mapping-scroll-container" style="flex: 1; overflow-y: auto; padding-right: 4px;">
                             ${this.renderColumnMappingInputs()}
@@ -423,6 +428,7 @@ export class TemplateManagerComponent {
         `;
 
         this.bindWorkspaceEvents();
+        this.loadQdrantCollections();
     }
 
     /**
@@ -705,8 +711,9 @@ export class TemplateManagerComponent {
             }));
 
             // Sử dụng collection hiện tại hoặc mặc định
-            const collectionSelect = document.getElementById('chat-collection-select');
-            const collectionName = collectionSelect ? collectionSelect.value : 'db_schema';
+            const templateCollectionSelect = document.getElementById('template-collection-select');
+            const chatCollectionSelect = document.getElementById('chat-collection-select');
+            const collectionName = templateCollectionSelect ? templateCollectionSelect.value : (chatCollectionSelect ? chatCollectionSelect.value : 'db_schema');
 
             const payload = {
                 fileName: this.selectedTemplate.fileName,
@@ -1219,6 +1226,29 @@ export class TemplateManagerComponent {
             if (btn) {
                 btn.disabled = false;
                 btn.innerHTML = '<i class="ph-bold ph-sparkle"></i> AI Gợi ý';
+            }
+        }
+    }
+
+    async loadQdrantCollections() {
+        try {
+            const dataSources = await ApiClient.get('/documents/collections');
+            const select = document.getElementById('template-collection-select');
+            if (!select) return;
+
+            if (!dataSources || dataSources.length === 0) {
+                select.innerHTML = `<option value="db_schema">db_schema (Mặc định)</option>`;
+                return;
+            }
+
+            select.innerHTML = dataSources.map(ds => {
+                return `<option value="${ds.qdrantCollection}" ${ds.isDefault ? 'selected' : ''}>${ds.displayName}</option>`;
+            }).join('');
+        } catch (error) {
+            console.error('Failed to load collections for template manager:', error);
+            const select = document.getElementById('template-collection-select');
+            if (select) {
+                select.innerHTML = `<option value="db_schema">db_schema (Mặc định)</option>`;
             }
         }
     }

@@ -1,0 +1,514 @@
+/* datasources.css - Styles for DataSource Management Panel & Login */
+
+.datasources-page {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100%;
+    padding-top: 5.5rem; /* Đẩy nội dung xuống dưới Fixed Header */
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+    padding-bottom: 1.5rem;
+    overflow: hidden;
+    animation: fadeIn 0.4s ease;
+    box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+    .datasources-page {
+        padding-top: 4.5rem; /* Header nhỏ hơn trên di động */
+        padding-left: 1rem;
+        padding-right: 1rem;
+        padding-bottom: 1rem;
+    }
+}
+
+/* --- Login View --- */
+.ds-login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    padding: 1.5rem 0;
+}
+
+.ds-login-card {
+    width: 100%;
+    max-width: 420px;
+    padding: 2.5rem;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin: auto;
+}
+
+.ds-login-header {
+    text-align: center;
+}
+
+.ds-login-header i {
+    font-size: 3rem;
+    color: var(--primary);
+    margin-bottom: 0.75rem;
+}
+
+.ds-login-header h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--foreground);
+}
+
+.ds-login-header p {
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+    margin: 0.25rem 0 0 0;
+}
+
+.ds-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.ds-form-group label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--foreground);
+}
+
+.ds-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.ds-input-wrapper i {
+    position: absolute;
+    left: 12px;
+    color: var(--muted-foreground);
+    font-size: 1.25rem;
+    pointer-events: none;
+}
+
+.ds-input-field {
+    width: 100%;
+    padding: 10px 12px 10px 40px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--background);
+    color: var(--foreground);
+    font-size: 0.95rem;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.ds-input-field:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+}
+
+.btn-ds-login {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    background: var(--primary);
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+}
+
+.btn-ds-login:hover {
+    background: var(--primary-hover);
+    transform: translateY(-1px);
+}
+
+/* --- Management Workspace --- */
+.ds-workspace {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.ds-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 1.25rem;
+}
+
+.ds-header-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.ds-header-title i {
+    font-size: 2rem;
+    color: var(--primary);
+}
+
+.ds-header-title h2 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.ds-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.btn-add-ds {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 8px;
+    background: var(--primary);
+    color: white;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+}
+
+.btn-add-ds:hover {
+    background: var(--primary-hover);
+}
+
+.btn-logout-ds {
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--foreground);
+    font-weight: 500;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+}
+
+.btn-logout-ds:hover {
+    background: rgba(239, 68, 68, 0.08);
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.2);
+}
+
+/* Grid layout for cards */
+.ds-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 1.5rem;
+    flex: 1;
+    overflow-y: auto;
+    padding-top: 0.5rem;
+    padding-bottom: 1.5rem;
+    align-items: start;
+}
+
+.ds-card {
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.ds-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 20px -4px rgba(0, 0, 0, 0.08);
+    border-color: var(--primary);
+}
+
+.ds-card.default-source {
+    border-color: var(--primary);
+}
+
+.ds-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.ds-card-title-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.ds-card-name {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--foreground);
+}
+
+.ds-card-id {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    font-family: monospace;
+}
+
+.badge-default {
+    background: rgba(124, 58, 237, 0.1);
+    color: var(--primary);
+    font-size: 0.725rem;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.ds-card-desc {
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+    line-height: 1.4;
+    min-height: 2.8rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.ds-card-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding-top: 0.75rem;
+    border-top: 1px dashed var(--border);
+    font-size: 0.825rem;
+}
+
+.ds-detail-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.ds-detail-label {
+    color: var(--muted-foreground);
+    flex-shrink: 0;
+}
+
+.ds-detail-value {
+    font-weight: 500;
+    color: var(--foreground);
+    text-align: right;
+    word-break: break-all;
+}
+
+.ds-detail-value.connection-string {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 180px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.ds-detail-value.code {
+    font-family: monospace;
+    background: rgba(0, 0, 0, 0.03);
+    padding: 1px 4px;
+    border-radius: 4px;
+}
+
+.ds-card-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    flex-wrap: nowrap;
+}
+
+.btn-set-default-header {
+    background: transparent;
+    color: var(--muted-foreground);
+    border: 1px solid var(--border);
+    font-size: 0.725rem;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.btn-set-default-header:hover {
+    background: rgba(124, 58, 237, 0.08);
+    color: var(--primary);
+    border-color: rgba(124, 58, 237, 0.2);
+}
+
+.btn-card-action {
+    flex: 1;
+    min-width: fit-content;
+    white-space: nowrap;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--foreground);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    transition: all 0.2s;
+}
+
+.btn-card-action:hover {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.btn-card-action.test {
+    color: var(--primary);
+    border-color: rgba(124, 58, 237, 0.2);
+}
+
+.btn-card-action.test:hover {
+    background: rgba(124, 58, 237, 0.08);
+}
+
+.btn-card-action.delete {
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.2);
+}
+
+.btn-card-action.delete:hover:not(:disabled) {
+    background: rgba(239, 68, 68, 0.08);
+}
+
+.btn-card-action:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* --- Admin Modal Custom Form Styles --- */
+.ds-modal-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+@media (max-width: 580px) {
+    .ds-modal-group {
+        grid-template-columns: 1fr;
+    }
+}
+
+.ds-helper-note {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    margin-top: 0.25rem;
+}
+
+.ds-test-conn-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: flex-start;
+    margin-top: 0.5rem;
+    width: 100%;
+}
+
+.btn-test-conn {
+    padding: 8px 16px !important;
+    font-size: 0.875rem !important;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+    border-radius: 6px !important;
+}
+
+.connection-test-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 10px 12px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.02);
+    font-size: 0.825rem;
+    border: 1px solid var(--border);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.connection-test-bar.success {
+    background: rgba(16, 185, 129, 0.08);
+    color: #10b981;
+    border-color: rgba(16, 185, 129, 0.2);
+}
+
+.connection-test-bar.error {
+    background: rgba(239, 68, 68, 0.08);
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.2);
+}
+
+.connection-test-bar.loading {
+    color: var(--primary);
+}
+
+.rules-path-box {
+    margin-top: 0.5rem;
+    padding: 10px 12px;
+    background: rgba(124, 58, 237, 0.05);
+    border: 1px solid rgba(124, 58, 237, 0.15);
+    border-radius: 6px;
+    color: var(--primary);
+    font-size: 0.8rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.rules-path-box code {
+    font-family: monospace;
+    font-weight: bold;
+    word-break: break-all;
+    user-select: all;
+    background: rgba(124, 58, 237, 0.08);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
