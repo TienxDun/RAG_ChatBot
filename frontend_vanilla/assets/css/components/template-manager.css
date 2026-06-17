@@ -514,16 +514,41 @@
 
 /* Badge for mapped cell label */
 .mapped-badge {
-    position: absolute;
-    right: 4px;
-    top: 4px;
-    background: var(--accent);
-    color: white;
-    font-size: 0.625rem;
-    font-weight: 700;
-    padding: 1px 4px;
+    display: inline-block;
+    background: rgba(6, 182, 212, 0.1);
+    color: #0891b2;
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 1px 6px;
     border-radius: 4px;
-    box-shadow: 0 2px 4px rgba(6, 182, 212, 0.2);
+    border: 1px solid rgba(6, 182, 212, 0.2);
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 4px;
+    box-shadow: none;
+}
+
+[data-theme="dark"] .mapped-badge {
+    background: rgba(6, 182, 212, 0.15);
+    color: #22d3ee;
+    border-color: rgba(6, 182, 212, 0.3);
+}
+
+.cell-wrapper {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 28px;
+    width: 100%;
+}
+
+.cell-value {
+    font-size: 0.8rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Save Footer */

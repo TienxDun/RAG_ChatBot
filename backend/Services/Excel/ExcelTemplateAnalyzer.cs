@@ -243,14 +243,19 @@ public class ExcelTemplateAnalyzer : IExcelTemplateAnalyzer
         }
         else
         {
-            // Nếu không tìm thấy dòng tổng cộng, vùng dữ liệu kéo dài đến dòng cuối cùng có chứa dữ liệu
+            // Nếu không tìm thấy dòng tổng cộng, vùng dữ liệu kéo dài đến dòng cuối cùng có chứa dữ liệu hoặc định dạng viền (Border)
             int lastUsedRow = result.DataStartRowIndex;
             for (int r = totalRows; r >= result.DataStartRowIndex; r--)
             {
                 bool isRowEmpty = true;
                 for (int c = startCol; c <= totalCols; c++)
                 {
-                    if (!string.IsNullOrEmpty(worksheet.Cells[r, c].Text))
+                    var cell = worksheet.Cells[r, c];
+                    if (!string.IsNullOrEmpty(cell.Text) ||
+                        cell.Style.Border.Top.Style != OfficeOpenXml.Style.ExcelBorderStyle.None ||
+                        cell.Style.Border.Bottom.Style != OfficeOpenXml.Style.ExcelBorderStyle.None ||
+                        cell.Style.Border.Left.Style != OfficeOpenXml.Style.ExcelBorderStyle.None ||
+                        cell.Style.Border.Right.Style != OfficeOpenXml.Style.ExcelBorderStyle.None)
                     {
                         isRowEmpty = false;
                         break;

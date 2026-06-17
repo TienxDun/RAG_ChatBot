@@ -502,6 +502,66 @@ export class TemplateManagerComponent {
         }).join('');
 
         html += '</tbody></table>';
+
+        // Lấy danh sách các nhãn metadata duy nhất đang được map trong lưới
+        const metadataKeys = [...new Set(Object.values(this.metadataCellMappings || {}))]
+            .map(k => k.trim())
+            .filter(k => k);
+
+        if (metadataKeys.length > 0) {
+            html += `
+                <div class="metadata-mapping-section-header" style="margin-top: 2.5rem; margin-bottom: 1rem; border-top: 1px dashed var(--border); padding-top: 2rem;">
+                    <h3 style="font-size: 1rem; font-weight: 700; color: var(--foreground); margin: 0; display: flex; align-items: center; gap: 8px;">
+                        <i class="ph-bold ph-tag" style="color: #0891b2;"></i> Định nghĩa các nhãn Metadata (Gán đầu trang)
+                    </h3>
+                    <p style="font-size: 0.8rem; color: var(--muted-foreground); margin: 4px 0 0 0; font-weight: normal;">
+                        Danh sách các biến metadata đang được gán trên Lưới ô Excel. Bạn cần mô tả công thức/ý nghĩa để AI (RAG) biết cách tính toán giá trị tương ứng.
+                    </p>
+                </div>
+                <table class="column-mapping-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 30%;">Tên nhãn Metadata</th>
+                            <th style="width: 20%;">Vị trí các ô gán</th>
+                            <th style="width: 50%;">Công thức / Định nghĩa (AI Chú thích)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            html += metadataKeys.map(key => {
+                const savedValue = this.columnMappings[key] || '';
+                
+                // Tìm các ô Excel đang được gán biến này
+                const assignedCells = Object.keys(this.metadataCellMappings || {})
+                    .filter(cell => (this.metadataCellMappings[cell] || '').trim() === key)
+                    .join(', ');
+
+                return `
+                    <tr class="column-mapping-row">
+                        <td>
+                            <span class="column-name" style="color: #0891b2;">${key}</span>
+                        </td>
+                        <td>
+                            <span class="col-meta-badge" style="background: rgba(6, 182, 212, 0.06); color: #0891b2; border-color: rgba(6, 182, 212, 0.12);">
+                                <i class="ph-bold ph-grid-four" style="color: #0891b2 !important;"></i>
+                                Ô: ${assignedCells}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="column-input-wrapper">
+                                <textarea class="column-note-input" 
+                                          data-key="${key}" 
+                                          placeholder="Ví dụ: Tỷ lệ lỗi tính bằng số phiếu lỗi * 100 / tổng phiếu kiểm...">${savedValue}</textarea>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            html += '</tbody></table>';
+        }
+
         return html;
     }
 
@@ -540,13 +600,18 @@ export class TemplateManagerComponent {
                 // Kiểm tra xem cell này có đang được map metadata không
                 const mappedVarName = this.metadataCellMappings[address];
                 const mappedClass = mappedVarName ? 'mapped-cell' : '';
+                
+                // Rút gọn tên biến hiển thị trên badge: chỉ lấy phần trước dấu '|'
+                const shortVarName = mappedVarName ? mappedVarName.split('|')[0].trim() : '';
                 const badgeHtml = mappedVarName 
-                    ? `<span class="mapped-badge" title="${mappedVarName}">${mappedVarName}</span>` 
+                    ? `<span class="mapped-badge" title="${mappedVarName}">${shortVarName}</span>` 
                     : '';
 
                 html += `<td ${rowspanAttr} ${colspanAttr} style="${isBold}" class="${mappedClass}" data-cell-address="${address}">
-                    ${value}
-                    ${badgeHtml}
+                    <div class="cell-wrapper">
+                        <span class="cell-value">${value}</span>
+                        ${badgeHtml}
+                    </div>
                 </td>`;
             });
             html += '</tr>';

@@ -1,84 +1,4 @@
 {
-  "BaoCaoTongHop_PHULIEU.xlsx": {
-    "CollectionName": "db_viking_qldh",
-    "ColumnMappings": {
-      "STT": "Số thứ tự của bản ghi trong báo cáo. Bạn BẮT BUỘC dùng: ROW_NUMBER() OVER (ORDER BY MIN(t1.NgayKiem) ASC) AS [STT].",
-      "NgayMoKien": "Ngày mở kiện kiểm tra. Bạn BẮT BUỘC phải tạo CTE_NgayMoKien ở đầu truy vấn: WITH CTE_NgayMoKien AS (SELECT MaNPL, SoLoID, ISNULL(Dot, '1') AS Dot, MAX(NgayNhapKho) AS NgayMoKien FROM ERP_ChiTietNhapKhoNPL WHERE NULLIF(RIGHT(RTRIM(ISNULL(BarCodeGoc, '')), 1), '|') IS NOT NULL AND IsNPL = 0 AND SoLuongThucTeBanDau <> 0 AND IsKiemKe = 0 GROUP BY MaNPL, SoLoID, ISNULL(Dot, '1')). Sau đó JOIN: LEFT JOIN CTE_NgayMoKien t12 ON t12.SoLoID = t1.SoLoID AND t12.MaNPL = t1.MaNPL AND ISNULL(t12.Dot ,'1') = ISNULL(t1.Dot,'1') và dùng đúng alias: t12.NgayMoKien AS [NgayMoKien].",
-      "NgayKiem": "Ngày thực hiện kiểm tra chất lượng, lấy từ cột t1.NgayKiem. Bạn BẮT BUỘC dùng đúng alias: MIN(t1.NgayKiem) AS [NgayKiem] và lọc trong mệnh đề HAVING: HAVING MIN(CONVERT(date, t1.NgayKiem)) BETWEEN 'ngày_bắt_đầu' AND 'ngày_kết_thúc'.",
-      "POMua": "Số đơn hàng, tương ứng với cột POMua. Bạn BẮT BUỘC dùng: POMua AS [POMua].",
-      "SoLo": "Số lô sản xuất, lấy từ cột t3.SoLo. Bạn BẮT BUỘC dùng: t3.SoLo AS [SoLo].",
-      "KhachHang": "Tên khách hàng, lấy từ cột t4.TenKH của bảng KhachHang. Bạn BẮT BUỘC JOIN: LEFT JOIN KhachHang t4 ON t4.MaKH = t3.MaKH và dùng: t4.TenKH AS [KhachHang].",
-      "NhaCungCap": "Tên nhà cung cấp, lấy từ cột t10.TenKH của bảng ERP_KhachHangNK. Bạn BẮT BUỘC JOIN: LEFT JOIN ERP_KhachHangNK t10 ON t10.MaNhaCC = t3.NhaCungCap và dùng: t10.TenKH AS [NhaCungCap].",
-      "ChungLoai": "Chủng loại sản phẩm, lấy từ cột t5.ChungLoaiVatTu. Bạn BẮT BUỘC JOIN: LEFT JOIN ChungLoaiVatTu t5 ON t5.MaCLVT = t2.MaCLVTID và dùng: t5.ChungLoaiVatTu AS [ChungLoai].",
-      "ItemCode": "Mã vật tư, lấy từ cột t7.MaVT. Bạn BẮT BUỘC JOIN: LEFT JOIN ERP_VatTuTV t7 ON t7.MaVTID = t2.MaVTID và dùng: t7.MaVT AS [ItemCode].",
-      "Mau": "Tên màu sản phẩm, lấy từ cột t8.MauVT. Bạn BẮT BUỘC JOIN: LEFT JOIN ERP_MauVTTV t8 ON t8.MauVTID = t2.MauVTID và dùng: t8.MauVT AS [Mau].",
-      "ColorCode": "Mã màu, lấy từ cột t8.MaMauVT. Bạn BẮT BUỘC JOIN: LEFT JOIN ERP_MauVTTV t8 ON t8.MauVTID = t2.MauVTID và dùng: t8.MaMauVT AS [ColorCode].",
-      "MoTa": "Mô tả chi tiết sản phẩm, tương ứng với cột ChiTiet trong bảng ERP_VatTuTV. Bạn BẮT BUỘC dùng: ChiTiet AS [MoTa].",
-      "KhoSize": "Kích thước khổ vải hoặc size, lấy từ CTE_KhoVai. Bạn BẮT BUỘC định nghĩa CTE_KhoVai (sau CTE_NgayMoKien): CTE_KhoVai AS (SELECT DISTINCT kv.KhoVaiID, CASE WHEN cl.IsNPL = 1 THEN kv.KhoVai + dv.TenDVVT ELSE kv.KhoVai END AS KhoVai, cl.MaCLVT FROM ERP_KhoVai kv INNER JOIN ERP_TheKhoVai t ON t.MaTheKhoVai = kv.MaTheKhoVai LEFT JOIN ChungLoaiVatTu cl ON cl.MaCLVT = t.MaCLVT LEFT JOIN ERP_DonViVT dv ON dv.MaDVVT = kv.MaDVVT UNION SELECT MaSize KhoVaiID, TenSize KhoVai, '' FROM BangSize GROUP BY MaSize, TenSize). Sau đó JOIN: LEFT JOIN CTE_KhoVai t6 ON t6.KhoVaiID = t2.MaKhoVai và dùng: t6.KhoVai AS [KhoSize].",
-      "DonVi": "Đơn vị tính, lấy từ cột TenDVVT. Bạn BẮT BUỘC JOIN: LEFT JOIN ERP_DonViVT t9 ON t9.MaDVVT = t2.MaDonVi và dùng: TenDVVT AS [DonVi].",
-      "Dot": "Đợt kiểm tra. Bạn BẮT BUỘC dùng định dạng: N'Lần ' + CONVERT(VARCHAR(20), ISNULL(t1.Dot, 1)) AS [Dot].",
-      "KetLuanQC": "Kết quả QC, tương ứng với cột t1.Result. Bạn BẮT BUỘC dùng: CASE WHEN t1.Result = 1 THEN N'Pass' ELSE N'Fail' END AS [KetLuanQC]. LƯU Ý LỌC THEO KẾT QUẢ KIỂM TRA (Result): Nếu tham số Kết quả kiểm tra (Result) là 'ALL' (hoặc không truyền), bạn tuyệt đối không thêm điều kiện lọc t1.Result. Nếu là '1', bạn bắt buộc phải thêm điều kiện lọc: t1.Result = 1. Nếu là '0', bạn bắt buộc phải thêm điều kiện lọc: t1.Result = 0.",
-      "KetLuanMer": "Kết quả Mer, tương ứng với cột t1.Result_Mer. Bạn BẮT BUỘC dùng: CASE WHEN t1.Result_Mer = 1 THEN N'Pass' ELSE N'Fail' END AS [KetLuanMer].",
-      "LyDoLoi": "Lý do lỗi kỹ thuật. Bạn BẮT BUỘC dùng cú pháp: STUFF((SELECT ', ' + pl_inner.PhuLuc + ' (fail)' FROM Qty_KiemPL t11 INNER JOIN QTY_PhuLucKiemPL pl_inner ON pl_inner.MaPhuLuc = t11.MaPhuLuc WHERE t11.SoLoID = t1.SoLoID AND t11.MaNPL = t2.MaNPL AND t11.StatusKiem = 0 AND ISNULL(t11.Dot,'1') = ISNULL(t1.Dot,'1') FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 2, '') AS [LyDoLoi].",
-      "TongKiem | Tổng kiểm PASS+FAIL từ Qty_KiemPL_XacNhan": "Tổng số lượng phiếu kiểm duy nhất trong khoảng thời gian lọc. Bạn BẮT BUỘC phải tính bằng cách tạo một CTE trung gian CTE_Metadata để lấy COUNT(DISTINCT MaPhieuKiem) trong khoảng thời gian lọc, sau đó chọn bằng subquery: (SELECT Total FROM CTE_Metadata) AS [TongKiem | Tổng kiểm PASS+FAIL từ Qty_KiemPL_XacNhan].",
-      "SoLuongPass | Số lượng PASS (Result=1) từ Qty_KiemPL_XacNhan": "Tổng số lượng phiếu kiểm PASS duy nhất trong khoảng thời gian lọc. BẮT BUỘC lấy từ CTE_Metadata bằng subquery: (SELECT Pass FROM CTE_Metadata) AS [SoLuongPass | Số lượng PASS (Result=1) từ Qty_KiemPL_XacNhan].",
-      "SoLuongFail | Số lượng FAIL (Result=0) từ Qty_KiemPL_XacNhan": "Tổng số lượng phiếu kiểm FAIL duy nhất trong khoảng thời gian lọc. BẮT BUỘC lấy từ CTE_Metadata bằng subquery: (SELECT Fail FROM CTE_Metadata) AS [SoLuongFail | Số lượng FAIL (Result=0) từ Qty_KiemPL_XacNhan].",
-      "TiLeFailPass | Tỉ lệ FAIL/PASS: FAIL*100.0/NULLIF(PASS,0)": "Tỉ lệ lỗi trên đạt. BẮT BUỘC tính từ CTE_Metadata bằng subquery: (SELECT Fail * 100.0 / NULLIF(Pass, 0) FROM CTE_Metadata) AS [TiLeFailPass | Tỉ lệ FAIL/PASS: FAIL*100.0/NULLIF(PASS,0)]."
-    },
-    "MetadataCellMappings": {
-      "B5": "TongKiem | Tổng kiểm PASS+FAIL từ Qty_KiemPL_XacNhan",
-      "C5": "SoLuongPass | Số lượng PASS (Result=1) từ Qty_KiemPL_XacNhan",
-      "D5": "SoLuongFail | Số lượng FAIL (Result=0) từ Qty_KiemPL_XacNhan",
-      "E5": "TiLeFailPass | Tỉ lệ FAIL/PASS: FAIL*100.0/NULLIF(PASS,0)"
-    },
-    "ColumnFormats": {
-      "NgayMoKien": "dd/MM/yyyy",
-      "NgayKiem": "dd/MM/yyyy",
-      "ItemCode": "@"
-    },
-    "SubtotalConfig": null,
-    "Parameters": [
-      {
-        "Key": "para1",
-        "Label": "Ngày bắt đầu",
-        "Type": "date",
-        "Required": true,
-        "DataSource": null,
-        "DataColumn": null,
-        "DisplayColumn": null,
-        "Placeholder": "Chọn ngày bắt đầu...",
-        "DefaultValue": null,
-        "PromptTemplate": "Từ ngày {value}",
-        "Order": 0
-      },
-      {
-        "Key": "para2",
-        "Label": "Ngày kết thúc",
-        "Type": "date",
-        "Required": true,
-        "DataSource": null,
-        "DataColumn": null,
-        "DisplayColumn": null,
-        "Placeholder": "Chọn ngày kết thúc...",
-        "DefaultValue": null,
-        "PromptTemplate": "Đến ngày {value}",
-        "Order": 1
-      },
-      {
-        "Key": "para3",
-        "Label": "Kết quả kiểm tra (Result)",
-        "Type": "text",
-        "Required": false,
-        "DataSource": null,
-        "DataColumn": null,
-        "DisplayColumn": null,
-        "Placeholder": "ALL = Tất cả, 1 = Đạt (Pass), 0 = Lỗi (Fail)",
-        "DefaultValue": "ALL",
-        "PromptTemplate": "Kết quả kiểm tra (Result): {value}",
-        "Order": 2
-      }
-    ]
-  },
   "BaoCao_InLineQC_All_1780023089422.xlsx": {
     "ColumnMappings": {
       "ChuyenLine_Chuyen": "Tên chuyền sản xuất, lấy từ cột Name của bảng tbl_SettingLineX sau khi JOIN với QTY_InLineQC_ngaykiem qua ID chuyền (sử dụng cột Line, không sử dụng LineX).",
@@ -150,22 +70,9 @@
         "DataColumn": null,
         "DisplayColumn": null,
         "Placeholder": null,
-        "DefaultValue": "today",
+        "DefaultValue": null,
         "PromptTemplate": "Từ ngày {start} đến ngày {end}",
         "Order": 1
-      },
-      {
-        "Key": "lenh_sx",
-        "Label": "Mã lệnh sản xuất",
-        "Type": "text",
-        "Required": false,
-        "DataSource": null,
-        "DataColumn": null,
-        "DisplayColumn": null,
-        "Placeholder": "Nhập mã lệnh sản xuất (nếu có)...",
-        "DefaultValue": null,
-        "PromptTemplate": "Lệnh sản xuất: {value}",
-        "Order": 2
       },
       {
         "Key": "PO | QTY_InLineQC_NgayKiem.PO",
@@ -178,40 +85,56 @@
         "Placeholder": "Nhập mã PO (nếu có)...",
         "DefaultValue": null,
         "PromptTemplate": "PO: {value}",
+        "Order": 2
+      },
+      {
+        "Key": "yeu_cau_khac",
+        "Label": "Yêu cầu khác",
+        "Type": "text",
+        "Required": false,
+        "DataSource": null,
+        "DataColumn": null,
+        "DisplayColumn": null,
+        "Placeholder": "Nhập thêm yêu cầu khác ngoài các tham số trên (nếu có)...",
+        "DefaultValue": null,
+        "PromptTemplate": "Yêu cầu thêm: {value}",
         "Order": 3
       }
-    ]
+    ],
+    "CollectionName": null
   },
   "BCEndlineNgay (22)_Empty.xlsx": {
     "ColumnMappings": {
-      "ThanhPham_Ghichu": "Ghi chú kiểm tra thành phẩm. Bắt buộc lấy danh sách tên lỗi duy nhất (TenLoi) từ bảng QTY_MAHANG_KIEMQC_CHITIET (bảng chi tiết lỗi) kết nối với QTY_NHOMLOI_CHITIET (qua c.Code = n.MaLoi) với CheckType = 0. Bạn BẮT BUỘC phải viết một CTE trung gian sử dụng SELECT DISTINCT để lấy TenLoi duy nhất trước, sau đó ở CTE ngoài sử dụng STRING_AGG(TenLoi, ' | ') để nối chúng. Tuyệt đối không dùng STRING_AGG(DISTINCT ...) trực tiếp vì SQL Server không hỗ trợ.",
-      "Vo_Ghichu": "Ghi chú kiểm tra phần vỏ. Bắt buộc lấy danh sách tên lỗi duy nhất (TenLoi) từ bảng QTY_MAHANG_KIEMQC_CHITIET (bảng chi tiết lỗi) kết nối với QTY_NHOMLOI_CHITIET (qua c.Code = n.MaLoi) với CheckType = 1. Bạn BẮT BUỘC phải viết một CTE trung gian sử dụng SELECT DISTINCT để lấy TenLoi duy nhất trước, sau đó ở CTE ngoài sử dụng STRING_AGG(TenLoi, ' | ') để nối chúng. Tuyệt đối không dùng STRING_AGG(DISTINCT ...) trực tiếp.",
-      "Lotthuong_Ghichu": "Ghi chú kiểm tra lót thường. Bắt buộc lấy danh sách tên lỗi duy nhất (TenLoi) từ bảng QTY_MAHANG_KIEMQC_CHITIET (bảng chi tiết lỗi) kết nối với QTY_NHOMLOI_CHITIET (qua c.Code = n.MaLoi) với CheckType = 2. Bạn BẮT BUỘC phải viết một CTE trung gian sử dụng SELECT DISTINCT để lấy TenLoi duy nhất trước, sau đó ở CTE ngoài sử dụng STRING_AGG(TenLoi, ' | ') để nối chúng. Tuyệt đối không dùng STRING_AGG(DISTINCT ...) trực tiếp.",
-      "Lotlan_Ghichu": "Ghi chú kiểm tra lót lăn. Bắt buộc lấy danh sách tên lỗi duy nhất (TenLoi) từ bảng QTY_MAHANG_KIEMQC_CHITIET (bảng chi tiết lỗi) kết nối với QTY_NHOMLOI_CHITIET (qua c.Code = n.MaLoi) với CheckType = 3. Bạn BẮT BUỘC phải viết một CTE trung gian sử dụng SELECT DISTINCT để lấy TenLoi duy nhất trước, sau đó ở CTE ngoài sử dụng STRING_AGG(TenLoi, ' | ') để nối chúng. Tuyệt đối không dùng STRING_AGG(DISTINCT ...) trực tiếp.",
-      "ThanhPham_SLkiem": "Số lượng sản phẩm thành phẩm đã kiểm tra. Bắt buộc lấy từ bảng SEW_CoefficientSize (cột Quantity + SuaDat) với điều kiện CheckType = 0. Lưu ý bảng SEW_CoefficientSize sử dụng cột DateCreate làm ngày kiểm (cần CAST sang DATE), cột StyleId làm mã hàng (dạng gạch dưới, ví dụ '0088_521_04_V0_0' thay vì dùng dấu cách), và cột LineX làm chuyền (cần kết nối với tbl_SettingLineX qua ID để lọc theo Name, ví dụ line.Name = 'Daisy'). Không dùng cột SLKiem của bảng QTY_MAHANG_NGAYKIEM.",
-      "Ngay": "Ngày thực hiện kiểm tra chất lượng. Bắt buộc chỉ lấy những ngày thực tế có phát sinh dữ liệu trong database (có số lượng kiểm > 0 hoặc số lượng lỗi > 0). TUYỆT ĐỐI KHÔNG tự tạo dải ngày đầy đủ của tháng (như dùng CTE đệ quy DateRange hoặc CROSS JOIN ngày) để tránh xuất ra những dòng ngày trống (SL kiểm = 0 và SL lỗi = 0) không có dữ liệu thực tế. Cần CAST cột DateCreate của SEW_CoefficientSize (hoặc NgayKiem của QTY_MAHANG_NGAYKIEM) sang kiểu DATE khi lọc.",
-      "ThanhPham_SLloi": "Số lượng sản phẩm thành phẩm bị lỗi, lấy từ cột SpLoi của bảng QTY_MAHANG_NGAYKIEM với điều kiện CheckType = 0. Lưu ý bảng QTY_MAHANG_NGAYKIEM sử dụng cột StyleID làm mã hàng (ví dụ '0088_521_04_V0_0'), LineX làm chuyền (ví dụ '101' cho Daisy), và cột NgayKiem làm ngày kiểm.",
-      "ThanhPham_Tileloi": "Tỉ lệ lỗi thành phẩm, tính bằng SUM(SpLoi) / NULLIF(SUM(SpLoi) + SUM(Quantity + SuaDat), 0) * 100, sử dụng CTE riêng biệt cho lỗi (QTY_MAHANG_NGAYKIEM) và sản lượng (SEW_CoefficientSize) với CheckType = 0.",
-      "Vo_SLkiem": "Số lượng sản phẩm phần vỏ đã kiểm tra. Bắt buộc lấy từ bảng SEW_CoefficientSize (cột Quantity + SuaDat) với điều kiện CheckType = 1. Lưu ý bảng SEW_CoefficientSize sử dụng cột DateCreate làm ngày kiểm (cần CAST sang DATE), cột StyleId làm mã hàng (ví dụ '0088_521_04_V0_0'), và cột LineX làm chuyền.",
-      "Vo_SLloi": "Số lượng sản phẩm phần vỏ bị lỗi, lấy từ cột SpLoi của bảng QTY_MAHANG_NGAYKIEM với điều kiện CheckType = 1.",
-      "Vo_Tileloi": "Tỉ lệ lỗi phần vỏ, tính bằng SUM(SpLoi) / NULLIF(SUM(SpLoi) + SUM(Quantity + SuaDat), 0) * 100, sử dụng CTE riêng biệt cho lỗi (QTY_MAHANG_NGAYKIEM) và sản lượng (SEW_CoefficientSize) với CheckType = 1.",
-      "Lotthuong_SLkiem": "Số lượng sản phẩm lót thường đã kiểm tra. Bắt buộc lấy từ bảng SEW_CoefficientSize (cột Quantity + SuaDat) với điều kiện CheckType = 2. Lưu ý bảng SEW_CoefficientSize sử dụng cột DateCreate làm ngày kiểm (cần CAST sang DATE), cột StyleId làm mã hàng (ví dụ '0088_521_04_V0_0'), và cột LineX làm chuyền.",
-      "Lotthuong_SLloi": "Số lượng sản phẩm lót thường bị lỗi, lấy từ cột SpLoi của bảng QTY_MAHANG_NGAYKIEM với điều kiện CheckType = 2.",
-      "Lotthuong_Tileloi": "Tỉ lệ lỗi lót thường, tính bằng SUM(SpLoi) / NULLIF(SUM(SpLoi) + SUM(Quantity + SuaDat), 0) * 100, sử dụng CTE riêng biệt cho lỗi (QTY_MAHANG_NGAYKIEM) và sản lượng (SEW_CoefficientSize) với CheckType = 2.",
-      "Lotlan_SLkiem": "Số lượng sản phẩm lót lăn đã kiểm tra. Bắt buộc lấy từ bảng SEW_CoefficientSize (cột Quantity + SuaDat) với điều kiện CheckType = 3. Lưu ý bảng SEW_CoefficientSize sử dụng cột DateCreate làm ngày kiểm (cần CAST sang DATE), cột StyleId làm mã hàng (ví dụ '0088_521_04_V0_0'), và cột LineX làm chuyền.",
-      "Lotlan_SLloi": "Số lượng sản phẩm lót lăn bị lỗi, lấy từ cột SpLoi của bảng QTY_MAHANG_NGAYKIEM với điều kiện CheckType = 3.",
-      "Lotlan_Tileloi": "Tỉ lệ lỗi lót lăn, tính bằng SUM(SpLoi) / NULLIF(SUM(SpLoi) + SUM(Quantity + SuaDat), 0) * 100, sử dụng CTE riêng biệt cho lỗi (QTY_MAHANG_NGAYKIEM) và sản lượng (SEW_CoefficientSize) với CheckType = 3."
+      "ThanhPham_GhichuNotes": "Ghi chú kiểm tra thành phẩm. Bắt buộc lấy danh sách tên lỗi duy nhất (TenLoi) từ bảng QTY_MAHANG_KIEMQC_CHITIET (bảng chi tiết lỗi) kết nối với QTY_NHOMLOI_CHITIET (qua c.Code = n.MaLoi) với CheckType = 0. Bạn BẮT BUỘC phải viết một CTE trung gian sử dụng SELECT DISTINCT để lấy TenLoi duy nhất trước, sau đó ở CTE ngoài sử dụng STRING_AGG(TenLoi, ' | ') để nối chúng. Tuyệt đối không dùng STRING_AGG(DISTINCT ...) trực tiếp vì SQL Server không hỗ trợ.",
+      "Vo_GhichuNotes": "Ghi chú kiểm tra phần vỏ. Bắt buộc lấy danh sách tên lỗi duy nhất (TenLoi) từ bảng QTY_MAHANG_KIEMQC_CHITIET (bảng chi tiết lỗi) kết nối với QTY_NHOMLOI_CHITIET (qua c.Code = n.MaLoi) với CheckType = 1. Bạn BẮT BUỘC phải viết một CTE trung gian sử dụng SELECT DISTINCT để lấy TenLoi duy nhất trước, sau đó ở CTE ngoài sử dụng STRING_AGG(TenLoi, ' | ') để nối chúng. Tuyệt đối không dùng STRING_AGG(DISTINCT ...) trực tiếp.",
+      "Lotthuong_GhichuNotes": "Ghi chú kiểm tra lót thường. Bắt buộc lấy danh sách tên lỗi duy nhất (TenLoi) từ bảng QTY_MAHANG_KIEMQC_CHITIET (bảng chi tiết lỗi) kết nối với QTY_NHOMLOI_CHITIET (qua c.Code = n.MaLoi) với CheckType = 2. Bạn BẮT BUỘC phải viết một CTE trung gian sử dụng SELECT DISTINCT để lấy TenLoi duy nhất trước, sau đó ở CTE ngoài sử dụng STRING_AGG(TenLoi, ' | ') để nối chúng. Tuyệt đối không dùng STRING_AGG(DISTINCT ...) trực tiếp.",
+      "Lotlan_GhichuNotes": "Ghi chú kiểm tra lót lăn. Bắt buộc lấy danh sách tên lỗi duy nhất (TenLoi) từ bảng QTY_MAHANG_KIEMQC_CHITIET (bảng chi tiết lỗi) kết nối với QTY_NHOMLOI_CHITIET (qua c.Code = n.MaLoi) với CheckType = 3. Bạn BẮT BUỘC phải viết một CTE trung gian sử dụng SELECT DISTINCT để lấy TenLoi duy nhất trước, sau đó ở CTE ngoài sử dụng STRING_AGG(TenLoi, ' | ') để nối chúng. Tuyệt đối không dùng STRING_AGG(DISTINCT ...) trực tiếp.",
+      "ThanhPham_SLkiemQuantity": "Số lượng sản phẩm thành phẩm đã kiểm tra. Bắt buộc lấy từ bảng SEW_CoefficientSize (cột Quantity + SuaDat) với điều kiện CheckType = 0. Lưu ý bảng SEW_CoefficientSize sử dụng cột DateCreate làm ngày kiểm (cần CAST sang DATE), cột StyleId làm mã hàng (dạng gạch dưới, ví dụ '0088_521_04_V0_0' thay vì dùng dấu cách), và cột LineX làm chuyền (cần kết nối với tbl_SettingLineX qua ID để lọc theo Name, ví dụ line.Name = 'Daisy'). Không dùng cột SLKiem của bảng QTY_MAHANG_NGAYKIEM.",
+      "NgayDate": "Ngày thực hiện kiểm tra chất lượng. Bắt buộc chỉ lấy những ngày thực tế có phát sinh dữ liệu trong database (có số lượng kiểm > 0 hoặc số lượng lỗi > 0). TUYỆT ĐỐI KHÔNG tự tạo dải ngày đầy đủ của tháng (như dùng CTE đệ quy DateRange hoặc CROSS JOIN ngày) để tránh xuất ra những dòng ngày trống (SL kiểm = 0 và SL lỗi = 0) không có dữ liệu thực tế. Cần CAST cột DateCreate của SEW_CoefficientSize (hoặc NgayKiem của QTY_MAHANG_NGAYKIEM) sang kiểu DATE khi lọc.",
+      "ThanhPham_SLloiDefect": "Số lượng sản phẩm thành phẩm bị lỗi, lấy từ cột SpLoi của bảng QTY_MAHANG_NGAYKIEM với điều kiện CheckType = 0. Lưu ý bảng QTY_MAHANG_NGAYKIEM sử dụng cột StyleID làm mã hàng (ví dụ '0088_521_04_V0_0'), LineX làm chuyền (ví dụ '101' cho Daisy), và cột NgayKiem làm ngày kiểm.",
+      "ThanhPham_TileloiDefectrate": "Tỉ lệ lỗi thành phẩm, tính bằng SUM(SpLoi) / NULLIF(SUM(SpLoi) + SUM(Quantity + SuaDat), 0) * 100, sử dụng CTE riêng biệt cho lỗi (QTY_MAHANG_NGAYKIEM) và sản lượng (SEW_CoefficientSize) với CheckType = 0.",
+      "Vo_SLkiemQuantity": "Số lượng sản phẩm phần vỏ đã kiểm tra. Bắt buộc lấy từ bảng SEW_CoefficientSize (cột Quantity + SuaDat) với điều kiện CheckType = 1. Lưu ý bảng SEW_CoefficientSize sử dụng cột DateCreate làm ngày kiểm (cần CAST sang DATE), cột StyleId làm mã hàng (ví dụ '0088_521_04_V0_0'), và cột LineX làm chuyền.",
+      "Vo_SLloiDefect": "Số lượng sản phẩm phần vỏ bị lỗi, lấy từ cột SpLoi của bảng QTY_MAHANG_NGAYKIEM với điều kiện CheckType = 1.",
+      "Vo_TileloiDefectrate": "Tỉ lệ lỗi phần vỏ, tính bằng SUM(SpLoi) / NULLIF(SUM(SpLoi) + SUM(Quantity + SuaDat), 0) * 100, sử dụng CTE riêng biệt cho lỗi (QTY_MAHANG_NGAYKIEM) và sản lượng (SEW_CoefficientSize) với CheckType = 1.",
+      "Lotthuong_SLkiemQuantity": "Số lượng sản phẩm lót thường đã kiểm tra. Bắt buộc lấy từ bảng SEW_CoefficientSize (cột Quantity + SuaDat) với điều kiện CheckType = 2. Lưu ý bảng SEW_CoefficientSize sử dụng cột DateCreate làm ngày kiểm (cần CAST sang DATE), cột StyleId làm mã hàng (ví dụ '0088_521_04_V0_0'), và cột LineX làm chuyền.",
+      "Lotthuong_SLloiDefect": "Số lượng sản phẩm lót thường bị lỗi, lấy từ cột SpLoi của bảng QTY_MAHANG_NGAYKIEM với điều kiện CheckType = 2.",
+      "Lotthuong_TileloiDefectrate": "Tỉ lệ lỗi lót thường, tính bằng SUM(SpLoi) / NULLIF(SUM(SpLoi) + SUM(Quantity + SuaDat), 0) * 100, sử dụng CTE riêng biệt cho lỗi (QTY_MAHANG_NGAYKIEM) và sản lượng (SEW_CoefficientSize) với CheckType = 2.",
+      "Lotlan_SLkiemQuantity": "Số lượng sản phẩm lót lăn đã kiểm tra. Bắt buộc lấy từ bảng SEW_CoefficientSize (cột Quantity + SuaDat) với điều kiện CheckType = 3. Lưu ý bảng SEW_CoefficientSize sử dụng cột DateCreate làm ngày kiểm (cần CAST sang DATE), cột StyleId làm mã hàng (ví dụ '0088_521_04_V0_0'), và cột LineX làm chuyền.",
+      "Lotlan_SLloiDefect": "Số lượng sản phẩm lót lăn bị lỗi, lấy từ cột SpLoi của bảng QTY_MAHANG_NGAYKIEM với điều kiện CheckType = 3.",
+      "Lotlan_TileloiDefectrate": "Tỉ lệ lỗi lót lăn, tính bằng SUM(SpLoi) / NULLIF(SUM(SpLoi) + SUM(Quantity + SuaDat), 0) * 100, sử dụng CTE riêng biệt cho lỗi (QTY_MAHANG_NGAYKIEM) và sản lượng (SEW_CoefficientSize) with CheckType = 3.",
+      "Tên chuyền | tbl_SettingLineX.Name": "Tên chuyền sản xuất thực hiện kiểm QC Endline, lấy từ cột Name của bảng tbl_SettingLineX sau khi kết nối với LineX (ID chuyền). Bắt buộc tính toán trong CTE [Metadata] ở đầu câu SQL.",
+      "PlanCode -- MH: MaHang | QTY_MAHANG_NGAYKIEM.PlanCode": "Mã kế hoạch sản xuất và mã hàng tương ứng. Bắt buộc tính toán trong CTE [Metadata] ở đầu câu SQL bằng cách kết nối từ QTY_MAHANG_NGAYKIEM sang ERP_LENHSX để lấy mã hàng (MaHang) ghép với PlanCode: CONCAT(MAX(q.PlanCode), ' -- MH: ', MAX(e.MaHang)) AS [PlanCode -- MH: MaHang | QTY_MAHANG_NGAYKIEM.PlanCode]."
     },
     "MetadataCellMappings": {
       "F5": "Tên chuyền | tbl_SettingLineX.Name",
       "C5": "PlanCode -- MH: MaHang | QTY_MAHANG_NGAYKIEM.PlanCode"
     },
     "ColumnFormats": {
-      "Ngay": "dd/MM/yyyy",
-      "ThanhPham_Tileloi": "#,##0.##\"%\"",
-      "Vo_Tileloi": "#,##0.##\"%\"",
-      "Lotthuong_Tileloi": "#,##0.##\"%\"",
-      "Lotlan_Tileloi": "#,##0.##\"%\""
+      "NgayDate": "dd/MM/yyyy",
+      "ThanhPham_TileloiDefectrate": "#,##0.##\"%\"",
+      "Vo_TileloiDefectrate": "#,##0.##\"%\"",
+      "Lotthuong_TileloiDefectrate": "#,##0.##\"%\"",
+      "Lotlan_TileloiDefectrate": "#,##0.##\"%\""
     },
     "SubtotalConfig": null,
     "Parameters": [
@@ -253,8 +176,22 @@
         "DefaultValue": null,
         "PromptTemplate": "Từ ngày {start} đến ngày {end}",
         "Order": 2
+      },
+      {
+        "Key": "yeu_cau_khac",
+        "Label": "Yêu cầu khác",
+        "Type": "text",
+        "Required": false,
+        "DataSource": null,
+        "DataColumn": null,
+        "DisplayColumn": null,
+        "Placeholder": "Nhập thêm yêu cầu khác ngoài các tham số trên (nếu có)...",
+        "DefaultValue": null,
+        "PromptTemplate": "Yêu cầu thêm: {value}",
+        "Order": 3
       }
-    ]
+    ],
+    "CollectionName": null
   },
   "BaoCao_InLineQC_All_1780023089422 (1).xlsx": {
     "ColumnMappings": {},
@@ -263,6 +200,74 @@
     },
     "ColumnFormats": {},
     "SubtotalConfig": null,
-    "Parameters": null
+    "Parameters": null,
+    "CollectionName": null
+  },
+  "BaoCaoTongHop_11062026163557.xlsx": {
+    "ColumnMappings": {
+      "STT": "Số thứ tự của bản ghi trong báo cáo. Bạn BẮT BUỘC dùng: ROW_NUMBER() OVER (ORDER BY MIN(t1.NgayKiem) ASC) AS [STT].",
+      "NgayMoKien": "Ngày mở kiện kiểm tra. Bạn BẮT BUỘC phải tạo CTE_NgayMoKien ở đầu truy vấn: WITH CTE_NgayMoKien AS (SELECT MaNPL, SoLoID, ISNULL(Dot, '1') AS Dot, MAX(NgayNhapKho) AS NgayMoKien FROM ERP_ChiTietNhapKhoNPL WHERE NULLIF(RIGHT(RTRIM(ISNULL(BarCodeGoc, '')), 1), '|') IS NOT NULL AND IsNPL = 0 AND SoLuongThucTeBanDau <> 0 AND IsKiemKe = 0 GROUP BY MaNPL, SoLoID, ISNULL(Dot, '1')). Sau đó JOIN: LEFT JOIN CTE_NgayMoKien t12 ON t12.SoLoID = t1.SoLoID AND t12.MaNPL = t1.MaNPL AND ISNULL(t12.Dot ,'1') = ISNULL(t1.Dot,'1') và dùng đúng alias: t12.NgayMoKien AS [NgayMoKien].",
+      "NgayKiem": "Ngày thực hiện kiểm tra chất lượng, lấy từ cột t1.NgayKiem. Bạn BẮT BUỘC dùng đúng alias: MIN(t1.NgayKiem) AS [NgayKiem] và lọc trong mệnh đề HAVING: HAVING MIN(CONVERT(date, t1.NgayKiem)) BETWEEN 'ngày_bắt_đầu' AND 'ngày_kết_thúc'.",
+      "POMua": "Số đơn hàng, tương ứng với cột POMua. Bạn BẮT BUỘC dùng: POMua AS [POMua].",
+      "SoLo": "Số lô sản xuất, lấy từ cột t3.SoLo. Bạn BẮT BUỘC dùng: t3.SoLo AS [SoLo].",
+      "KhachHang": "Tên khách hàng, lấy từ cột t4.TenKH của bảng KhachHang. Bạn BẮT BUỘC JOIN: LEFT JOIN KhachHang t4 ON t4.MaKH = t3.MaKH và dùng: t4.TenKH AS [KhachHang].",
+      "NhaCungCap": "Tên nhà cung cấp, lấy từ cột t10.TenKH của bảng ERP_KhachHangNK. Bạn BẮT BUỘC JOIN: LEFT JOIN ERP_KhachHangNK t10 ON t10.MaNhaCC = t3.NhaCungCap và dùng: t10.TenKH AS [NhaCungCap].",
+      "ChungLoai": "Chủng loại sản phẩm, lấy từ cột t5.ChungLoaiVatTu. Bạn BẮT BUỘC JOIN: LEFT JOIN ChungLoaiVatTu t5 ON t5.MaCLVT = t2.MaCLVTID và dùng: t5.ChungLoaiVatTu AS [ChungLoai].",
+      "ItemCode": "Mã vật tư, lấy từ cột t7.MaVT. Bạn BẮT BUỘC JOIN: LEFT JOIN ERP_VatTuTV t7 ON t7.MaVTID = t2.MaVTID và dùng: t7.MaVT AS [ItemCode].",
+      "Mau": "Tên màu sản phẩm, lấy từ cột t8.MauVT. Bạn BẮT BUỘC JOIN: LEFT JOIN ERP_MauVTTV t8 ON t8.MauVTID = t2.MauVTID và dùng: t8.MauVT AS [Mau].",
+      "ColorCode": "Mã màu, lấy từ cột t8.MaMauVT. Bạn BẮT BUỘC JOIN: LEFT JOIN ERP_MauVTTV t8 ON t8.MauVTID = t2.MauVTID và dùng: t8.MaMauVT AS [ColorCode].",
+      "MoTa": "Mô tả chi tiết sản phẩm, tương ứng với cột ChiTiet trong bảng ERP_VatTuTV. Bạn BẮT BUỘC dùng: ChiTiet AS [MoTa].",
+      "KhoSize": "Kích thước khổ vải hoặc size, lấy từ CTE_KhoVai. Bạn BẮT BUỘC định nghĩa CTE_KhoVai (sau CTE_NgayMoKien): CTE_KhoVai AS (SELECT DISTINCT kv.KhoVaiID, CASE WHEN cl.IsNPL = 1 THEN kv.KhoVai + dv.TenDVVT ELSE kv.KhoVai END AS KhoVai, cl.MaCLVT FROM ERP_KhoVai kv INNER JOIN ERP_TheKhoVai t ON t.MaTheKhoVai = kv.MaTheKhoVai LEFT JOIN ChungLoaiVatTu cl ON cl.MaCLVT = t.MaCLVT LEFT JOIN ERP_DonViVT dv ON dv.MaDVVT = kv.MaDVVT UNION SELECT MaSize KhoVaiID, TenSize KhoVai, '' FROM BangSize GROUP BY MaSize, TenSize). Sau đó JOIN: LEFT JOIN CTE_KhoVai t6 ON t6.KhoVaiID = t2.MaKhoVai và dùng: t6.KhoVai AS [KhoSize].",
+      "DonVi": "Đơn vị tính, lấy từ cột TenDVVT. Bạn BẮT BUỘC JOIN: LEFT JOIN ERP_DonViVT t9 ON t9.MaDVVT = t2.MaDonVi và dùng: TenDVVT AS [DonVi].",
+      "Dot": "Đợt kiểm tra. Bạn BẮT BUỘC dùng định dạng: N'Lần ' + CONVERT(VARCHAR(20), ISNULL(t1.Dot, 1)) AS [Dot].",
+      "KetLuanQC": "Kết quả QC, tương ứng với cột t1.Result. Bạn BẮT BUỘC dùng: CASE WHEN t1.Result = 1 THEN N'Pass' ELSE N'Fail' END AS [KetLuanQC]. LƯU Ý LỌC THEO KẾT QUẢ KIỂM TRA (Result): Nếu tham số Kết quả kiểm tra (Result) là 'ALL' (hoặc không truyền), bạn tuyệt đối không thêm điều kiện lọc t1.Result. Nếu là '1', bạn bắt buộc phải thêm điều kiện lọc: t1.Result = 1. Nếu là '0', bạn bắt buộc phải thêm điều kiện lọc: t1.Result = 0.",
+      "KetLuanMer": "Kết quả Mer, tương ứng với cột t1.Result_Mer. Bạn BẮT BUỘC dùng: CASE WHEN t1.Result_Mer = 1 THEN N'Pass' ELSE N'Fail' END AS [KetLuanMer].",
+      "LyDoLoi": "Lý do lỗi kỹ thuật. Bạn BẮT BUỘC dùng cú pháp: STUFF((SELECT ', ' + pl_inner.PhuLuc + ' (fail)' FROM Qty_KiemPL t11 INNER JOIN QTY_PhuLucKiemPL pl_inner ON pl_inner.MaPhuLuc = t11.MaPhuLuc WHERE t11.SoLoID = t1.SoLoID AND t11.MaNPL = t2.MaNPL AND t11.StatusKiem = 0 AND ISNULL(t11.Dot,'1') = ISNULL(t1.Dot,'1') FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 2, '') AS [LyDoLoi].",
+      "TongKiem | Tổng kiểm PASS+FAIL từ Qty_KiemPL_XacNhan": "Tổng số lượng phiếu kiểm duy nhất thỏa mãn toàn bộ bộ lọc đầu vào (khoảng thời gian lọc và bộ lọc Kết quả kiểm tra Result). Bạn BẮT BUỘC phải tính bằng cách tạo một CTE trung gian CTE_Metadata để lấy COUNT(DISTINCT MaPhieuKiem). Trong CTE_Metadata này, bạn BẮT BUỘC phải áp dụng đầy đủ các bộ lọc giống hệt truy vấn chính (Ví dụ: lọc thời gian, và nếu tham số Result là '1' thì WHERE Result = 1, nếu Result là '0' thì WHERE Result = 0). Sau đó chọn bằng subquery: (SELECT Total FROM CTE_Metadata) AS [TongKiem | Tổng kiểm PASS+FAIL từ Qty_KiemPL_XacNhan].",
+      "SoLuongPass | Số lượng PASS (Result=1) từ Qty_KiemPL_XacNhan": "Tổng số lượng phiếu kiểm PASS duy nhất thỏa mãn toàn bộ bộ lọc đầu vào. BẮT BUỘC tính từ CTE_Metadata (có áp dụng đầy đủ bộ lọc thời gian và bộ lọc Kết quả kiểm tra Result tương tự truy vấn chính) và lấy ra bằng subquery: (SELECT Pass FROM CTE_Metadata) AS [SoLuongPass | Số lượng PASS (Result=1) từ Qty_KiemPL_XacNhan].",
+      "SoLuongFail | Số lượng FAIL (Result=0) từ Qty_KiemPL_XacNhan": "Tổng số lượng phiếu kiểm FAIL duy nhất thỏa mãn toàn bộ bộ lọc đầu vào. BẮT BUỘC tính từ CTE_Metadata (có áp dụng đầy đủ bộ lọc thời gian và bộ lọc Kết quả kiểm tra Result tương tự truy vấn chính) và lấy ra bằng subquery: (SELECT Fail FROM CTE_Metadata) AS [SoLuongFail | Số lượng FAIL (Result=0) từ Qty_KiemPL_XacNhan].",
+      "TiLeLoi | Tỉ lệ lỗi: FAIL*100.0/NULLIF(TỔNG KIỂM,0)": "Tỉ lệ lỗi trên tổng kiểm (FAIL / TỔNG KIỂM) tính dựa trên kết quả lọc của CTE_Metadata, làm tròn 2 chữ số thập phân. Bạn BẮT BUỘC tính từ CTE_Metadata (có áp dụng đầy đủ bộ lọc thời gian và bộ lọc Kết quả kiểm tra Result tương tự truy vấn chính) và lấy ra bằng subquery: (SELECT CAST(ROUND(Fail * 100.0 / NULLIF(Total, 0), 2) AS DECIMAL(10,2)) FROM CTE_Metadata) AS [TiLeLoi | Tỉ lệ lỗi: FAIL*100.0/NULLIF(TỔNG KIỂM,0)]."
+    },
+    "MetadataCellMappings": {
+      "B5": "TongKiem | Tổng kiểm PASS+FAIL từ Qty_KiemPL_XacNhan",
+      "C5": "SoLuongPass | Số lượng PASS (Result=1) từ Qty_KiemPL_XacNhan",
+      "D5": "SoLuongFail | Số lượng FAIL (Result=0) từ Qty_KiemPL_XacNhan",
+      "E5": "TiLeLoi | Tỉ lệ lỗi: FAIL*100.0/NULLIF(TỔNG KIỂM,0)"
+    },
+    "ColumnFormats": {
+      "NgayMoKien": "dd/MM/yyyy",
+      "NgayKiem": "dd/MM/yyyy",
+      "ItemCode": "@"
+    },
+    "SubtotalConfig": null,
+    "Parameters": [
+      {
+        "Key": "para1",
+        "Label": "Khoảng thời gian kiểm tra",
+        "Type": "daterange",
+        "Required": true,
+        "DataSource": null,
+        "DataColumn": null,
+        "DisplayColumn": null,
+        "Placeholder": null,
+        "DefaultValue": null,
+        "PromptTemplate": "Từ ngày {start} đến ngày {end}",
+        "Order": 0
+      },
+      {
+        "Key": "para2",
+        "Label": "Kết quả kiểm tra (Result)",
+        "Type": "text",
+        "Required": false,
+        "DataSource": null,
+        "DataColumn": null,
+        "DisplayColumn": null,
+        "Placeholder": "ALL = Tất cả, 1 = Đạt (Pass), 0 = Lỗi (Fail)",
+        "DefaultValue": null,
+        "PromptTemplate": "Kết quả kiểm tra (Result): {value}\"",
+        "Order": 1
+      }
+    ],
+    "CollectionName": null
   }
 }
