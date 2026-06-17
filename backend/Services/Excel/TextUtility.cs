@@ -72,17 +72,21 @@ public class TextUtility : ITextUtility
 
     public string GenerateUniqueKey(string parent, string child)
     {
-        // Strategy A: Loại bỏ phần dịch song ngữ trong ngoặc đơn trước khi tạo key
-        // "Thành Phẩm (Finished)" → "Thành Phẩm" → "ThanhPham"
-        // "SL kiểm (Quantity)"    → "SL kiểm"    → "SLkiem"
+        // Strategy A: Loại bỏ phần dịch song ngữ trong ngoặc đơn khi tạo prefix từ parent
+        // "Thành Phẩm (Finished)" → "ThanhPham"
         string p = RemoveDiacritics(StripParentheses(parent ?? "")).Trim();
-        string c = RemoveDiacritics(StripParentheses(child ?? "")).Trim();
 
-        if (string.IsNullOrEmpty(p)) return c;
+        // Strategy B: Với child, giữ nguyên nội dung ngoặc đơn để tạo key phân biệt
+        // "Kết Luận (QC)"  → "KetLuanQC"   (không xóa ngoặc → tránh collision với "Kết Luận (Mer)")
+        // "SL kiểm (Qty)"  → "SLkiemQty"   (loại ký tự đặc biệt nhưng giữ nội dung)
+        string c = RemoveDiacritics(child ?? "").Trim();
+
+        if (string.IsNullOrEmpty(p)) return string.IsNullOrEmpty(c) ? "" : c;
         if (string.IsNullOrEmpty(c)) return p;
 
         // Nếu tên cha và tên con trùng nhau sau khi bỏ dấu (ví dụ: Ngay và Ngày)
-        if (string.Equals(p, c, StringComparison.OrdinalIgnoreCase)) return c;
+        string cStripped = RemoveDiacritics(StripParentheses(child ?? "")).Trim();
+        if (string.Equals(p, cStripped, StringComparison.OrdinalIgnoreCase)) return c;
 
         return $"{p}_{c}";
     }

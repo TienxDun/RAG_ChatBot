@@ -167,8 +167,17 @@ public class ExcelMappingService : IExcelMappingService
                     Console.WriteLine($"⚠️ Lỗi khi parse Parameters: {ex.Message}");
                 }
             }
+
+            // Parse CollectionName
+            bool hasCollectionName = element.TryGetProperty("collectionName", out var collProp) || 
+                                     element.TryGetProperty("CollectionName", out collProp);
+            if (hasCollectionName && collProp.ValueKind == JsonValueKind.String)
+            {
+                mapping.CollectionName = collProp.GetString();
+            }
         }
         return mapping;
+
     }
 
 

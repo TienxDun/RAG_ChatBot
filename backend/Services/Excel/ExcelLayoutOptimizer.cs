@@ -84,7 +84,7 @@ public static class ExcelLayoutOptimizer
                 if (string.IsNullOrWhiteSpace(cellAddress)) continue;
 
                 var cell = worksheet.Cells[cellAddress];
-                if (cell == null) continue;
+                if (cell?.Start == null) continue;
 
                 int row = cell.Start.Row;
                 int col = cell.Start.Column;

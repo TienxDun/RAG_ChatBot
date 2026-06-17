@@ -62,4 +62,9 @@ public class ExcelTemplateMapping
     /// Danh sách tham số động được admin cấu hình cho template này.
     /// Nếu null/rỗng, hệ thống sử dụng behavior cũ (người dùng tự gõ prompt).
     public List<TemplateParameter>? Parameters { get; set; }
+
+    /// Tên collection Qdrant tương ứng với data source cho template này (ví dụ: "db_viking_qldh").
+    /// Nếu để trống, chatbot sẽ sử dụng data source mặc định.
+    public string? CollectionName { get; set; }
 }
+

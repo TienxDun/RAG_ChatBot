@@ -81,14 +81,7 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
 
             if (val == null || val == DBNull.Value)
             {
-                if (isNumericCol)
-                {
-                    WriteNumericCell(cell, 0, colFormat);
-                }
-                else
-                {
-                    cell.Value = null;
-                }
+                cell.Value = null;
                 continue;
             }
 
@@ -114,7 +107,9 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
             else
             {
                 string strVal = val.ToString() ?? "";
-                if (DateTime.TryParse(strVal, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime dtParsed))
+                bool isExplicitText = columnFormats != null && columnFormats.TryGetValue(map.DataTableColumnName, out var fmt) && fmt == "@";
+
+                if (!isExplicitText && DateTime.TryParse(strVal, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime dtParsed))
                 {
                     string? customFormat = null;
                     columnFormats?.TryGetValue(map.DataTableColumnName, out customFormat);
@@ -122,6 +117,10 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
                 }
                 else
                 {
+                    if (isExplicitText)
+                    {
+                        cell.Style.Numberformat.Format = "@";
+                    }
                     WriteTextCell(cell, strVal, map.ExcelColumnIndex, ref maxRowHeight, worksheet);
                 }
             }
@@ -163,6 +162,38 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
         }
         
         cell.Value = strVal;
+
+        string cleanVal = strVal.Trim();
+        bool isFail = string.Equals(cleanVal, "Fail", StringComparison.OrdinalIgnoreCase) || 
+                      string.Equals(cleanVal, "FAIL", StringComparison.OrdinalIgnoreCase) || 
+                      string.Equals(cleanVal, "Fail (QC)", StringComparison.OrdinalIgnoreCase) ||
+                      string.Equals(cleanVal, "Fail (Mer)", StringComparison.OrdinalIgnoreCase) ||
+                      string.Equals(cleanVal, "Không đạt", StringComparison.OrdinalIgnoreCase) ||
+                      string.Equals(cleanVal, "Khong dat", StringComparison.OrdinalIgnoreCase);
+
+        bool isPass = string.Equals(cleanVal, "Pass", StringComparison.OrdinalIgnoreCase) || 
+                      string.Equals(cleanVal, "PASS", StringComparison.OrdinalIgnoreCase) || 
+                      string.Equals(cleanVal, "Pass (QC)", StringComparison.OrdinalIgnoreCase) ||
+                      string.Equals(cleanVal, "Pass (Mer)", StringComparison.OrdinalIgnoreCase) ||
+                      string.Equals(cleanVal, "Đạt", StringComparison.OrdinalIgnoreCase) ||
+                      string.Equals(cleanVal, "Dat", StringComparison.OrdinalIgnoreCase);
+
+        if (isFail)
+        {
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.Color.SetColor(System.Drawing.Color.Red);
+        }
+        else if (isPass)
+        {
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.Color.SetColor(System.Drawing.Color.Green);
+        }
+        else if (cleanVal.Contains("fail", StringComparison.OrdinalIgnoreCase) || 
+                 cleanVal.Contains("lỗi", StringComparison.OrdinalIgnoreCase) ||
+                 cleanVal.Contains("không đạt", StringComparison.OrdinalIgnoreCase))
+        {
+            cell.Style.Font.Color.SetColor(System.Drawing.Color.FromArgb(192, 0, 0));
+        }
 
         if (strVal.Length > 20 || strVal.Contains("|"))
         {
@@ -1056,10 +1087,12 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
 
             if (string.IsNullOrWhiteSpace(cellAddress)) continue;
 
+            var cell = worksheet.Cells[cellAddress];
+            if (cell?.Start == null) continue;
+
             string? matchedValue = _textUtility.FindBestMetadataValue(metadataValues, semanticKey);
             if (matchedValue != null)
             {
-                var cell = worksheet.Cells[cellAddress];
                 string currentText = cell.Text?.Trim() ?? "";
                 if (currentText.Contains(":"))
                 {
