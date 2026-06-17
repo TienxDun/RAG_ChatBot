@@ -17,7 +17,7 @@
       "KhoSize": "Kích thước khổ vải hoặc size, lấy từ CTE_KhoVai. Bạn BẮT BUỘC định nghĩa CTE_KhoVai (sau CTE_NgayMoKien): CTE_KhoVai AS (SELECT DISTINCT kv.KhoVaiID, CASE WHEN cl.IsNPL = 1 THEN kv.KhoVai + dv.TenDVVT ELSE kv.KhoVai END AS KhoVai, cl.MaCLVT FROM ERP_KhoVai kv INNER JOIN ERP_TheKhoVai t ON t.MaTheKhoVai = kv.MaTheKhoVai LEFT JOIN ChungLoaiVatTu cl ON cl.MaCLVT = t.MaCLVT LEFT JOIN ERP_DonViVT dv ON dv.MaDVVT = kv.MaDVVT UNION SELECT MaSize KhoVaiID, TenSize KhoVai, '' FROM BangSize GROUP BY MaSize, TenSize). Sau đó JOIN: LEFT JOIN CTE_KhoVai t6 ON t6.KhoVaiID = t2.MaKhoVai và dùng: t6.KhoVai AS [KhoSize].",
       "DonVi": "Đơn vị tính, lấy từ cột TenDVVT. Bạn BẮT BUỘC JOIN: LEFT JOIN ERP_DonViVT t9 ON t9.MaDVVT = t2.MaDonVi và dùng: TenDVVT AS [DonVi].",
       "Dot": "Đợt kiểm tra. Bạn BẮT BUỘC dùng định dạng: N'Lần ' + CONVERT(VARCHAR(20), ISNULL(t1.Dot, 1)) AS [Dot].",
-      "KetLuanQC": "Kết quả QC, tương ứng với cột t1.Result. Bạn BẮT BUỘC dùng: CASE WHEN t1.Result = 1 THEN N'Pass' ELSE N'Fail' END AS [KetLuanQC].",
+      "KetLuanQC": "Kết quả QC, tương ứng với cột t1.Result. Bạn BẮT BUỘC dùng: CASE WHEN t1.Result = 1 THEN N'Pass' ELSE N'Fail' END AS [KetLuanQC]. LƯU Ý LỌC THEO KẾT QUẢ KIỂM TRA (Result): Nếu tham số Kết quả kiểm tra (Result) là 'ALL' (hoặc không truyền), bạn tuyệt đối không thêm điều kiện lọc t1.Result. Nếu là '1', bạn bắt buộc phải thêm điều kiện lọc: t1.Result = 1. Nếu là '0', bạn bắt buộc phải thêm điều kiện lọc: t1.Result = 0.",
       "KetLuanMer": "Kết quả Mer, tương ứng với cột t1.Result_Mer. Bạn BẮT BUỘC dùng: CASE WHEN t1.Result_Mer = 1 THEN N'Pass' ELSE N'Fail' END AS [KetLuanMer].",
       "LyDoLoi": "Lý do lỗi kỹ thuật. Bạn BẮT BUỘC dùng cú pháp: STUFF((SELECT ', ' + pl_inner.PhuLuc + ' (fail)' FROM Qty_KiemPL t11 INNER JOIN QTY_PhuLucKiemPL pl_inner ON pl_inner.MaPhuLuc = t11.MaPhuLuc WHERE t11.SoLoID = t1.SoLoID AND t11.MaNPL = t2.MaNPL AND t11.StatusKiem = 0 AND ISNULL(t11.Dot,'1') = ISNULL(t1.Dot,'1') FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 2, '') AS [LyDoLoi].",
       "TongKiem | Tổng kiểm PASS+FAIL từ Qty_KiemPL_XacNhan": "Tổng số lượng phiếu kiểm duy nhất trong khoảng thời gian lọc. Bạn BẮT BUỘC phải tính bằng cách tạo một CTE trung gian CTE_Metadata để lấy COUNT(DISTINCT MaPhieuKiem) trong khoảng thời gian lọc, sau đó chọn bằng subquery: (SELECT Total FROM CTE_Metadata) AS [TongKiem | Tổng kiểm PASS+FAIL từ Qty_KiemPL_XacNhan].",
@@ -66,15 +66,15 @@
       },
       {
         "Key": "para3",
-        "Label": "Tham số 3",
+        "Label": "Kết quả kiểm tra (Result)",
         "Type": "text",
         "Required": false,
         "DataSource": null,
         "DataColumn": null,
         "DisplayColumn": null,
-        "Placeholder": null,
+        "Placeholder": "ALL = Tất cả, 1 = Đạt (Pass), 0 = Lỗi (Fail)",
         "DefaultValue": "ALL",
-        "PromptTemplate": null,
+        "PromptTemplate": "Kết quả kiểm tra (Result): {value}",
         "Order": 2
       }
     ]
