@@ -43,7 +43,7 @@ export class DataSourcePanelComponent {
     renderLogin() {
         this.container.innerHTML = `
             <div class="ds-login-container">
-                <div class="ds-login-card glass-panel animate-in fade-in zoom-in duration-300">
+                <div class="ds-login-card glass-panel">
                     <div class="ds-login-header">
                         <i class="ph-duotone ph-shield-check"></i>
                         <h3>Cấu hình hệ thống</h3>
@@ -63,7 +63,10 @@ export class DataSourcePanelComponent {
                             <label for="ds-password">Mật khẩu</label>
                             <div class="ds-input-wrapper">
                                 <i class="ph ph-lock"></i>
-                                <input type="password" id="ds-password" class="ds-input-field" placeholder="••••••••" required autocomplete="current-password">
+                                <input type="password" id="ds-password" class="ds-input-field has-toggle" placeholder="••••••••" required autocomplete="current-password">
+                                <button type="button" id="ds-toggle-password" class="ds-password-toggle" title="Hiển thị mật khẩu">
+                                    <i class="ph ph-eye"></i>
+                                </button>
                             </div>
                         </div>
 
@@ -79,6 +82,44 @@ export class DataSourcePanelComponent {
         const form = document.getElementById('ds-login-form');
         if (form) {
             form.addEventListener('submit', (e) => this.handleLogin(e));
+        }
+
+        // Đăng ký sự kiện ẩn/hiện mật khẩu
+        const passwordInput = document.getElementById('ds-password');
+        const togglePasswordBtn = document.getElementById('ds-toggle-password');
+        if (passwordInput && togglePasswordBtn) {
+            togglePasswordBtn.addEventListener('click', () => {
+                const isPassword = passwordInput.getAttribute('type') === 'password';
+                passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
+                
+                const icon = togglePasswordBtn.querySelector('i');
+                if (icon) {
+                    icon.className = isPassword ? 'ph ph-eye-slash' : 'ph ph-eye';
+                }
+                togglePasswordBtn.title = isPassword ? 'Ẩn mật khẩu' : 'Hiển thị mật khẩu';
+            });
+        }
+    }
+
+    triggerShakeEffect() {
+        const card = this.container.querySelector('.ds-login-card');
+        if (card) {
+            card.classList.remove('shake-error');
+            // Force reflow to restart the animation
+            void card.offsetWidth;
+            card.classList.add('shake-error');
+            
+            // Focus on password input and select the text
+            const passwordInput = document.getElementById('ds-password');
+            if (passwordInput) {
+                passwordInput.focus();
+                passwordInput.select();
+            }
+            
+            // Clean up the class after animation completes
+            setTimeout(() => {
+                card.classList.remove('shake-error');
+            }, 500);
         }
     }
 
@@ -108,10 +149,12 @@ export class DataSourcePanelComponent {
                 Toast.success("Đăng nhập quản trị thành công!");
                 this.renderLayout();
             } else {
+                this.triggerShakeEffect();
                 Toast.error(response?.message || "Đăng nhập thất bại.");
             }
         } catch (error) {
             console.error('Login error:', error);
+            this.triggerShakeEffect();
             Toast.error(error.message || "Tên đăng nhập hoặc mật khẩu không đúng.");
         } finally {
             if (submitBtn) {
