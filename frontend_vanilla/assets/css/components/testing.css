@@ -300,6 +300,66 @@
     gap: 0.4rem;
 }
 
+/* Database Selector for Testing */
+.testing-db-selector {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    background: color-mix(in srgb, var(--primary) 4%, transparent);
+    border: 1px solid color-mix(in srgb, var(--primary) 15%, transparent);
+    border-radius: var(--radius-sm);
+    transition: all 0.2s ease;
+}
+
+.testing-db-selector:hover {
+    border-color: color-mix(in srgb, var(--primary) 30%, transparent);
+    background: color-mix(in srgb, var(--primary) 7%, transparent);
+}
+
+.testing-db-selector__label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--primary);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.testing-db-selector__label i {
+    font-size: 1rem;
+    opacity: 0.85;
+}
+
+.testing-db-select {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--foreground);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    outline: none;
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-family: inherit;
+    transition: all 0.2s;
+    min-width: 0;
+}
+
+.testing-db-select:hover {
+    color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 5%, transparent);
+}
+
+.testing-db-select option {
+    background: var(--background);
+    color: var(--foreground);
+    padding: 8px;
+}
+
 .queue-add-custom {
     display: flex;
     gap: 0.5rem;

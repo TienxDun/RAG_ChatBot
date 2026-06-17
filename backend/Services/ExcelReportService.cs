@@ -193,9 +193,13 @@ public class ExcelReportService
             combinedQuery = $"{additionalQuery.Trim()}.{userNotes}{mappingInstructions}";
 
             // 3. Thực thi RAG Orchestrator để lấy dữ liệu từ database
+            var targetCollectionName = !string.IsNullOrWhiteSpace(templateMapping.CollectionName)
+                ? templateMapping.CollectionName
+                : collectionName;
+
             var ragResponse = await _ragOrchestrator.ProcessQueryAsync(
                 combinedQuery,
-                collectionName ?? templateMapping.CollectionName,
+                targetCollectionName,
                 onStep,
                 onFinalChunk,
                 ct,

@@ -280,6 +280,7 @@ public static class TemplateCacheEndpoints
         return Results.Ok(new
         {
             fileName,
+            collectionName = mapping.CollectionName,
             parameters = mapping.Parameters ?? new List<TemplateParameter>()
         });
     }

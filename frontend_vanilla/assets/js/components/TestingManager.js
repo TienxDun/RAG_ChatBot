@@ -6,6 +6,7 @@ import { Toast } from './Toast.js';
 import { MessageRenderer } from './MessageRenderer.js';
 import { InteractionService } from '../services/InteractionService.js';
 
+
 export class TestingManagerComponent {
     constructor() {
         this.container = document.getElementById('testing-page');
@@ -44,6 +45,7 @@ export class TestingManagerComponent {
                     // Khởi tạo các sự kiện và tải test cases lần đầu tiên
                     this.setupUI();
                     this.setupPanelResizers();
+                    this.loadCollections();
                     if (this.testCases.length === 0) {
                         this.loadTestCases();
                     }
@@ -153,6 +155,34 @@ export class TestingManagerComponent {
                 </div>
             `;
             Toast.show('Không thể tải danh sách test cases', 'error');
+        }
+    }
+
+    /**
+     * Tải danh sách collections (databases) từ API và render vào dropdown kiểm thử
+     */
+    async loadCollections() {
+        const select = document.getElementById('testing-collection-select');
+        if (!select) return;
+
+        try {
+            const dataSources = await ApiClient.get(ENDPOINTS.COLLECTIONS);
+            if (!Array.isArray(dataSources)) return;
+
+            select.innerHTML = '';
+
+            dataSources.forEach(ds => {
+                const option = document.createElement('option');
+                option.value = ds.qdrantCollection;
+                option.textContent = ds.displayName || ds.qdrantCollection;
+                if (ds.isDefault) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            });
+        } catch (error) {
+            console.error('TestingManager: Failed to load collections:', error);
+            select.innerHTML = '<option value="">Lỗi tải danh sách DB</option>';
         }
     }
 
@@ -639,6 +669,8 @@ export class TestingManagerComponent {
         document.getElementById('btn-add-all-testcases').disabled = true;
         document.getElementById('btn-add-custom-question').disabled = true;
         document.getElementById('input-custom-question').disabled = true;
+        const testingDbSelect = document.getElementById('testing-collection-select');
+        if (testingDbSelect) testingDbSelect.disabled = true;
         document.querySelectorAll('.btn-remove-queue').forEach(b => b.disabled = true);
 
         // Hiển thị thanh tiến trình và tổng quan kết quả
@@ -788,6 +820,8 @@ export class TestingManagerComponent {
         document.getElementById('btn-add-all-testcases').disabled = false;
         document.getElementById('btn-add-custom-question').disabled = false;
         document.getElementById('input-custom-question').disabled = false;
+        const testingDbSelectRestore = document.getElementById('testing-collection-select');
+        if (testingDbSelectRestore) testingDbSelectRestore.disabled = false;
         document.querySelectorAll('.btn-remove-queue').forEach(b => b.disabled = false);
         this.renderQueue();
 
@@ -875,8 +909,9 @@ export class TestingManagerComponent {
      */
     sendChatRequest(question, index) {
         return new Promise((resolve, reject) => {
-            const collectionSelect = document.getElementById('chat-collection-select');
-            const collectionName = collectionSelect ? collectionSelect.value : '';
+            // Sử dụng dropdown riêng của tab kiểm thử thay vì tab chatbot
+            const testingCollectionSelect = document.getElementById('testing-collection-select');
+            const collectionName = testingCollectionSelect ? testingCollectionSelect.value : '';
             const isPerfMode = localStorage.getItem('dodo_performance_mode') === 'true';
 
             const body = JSON.stringify({

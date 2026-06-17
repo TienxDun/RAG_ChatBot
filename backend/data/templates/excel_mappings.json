@@ -1,5 +1,5 @@
 {
-  "BaoCao_InLineQC_All_1780023089422.xlsx": {
+  "BaoCao_InLineQC_All.xlsx": {
     "ColumnMappings": {
       "ChuyenLine_Chuyen": "Tên chuyền sản xuất, lấy từ cột Name của bảng tbl_SettingLineX sau khi JOIN với QTY_InLineQC_ngaykiem qua ID chuyền (sử dụng cột Line, không sử dụng LineX).",
       "Cosmos_Ngaykiem": "Ngày thực hiện kiểm tra chất lượng, lấy từ cột NgayKiem của bảng QTY_InLineQC_ngaykiem (cần CAST sang DATE).",
@@ -103,7 +103,7 @@
     ],
     "CollectionName": "db_schema"
   },
-  "BCEndlineNgay (22)_Empty.xlsx": {
+  "BCEndlineNgay.xlsx": {
     "ColumnMappings": {
       "ThanhPham_GhichuNotes": "Ghi chú kiểm tra thành phẩm. Bắt buộc lấy danh sách tên lỗi duy nhất (TenLoi) từ bảng QTY_MAHANG_KIEMQC_CHITIET (bảng chi tiết lỗi) kết nối với QTY_NHOMLOI_CHITIET (qua c.Code = n.MaLoi) với CheckType = 0. Bạn BẮT BUỘC phải viết một CTE trung gian sử dụng SELECT DISTINCT để lấy TenLoi duy nhất trước, sau đó ở CTE ngoài sử dụng STRING_AGG(TenLoi, ' | ') để nối chúng. Tuyệt đối không dùng STRING_AGG(DISTINCT ...) trực tiếp vì SQL Server không hỗ trợ.",
       "Vo_GhichuNotes": "Ghi chú kiểm tra phần vỏ. Bắt buộc lấy danh sách tên lỗi duy nhất (TenLoi) từ bảng QTY_MAHANG_KIEMQC_CHITIET (bảng chi tiết lỗi) kết nối với QTY_NHOMLOI_CHITIET (qua c.Code = n.MaLoi) với CheckType = 1. Bạn BẮT BUỘC phải viết một CTE trung gian sử dụng SELECT DISTINCT để lấy TenLoi duy nhất trước, sau đó ở CTE ngoài sử dụng STRING_AGG(TenLoi, ' | ') để nối chúng. Tuyệt đối không dùng STRING_AGG(DISTINCT ...) trực tiếp.",
@@ -193,16 +193,6 @@
     ],
     "CollectionName": "db_schema"
   },
-  "BaoCao_InLineQC_All_1780023089422 (1).xlsx": {
-    "ColumnMappings": {},
-    "MetadataCellMappings": {
-      "B5": "tên chuyền"
-    },
-    "ColumnFormats": {},
-    "SubtotalConfig": null,
-    "Parameters": null,
-    "CollectionName": null
-  },
   "BaoCaoTongHop_PHULIEU.xlsx": {
     "ColumnMappings": {
       "STT": "Số thứ tự của bản ghi trong báo cáo. Bạn BẮT BUỘC dùng: ROW_NUMBER() OVER (ORDER BY MIN(t1.NgayKiem) ASC) AS [STT].",
@@ -243,7 +233,7 @@
     "Parameters": [
       {
         "Key": "para1",
-        "Label": "Khoảng thời gian kiểm tra",
+        "Label": "Khoảng thời gian kiểm tra NgayKiem",
         "Type": "daterange",
         "Required": true,
         "DataSource": null,
@@ -268,6 +258,22 @@
         "Order": 1
       }
     ],
+    "CollectionName": "db_viking_qldh"
+  },
+  "BaoCaoTongHop_NGUYENLIEU.xlsx": {
+    "ColumnMappings": {},
+    "MetadataCellMappings": {},
+    "ColumnFormats": {},
+    "SubtotalConfig": null,
+    "Parameters": [],
+    "CollectionName": "db_viking_qldh"
+  },
+  "BM-BaoCao-TienDo-ChiTiet-17062026152855.xlsx": {
+    "ColumnMappings": {},
+    "MetadataCellMappings": {},
+    "ColumnFormats": {},
+    "SubtotalConfig": null,
+    "Parameters": [],
     "CollectionName": "db_viking_qldh"
   }
 }
