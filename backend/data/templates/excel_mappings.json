@@ -1,5 +1,5 @@
 {
-  "BaoCaoTongHop_11062026163557.xlsx": {
+  "BaoCaoTongHop_PHULIEU.xlsx": {
     "CollectionName": "db_viking_qldh",
     "ColumnMappings": {
       "STT": "Số thứ tự của bản ghi trong báo cáo. Bạn BẮT BUỘC dùng: ROW_NUMBER() OVER (ORDER BY MIN(t1.NgayKiem) ASC) AS [STT].",
