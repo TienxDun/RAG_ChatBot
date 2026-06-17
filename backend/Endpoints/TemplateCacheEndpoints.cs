@@ -217,7 +217,8 @@ public static class TemplateCacheEndpoints
                 grid = result.Grid,
                 savedMappings = templateMapping.ColumnMappings,
                 metadataCellMappings = templateMapping.MetadataCellMappings,
-                columnFormats = templateMapping.ColumnFormats
+                columnFormats = templateMapping.ColumnFormats,
+                collectionName = templateMapping.CollectionName
             });
         }
         catch (Exception ex)
@@ -234,6 +235,7 @@ public static class TemplateCacheEndpoints
         public Dictionary<string, string>? ColumnFormats { get; set; }
         /// Danh sách tham số động (null = không thay đổi tham số hiện tại)
         public List<TemplateParameter>? Parameters { get; set; }
+        public string? CollectionName { get; set; }
     }
 
     /// Xử lý lưu các chú thích/ánh xạ cột Excel của người dùng
@@ -254,7 +256,8 @@ public static class TemplateCacheEndpoints
                 MetadataCellMappings = request.MetadataCellMappings ?? new(),
                 ColumnFormats = request.ColumnFormats ?? existing.ColumnFormats ?? new(),
                 SubtotalConfig = existing.SubtotalConfig,
-                Parameters = request.Parameters ?? existing.Parameters
+                Parameters = request.Parameters ?? existing.Parameters,
+                CollectionName = request.CollectionName
             };
             mappingService.SaveTemplateMapping(request.FileName, templateMapping);
             return Results.Ok(new { message = "Đã lưu thông tin ánh xạ cột Excel thành công." });

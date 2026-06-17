@@ -101,7 +101,7 @@
         "Order": 3
       }
     ],
-    "CollectionName": null
+    "CollectionName": "db_schema"
   },
   "BCEndlineNgay (22)_Empty.xlsx": {
     "ColumnMappings": {
@@ -191,7 +191,7 @@
         "Order": 3
       }
     ],
-    "CollectionName": null
+    "CollectionName": "db_schema"
   },
   "BaoCao_InLineQC_All_1780023089422 (1).xlsx": {
     "ColumnMappings": {},
@@ -268,6 +268,6 @@
         "Order": 1
       }
     ],
-    "CollectionName": null
+    "CollectionName": "db_viking_qldh"
   }
 }

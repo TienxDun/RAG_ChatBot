@@ -353,9 +353,17 @@ export class TemplateManagerComponent {
                         <h2><i class="ph-bold ph-file-spreadsheet" style="color: #1d6f42;"></i> ${this.selectedTemplate.fileName}</h2>
                         <p>Loại bảng mẫu phát hiện: <strong>${data.type === 'Hierarchical' ? 'Tiêu đề gộp phân tầng (Hierarchical)' : 'Bảng phẳng (Horizontal)'}</strong> | Dòng tiêu đề cột: <strong>Dòng ${data.headerRowIndex}</strong></p>
                     </div>
-                    <button class="btn-save-mapping" id="btn-save-template-mapping">
-                        <i class="ph-bold ph-floppy-disk"></i> <span>Lưu cấu hình</span>
-                    </button>
+                    <div class="template-header-actions" style="display: flex; gap: 12px; align-items: center;">
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <span style="font-size: 0.825rem; font-weight: 600; color: var(--muted-foreground); white-space: nowrap;"><i class="ph-bold ph-database"></i> Nguồn dữ liệu:</span>
+                            <select id="template-collection-select" style="padding: 8px 12px; font-size: 0.825rem; border-radius: 6px; border: 1px solid var(--border); background: var(--card); color: var(--foreground); cursor: pointer; min-width: 160px; height: 36px; box-sizing: border-box; font-family: inherit; font-weight: 500;">
+                                <option value="">Đang tải nguồn dữ liệu...</option>
+                            </select>
+                        </div>
+                        <button class="btn-save-mapping" id="btn-save-template-mapping">
+                            <i class="ph-bold ph-floppy-disk"></i> <span>Lưu cấu hình</span>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Tab bar -->
@@ -392,9 +400,6 @@ export class TemplateManagerComponent {
                                 Điều này giúp Trợ lý AI (RAG) hiểu rõ ý nghĩa của cột để truy vấn dữ liệu chính xác nhất.
                             </p>
                             <div style="display: flex; gap: 8px; align-items: center; flex-shrink: 0;">
-                                <select id="template-collection-select" style="padding: 8px 12px; font-size: 0.825rem; border-radius: 6px; border: 1px solid var(--border); background: var(--card); color: var(--foreground); cursor: pointer; max-width: 180px; height: 36px; box-sizing: border-box; font-family: inherit; font-weight: 500;">
-                                    <option value="">Đang tải nguồn dữ liệu...</option>
-                                </select>
                                 <button class="btn-auto-map" id="btn-auto-map-columns" style="height: 36px; display: flex; align-items: center; justify-content: center; gap: 4px;">
                                     <i class="ph-bold ph-sparkle"></i> Tự động điền bằng AI
                                 </button>
@@ -990,12 +995,16 @@ export class TemplateManagerComponent {
         const saveBtn = document.getElementById('btn-save-template-mapping');
         if (saveBtn) saveBtn.disabled = true;
 
+        const collectionSelect = document.getElementById('template-collection-select');
+        const collectionName = collectionSelect ? collectionSelect.value : null;
+
         const payload = {
             fileName: this.selectedTemplate.fileName,
             mappings: this.columnMappings,
             metadataCellMappings: this.metadataCellMappings,
             columnFormats: this.columnFormats,
-            parameters: this.parameters
+            parameters: this.parameters,
+            collectionName: collectionName
         };
 
         try {
@@ -1008,6 +1017,7 @@ export class TemplateManagerComponent {
                 this.selectedTemplateData.metadataCellMappings = this.metadataCellMappings;
                 this.selectedTemplateData.columnFormats = this.columnFormats;
                 this.selectedTemplateData.parameters = this.parameters;
+                this.selectedTemplateData.collectionName = collectionName;
             }
         } catch (error) {
             console.error('❌ Failed to save template mappings:', error);
@@ -1324,8 +1334,14 @@ export class TemplateManagerComponent {
                 return;
             }
 
+            // Gán giá trị được chọn dựa trên dữ liệu đã cấu hình trong template hiện tại
+            const selectedCol = this.selectedTemplateData && this.selectedTemplateData.collectionName;
+
             select.innerHTML = dataSources.map(ds => {
-                return `<option value="${ds.qdrantCollection}" ${ds.isDefault ? 'selected' : ''}>${ds.displayName}</option>`;
+                const isSelected = selectedCol 
+                    ? ds.qdrantCollection.toLowerCase() === selectedCol.toLowerCase()
+                    : ds.isDefault;
+                return `<option value="${ds.qdrantCollection}" ${isSelected ? 'selected' : ''}>${ds.displayName}</option>`;
             }).join('');
         } catch (error) {
             console.error('Failed to load collections for template manager:', error);
