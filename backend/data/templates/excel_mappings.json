@@ -203,7 +203,7 @@
     "Parameters": null,
     "CollectionName": null
   },
-  "BaoCaoTongHop_11062026163557.xlsx": {
+  "BaoCaoTongHop_PHULIEU.xlsx": {
     "ColumnMappings": {
       "STT": "Số thứ tự của bản ghi trong báo cáo. Bạn BẮT BUỘC dùng: ROW_NUMBER() OVER (ORDER BY MIN(t1.NgayKiem) ASC) AS [STT].",
       "NgayMoKien": "Ngày mở kiện kiểm tra. Bạn BẮT BUỘC phải tạo CTE_NgayMoKien ở đầu truy vấn: WITH CTE_NgayMoKien AS (SELECT MaNPL, SoLoID, ISNULL(Dot, '1') AS Dot, MAX(NgayNhapKho) AS NgayMoKien FROM ERP_ChiTietNhapKhoNPL WHERE NULLIF(RIGHT(RTRIM(ISNULL(BarCodeGoc, '')), 1), '|') IS NOT NULL AND IsNPL = 0 AND SoLuongThucTeBanDau <> 0 AND IsKiemKe = 0 GROUP BY MaNPL, SoLoID, ISNULL(Dot, '1')). Sau đó JOIN: LEFT JOIN CTE_NgayMoKien t12 ON t12.SoLoID = t1.SoLoID AND t12.MaNPL = t1.MaNPL AND ISNULL(t12.Dot ,'1') = ISNULL(t1.Dot,'1') và dùng đúng alias: t12.NgayMoKien AS [NgayMoKien].",
