@@ -254,7 +254,7 @@
         "DisplayColumn": null,
         "Placeholder": "ALL = Tất cả, 1 = Đạt (Pass), 0 = Lỗi (Fail)",
         "DefaultValue": null,
-        "PromptTemplate": "Kết quả kiểm tra (Result): {value}\"",
+        "PromptTemplate": "Kết quả kiểm tra (Result): {value}",
         "Order": 1
       }
     ],
@@ -320,7 +320,7 @@
         "DisplayColumn": null,
         "Placeholder": "ALL = Tất cả, 1 = Đạt (Pass), 0 = Lỗi (Fail)",
         "DefaultValue": null,
-        "PromptTemplate": "Kết quả kiểm tra (Result): {value}\"",
+        "PromptTemplate": "Kết quả kiểm tra (Result): {value}",
         "Order": 1
       }
     ],
