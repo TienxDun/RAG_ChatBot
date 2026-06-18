@@ -580,9 +580,11 @@ export class ChatAreaComponent {
             
             // Gọi endpoint lấy parameters của template
             let params = [];
+            let templateCollectionName = null;
             try {
                 const paramsData = await ApiClient.get(`/templates/params?fileName=${encodeURIComponent(fileName)}`);
                 params = paramsData?.parameters || [];
+                templateCollectionName = paramsData?.collectionName;
             } catch (err) {
                 console.error("Failed to load params for template", err);
             }
@@ -591,6 +593,11 @@ export class ChatAreaComponent {
                 this.uiState.selectedFile = file;
                 this._renderFilePreview();
                 this._updateInputUI();
+                
+                // Tự động chuyển đổi collection select phù hợp với template
+                if (templateCollectionName && this.elements.collectionSelect) {
+                    this.elements.collectionSelect.value = templateCollectionName;
+                }
                 
                 if (promptText) {
                     this.elements.chatInput.value = promptText;
