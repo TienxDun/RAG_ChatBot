@@ -1,0 +1,152 @@
+{
+  "table": "ERP_LENHSX_PO",
+  "purpose": "Lưu trữ thông tin chi tiết về các PO (Purchase Order) của lệnh sản xuất bao gồm số lượng, ngày giao hàng, các phòng ban phụ trách và trạng thái cho phép cắt/may/đóng gói.",
+  "when_to_use": "Sử dụng khi câu hỏi yêu cầu truy vấn thông tin liên quan đến các PO sản xuất (PO, POID), ngày giao hàng (NgayGH), số lượng yêu cầu của PO (SoLuong), phòng ban phụ trách (CutDepID, PackDepID, SawDepID) hoặc đợt sản xuất (DotSX).",
+  "when_not_to_use": "Không sử dụng khi câu hỏi không nhắc tới các chỉ tiêu hoặc thông tin cụ thể về PO.",
+  "table_rules": [],
+  "columns": [
+    {
+      "name": "SPOID",
+      "type": "nvarchar",
+      "role": "primary_key",
+      "desc": "Mã định danh duy nhất kết hợp giữa SPOID, MaLenh và POID để xác định một dòng PO."
+    },
+    {
+      "name": "MaLenh",
+      "type": "nvarchar",
+      "role": "foreign_key",
+      "desc": "Mã lệnh sản xuất liên kết với bảng ERP_LENHSX."
+    },
+    {
+      "name": "POID",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mã định danh chi tiết của PO."
+    },
+    {
+      "name": "PO",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Tên hoặc mã hiển thị của PO (ví dụ: 'PO 610353100')."
+    },
+    {
+      "name": "NgayGH",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Ngày giao hàng của PO."
+    },
+    {
+      "name": "MaQuocGia",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mã quốc gia đích của đơn hàng PO."
+    },
+    {
+      "name": "SoLuong",
+      "type": "int",
+      "role": "measure",
+      "desc": "Số lượng yêu cầu của PO."
+    },
+    {
+      "name": "SLCut",
+      "type": "int",
+      "role": "info",
+      "desc": "Số lượng đã cắt (Dữ liệu mẫu hiện bằng 0)."
+    },
+    {
+      "name": "CutDepID",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mã tổ cắt phụ trách PO."
+    },
+    {
+      "name": "PackDepID",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mã tổ đóng gói phụ trách PO."
+    },
+    {
+      "name": "SawDepID",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mã tổ may phụ trách PO."
+    },
+    {
+      "name": "AllowCut",
+      "type": "int",
+      "role": "info",
+      "desc": "Cho phép cắt (0 hoặc 1)."
+    },
+    {
+      "name": "AllowSaw",
+      "type": "int",
+      "role": "info",
+      "desc": "Cho phép may (0 hoặc 1)."
+    },
+    {
+      "name": "AllowPack",
+      "type": "int",
+      "role": "info",
+      "desc": "Cho phép đóng gói (0 hoặc 1)."
+    },
+    {
+      "name": "Status",
+      "type": "int",
+      "role": "info",
+      "desc": "Trạng thái PO."
+    },
+    {
+      "name": "MoTa",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả ghi chú liên quan đến PO."
+    },
+    {
+      "name": "ProductTypeID",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mã phân loại dòng sản phẩm PO."
+    },
+    {
+      "name": "Status_LD",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Trạng thái LD."
+    },
+    {
+      "name": "Status_LT",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Trạng thái LT."
+    },
+    {
+      "name": "DotSX",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Đợt sản xuất của PO (ví dụ: '2025' hoặc 'FW2025')."
+    },
+    {
+      "name": "BookingMaHang",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mã giữ chỗ hàng hóa PO."
+    }
+  ],
+  "relationships": [
+    {
+      "target_table": "ERP_LENHSX",
+      "join_on": "ERP_LENHSX_PO.MaLenh = ERP_LENHSX.MaLenh",
+      "notes": "Liên kết tới lệnh sản xuất chính qua MaLenh."
+    },
+    {
+      "target_table": "ERP_LENHSX_PO_CUT_DM_NEW",
+      "join_on": "ERP_LENHSX_PO.SPOID = ERP_LENHSX_PO_CUT_DM_NEW.SPOID",
+      "notes": "Liên kết tới chi tiết cắt phẩm PO."
+    },
+    {
+      "target_table": "ERP_LENHSX_PO_PACK_DETAIL",
+      "join_on": "ERP_LENHSX_PO.SPOID = ERP_LENHSX_PO_PACK_DETAIL.SPOID",
+      "notes": "Liên kết tới chi tiết đóng gói PO."
+    }
+  ]
+}

@@ -1,0 +1,88 @@
+{
+  "table": "ERP_LENHSX_PO_CUT_DM_NEW",
+  "purpose": "Lưu trữ thông tin chi tiết về số lượng cắt phẩm, phân loại kích cỡ/màu sắc sản phẩm theo từng PO.",
+  "when_to_use": "Sử dụng khi câu hỏi yêu cầu truy vấn thông tin liên quan đến sản lượng cắt (Amount), ngày tạo/ngày cập nhật (NgayTao, NgayCN), chi tiết kích cỡ/sản phẩm (ProductID) hoặc tổ cắt phụ trách (DepID) theo PO.",
+  "when_not_to_use": "Không sử dụng khi câu hỏi không nhắc tới sản lượng cắt hoặc chi tiết PO.",
+  "table_rules": [],
+  "columns": [
+    {
+      "name": "AutoID",
+      "type": "int",
+      "role": "primary_key",
+      "desc": "Mã định danh tự động duy nhất (Primary Key) của bảng chi tiết cắt PO."
+    },
+    {
+      "name": "SPOID",
+      "type": "nvarchar",
+      "role": "foreign_key",
+      "desc": "Mã định danh liên kết PO chính với bảng ERP_LENHSX_PO."
+    },
+    {
+      "name": "ProductID",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mã thông tin sản phẩm kết hợp ProductTypeID, MaHang, MauVT và Size (ví dụ: '0|0088_521_04_V0_0|MAU_BLACK|SIZE_100')."
+    },
+    {
+      "name": "DepID",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mã tổ cắt/ban ngành phụ trách."
+    },
+    {
+      "name": "NgayTao",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Ngày tạo bản ghi."
+    },
+    {
+      "name": "NgayCN",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Ngày cập nhật gần nhất."
+    },
+    {
+      "name": "Amount",
+      "type": "int",
+      "role": "measure",
+      "desc": "Số lượng sản phẩm yêu cầu cắt."
+    },
+    {
+      "name": "FinishedOut",
+      "type": "int",
+      "role": "info",
+      "desc": "Số lượng cắt đã xuất (thường bằng 0)."
+    },
+    {
+      "name": "Mota",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả ghi chú về việc cắt."
+    },
+    {
+      "name": "FinishedIn",
+      "type": "int",
+      "role": "info",
+      "desc": "Số lượng cắt đã nhập."
+    },
+    {
+      "name": "Status_LD",
+      "type": "int",
+      "role": "info",
+      "desc": "Trạng thái LD."
+    },
+    {
+      "name": "FinishedGapXep",
+      "type": "int",
+      "role": "info",
+      "desc": "Số lượng hoàn thành gấp xếp (thường bằng 0)."
+    }
+  ],
+  "relationships": [
+    {
+      "target_table": "ERP_LENHSX_PO",
+      "join_on": "ERP_LENHSX_PO_CUT_DM_NEW.SPOID = ERP_LENHSX_PO.SPOID",
+      "notes": "Liên kết tới thông tin PO chính qua SPOID."
+    }
+  ]
+}

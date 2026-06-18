@@ -1,0 +1,486 @@
+{
+  "table": "QTY_KiemVaiV2",
+  "purpose": "Lưu trữ dữ liệu bảng kiểm vải V2 (kiểm phẩm vải nguyên liệu) của hệ thống Viking QLDH.",
+  "when_to_use": "Sử dụng khi câu hỏi yêu cầu truy vấn thông tin liên quan đến kết quả kiểm vải, kiểm phẩm vải nguyên liệu QTY_KiemVaiV2.",
+  "when_not_to_use": "Không sử dụng khi câu hỏi không nhắc tới các chỉ tiêu hoặc kết quả kiểm vải của QTY_KiemVaiV2.",
+  "table_rules": [],
+  "columns": [
+    {
+      "name": "ID",
+      "type": "int",
+      "role": "primary_key",
+      "desc": "Mô tả cho cột ID."
+    },
+    {
+      "name": "SoLoID",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột SoLoID."
+    },
+    {
+      "name": "SoLo",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột SoLo."
+    },
+    {
+      "name": "MaKH",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaKH."
+    },
+    {
+      "name": "TenKH",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột TenKH."
+    },
+    {
+      "name": "MaHang",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaHang."
+    },
+    {
+      "name": "TenHang",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột TenHang."
+    },
+    {
+      "name": "LoaiVai",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột LoaiVai."
+    },
+    {
+      "name": "TenLoaiVai",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột TenLoaiVai."
+    },
+    {
+      "name": "MaVTID",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaVTID."
+    },
+    {
+      "name": "MaVT",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaVT."
+    },
+    {
+      "name": "MauVTID",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MauVTID."
+    },
+    {
+      "name": "LOT",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột LOT."
+    },
+    {
+      "name": "Batch",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột Batch."
+    },
+    {
+      "name": "SoCay",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột SoCay."
+    },
+    {
+      "name": "Weight",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột Weight."
+    },
+    {
+      "name": "StatusWeight",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột StatusWeight."
+    },
+    {
+      "name": "ImgWeight",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột ImgWeight."
+    },
+    {
+      "name": "Shrinkage",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột Shrinkage."
+    },
+    {
+      "name": "StatusShrinkage",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột StatusShrinkage."
+    },
+    {
+      "name": "ImgShrinkage",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột ImgShrinkage."
+    },
+    {
+      "name": "Waterproof",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột Waterproof."
+    },
+    {
+      "name": "StatusWaterproof",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột StatusWaterproof."
+    },
+    {
+      "name": "ImgWaterproof",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột ImgWaterproof."
+    },
+    {
+      "name": "ReceivingQuantity",
+      "type": "decimal",
+      "role": "info",
+      "desc": "Mô tả cho cột ReceivingQuantity."
+    },
+    {
+      "name": "CheckingQuantity",
+      "type": "decimal",
+      "role": "info",
+      "desc": "Mô tả cho cột CheckingQuantity."
+    },
+    {
+      "name": "FaceSide",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột FaceSide."
+    },
+    {
+      "name": "StatusFaceSide",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột StatusFaceSide."
+    },
+    {
+      "name": "ImgFaceSide",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột ImgFaceSide."
+    },
+    {
+      "name": "BlackSide",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột BlackSide."
+    },
+    {
+      "name": "StatusBlackSide",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột StatusBlackSide."
+    },
+    {
+      "name": "ImgBlackSide",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột ImgBlackSide."
+    },
+    {
+      "name": "RollLabel",
+      "type": "decimal",
+      "role": "info",
+      "desc": "Mô tả cho cột RollLabel."
+    },
+    {
+      "name": "RollActual",
+      "type": "decimal",
+      "role": "info",
+      "desc": "Mô tả cho cột RollActual."
+    },
+    {
+      "name": "CutProctect",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột CutProctect."
+    },
+    {
+      "name": "ColorThread",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột ColorThread."
+    },
+    {
+      "name": "ColorShading",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột ColorShading."
+    },
+    {
+      "name": "StatusColorShading",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột StatusColorShading."
+    },
+    {
+      "name": "ImgColorShading",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột ImgColorShading."
+    },
+    {
+      "name": "JoiningPointsRoll",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột JoiningPointsRoll."
+    },
+    {
+      "name": "IDErrorType",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột IDErrorType."
+    },
+    {
+      "name": "Note",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột Note."
+    },
+    {
+      "name": "ResultQC",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột ResultQC."
+    },
+    {
+      "name": "StatusResultQC",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột StatusResultQC."
+    },
+    {
+      "name": "CreateDate",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột CreateDate."
+    },
+    {
+      "name": "UpdateDate",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột UpdateDate."
+    },
+    {
+      "name": "NVKiem",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột NVKiem."
+    },
+    {
+      "name": "KhoVai",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột KhoVai."
+    },
+    {
+      "name": "KhoVaiActual",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột KhoVaiActual."
+    },
+    {
+      "name": "ColorStatus",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột ColorStatus."
+    },
+    {
+      "name": "ColorText",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột ColorText."
+    },
+    {
+      "name": "ColorImg",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột ColorImg."
+    },
+    {
+      "name": "PercentStatus",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột PercentStatus."
+    },
+    {
+      "name": "PercentText",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột PercentText."
+    },
+    {
+      "name": "PercentImg",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột PercentImg."
+    },
+    {
+      "name": "ErrorPoint",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột ErrorPoint."
+    },
+    {
+      "name": "StatusResult",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột StatusResult."
+    },
+    {
+      "name": "IsXacNhan",
+      "type": "int",
+      "role": "filter",
+      "desc": "Mô tả cho cột IsXacNhan."
+    },
+    {
+      "name": "MaNPL",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaNPL."
+    },
+    {
+      "name": "ResultQCStatus",
+      "type": "int",
+      "role": "filter",
+      "desc": "Mô tả cho cột ResultQCStatus."
+    },
+    {
+      "name": "RollStatus",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột RollStatus."
+    },
+    {
+      "name": "KhoVaiStatus",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột KhoVaiStatus."
+    },
+    {
+      "name": "KetLuan_Mer",
+      "type": "int",
+      "role": "filter",
+      "desc": "Mô tả cho cột KetLuan_Mer."
+    },
+    {
+      "name": "GhiChu_Mer",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột GhiChu_Mer."
+    },
+    {
+      "name": "Dot",
+      "type": "int",
+      "role": "filter",
+      "desc": "Mô tả cho cột Dot."
+    },
+    {
+      "name": "BarCode",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột BarCode."
+    },
+    {
+      "name": "DuyetQC",
+      "type": "int",
+      "role": "filter",
+      "desc": "Mô tả cho cột DuyetQC."
+    },
+    {
+      "name": "NgaySign",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột NgaySign."
+    },
+    {
+      "name": "Sign",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột Sign."
+    },
+    {
+      "name": "SignManager",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột SignManager."
+    },
+    {
+      "name": "SignReceive",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột SignReceive."
+    },
+    {
+      "name": "GhiChuSign",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột GhiChuSign."
+    },
+    {
+      "name": "LanKiem",
+      "type": "int",
+      "role": "filter",
+      "desc": "Mô tả cho cột LanKiem."
+    },
+    {
+      "name": "NgaySignManager",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột NgaySignManager."
+    },
+    {
+      "name": "NgaySignReceive",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột NgaySignReceive."
+    }
+  ],
+  "relationships": [
+    {
+      "target_table": "ERP_NhapKhoNPL",
+      "join_on": "QTY_KiemVaiV2.SoLoID = ERP_NhapKhoNPL.SoLoID",
+      "notes": "Liên kết với thông tin lô nhập kho chính qua SoLoID."
+    },
+    {
+      "target_table": "ERP_VatTuTV",
+      "join_on": "QTY_KiemVaiV2.MaNPL = ERP_VatTuTV.MaVTID",
+      "notes": "Liên kết với danh mục vật tư qua MaNPL -> MaVTID."
+    },
+    {
+      "target_table": "ERP_VatTuTV",
+      "join_on": "QTY_KiemVaiV2.MaVTID = ERP_VatTuTV.MaVTID",
+      "notes": "Liên kết với danh mục vật tư qua MaVTID."
+    },
+    {
+      "target_table": "ERP_MauVTTV",
+      "join_on": "QTY_KiemVaiV2.MauVTID = ERP_MauVTTV.MauVTID",
+      "notes": "Liên kết với danh mục màu sắc vật tư qua MauVTID."
+    },
+    {
+      "target_table": "QTY_KiemVaiV2_XacNhan",
+      "join_on": "QTY_KiemVaiV2.SoLoID = QTY_KiemVaiV2_XacNhan.SoLoID AND QTY_KiemVaiV2.MaNPL = QTY_KiemVaiV2_XacNhan.MaNPL AND QTY_KiemVaiV2.Dot = QTY_KiemVaiV2_XacNhan.Dot",
+      "notes": "Liên kết với bảng xác nhận kiểm vải V2."
+    }
+  ]
+}

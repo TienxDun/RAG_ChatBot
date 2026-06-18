@@ -1,0 +1,68 @@
+{
+  "table": "QTY_KiemVaiV2_XacNhan",
+  "purpose": "Lưu trữ dữ liệu bảng xác nhận kiểm vải V2 của hệ thống Viking QLDH.",
+  "when_to_use": "Sử dụng khi câu hỏi yêu cầu truy vấn thông tin liên quan đến việc xác nhận nhập kho hoặc kiểm vải của bảng QTY_KiemVaiV2_XacNhan.",
+  "when_not_to_use": "Không sử dụng khi câu hỏi không nhắc tới các chỉ tiêu xác nhận của QTY_KiemVaiV2_XacNhan.",
+  "table_rules": [],
+  "columns": [
+    {
+      "name": "ID",
+      "type": "int",
+      "role": "primary_key",
+      "desc": "Mô tả cho cột ID."
+    },
+    {
+      "name": "SoLoID",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột SoLoID."
+    },
+    {
+      "name": "MaNPL",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột MaNPL."
+    },
+    {
+      "name": "UserXN",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mô tả cho cột UserXN."
+    },
+    {
+      "name": "NgayNhapKho",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Mô tả cho cột NgayNhapKho."
+    },
+    {
+      "name": "Dot",
+      "type": "int",
+      "role": "filter",
+      "desc": "Mô tả cho cột Dot."
+    },
+    {
+      "name": "LanKiem",
+      "type": "int",
+      "role": "filter",
+      "desc": "Mô tả cho cột LanKiem."
+    }
+  ],
+  "relationships": [
+    {
+      "target_table": "ERP_NhapKhoNPL",
+      "join_on": "QTY_KiemVaiV2_XacNhan.SoLoID = ERP_NhapKhoNPL.SoLoID",
+      "notes": "Liên kết với thông tin lô nhập kho chính qua SoLoID."
+    },
+    {
+      "target_table": "ERP_VatTuTV",
+      "join_on": "QTY_KiemVaiV2_XacNhan.MaNPL = ERP_VatTuTV.MaVTID",
+      "notes": "Liên kết với danh mục vật tư qua MaNPL -> MaVTID."
+    },
+    {
+      "target_table": "QTY_KiemVaiV2",
+      "join_on": "QTY_KiemVaiV2_XacNhan.SoLoID = QTY_KiemVaiV2.SoLoID AND QTY_KiemVaiV2_XacNhan.MaNPL = QTY_KiemVaiV2.MaNPL AND QTY_KiemVaiV2_XacNhan.Dot = QTY_KiemVaiV2.Dot",
+      "notes": "Liên kết với bảng chi tiết kiểm vải V2."
+    }
+  ]
+}

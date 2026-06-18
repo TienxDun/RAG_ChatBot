@@ -1,0 +1,106 @@
+{
+  "table": "ERP_LENHSX_PO_PACK_DETAIL",
+  "purpose": "Lưu trữ thông tin chi tiết về sản lượng đóng gói hoàn thành, xuất mẫu, xuất quyên góp, xuất công ty theo từng PO.",
+  "when_to_use": "Sử dụng khi câu hỏi yêu cầu truy vấn thông tin liên quan đến sản lượng đóng gói hoàn thành (FinishedGapXep, FinishedIn), số lượng xuất mẫu/quyên góp/nội bộ (OutSample, OutDonation, OutCompany), ngày tạo bản ghi (CreatedDate) hoặc tổ đóng gói phụ trách (DepID) theo PO.",
+  "when_not_to_use": "Không sử dụng khi câu hỏi không nhắc tới sản lượng đóng gói hay thông tin chi tiết PO.",
+  "table_rules": [],
+  "columns": [
+    {
+      "name": "ID",
+      "type": "int",
+      "role": "primary_key",
+      "desc": "Mã định danh tự tăng duy nhất (Primary Key) của bảng chi tiết đóng gói PO."
+    },
+    {
+      "name": "CreatedDate",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Ngày tạo bản ghi dữ liệu."
+    },
+    {
+      "name": "SPOID",
+      "type": "nvarchar",
+      "role": "foreign_key",
+      "desc": "Mã định danh liên kết PO chính với bảng ERP_LENHSX_PO."
+    },
+    {
+      "name": "ProductID",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mã thông tin sản phẩm kết hợp (ví dụ: '0|SA_893_208_133|MAU_NAVY|SIZE_19')."
+    },
+    {
+      "name": "DepID",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mã tổ đóng gói/ban ngành phụ trách."
+    },
+    {
+      "name": "FinishedIn",
+      "type": "int",
+      "role": "measure",
+      "desc": "Số lượng đóng gói hoàn thành nhập kho."
+    },
+    {
+      "name": "Worked",
+      "type": "int",
+      "role": "info",
+      "desc": "Số lượng đã làm việc."
+    },
+    {
+      "name": "OutSample",
+      "type": "int",
+      "role": "measure",
+      "desc": "Số lượng xuất hàng mẫu (Out Sample)."
+    },
+    {
+      "name": "OutDonation",
+      "type": "int",
+      "role": "measure",
+      "desc": "Số lượng xuất quyên góp từ thiện (Out Donation)."
+    },
+    {
+      "name": "OutCompany",
+      "type": "int",
+      "role": "measure",
+      "desc": "Số lượng xuất nội bộ công ty (Out Company)."
+    },
+    {
+      "name": "Mota",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả ghi chú về việc đóng gói."
+    },
+    {
+      "name": "Status",
+      "type": "int",
+      "role": "info",
+      "desc": "Trạng thái đóng gói."
+    },
+    {
+      "name": "FinishedGapXep",
+      "type": "int",
+      "role": "measure",
+      "desc": "Số lượng hoàn thành đóng gói gấp xếp."
+    },
+    {
+      "name": "ColorID",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mã màu sắc sản phẩm đóng gói (ví dụ: 'MAU_NAVY')."
+    },
+    {
+      "name": "SizeTypeID",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mã phân loại kích cỡ sản phẩm đóng gói."
+    }
+  ],
+  "relationships": [
+    {
+      "target_table": "ERP_LENHSX_PO",
+      "join_on": "ERP_LENHSX_PO_PACK_DETAIL.SPOID = ERP_LENHSX_PO.SPOID",
+      "notes": "Liên kết tới thông tin PO chính qua SPOID."
+    }
+  ]
+}
