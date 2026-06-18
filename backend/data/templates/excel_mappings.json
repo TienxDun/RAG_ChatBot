@@ -211,7 +211,7 @@
       "DonVi": "Đơn vị tính, lấy từ cột TenDVVT. Bạn BẮT BUỘC JOIN: LEFT JOIN ERP_DonViVT t9 ON t9.MaDVVT = t2.MaDonVi và dùng: TenDVVT AS [DonVi].",
       "Dot": "Đợt kiểm tra. Bạn BẮT BUỘC dùng định dạng: N'Lần ' + CONVERT(VARCHAR(20), ISNULL(t1.Dot, 1)) AS [Dot].",
       "KetLuanQC": "Kết quả QC, tương ứng với cột t1.Result. Bạn BẮT BUỘC dùng: CASE WHEN t1.Result = 1 THEN N'Pass' ELSE N'Fail' END AS [KetLuanQC]. LƯU Ý LỌC THEO KẾT QUẢ KIỂM TRA (Result): Nếu tham số Kết quả kiểm tra (Result) là 'ALL' (hoặc không truyền), bạn tuyệt đối không thêm điều kiện lọc t1.Result. Nếu là '1', bạn bắt buộc phải thêm điều kiện lọc: t1.Result = 1. Nếu là '0', bạn bắt buộc phải thêm điều kiện lọc: t1.Result = 0.",
-      "KetLuanMer": "Kết quả Mer, tương ứng với cột t1.Result_Mer. Bạn BẮT BUỘC dùng: CASE WHEN t1.Result_Mer = 1 THEN N'Pass' ELSE N'Fail' END AS [KetLuanMer].",
+      "KetLuanMer": "Kết quả Mer, tương ứng với cột t1.Result_Mer. Bạn BẮT BUỘC dùng: CASE WHEN t1.Result_Mer = '1' THEN N'Pass' WHEN t1.Result_Mer = '0' THEN N'Fail' ELSE NULL END AS [KetLuanMer].",
       "LyDoLoi": "Lý do lỗi kỹ thuật. Bạn BẮT BUỘC dùng cú pháp: STUFF((SELECT ', ' + pl_inner.PhuLuc + ' (fail)' FROM Qty_KiemPL t11 INNER JOIN QTY_PhuLucKiemPL pl_inner ON pl_inner.MaPhuLuc = t11.MaPhuLuc WHERE t11.SoLoID = t1.SoLoID AND t11.MaNPL = t2.MaNPL AND t11.StatusKiem = 0 AND ISNULL(t11.Dot,'1') = ISNULL(t1.Dot,'1') FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 2, '') AS [LyDoLoi].",
       "TongKiem | Tổng kiểm PASS+FAIL từ Qty_KiemPL_XacNhan": "Tổng số lượng phiếu kiểm duy nhất thỏa mãn toàn bộ bộ lọc đầu vào (khoảng thời gian lọc và bộ lọc Kết quả kiểm tra Result). Bạn BẮT BUỘC phải tính bằng cách tạo một CTE trung gian CTE_Metadata để lấy COUNT(DISTINCT MaPhieuKiem). Trong CTE_Metadata này, bạn BẮT BUỘC phải áp dụng đầy đủ các bộ lọc giống hệt truy vấn chính (Ví dụ: lọc thời gian, và nếu tham số Result là '1' thì WHERE Result = 1, nếu Result là '0' thì WHERE Result = 0). Sau đó chọn bằng subquery: (SELECT Total FROM CTE_Metadata) AS [TongKiem | Tổng kiểm PASS+FAIL từ Qty_KiemPL_XacNhan].",
       "SoLuongPass | Số lượng PASS (Result=1) từ Qty_KiemPL_XacNhan": "Tổng số lượng phiếu kiểm PASS duy nhất thỏa mãn toàn bộ bộ lọc đầu vào. BẮT BUỘC tính từ CTE_Metadata (có áp dụng đầy đủ bộ lọc thời gian và bộ lọc Kết quả kiểm tra Result tương tự truy vấn chính) và lấy ra bằng subquery: (SELECT Pass FROM CTE_Metadata) AS [SoLuongPass | Số lượng PASS (Result=1) từ Qty_KiemPL_XacNhan].",
@@ -261,11 +261,69 @@
     "CollectionName": "db_viking_qldh"
   },
   "BaoCaoTongHop_NGUYENLIEU.xlsx": {
-    "ColumnMappings": {},
-    "MetadataCellMappings": {},
-    "ColumnFormats": {},
+    "ColumnMappings": {
+      "STT": "Số thứ tự của bản ghi trong báo cáo. Bạn BẮT BUỘC dùng: ROW_NUMBER() OVER (ORDER BY MIN(t1.CreateDate) ASC) AS [STT] từ nguồn dữ liệu chính. Truy vấn chính BẮT BUỘC viết: FROM QTY_KiemVaiV2 t1 INNER JOIN QTY_KiemVaiV2_XacNhan t2 ON t1.SoLoID = t2.SoLoID AND t1.MaNPL = t2.MaNPL AND t1.Dot = t2.Dot INNER JOIN ERP_ChiTietNhapKhoNPL t3 ON t3.BarCode = t1.BarCode.",
+      "NgayMoKien": "Ngày mở kiện kiểm tra nguyên liệu. Bạn BẮT BUỘC phải tạo CTE_NgayMoKien ở đầu truy vấn: WITH CTE_NgayMoKien AS (SELECT MaNPL, SoLoID, ISNULL(Dot, '1') AS Dot, MAX(NgayNhapKho) AS NgayMoKien FROM ERP_ChiTietNhapKhoNPL WHERE NULLIF(RIGHT(RTRIM(ISNULL(BarCodeGoc, '')), 1), '|') IS NOT NULL AND IsNPL = 1 AND SoLuongThucTeBanDau <> 0 AND IsKiemKe = 0 GROUP BY MaNPL, SoLoID, ISNULL(Dot, '1')). Sau đó JOIN: LEFT JOIN CTE_NgayMoKien t12 ON t12.SoLoID = t1.SoLoID AND t12.MaNPL = t1.MaNPL AND ISNULL(t12.Dot ,'1') = t1.Dot và dùng đúng alias: t12.NgayMoKien AS [NgayMoKien].",
+      "NgayKiem": "Ngày thực hiện kiểm tra chất lượng, lấy từ cột CreateDate của QTY_KiemVaiV2. Bạn BẮT BUỘC dùng đúng alias: MIN(t1.CreateDate) AS [NgayKiem]. LƯU Ý LỌC THỜI GIAN: Bạn BẮT BUỘC KHÔNG được lọc khoảng ngày ở mệnh đề WHERE của truy vấn chính, mà phải lọc khoảng ngày ở mệnh đề HAVING: HAVING MIN(CONVERT(date, t1.CreateDate)) BETWEEN 'ngày_bắt_đầu' AND 'ngày_kết_thúc' để đồng bộ 100% với logic gom nhóm của Store Procedure.",
+      "POMua": "Số đơn hàng, lấy từ cột POMua của bảng ERP_ChiTietNhapKhoNPL. Bạn BẮT BUỘC dùng: t3.POMua AS [POMua].",
+      "SoLo": "Số lô sản xuất, lấy từ cột t4.SoLo của bảng ERP_NhapKhoNPL. Bạn BẮT BUỘC dùng: t4.SoLo AS [SoLo].",
+      "KhachHang": "Tên khách hàng, lấy từ cột t10.TenKH của bảng KhachHang. Bạn BẮT BUỘC JOIN: LEFT JOIN KhachHang t10 ON t10.MaKH = t4.MaKH và dùng: t10.TenKH AS [KhachHang].",
+      "NhaCungCap": "Tên nhà cung cấp/nhà sản xuất, lấy từ cột t11.TenKH của bảng ERP_KhachHangNK. Bạn BẮT BUỘC JOIN: LEFT JOIN ERP_KhachHangNK t11 ON t11.MaNhaCC = t4.NhaCungCap và dùng: t11.TenKH AS [NhaCungCap].",
+      "ChungLoai": "Chủng loại sản phẩm, lấy từ cột t6.ChungLoaiVatTu. Bạn BẮT BUỘC JOIN: LEFT JOIN ChungLoaiVatTu t6 ON t6.MaCLVT = t3.MaNhom và dùng: t6.ChungLoaiVatTu AS [ChungLoai].",
+      "ItemCode": "Mã vật tư, lấy từ cột t7.MaVT. Bạn BẮT BUỘC JOIN: LEFT JOIN ERP_VatTuTV t7 ON t7.MaVTID = t3.MaVTID và dùng: t7.MaVT AS [ItemCode].",
+      "Mau": "Tên màu sản phẩm, lấy từ cột MauVT của bảng ERP_MauVTTV. Bạn BẮT BUỘC dùng: t8.MauVT AS [Mau] sau khi kết nối LEFT JOIN ERP_MauVTTV t8 ON t8.MauVTID = t3.MauVTID.",
+      "ColorCode": "Mã màu, lấy từ cột t8.MaMauVT. Bạn BẮT BUỘC JOIN: LEFT JOIN ERP_MauVTTV t8 ON t8.MauVTID = t3.MauVTID và dùng: t8.MaMauVT AS [ColorCode].",
+      "MoTa": "Mô tả chi tiết sản phẩm, lấy từ cột ChiTiet của bảng ERP_VatTuTV. Bạn BẮT BUỘC dùng: t7.ChiTiet AS [MoTa] sau khi kết nối LEFT JOIN ERP_VatTuTV t7 ON t7.MaVTID = t3.MaVTID.",
+      "KhoSize": "Kích thước khổ vải hoặc size, lấy từ CTE_KhoVai. Bạn BẮT BUỘC định nghĩa CTE_KhoVai (sau CTE_NgayMoKien): CTE_KhoVai AS (SELECT DISTINCT kv.KhoVaiID, CASE WHEN cl.IsNPL = 1 THEN kv.KhoVai + dv.TenDVVT ELSE kv.KhoVai END AS KhoVai, cl.MaCLVT FROM ERP_KhoVai kv INNER JOIN ERP_TheKhoVai t ON t.MaTheKhoVai = kv.MaTheKhoVai LEFT JOIN ChungLoaiVatTu cl ON cl.MaCLVT = t.MaCLVT LEFT JOIN ERP_DonViVT dv ON dv.MaDVVT = kv.MaDVVT UNION SELECT MaSize KhoVaiID, TenSize KhoVai , '' FROM BangSize GROUP BY MaSize, TenSize). Sau đó JOIN: LEFT JOIN CTE_KhoVai t5 ON t5.KhoVaiID = t3.KhoVaiID và dùng: t5.KhoVai AS [KhoSize].",
+      "DonVi": "Đơn vị tính, lấy từ cột TenDVVT. Bạn BẮT BUỘC JOIN: LEFT JOIN ERP_DonViVT t9 ON t9.MaDVVT = t3.MaDVVT và dùng: TenDVVT AS [DonVi].",
+      "Dot": "Đợt kiểm tra. Bạn BẮT BUỘC dùng định dạng: N'Lần ' + CONVERT(VARCHAR(20), ISNULL(t1.Dot, 1)) AS [Dot].",
+      "KetLuanQC": "Kết quả QC, tương ứng với cột t1.ResultQCStatus. Bạn BẮT BUỘC dùng: CASE WHEN MAX(t1.ResultQCStatus) = 1 THEN N'Pass' WHEN MAX(t1.ResultQCStatus) = 2 THEN N'Fail' ELSE NULL END AS [KetLuanQC]. LƯU Ý LỌC THEO KẾT QUẢ KIỂM TRA (Result/Para3): Nếu tham số Kết quả kiểm tra (Result/Para3) là 'ALL' (hoặc không truyền), bạn tuyệt đối không thêm điều kiện lọc t1.ResultQCStatus. Nếu là '1', bạn bắt buộc phải thêm điều kiện lọc ở mệnh đề HAVING: MAX(t1.ResultQCStatus) = 1. Nếu là '0', bạn bắt buộc phải thêm điều kiện lọc ở mệnh đề HAVING: MAX(t1.ResultQCStatus) = 2.",
+      "KetLuanMer": "Kết quả Mer, tương ứng với cột t1.KetLuan_Mer. Bạn BẮT BUỘC dùng: CASE WHEN t1.KetLuan_Mer = 1 THEN N'Pass' WHEN t1.KetLuan_Mer = 2 THEN N'Fail' ELSE NULL END AS [KetLuanMer].",
+      "TongKiem | Tổng kiểm PASS+FAIL từ QTY_KiemVaiV2_XacNhan": "Tổng số lượng lượt kiểm duy nhất thỏa mãn toàn bộ bộ lọc đầu vào (khoảng thời gian lọc và bộ lọc Kết quả kiểm tra Result). Bạn BẮT BUỘC phải tính bằng cách tạo một CTE trung gian CTE_Metadata ở đầu câu SQL như sau: WITH CTE_Metadata AS (SELECT COUNT(*) AS Total, SUM(CASE WHEN Result = 1 THEN 1 ELSE 0 END) AS Pass, SUM(CASE WHEN Result = 0 THEN 1 ELSE 0 END) AS Fail FROM (SELECT t1.SoLoID, t1.MaNPL, t1.Dot, CASE WHEN MAX(t1.ResultQCStatus) = 1 THEN 1 WHEN MAX(t1.ResultQCStatus) = 2 THEN 0 ELSE NULL END AS Result FROM QTY_KiemVaiV2 t1 INNER JOIN QTY_KiemVaiV2_XacNhan t2 ON t1.SoLoID = t2.SoLoID AND t1.MaNPL = t2.MaNPL AND t1.Dot = t2.Dot WHERE CONVERT(date, t1.CreateDate) BETWEEN 'ngày_bắt_đầu' AND 'ngày_kết_thúc' GROUP BY t1.SoLoID, t1.MaNPL, t1.Dot) sub WHERE ('tham_so_result' = 'ALL' OR sub.Result = CASE WHEN 'tham_so_result' = 'ALL' THEN sub.Result ELSE CAST('tham_so_result' AS bit) END)). Sau đó chọn bằng subquery: (SELECT Total FROM CTE_Metadata) AS [TongKiem | Tổng kiểm PASS+FAIL từ QTY_KiemVaiV2_XacNhan].",
+      "SoLuongPass | Số lượng PASS (Result=1) từ QTY_KiemVaiV2_XacNhan": "Tổng số lượng lượt kiểm PASS duy nhất thỏa mãn toàn bộ bộ lọc đầu vào. BẮT BUỘC tính từ CTE_Metadata (có áp dụng đầy đủ bộ lọc thời gian và bộ lọc Kết quả kiểm tra Result tương tự truy vấn chính) và lấy ra bằng subquery: (SELECT Pass FROM CTE_Metadata) AS [SoLuongPass | Số lượng PASS (Result=1) từ QTY_KiemVaiV2_XacNhan].",
+      "SoLuongFail | Số lượng FAIL (Result=0) từ QTY_KiemVaiV2_XacNhan": "Tổng số lượng lượt kiểm FAIL duy nhất thỏa mãn toàn bộ bộ lọc đầu vào. BẮT BUỘC tính từ CTE_Metadata (có áp dụng đầy đủ bộ lọc thời gian và bộ lọc Kết quả kiểm tra Result tương tự truy vấn chính) và lấy ra bằng subquery: (SELECT Fail FROM CTE_Metadata) AS [SoLuongFail | Số lượng FAIL (Result=0) từ QTY_KiemVaiV2_XacNhan].",
+      "TiLeLoi | Tỉ lệ lỗi: FAIL*100.0/NULLIF(TỔNG KIỂM,0)": "Tỉ lệ lỗi trên tổng kiểm (FAIL / TỔNG KIỂM) tính dựa trên kết quả lọc của CTE_Metadata, làm tròn 2 chữ số thập phân. Bạn BẮT BUỘC tính từ CTE_Metadata (có áp dụng đầy đủ bộ lọc thời gian và bộ lọc Kết quả kiểm tra Result tương tự truy vấn chính) và lấy ra bằng subquery: (SELECT CAST(ROUND(Fail * 100.0 / NULLIF(Total, 0), 2) AS DECIMAL(10,2)) FROM CTE_Metadata) AS [TiLeLoi | Tỉ lệ lỗi: FAIL*100.0/NULLIF(TỔNG KIỂM,0)]."
+    },
+    "MetadataCellMappings": {
+      "B5": "TongKiem | Tổng kiểm PASS+FAIL từ QTY_KiemVaiV2_XacNhan",
+      "C5": "SoLuongPass | Số lượng PASS (Result=1) từ QTY_KiemVaiV2_XacNhan",
+      "D5": "SoLuongFail | Số lượng FAIL (Result=0) từ QTY_KiemVaiV2_XacNhan",
+      "E5": "TiLeLoi | Tỉ lệ lỗi: FAIL*100.0/NULLIF(TỔNG KIỂM,0)"
+    },
+    "ColumnFormats": {
+      "NgayMoKien": "dd/MM/yyyy",
+      "NgayKiem": "dd/MM/yyyy",
+      "ItemCode": "@"
+    },
     "SubtotalConfig": null,
-    "Parameters": [],
+    "Parameters": [
+      {
+        "Key": "para1",
+        "Label": "Khoảng thời gian kiểm tra NgayKiem",
+        "Type": "daterange",
+        "Required": true,
+        "DataSource": null,
+        "DataColumn": null,
+        "DisplayColumn": null,
+        "Placeholder": null,
+        "DefaultValue": null,
+        "PromptTemplate": "Từ ngày {start} đến ngày {end}",
+        "Order": 0
+      },
+      {
+        "Key": "para2",
+        "Label": "Kết quả kiểm tra (Result)",
+        "Type": "text",
+        "Required": false,
+        "DataSource": null,
+        "DataColumn": null,
+        "DisplayColumn": null,
+        "Placeholder": "ALL = Tất cả, 1 = Đạt (Pass), 0 = Lỗi (Fail)",
+        "DefaultValue": null,
+        "PromptTemplate": "Kết quả kiểm tra (Result): {value}\"",
+        "Order": 1
+      }
+    ],
     "CollectionName": "db_viking_qldh"
   },
   "BM-BaoCao-TienDo-ChiTiet-17062026152855.xlsx": {
