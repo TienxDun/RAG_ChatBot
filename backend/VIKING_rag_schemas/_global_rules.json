@@ -121,7 +121,7 @@
       "id": "G020",
       "category": "step_name_recognition",
       "severity": "CRITICAL",
-      "rule": "Có nhắc đến tên công đoạn (may tp, ra chuyền, túi hông, túi xéo, đóng gói...) bắt buộc JOIN tbl_Steps (qua StepId = Id_cd) và lọc cd_name LIKE N'tên%'."
+      "rule": "Có nhắc đến tên công đoạn (may tp, ra chuyền, tui hong, túi xéo, đóng gói...) bắt buộc JOIN tbl_Steps (qua StepId = Id_cd) và lọc cd_name LIKE N'tên%'. BẮT BUỘC giữ nguyên định dạng tiếng Việt có dấu hoặc không dấu của công đoạn đúng theo câu hỏi gốc (ví dụ: người dùng hỏi 'tui hong' thì dùng LIKE N'tui hong%', người dùng hỏi 'túi hông' thì dùng LIKE N'túi hông%')."
     },
     {
       "id": "G022",
@@ -176,6 +176,12 @@
       "category": "time_range_between",
       "severity": "HIGH",
       "rule": "LỌC KHOẢNG THỜI GIAN (ví dụ: 'từ 13:00 đến 14:00'): Bắt buộc sử dụng toán tử BETWEEN trên cột thời gian để bao gồm cả thời điểm kết thúc (ví dụ: c.Gio BETWEEN '13:00:00' AND '14:00:00')."
+    },
+    {
+      "id": "G031",
+      "category": "logical_operator_precedence",
+      "severity": "CRITICAL",
+      "rule": "ĐỘ ƯU TIÊN TOÁN TỬ LOGIC (AND/OR): Khi mệnh đề WHERE kết hợp cả toán tử AND và OR để lọc nhiều giá trị (ví dụ: lọc nhiều tên công đoạn, nhiều mã lỗi...), BẮT BUỘC phải bao bọc cụm điều kiện OR trong dấu ngoặc đơn '()' để đảm bảo đúng độ ưu tiên logic. TUYỆT ĐỐI CẤM viết chuỗi AND và OR song song mà không có ngoặc đơn bảo vệ."
     }
   ]
 }
