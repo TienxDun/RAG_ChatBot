@@ -326,12 +326,132 @@
     ],
     "CollectionName": "db_viking_qldh"
   },
-  "BM-BaoCao-TienDo-ChiTiet-17062026152855.xlsx": {
-    "ColumnMappings": {},
+  "BM-BaoCao-TienDo-ChiTiet.xlsx": {
+    "ColumnMappings": {
+      "STT": "Số thứ tự dòng. Sử dụng ROW_NUMBER() OVER (ORDER BY t1.PoId, t1.StyleId, t1.PO) AS [STT].",
+      "Mã Lệnh": "Mã lệnh sản xuất. Lấy từ cột PoId của bảng SEW_CoefficientSize (hoặc MaLenh của ERP_HANGHOA). Nếu tham số Mã lệnh (ma_lenh) được điền, lọc theo mã lệnh: AND (t1.PoId = @ma_lenh OR @ma_lenh IS NULL).",
+      "Mã Hàng": "Mã hàng/sản phẩm (Style ID). Lấy từ cột StyleId của bảng SEW_CoefficientSize (hoặc StyleID của ERP_HANGHOA).",
+      "PO": "Số đơn hàng (Purchase Order). Lấy từ cột PO của bảng SEW_CoefficientSize (hoặc PO của ERP_LENHSX_PO). Nếu tham số PO (po) được cung cấp, lọc theo PO: AND (t1.PO = @po OR @po IS NULL).",
+      "Nhóm Size": "Mã nhóm kích thước sản phẩm. Lấy từ cột SizeTypeID của bảng ERP_LENHSX_PO_PACK_DETAIL.",
+      "Màu": "Tên màu sắc sản phẩm. Lấy từ cột TenMau của bảng ERP_HANGHOA bằng cách kết nối qua ColorID hoặc ProductID. Nếu tham số Màu (color) được cung cấp, lọc theo màu: AND (hh.TenMau = @color OR @color IS NULL).",
+      "Size": "Tên nhãn kích thước hiển thị. Lấy từ cột Size của bảng ERP_HANGHOA bằng cách kết nối qua SizeID hoặc ProductID. Nếu tham số Size (size) được cung cấp, lọc theo size: AND (hh.Size = @size OR @size IS NULL).",
+      "SLKH": "Số lượng kế hoạch chi tiết theo màu/size. Lấy từ cột Amount của bảng ERP_LENHSX_PO_CUT_DM_NEW kết nối với ERP_LENHSX_PO qua SPOID và kết nối với ERP_HANGHOA qua ProductID.",
+      "Ra Chuyền - Thực Hiện": "Số lượng Ra Chuyền thực hiện trong ngày báo cáo. Lấy từ cột Quantity của bảng SEW_CoefficientStyle kết nối với tbl_Steps s trên StepId = s.Id_cd với điều kiện s.cd_name LIKE N'RA CHUYỀN%' và CAST(DateCreate AS DATE) = @end_date (ngày kết thúc của dải ngày lọc). Vì bảng SEW_CoefficientStyle không có màu/size, bạn bắt buộc phải viết CTE gom nhóm theo PoId (Mã Lệnh) và StypeId (Mã Hàng) trước khi JOIN để tránh nhân dòng. Nếu tham số Tên chuyền (ten_chuyen) được cung cấp, lọc theo chuyền: JOIN với tbl_SettingLineX qua Linex và lọc Name = @ten_chuyen.",
+      "Ra Chuyền - Lũy Kế": "Số lượng Ra Chuyền lũy kế tính đến ngày báo cáo. Lấy từ cột Quantity của bảng SEW_CoefficientStyle kết nối với tbl_Steps s trên StepId = s.Id_cd với điều kiện s.cd_name LIKE N'RA CHUYỀN%' và CAST(DateCreate AS DATE) <= @end_date (lũy kế từ trước đến ngày kết thúc của dải ngày lọc, không lọc ngày bắt đầu). Cần dùng CTE gom nhóm theo PoId và StypeId để tránh nhân dòng. Nếu tham số Tên chuyền (ten_chuyen) được cung cấp, lọc theo chuyền.",
+      "KCS - Thực Hiện": "Số lượng KCS thực hiện trong ngày báo cáo. Lấy từ bảng SEW_CoefficientSize kết nối với tbl_Steps s trên StepId = s.Id_cd với điều kiện s.cd_name LIKE N'KCS%' và CAST(DateCreate AS DATE) = @end_date (ngày kết thúc của dải ngày lọc), tính bằng công thức: SUM(ISNULL(Quantity, 0) + ISNULL(SuaDat, 0)). Bắt buộc kết nối (JOIN) qua StyleId (Mã Hàng), ColorId (Màu) và SizeId (Size) của bảng SEW_CoefficientSize để thống kê chính xác theo từng size và màu của dòng báo cáo. Nếu tham số Tên chuyền (ten_chuyen) được cung cấp, lọc theo chuyền bằng cách JOIN với tbl_SettingLineX qua LineX và lọc Name = @ten_chuyen.",
+      "KCS - Lũy Kế": "Số lượng KCS lũy kế tính đến ngày báo cáo. Lấy từ bảng SEW_CoefficientSize kết nối với tbl_Steps s trên StepId = s.Id_cd với điều kiện s.cd_name LIKE N'KCS%' và CAST(DateCreate AS DATE) <= @end_date (lũy kế từ trước đến ngày kết thúc của dải ngày lọc, không lọc ngày bắt đầu), tính bằng công thức: SUM(ISNULL(Quantity, 0) + ISNULL(SuaDat, 0)). Bắt buộc kết nối (JOIN) qua StyleId (Mã Hàng), ColorId (Màu) và SizeId (Size) của bảng SEW_CoefficientSize để thống kê chính xác theo từng size và màu của dòng báo cáo. Nếu tham số Tên chuyền (ten_chuyen) được cung cấp, lọc theo chuyền.",
+      "Nhận Thành Phẩn - Thực Hiện": "Sản lượng Nhận Thành Phẩm thực hiện trong ngày báo cáo. Lấy từ cột FinishedIn của bảng ERP_LENHSX_PO_PACK_DETAIL với Status = 0 (Nhận Thành Phẩm) và CAST(CreatedDate AS DATE) = @end_date (ngày kết thúc của dải ngày lọc). Bắt buộc kết nối (JOIN) qua ProductID (Mã sản phẩm chứa đầy đủ thông tin màu và size) để thống kê chính xác theo từng size và màu của dòng báo cáo. Nếu tham số Tên chuyền (ten_chuyen) được cung cấp, lọc theo chuyền bằng cách JOIN với tbl_SettingLineX qua DepID và lọc Name = @ten_chuyen.",
+      "Nhận Thành Phẩn - Lũy Kế": "Sản lượng Nhận Thành Phẩm lũy kế tính đến ngày báo cáo. Lấy từ cột FinishedIn của bảng ERP_LENHSX_PO_PACK_DETAIL với Status = 0 và CAST(CreatedDate AS DATE) <= @end_date (chỉ lọc nhỏ hơn hoặc bằng ngày kết thúc của dải ngày lọc, không lọc ngày bắt đầu). Bắt buộc kết nối (JOIN) qua ProductID để thống kê chính xác theo từng size và màu của dòng báo cáo. Nếu tham số Tên chuyền (ten_chuyen) được cung cấp, lọc theo chuyền.",
+      "Đóng Thùng - Thực Hiện": "Sản lượng Đóng Thùng thực hiện trong ngày báo cáo. Vì bảng ERP_LENHSX_PO_PACK_DETAIL không có cột riêng cho Đóng Thùng và FinishedGapXep luôn bằng 0, bạn lấy từ cột FinishedIn với Status = 0 và CAST(CreatedDate AS DATE) = @end_date (ngày kết thúc của dải ngày lọc). Bắt buộc kết nối (JOIN) qua ProductID để thống kê chính xác theo từng size và màu của dòng báo cáo. Nếu tham số Tên chuyền (ten_chuyen) được cung cấp, lọc theo chuyền bằng cách JOIN với tbl_SettingLineX qua DepID và lọc Name = @ten_chuyen.",
+      "Đóng Thùng - Lũy Kế": "Sản lượng Đóng Thùng lũy kế tính đến ngày báo cáo. Lấy từ cột FinishedIn của bảng ERP_LENHSX_PO_PACK_DETAIL với Status = 0 và CAST(CreatedDate AS DATE) <= @end_date (chỉ lọc nhỏ hơn hoặc bằng ngày kết thúc của dải ngày lọc, không lọc ngày bắt đầu). Bắt buộc kết nối (JOIN) qua ProductID để thống kê chính xác theo từng size và màu của dòng báo cáo. Nếu tham số Tên chuyền (ten_chuyen) được cung cấp, lọc theo chuyền.",
+      "AQL - Thực Hiện": "Số lượng mẫu QA kiểm thực hiện trong ngày báo cáo. Lấy từ cột SoLuongKCS của bảng QTY_KiemQA_NgayKiem với điều kiện IsDonHang = 1 và CAST(NgayKiem AS DATE) = @end_date (ngày kết thúc của dải ngày lọc). Bắt buộc kết nối (JOIN) qua LenhSX (Mã Lệnh), ColorID (Màu) và SizeID (Size) để thống kê chính xác theo từng size và màu của dòng báo cáo. Nếu tham số Tên chuyền (ten_chuyen) được cung cấp, lọc theo chuyền bằng cách JOIN với tbl_SettingLineX qua LineX và lọc Name = @ten_chuyen.",
+      "AQL - Lũy Kế": "Số lượng mẫu QA kiểm lũy kế tính đến ngày báo cáo. Lấy từ cột SoLuongKCS của bảng QTY_KiemQA_NgayKiem với điều kiện IsDonHang = 1 và CAST(NgayKiem AS DATE) <= @end_date (chỉ lọc nhỏ hơn hoặc bằng ngày kết thúc của dải ngày lọc, không lọc ngày bắt đầu). Bắt buộc kết nối (JOIN) qua LenhSX (Mã Lệnh), ColorID (Màu) và SizeID (Size) để thống kê chính xác theo từng size và màu của dòng báo cáo. Nếu tham số Tên chuyền (ten_chuyen) được cung cấp, lọc theo chuyền."
+    },
     "MetadataCellMappings": {},
     "ColumnFormats": {},
-    "SubtotalConfig": null,
-    "Parameters": [],
-    "CollectionName": "db_viking_qldh"
+    "SubtotalConfig": {
+      "GroupByColumn": "PO",
+      "SumColumns": [
+        "SLKH",
+        "KCS - Thực Hiện",
+        "KCS - Lũy Kế",
+        "Nhận Thành Phẩn - Thực Hiện",
+        "Nhận Thành Phẩn - Lũy Kế",
+        "Đóng Thùng - Thực Hiện",
+        "Đóng Thùng - Lũy Kế",
+        "AQL - Thực Hiện",
+        "AQL - Lũy Kế"
+      ],
+      "LabelColumn": "Size",
+      "MergeColumns": [
+        "Mã Lệnh",
+        "Mã Hàng",
+        "PO",
+        "Màu",
+        "Ra Chuyền - Thực Hiện",
+        "Ra Chuyền - Lũy Kế"
+      ]
+    },
+    "Parameters": [
+      {
+        "Key": "date_range",
+        "Label": "Khoảng thời gian báo cáo",
+        "Type": "daterange",
+        "Required": true,
+        "DataSource": null,
+        "DataColumn": null,
+        "DisplayColumn": null,
+        "Placeholder": "Chọn khoảng thời gian...",
+        "DefaultValue": null,
+        "PromptTemplate": "Từ ngày {start} đến ngày {end}",
+        "Order": 0
+      },
+      {
+        "Key": "ma_lenh",
+        "Label": "Mã lệnh",
+        "Type": "text",
+        "Required": false,
+        "DataSource": null,
+        "DataColumn": null,
+        "DisplayColumn": null,
+        "Placeholder": "Nhập mã lệnh (nếu có)...",
+        "DefaultValue": null,
+        "PromptTemplate": "Mã lệnh: {value}",
+        "Order": 1
+      },
+      {
+        "Key": "ten_chuyen",
+        "Label": "Tên chuyền",
+        "Type": "select",
+        "Required": false,
+        "DataSource": "tbl_SettingLineX",
+        "DataColumn": "Name",
+        "DisplayColumn": null,
+        "Placeholder": "Chọn chuyền sản xuất...",
+        "DefaultValue": null,
+        "PromptTemplate": "Chuyền: {value}",
+        "Order": 2
+      },
+      {
+        "Key": "po",
+        "Label": "Mã PO",
+        "Type": "text",
+        "Required": false,
+        "DataSource": null,
+        "DataColumn": null,
+        "DisplayColumn": null,
+        "Placeholder": "Nhập mã PO (nếu có)...",
+        "DefaultValue": null,
+        "PromptTemplate": "PO: {value}",
+        "Order": 3
+      },
+      {
+        "Key": "color",
+        "Label": "Màu",
+        "Type": "text",
+        "Required": false,
+        "DataSource": null,
+        "DataColumn": null,
+        "DisplayColumn": null,
+        "Placeholder": "Nhập màu sắc (nếu có)...",
+        "DefaultValue": null,
+        "PromptTemplate": "Màu: {value}",
+        "Order": 4
+      },
+      {
+        "Key": "size",
+        "Label": "Size",
+        "Type": "text",
+        "Required": false,
+        "DataSource": null,
+        "DataColumn": null,
+        "DisplayColumn": null,
+        "Placeholder": "Nhập size (nếu có)...",
+        "DefaultValue": null,
+        "PromptTemplate": "Size: {value}",
+        "Order": 5
+      }
+    ],
+    "CollectionName": "db_schema"
   }
 }
