@@ -21,7 +21,7 @@
     {
       "id": "T_SEW_STYLE_003",
       "severity": "HIGH",
-      "rule": "TÊN CỘT MÃ HÀNG BẮT BUỘC viết là StypeId (có chữ 'y', KHÔNG có chữ 'l'). Khi người dùng hỏi mã hàng có dạng số (ví dụ: 110055), lọc theo cột này và thay thế dấu '-' hoặc khoảng trắng sang '_'.",
+      "rule": "TÊN CỘT MÃ HÀNG BẮT BUỘC viết là StypeId (có chữ 'y', KHÔNG có chữ 'l'). TUYỆT ĐỐI CẤM viết là StyleId, StyleID hoặc bất kỳ tên nào khác vì bảng này không có cột đó (gây lỗi Invalid column name). Khi người dùng hỏi mã hàng có dạng số (ví dụ: 110055), lọc theo cột này và thay thế dấu '-' hoặc khoảng trắng sang '_'.",
       "correct_example": "WHERE StypeId = '110055'",
       "wrong_example": "WHERE StyleId = '110055' hoặc WHERE StypeId = '110-055'"
     }

@@ -61,7 +61,7 @@
       "id": "G010",
       "category": "spelling_accuracy",
       "severity": "CRITICAL",
-      "rule": "BẮT BUỘC ghi đúng chính tả tên cột đại diện cho Mã Hàng / Kiểu Dáng: (1) Cột trong bảng QTY_MAHANG_NGAYKIEM và các bảng QTY_* là 'StyleID' (ID viết HOA hoàn toàn). (2) Cột trong bảng SEW_CoefficientSize là 'StyleId' (chữ I hoa, d thường). (3) Chỉ có duy nhất bảng SEW_CoefficientStyle mới dùng cột 'StypeId' (chữ y, không có l). TUYỆT ĐỐI CẤM VIẾT NHẦM 'StyleId' THÀNH 'StypeId' trong bảng SEW_CoefficientSize (gây lỗi Invalid column name 'StypeId')."
+      "rule": "BẮT BUỘC ghi đúng chính tả tên cột đại diện cho Mã Hàng / Kiểu Dáng: (1) Cột trong bảng QTY_MAHANG_NGAYKIEM và các bảng QTY_* là 'StyleID' (ID viết HOA hoàn toàn). (2) Cột trong bảng SEW_CoefficientSize là 'StyleId' (chữ I hoa, d thường). (3) Chỉ có duy nhất bảng SEW_CoefficientStyle mới dùng cột 'StypeId' (chữ y, không có l). TUYỆT ĐỐI CẤM VIẾT NHẦM 'StyleId' THÀNH 'StypeId' trong bảng SEW_CoefficientSize, VÀ TUYỆT ĐỐI CẤM VIẾT NHẦM 'StyleId' hoặc 'StyleID' trong bảng SEW_CoefficientStyle (gây lỗi Invalid column name 'StyleId')."
     },
     {
       "id": "G011",
@@ -182,6 +182,12 @@
       "category": "logical_operator_precedence",
       "severity": "CRITICAL",
       "rule": "ĐỘ ƯU TIÊN TOÁN TỬ LOGIC (AND/OR): Khi mệnh đề WHERE kết hợp cả toán tử AND và OR để lọc nhiều giá trị (ví dụ: lọc nhiều tên công đoạn, nhiều mã lỗi...), BẮT BUỘC phải bao bọc cụm điều kiện OR trong dấu ngoặc đơn '()' để đảm bảo đúng độ ưu tiên logic. TUYỆT ĐỐI CẤM viết chuỗi AND và OR song song mà không có ngoặc đơn bảo vệ."
+    },
+    {
+      "id": "G032",
+      "category": "spoid_productid_join",
+      "severity": "CRITICAL",
+      "rule": "KHI KẾT NỐI (JOIN) BẢNG SẢN LƯỢNG (SEW_CoefficientSize t1) VỚI CÁC BẢNG CHI TIẾT ĐƠN HÀNG (ERP_LENHSX_PO_PACK_DETAIL, ERP_LENHSX_PO_CUT_DM_NEW): (1) Cột SPOID của các bảng chi tiết đơn hàng tương ứng với biểu thức ghép chuỗi: t1.PoId + '|' + t1.PO. (2) Cột ProductID (mã sản phẩm kết hợp) trong các bảng chi tiết đơn hàng tương ứng với cột ProductID của bảng ERP_HANGHOA. Bắt buộc JOIN qua điều kiện: `ON pd.SPOID = t1.PoId + '|' + t1.PO AND pd.ProductID = hh.ProductID` (với hh là bảng ERP_HANGHOA đã được JOIN với t1 qua StyleId, ColorId, SizeId)."
     }
   ]
 }
