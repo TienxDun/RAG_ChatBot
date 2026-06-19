@@ -367,7 +367,7 @@ public class ExcelReportService
         }
         catch (Exception ex)
         {
-            await File.WriteAllTextAsync("error_stacktrace.txt", ex.ToString());
+            Console.Error.WriteLine($"[ExcelReportService Error]: {ex}");
             throw;
         }
     }
