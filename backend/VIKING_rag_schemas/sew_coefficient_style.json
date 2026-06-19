@@ -25,7 +25,6 @@
       "correct_example": "WHERE StypeId = '110055'",
       "wrong_example": "WHERE StyleId = '110055' hoặc WHERE StypeId = '110-055'"
     }
-    
   ],
   "columns": [
     {
@@ -44,7 +43,7 @@
       "name": "PoId",
       "type": "varchar",
       "role": "foreign_key",
-      "desc": "Khóa ngoại liên kết ERP_LENHSX.MaLenh. Chỉ dùng khi nhắc đích danh 'Mã lệnh' hoặc 'Số PO'."
+      "desc": "Khóa ngoại liên kết ERP_LENHSX.MaLenh. TUYỆT ĐỐI CẤM lọc trực tiếp điều kiện mã lệnh ở cột này, phải JOIN với ERP_LENHSX và lọc trên ERP_LENHSX.MaLenh hoặc ERP_LENHSX.TenLenh. Áp dụng rule toàn cục G033."
     },
     {
       "name": "StepId",

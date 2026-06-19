@@ -61,7 +61,7 @@
       "id": "G010",
       "category": "spelling_accuracy",
       "severity": "CRITICAL",
-      "rule": "BẮT BUỘC ghi đúng chính tả tên cột đại diện cho Mã Hàng / Kiểu Dáng: (1) Cột trong bảng QTY_MAHANG_NGAYKIEM và các bảng QTY_* là 'StyleID' (ID viết HOA hoàn toàn). (2) Cột trong bảng SEW_CoefficientSize là 'StyleId' (chữ I hoa, d thường). (3) Chỉ có duy nhất bảng SEW_CoefficientStyle mới dùng cột 'StypeId' (chữ y, không có l). TUYỆT ĐỐI CẤM VIẾT NHẦM 'StyleId' THÀNH 'StypeId' trong bảng SEW_CoefficientSize, VÀ TUYỆT ĐỐI CẤM VIẾT NHẦM 'StyleId' hoặc 'StyleID' trong bảng SEW_CoefficientStyle (gây lỗi Invalid column name 'StyleId')."
+      "rule": "BẮT BUỘC ghi đúng chính tả tên cột đại diện cho Mã Hàng / Kiểu Dáng: (1) Cột trong bảng QTY_MAHANG_NGAYKIEM và các bảng QTY_* là 'StyleID' (ID viết HOA hoàn toàn). (2) Cột trong bảng SEW_CoefficientSize là 'StyleId' (chữ I hoa, d thường). (3) Chỉ có duy nhất bảng SEW_CoefficientStyle mới dùng cột 'StypeId' (chữ y, không có l). TUYỆT ĐỐI CẤM VIẾT NHẦM 'StyleId' THÀNH 'StypeId' trong bảng SEW_CoefficientSize (gây lỗi Invalid column name 'StypeId')."
     },
     {
       "id": "G011",
@@ -103,7 +103,7 @@
       "id": "G017",
       "category": "line_name_mapping",
       "severity": "CRITICAL",
-      "rule": "Chuyền sản xuất: Cột LineX/Line chỉ chứa mã ID (ví dụ: '101'). Bắt buộc JOIN tbl_SettingLineX để lấy Name AS [Tên chuyền] hiển thị."
+      "rule": "Chuyền sản xuất: Cột LineX/Line chỉ chứa mã ID (ví dụ: '101'). Bắt buộc JOIN tbl_SettingLineX để lấy Name AS [Tên chuyền] hiển thị. Điều kiện JOIN bắt buộc là: `ON bảng_khác.LineX = tbl_SettingLineX.ID` (hoặc `bảng_khác.Linex = tbl_SettingLineX.ID`). TUYỆT ĐỐI CẤM sử dụng `tbl_SettingLineX.Linex` hoặc `tbl_SettingLineX.LineX` (gây lỗi Invalid column name)."
     },
     {
       "id": "G018",
@@ -188,6 +188,12 @@
       "category": "spoid_productid_join",
       "severity": "CRITICAL",
       "rule": "KHI KẾT NỐI (JOIN) BẢNG SẢN LƯỢNG (SEW_CoefficientSize t1) VỚI CÁC BẢNG CHI TIẾT ĐƠN HÀNG (ERP_LENHSX_PO_PACK_DETAIL, ERP_LENHSX_PO_CUT_DM_NEW): (1) Cột SPOID của các bảng chi tiết đơn hàng tương ứng với biểu thức ghép chuỗi: t1.PoId + '|' + t1.PO. (2) Cột ProductID (mã sản phẩm kết hợp) trong các bảng chi tiết đơn hàng tương ứng với cột ProductID của bảng ERP_HANGHOA. Bắt buộc JOIN qua điều kiện: `ON pd.SPOID = t1.PoId + '|' + t1.PO AND pd.ProductID = hh.ProductID` (với hh là bảng ERP_HANGHOA đã được JOIN với t1 qua StyleId, ColorId, SizeId)."
+    },
+    {
+      "id": "G033",
+      "category": "order_id_filtering_rule",
+      "severity": "CRITICAL",
+      "rule": "Quy tắc lọc Lệnh sản xuất (MaLenh/TenLenh): Khi câu hỏi yêu cầu lọc hoặc so sánh theo mã lệnh sản xuất (ví dụ: '376' hoặc 'SA_893_208_133'), TUYỆT ĐỐI CẤM lọc trực tiếp điều kiện này trên cột PoId của các bảng SEW_CoefficientSize hay SEW_CoefficientStyle (ví dụ: cấm dùng t1.PoId = '376'). Bắt buộc phải kết nối (JOIN) với bảng ERP_LENHSX và thực hiện lọc điều kiện trên cột tương ứng của ERP_LENHSX (ví dụ: `WHERE e.MaLenh = '376'` hoặc `WHERE e.TenLenh = 'SA_893_208_133'`)."
     }
   ]
 }
