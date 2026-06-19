@@ -13,6 +13,7 @@ public interface ITextUtility
     string? FindBestMetadataValue(Dictionary<string, string> metadata, string key);
     Dictionary<string, string> BuildSoftColumnMapping(DataTable source, List<FlattenedColumn> templateColumns);
     TemplateAnalysisResult MergeTemplateAnalysis(TemplateAnalysisResult llm, TemplateAnalysisResult ruleBased);
+    string? GetMappingValue(Dictionary<string, string> mappings, string key);
 }
 
 public class TextUtility : ITextUtility
@@ -363,5 +364,33 @@ public class TextUtility : ITextUtility
         }
 
         return merged;
+    }
+
+    public string? GetMappingValue(Dictionary<string, string> mappings, string key)
+    {
+        if (mappings == null || string.IsNullOrEmpty(key)) return null;
+
+        // 1. Thử khớp chính xác
+        if (mappings.TryGetValue(key, out var val)) return val;
+
+        // 2. Thử khớp mềm dẻo (không phân biệt hoa thường, bỏ dấu và ký tự đặc biệt)
+        string normKey = NormalizeKeyForMapping(key);
+        foreach (var kvp in mappings)
+        {
+            if (NormalizeKeyForMapping(kvp.Key) == normKey)
+            {
+                return kvp.Value;
+            }
+        }
+
+        return null;
+    }
+
+    private string NormalizeKeyForMapping(string key)
+    {
+        if (string.IsNullOrEmpty(key)) return string.Empty;
+        // Bỏ dấu tiếng Việt, viết thường, loại bỏ dấu gạch dưới, khoảng trắng và dấu gạch nối
+        string clean = RemoveDiacritics(key).ToLowerInvariant().Replace("_", "").Replace("-", "").Replace(" ", "");
+        return clean;
     }
 }

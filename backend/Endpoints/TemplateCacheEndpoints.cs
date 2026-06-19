@@ -172,7 +172,11 @@ public static class TemplateCacheEndpoints
     }
 
     /// Xử lý phân tích cấu trúc template Excel trả về danh sách các cột tiêu đề
-    public static async Task<IResult> HandleAnalyzeAsync(HttpRequest request, Backend.Services.Excel.IExcelTemplateAnalyzer analyzer, Backend.Services.Excel.IExcelMappingService mappingService)
+    public static async Task<IResult> HandleAnalyzeAsync(
+        HttpRequest request, 
+        IExcelTemplateAnalyzer analyzer, 
+        IExcelMappingService mappingService,
+        ITextUtility textUtility)
     {
         if (!request.HasFormContentType)
         {
@@ -201,6 +205,20 @@ public static class TemplateCacheEndpoints
 
             var templateMapping = mappingService.GetTemplateMapping(file.FileName);
 
+            // Chuẩn hóa và map mềm dẻo các key từ database/file JSON sang UniqueKey được tạo bởi analyzer
+            var normalizedSavedMappings = new Dictionary<string, string>(templateMapping.ColumnMappings, StringComparer.OrdinalIgnoreCase);
+            if (result.Columns != null)
+            {
+                foreach (var col in result.Columns)
+                {
+                    var val = textUtility.GetMappingValue(templateMapping.ColumnMappings, col.UniqueKey);
+                    if (val != null)
+                    {
+                        normalizedSavedMappings[col.UniqueKey] = val;
+                    }
+                }
+            }
+
             return Results.Ok(new
             {
                 type = result.Type.ToString(),
@@ -215,7 +233,7 @@ public static class TemplateCacheEndpoints
                 }).ToList(),
                 metadata = result.Metadata,
                 grid = result.Grid,
-                savedMappings = templateMapping.ColumnMappings,
+                savedMappings = normalizedSavedMappings,
                 metadataCellMappings = templateMapping.MetadataCellMappings,
                 columnFormats = templateMapping.ColumnFormats,
                 collectionName = templateMapping.CollectionName

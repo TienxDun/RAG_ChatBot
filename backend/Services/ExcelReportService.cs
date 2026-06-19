@@ -106,7 +106,8 @@ public class ExcelReportService
                 foreach (var col in templateInfo.Columns)
                 {
                     string colDesc = "";
-                    if (savedMappings.TryGetValue(col.UniqueKey, out var desc) && !string.IsNullOrWhiteSpace(desc))
+                    var desc = _textUtility.GetMappingValue(savedMappings, col.UniqueKey);
+                    if (!string.IsNullOrWhiteSpace(desc))
                     {
                         colDesc = $" (Chỉ dẫn lấy dữ liệu: {desc.Trim()})";
                     }
@@ -127,7 +128,8 @@ public class ExcelReportService
                 foreach (var col in templateInfo.Columns)
                 {
                     string colDesc = "";
-                    if (savedMappings.TryGetValue(col.UniqueKey, out var desc) && !string.IsNullOrWhiteSpace(desc))
+                    var desc = _textUtility.GetMappingValue(savedMappings, col.UniqueKey);
+                    if (!string.IsNullOrWhiteSpace(desc))
                     {
                         colDesc = $" (Chỉ dẫn lấy dữ liệu: {desc.Trim()})";
                     }
@@ -148,7 +150,8 @@ public class ExcelReportService
                 var metadataList = templateInfo.Metadata.Keys.Select(m =>
                 {
                     // Nếu có custom note từ ColumnMappings → dùng làm hướng dẫn chính, không thêm ví dụ MAX mặc định
-                    if (savedMappings.TryGetValue(m, out var customNote) && !string.IsNullOrWhiteSpace(customNote))
+                    var customNote = _textUtility.GetMappingValue(savedMappings, m);
+                    if (!string.IsNullOrWhiteSpace(customNote))
                     {
                         return $"- Nhãn '{m}' -> BẮT BUỘC SELECT AS [{m}] theo đúng hướng dẫn sau: {customNote}";
                     }
@@ -176,7 +179,8 @@ public class ExcelReportService
                 var notesList = new List<string>();
                 foreach (var col in templateInfo.Columns)
                 {
-                    if (savedMappings.TryGetValue(col.UniqueKey, out var note) && !string.IsNullOrWhiteSpace(note))
+                    var note = _textUtility.GetMappingValue(savedMappings, col.UniqueKey);
+                    if (!string.IsNullOrWhiteSpace(note))
                     {
                         string colName = string.IsNullOrEmpty(col.ParentHeader) ? col.ChildHeader : $"{col.ParentHeader} -> {col.ChildHeader}";
                         notesList.Add($"- Cột có UniqueKey là '{col.UniqueKey}' (Tên hiển thị: '{colName}'): Có ý nghĩa/Công thức tính là \"{note}\"");

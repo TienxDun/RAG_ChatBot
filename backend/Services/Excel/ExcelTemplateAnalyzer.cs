@@ -112,8 +112,42 @@ public class ExcelTemplateAnalyzer : IExcelTemplateAnalyzer
             }
         }
 
-        // Kiểm tra xem dòng phía trên dòng header có phải là dòng cha (Parent Header) hay không
-        if (headerRowIndex > 1)
+        // 1. Kiểm tra xem dòng phía dưới dòng header có phải là dòng con (Child Header) hay không (ví dụ: dòng 6 là Parent, dòng 7 là Child)
+        if (headerRowIndex < totalRows)
+        {
+            int childRow = headerRowIndex + 1;
+            bool hasMergeInHeader = false;
+            for (int c = 1; c <= totalCols; c++)
+            {
+                var mergedAddr = worksheet.MergedCells[headerRowIndex, c];
+                if (!string.IsNullOrEmpty(mergedAddr))
+                {
+                    hasMergeInHeader = true;
+                    break;
+                }
+            }
+
+            if (hasMergeInHeader)
+            {
+                int childNonEmptyCount = 0;
+                for (int c = 1; c <= totalCols; c++)
+                {
+                    if (!string.IsNullOrEmpty(worksheet.Cells[childRow, c].Text?.Trim()))
+                    {
+                        childNonEmptyCount++;
+                    }
+                }
+
+                if (childNonEmptyCount >= 2)
+                {
+                    isHierarchical = true;
+                    headerRowIndex = childRow; // Dòng con mới là dòng header chính chứa các child headers
+                }
+            }
+        }
+
+        // 2. Nếu chưa nhận diện được, kiểm tra xem dòng phía trên dòng header có phải là dòng cha (Parent Header) hay không (ví dụ: dòng 6 là Child, dòng 5 là Parent)
+        if (!isHierarchical && headerRowIndex > 1)
         {
             int parentRow = headerRowIndex - 1;
             bool hasMergeInParent = false;
@@ -131,8 +165,6 @@ public class ExcelTemplateAnalyzer : IExcelTemplateAnalyzer
             if (hasMergeInParent)
             {
                 isHierarchical = true;
-                // Nếu là Hierarchical, dòng header chính là dòng headerRowIndex hiện tại,
-                // dòng cha là parentRow.
             }
         }
 
