@@ -11,6 +11,7 @@ public class ExcelTemplateSubtotalConfig
     public List<string> DefectRateColumns { get; set; } = new();
     public List<string> MergeColumns { get; set; } = new();
     public List<string> MergeToSubtotalColumns { get; set; } = new();
+    public bool DisableGroupSubtotal { get; set; } = false;
 }
 
 /// Định nghĩa một tham số động cho template Excel.

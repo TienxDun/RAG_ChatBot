@@ -296,10 +296,12 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
             groups.Add((currentGroupKey, currentGroupRows));
         }
 
-        // 3. Tính toán tổng số dòng cần thiết (bao gồm cả dòng chi tiết và các dòng subtotal)
+        bool hasSubtotalRow = subtotalConfig.SumColumns != null && subtotalConfig.SumColumns.Count > 0 && !subtotalConfig.DisableGroupSubtotal;
+
+        // 3. Tính toán tổng số dòng cần thiết (bao gồm cả dòng chi tiết và các dòng subtotal, và 1 dòng Grand Total nếu template chưa có sẵn)
         int totalDetailRows = data.Rows.Count;
-        int totalSubtotalRows = groups.Count;
-        int requiredRows = totalDetailRows + totalSubtotalRows;
+        int totalSubtotalRows = hasSubtotalRow ? groups.Count : 0;
+        int requiredRows = totalDetailRows + totalSubtotalRows + (totalRowIndex.HasValue ? 0 : 1);
 
         // Xác định số lượng dòng trống có sẵn trong template
         int startRow = dataStartRowIndex;
@@ -350,40 +352,104 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
 
             int groupEndRow = currentExcelRow - 1;
 
-            // Điền dòng subtotal
-            int subtotalRowIndex = currentExcelRow;
-
-            // Label dòng tổng ngày
-            if (!string.IsNullOrWhiteSpace(subtotalConfig.LabelColumn))
-            {
-                var labelMapping = mappings.FirstOrDefault(m => 
-                    m.DataTableColumnName.Equals(subtotalConfig.LabelColumn, StringComparison.OrdinalIgnoreCase));
-                if (labelMapping != null)
-                {
-                    worksheet.Cells[subtotalRowIndex, labelMapping.ExcelColumnIndex].Value = "";
-                }
-            }
-
-            // Ghi nội dung cột ngày của dòng tổng (nếu muốn)
-            worksheet.Cells[subtotalRowIndex, groupByMapping.ExcelColumnIndex].Value = ""; 
-
-            // Tính toán sẵn tổng lỗi và tổng kiểm từ các cột được cấu hình trong SumColumns có dạng Size/Loi/Kiem
             long groupTotalLoi = 0;
             long groupTotalKiem = 0;
-            bool hasSizeLoiKiemData = false;
 
-            if (subtotalConfig.SumColumns != null)
+            if (hasSubtotalRow)
             {
-                foreach (var sumColName in subtotalConfig.SumColumns)
+                // Điền dòng subtotal
+                int subtotalRowIndex = currentExcelRow;
+
+                // Label dòng tổng ngày
+                if (!string.IsNullOrWhiteSpace(subtotalConfig.LabelColumn))
+                {
+                    var labelMapping = mappings.FirstOrDefault(m => 
+                        m.DataTableColumnName.Equals(subtotalConfig.LabelColumn, StringComparison.OrdinalIgnoreCase));
+                    if (labelMapping != null)
+                    {
+                        worksheet.Cells[subtotalRowIndex, labelMapping.ExcelColumnIndex].Value = "";
+                    }
+                }
+
+                // Ghi nội dung cột ngày của dòng tổng (nếu muốn)
+                worksheet.Cells[subtotalRowIndex, groupByMapping.ExcelColumnIndex].Value = ""; 
+
+                // Tính toán sẵn tổng lỗi và tổng kiểm từ các cột được cấu hình trong SumColumns có dạng Size/Loi/Kiem
+                bool hasSizeLoiKiemData = false;
+
+                if (subtotalConfig.SumColumns != null)
+                {
+                    foreach (var sumColName in subtotalConfig.SumColumns)
+                    {
+                        var sumMapping = mappings.FirstOrDefault(m => 
+                            m.DataTableColumnName.Equals(sumColName, StringComparison.OrdinalIgnoreCase));
+                        if (sumMapping == null) continue;
+
+                        bool isSizeLoiKiemFormat = false;
+                        foreach (var r in group.Rows)
+                        {
+                            if (IsValidSizeLoiKiemFormat(r[sumMapping.DataTableColumnName]?.ToString()))
+                            {
+                                isSizeLoiKiemFormat = true;
+                                break;
+                            }
+                        }
+
+                        if (isSizeLoiKiemFormat)
+                        {
+                            hasSizeLoiKiemData = true;
+                            foreach (var r in group.Rows)
+                            {
+                                var valStr = r[sumMapping.DataTableColumnName]?.ToString();
+                                if (IsValidSizeLoiKiemFormat(valStr))
+                                {
+                                    var parts = valStr!.Split('/');
+                                    if (long.TryParse(parts[parts.Length - 2].Trim(), out long loi) && 
+                                        long.TryParse(parts[parts.Length - 1].Trim(), out long kiem))
+                                    {
+                                        groupTotalLoi += loi;
+                                        groupTotalKiem += kiem;
+                                    }
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                if (!hasSizeLoiKiemData)
+                {
+                    // Thử tính trực tiếp từ cột loi và kiem nếu là các cột số riêng biệt
+                    double sumLoi = 0;
+                    double sumKiem = 0;
+                    var loiCol = mappings.FirstOrDefault(m => m.DataTableColumnName.Contains("Loi", StringComparison.OrdinalIgnoreCase));
+                    var kiemCol = mappings.FirstOrDefault(m => m.DataTableColumnName.Contains("Kiem", StringComparison.OrdinalIgnoreCase));
+                    if (loiCol != null && kiemCol != null)
+                    {
+                        foreach (var r in group.Rows)
+                        {
+                            if (double.TryParse(r[loiCol.DataTableColumnName]?.ToString(), out double l)) sumLoi += l;
+                            if (double.TryParse(r[kiemCol.DataTableColumnName]?.ToString(), out double k)) sumKiem += k;
+                        }
+                        groupTotalLoi = (long)sumLoi;
+                        groupTotalKiem = (long)sumKiem;
+                    }
+                }
+
+                // Tính và điền Subtotals cho các cột được cấu hình
+                foreach (var sumColName in subtotalConfig.SumColumns ?? new List<string>())
                 {
                     var sumMapping = mappings.FirstOrDefault(m => 
                         m.DataTableColumnName.Equals(sumColName, StringComparison.OrdinalIgnoreCase));
                     if (sumMapping == null) continue;
 
+                    var sumCell = worksheet.Cells[subtotalRowIndex, sumMapping.ExcelColumnIndex];
+
+                    // Kiểm tra xem cột này có thuộc định dạng "Size/Loi/Kiem" không
                     bool isSizeLoiKiemFormat = false;
                     foreach (var r in group.Rows)
                     {
-                        if (IsValidSizeLoiKiemFormat(r[sumMapping.DataTableColumnName]?.ToString()))
+                        if (IsValidSizeLoiKiemFormat(r[sumColName]?.ToString()))
                         {
                             isSizeLoiKiemFormat = true;
                             break;
@@ -392,153 +458,95 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
 
                     if (isSizeLoiKiemFormat)
                     {
-                        hasSizeLoiKiemData = true;
+                        sumCell.Value = $"Tổng kiểm: {groupTotalKiem} | Tổng lỗi: {groupTotalLoi}";
+                        sumCell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                    }
+                    else
+                    {
+                        // Numeric Sum
+                        double numericSum = 0;
+                        bool hasNumeric = false;
                         foreach (var r in group.Rows)
                         {
-                            var valStr = r[sumMapping.DataTableColumnName]?.ToString();
-                            if (IsValidSizeLoiKiemFormat(valStr))
+                            var valObj = r[sumColName];
+                            if (valObj != null && valObj != DBNull.Value && double.TryParse(valObj.ToString(), out double num))
                             {
-                                var parts = valStr!.Split('/');
-                                if (long.TryParse(parts[parts.Length - 2].Trim(), out long loi) && 
-                                    long.TryParse(parts[parts.Length - 1].Trim(), out long kiem))
-                                {
-                                    groupTotalLoi += loi;
-                                    groupTotalKiem += kiem;
-                                }
+                                numericSum += num;
+                                hasNumeric = true;
                             }
                         }
-                        break;
-                    }
-                }
-            }
 
-            if (!hasSizeLoiKiemData)
-            {
-                // Thử tính trực tiếp từ cột loi và kiem nếu là các cột số riêng biệt
-                double sumLoi = 0;
-                double sumKiem = 0;
-                var loiCol = mappings.FirstOrDefault(m => m.DataTableColumnName.Contains("Loi", StringComparison.OrdinalIgnoreCase));
-                var kiemCol = mappings.FirstOrDefault(m => m.DataTableColumnName.Contains("Kiem", StringComparison.OrdinalIgnoreCase));
-                if (loiCol != null && kiemCol != null)
-                {
-                    foreach (var r in group.Rows)
-                    {
-                        if (double.TryParse(r[loiCol.DataTableColumnName]?.ToString(), out double l)) sumLoi += l;
-                        if (double.TryParse(r[kiemCol.DataTableColumnName]?.ToString(), out double k)) sumKiem += k;
+                        if (hasNumeric)
+                        {
+                            sumCell.Value = numericSum;
+                            sumCell.Style.Numberformat.Format = "#,##0";
+                            sumCell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Right;
+                        }
+                        else
+                        {
+                            sumCell.Value = null;
+                        }
                     }
-                    groupTotalLoi = (long)sumLoi;
-                    groupTotalKiem = (long)sumKiem;
+
+                    sumCell.Style.Font.Bold = true;
                 }
+
+                // Tính và điền Tỷ lệ lỗi cho các cột được cấu hình
+                if (subtotalConfig.DefectRateColumns != null)
+                {
+                    foreach (var rateColName in subtotalConfig.DefectRateColumns)
+                    {
+                        var rateMapping = mappings.FirstOrDefault(m => 
+                            m.DataTableColumnName.Equals(rateColName, StringComparison.OrdinalIgnoreCase));
+                        if (rateMapping == null) continue;
+
+                        var rateCell = worksheet.Cells[subtotalRowIndex, rateMapping.ExcelColumnIndex];
+                        if (groupTotalKiem > 0)
+                        {
+                            double rateVal = (double)groupTotalLoi / groupTotalKiem * 100;
+                            rateCell.Value = rateVal;
+                            
+                            string format = "#,##0.##";
+                            if (columnFormats != null && columnFormats.TryGetValue(rateColName, out var customFmt) && !string.IsNullOrWhiteSpace(customFmt))
+                            {
+                                format = customFmt;
+                            }
+
+                            if (format.Contains(".#") && rateVal == Math.Truncate(rateVal))
+                            {
+                                rateCell.Style.Numberformat.Format = format.Replace(".##", "").Replace(".#", "");
+                            }
+                            else
+                            {
+                                rateCell.Style.Numberformat.Format = format;
+                            }
+                        }
+                        else
+                        {
+                            rateCell.Value = null;
+                        }
+                        rateCell.Style.Font.Bold = true;
+                        rateCell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Right;
+                    }
+                }
+
+                // Định dạng font Bold và viền đầy đủ cho dòng Subtotal
+                worksheet.Row(subtotalRowIndex).Style.Font.Bold = true;
+                for (int col = startCol; col <= endCol; col++)
+                {
+                    var cell = worksheet.Cells[subtotalRowIndex, col];
+                    cell.Style.Font.Bold = true;
+                    cell.Style.Border.Top.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+                    cell.Style.Border.Bottom.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+                    cell.Style.Border.Left.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+                    cell.Style.Border.Right.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+                }
+
+                currentExcelRow++;
             }
 
             grandTotalLoi += groupTotalLoi;
             grandTotalKiem += groupTotalKiem;
-
-            // Tính và điền Subtotals cho các cột được cấu hình
-            foreach (var sumColName in subtotalConfig.SumColumns ?? new List<string>())
-            {
-                var sumMapping = mappings.FirstOrDefault(m => 
-                    m.DataTableColumnName.Equals(sumColName, StringComparison.OrdinalIgnoreCase));
-                if (sumMapping == null) continue;
-
-                var sumCell = worksheet.Cells[subtotalRowIndex, sumMapping.ExcelColumnIndex];
-
-                // Kiểm tra xem cột này có thuộc định dạng "Size/Loi/Kiem" không
-                bool isSizeLoiKiemFormat = false;
-                foreach (var r in group.Rows)
-                {
-                    if (IsValidSizeLoiKiemFormat(r[sumColName]?.ToString()))
-                    {
-                        isSizeLoiKiemFormat = true;
-                        break;
-                    }
-                }
-
-                if (isSizeLoiKiemFormat)
-                {
-                    sumCell.Value = $"Tổng kiểm: {groupTotalKiem} | Tổng lỗi: {groupTotalLoi}";
-                    sumCell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
-                }
-                else
-                {
-                    // Numeric Sum
-                    double numericSum = 0;
-                    bool hasNumeric = false;
-                    foreach (var r in group.Rows)
-                    {
-                        var valObj = r[sumColName];
-                        if (valObj != null && valObj != DBNull.Value && double.TryParse(valObj.ToString(), out double num))
-                        {
-                            numericSum += num;
-                            hasNumeric = true;
-                        }
-                    }
-
-                    if (hasNumeric)
-                    {
-                        sumCell.Value = numericSum;
-                        sumCell.Style.Numberformat.Format = "#,##0";
-                        sumCell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Right;
-                    }
-                    else
-                    {
-                        sumCell.Value = null;
-                    }
-                }
-
-                sumCell.Style.Font.Bold = true;
-            }
-
-            // Tính và điền Tỷ lệ lỗi cho các cột được cấu hình
-            if (subtotalConfig.DefectRateColumns != null)
-            {
-                foreach (var rateColName in subtotalConfig.DefectRateColumns)
-                {
-                    var rateMapping = mappings.FirstOrDefault(m => 
-                        m.DataTableColumnName.Equals(rateColName, StringComparison.OrdinalIgnoreCase));
-                    if (rateMapping == null) continue;
-
-                    var rateCell = worksheet.Cells[subtotalRowIndex, rateMapping.ExcelColumnIndex];
-                    if (groupTotalKiem > 0)
-                    {
-                        double rateVal = (double)groupTotalLoi / groupTotalKiem * 100;
-                        rateCell.Value = rateVal;
-                        
-                        string format = "#,##0.##";
-                        if (columnFormats != null && columnFormats.TryGetValue(rateColName, out var customFmt) && !string.IsNullOrWhiteSpace(customFmt))
-                        {
-                            format = customFmt;
-                        }
-
-                        if (format.Contains(".#") && rateVal == Math.Truncate(rateVal))
-                        {
-                            rateCell.Style.Numberformat.Format = format.Replace(".##", "").Replace(".#", "");
-                        }
-                        else
-                        {
-                            rateCell.Style.Numberformat.Format = format;
-                        }
-                    }
-                    else
-                    {
-                        rateCell.Value = null;
-                    }
-                    rateCell.Style.Font.Bold = true;
-                    rateCell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Right;
-                }
-            }
-
-            // Định dạng font Bold và viền đầy đủ cho dòng Subtotal
-            worksheet.Row(subtotalRowIndex).Style.Font.Bold = true;
-            for (int col = startCol; col <= endCol; col++)
-            {
-                var cell = worksheet.Cells[subtotalRowIndex, col];
-                cell.Style.Font.Bold = true;
-                cell.Style.Border.Top.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
-                cell.Style.Border.Bottom.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
-                cell.Style.Border.Left.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
-                cell.Style.Border.Right.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
-            }
 
             // Dynamic Cell Merging for this group (if configured)
             if (subtotalConfig.MergeColumns != null && subtotalConfig.MergeColumns.Count > 0)
@@ -576,11 +584,13 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
                     bool isDefectRateCol = subtotalConfig.DefectRateColumns != null && 
                                            subtotalConfig.DefectRateColumns.Any(c => c.Equals(mergeColName, StringComparison.OrdinalIgnoreCase));
 
-                    bool shouldMergeToSubtotal = subtotalConfig.MergeToSubtotalColumns != null && 
+                    bool shouldMergeToSubtotal = hasSubtotalRow &&
+                                                 subtotalConfig.MergeToSubtotalColumns != null && 
                                                  subtotalConfig.MergeToSubtotalColumns.Any(c => c.Equals(mergeColName, StringComparison.OrdinalIgnoreCase));
 
                     if (shouldMergeToSubtotal)
                     {
+                        int subtotalRowIndex = currentExcelRow - 1;
                         if (isDefectRateCol)
                         {
                             double? rateVal = null;
@@ -638,13 +648,34 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
                     }
                     else
                     {
-                        // Merge range [groupStartRow, colIdx, groupEndRow, colIdx]
+                        // Merge range [groupStartRow, colIdx, groupEndRow, colIdx] by grouping identical values
                         if (groupEndRow > groupStartRow)
                         {
-                            var mergeRange = worksheet.Cells[groupStartRow, colIdx, groupEndRow, colIdx];
-                            mergeRange.Merge = true;
-                            mergeRange.Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
-                            mergeRange.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                            int startMerge = groupStartRow;
+                            string startVal = worksheet.Cells[startMerge, colIdx].Text;
+                            for (int r = groupStartRow + 1; r <= groupEndRow; r++)
+                            {
+                                string curVal = worksheet.Cells[r, colIdx].Text;
+                                if (curVal != startVal)
+                                {
+                                    if (r - 1 > startMerge)
+                                    {
+                                        var mergeRange = worksheet.Cells[startMerge, colIdx, r - 1, colIdx];
+                                        mergeRange.Merge = true;
+                                        mergeRange.Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
+                                        mergeRange.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                                    }
+                                    startMerge = r;
+                                    startVal = curVal;
+                                }
+                            }
+                            if (groupEndRow > startMerge)
+                            {
+                                var mergeRange = worksheet.Cells[startMerge, colIdx, groupEndRow, colIdx];
+                                mergeRange.Merge = true;
+                                mergeRange.Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
+                                mergeRange.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                            }
                         }
                         else
                         {
@@ -655,105 +686,130 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
                     }
                 }
             }
-
-            currentExcelRow++;
         }
 
         // 5. Xóa bớt dòng trống dư thừa
         if (requiredRows < availableRowsCount)
         {
-            int startDeleteRow = currentExcelRow;
+            int startDeleteRow = totalRowIndex.HasValue ? currentExcelRow : currentExcelRow + 1;
             int rowsToDelete = availableRowsCount - requiredRows;
-            worksheet.DeleteRow(startDeleteRow, rowsToDelete);
+            if (rowsToDelete > 0)
+            {
+                worksheet.DeleteRow(startDeleteRow, rowsToDelete);
+            }
         }
 
         // 6. Điền thông tin dòng Tổng toàn bảng (Grand Total)
-        if (totalRowIndex.HasValue)
+        int grandTotalRowIndex = totalRowIndex.HasValue ? totalRowIndex.Value : currentExcelRow;
+
+        // Ghi nhãn "Tổng cộng"
+        string labelText = "Tổng cộng";
+        var grandTotalLabelMapping = mappings.FirstOrDefault(m => 
+            m.DataTableColumnName.Equals(subtotalConfig.LabelColumn, StringComparison.OrdinalIgnoreCase) ||
+            m.DataTableColumnName.Equals(subtotalConfig.GroupByColumn, StringComparison.OrdinalIgnoreCase));
+        if (grandTotalLabelMapping != null)
         {
-            int grandTotalRowIndex = currentExcelRow;
+            worksheet.Cells[grandTotalRowIndex, grandTotalLabelMapping.ExcelColumnIndex].Value = labelText;
+        }
+        else if (mappings.Count > 0)
+        {
+            worksheet.Cells[grandTotalRowIndex, mappings[0].ExcelColumnIndex].Value = labelText;
+        }
 
-            // Tính và điền Grand Totals cho các cột được cấu hình trong SumColumns
-            foreach (var sumColName in subtotalConfig.SumColumns ?? new List<string>())
+        // Tính và điền Grand Totals cho các cột được cấu hình trong SumColumns
+        foreach (var sumColName in subtotalConfig.SumColumns ?? new List<string>())
+        {
+            var sumMapping = mappings.FirstOrDefault(m => 
+                m.DataTableColumnName.Equals(sumColName, StringComparison.OrdinalIgnoreCase));
+            if (sumMapping == null) continue;
+
+            var sumCell = worksheet.Cells[grandTotalRowIndex, sumMapping.ExcelColumnIndex];
+
+            // Kiểm tra định dạng Size/Loi/Kiem trong dữ liệu gốc
+            bool isSizeLoiKiemFormat = false;
+            foreach (DataRow r in data.Rows)
             {
-                var sumMapping = mappings.FirstOrDefault(m => 
-                    m.DataTableColumnName.Equals(sumColName, StringComparison.OrdinalIgnoreCase));
-                if (sumMapping == null) continue;
-
-                var sumCell = worksheet.Cells[grandTotalRowIndex, sumMapping.ExcelColumnIndex];
-
-                // Kiểm tra định dạng Size/Loi/Kiem trong dữ liệu gốc
-                bool isSizeLoiKiemFormat = false;
-                foreach (DataRow r in data.Rows)
+                if (IsValidSizeLoiKiemFormat(r[sumColName]?.ToString()))
                 {
-                    if (IsValidSizeLoiKiemFormat(r[sumColName]?.ToString()))
-                    {
-                        isSizeLoiKiemFormat = true;
-                        break;
-                    }
+                    isSizeLoiKiemFormat = true;
+                    break;
                 }
-
-                if (isSizeLoiKiemFormat)
-                {
-                    sumCell.Value = $"Tổng kiểm: {grandTotalKiem} | Tổng lỗi: {grandTotalLoi}";
-                    sumCell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
-                }
-                sumCell.Style.Font.Bold = true;
             }
 
-            // Tính và điền Tỷ lệ lỗi cho dòng tổng
-            if (subtotalConfig.DefectRateColumns != null)
+            if (isSizeLoiKiemFormat)
             {
-                foreach (var rateColName in subtotalConfig.DefectRateColumns)
+                sumCell.Value = $"Tổng kiểm: {grandTotalKiem} | Tổng lỗi: {grandTotalLoi}";
+                sumCell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+            }
+            else
+            {
+                // Sử dụng công thức SUM cho các cột số
+                int startSumRow = dataStartRowIndex;
+                int endSumRow = grandTotalRowIndex - 1;
+                if (endSumRow >= startSumRow)
                 {
-                    var rateMapping = mappings.FirstOrDefault(m => 
-                        m.DataTableColumnName.Equals(rateColName, StringComparison.OrdinalIgnoreCase));
-                    if (rateMapping == null) continue;
+                    string colLetter = GetExcelColumnLetter(sumMapping.ExcelColumnIndex);
+                    sumCell.Formula = $"SUM({colLetter}{startSumRow}:{colLetter}{endSumRow})";
+                }
+                sumCell.Style.Numberformat.Format = "#,##0";
+                sumCell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Right;
+            }
+            sumCell.Style.Font.Bold = true;
+        }
 
-                    var rateCell = worksheet.Cells[grandTotalRowIndex, rateMapping.ExcelColumnIndex];
-                    if (grandTotalKiem > 0)
+        // Tính và điền Tỷ lệ lỗi cho dòng tổng
+        if (subtotalConfig.DefectRateColumns != null)
+        {
+            foreach (var rateColName in subtotalConfig.DefectRateColumns)
+            {
+                var rateMapping = mappings.FirstOrDefault(m => 
+                    m.DataTableColumnName.Equals(rateColName, StringComparison.OrdinalIgnoreCase));
+                if (rateMapping == null) continue;
+
+                var rateCell = worksheet.Cells[grandTotalRowIndex, rateMapping.ExcelColumnIndex];
+                if (grandTotalKiem > 0)
+                {
+                    double rateVal = (double)grandTotalLoi / grandTotalKiem * 100;
+                    rateCell.Value = rateVal;
+                    
+                    string format = "#,##0.##";
+                    if (columnFormats != null && columnFormats.TryGetValue(rateColName, out var customFmt) && !string.IsNullOrWhiteSpace(customFmt))
                     {
-                        double rateVal = (double)grandTotalLoi / grandTotalKiem * 100;
-                        rateCell.Value = rateVal;
-                        
-                        string format = "#,##0.##";
-                        if (columnFormats != null && columnFormats.TryGetValue(rateColName, out var customFmt) && !string.IsNullOrWhiteSpace(customFmt))
-                        {
-                            format = customFmt;
-                        }
+                        format = customFmt;
+                    }
 
-                        if (format.Contains(".#") && rateVal == Math.Truncate(rateVal))
-                        {
-                            rateCell.Style.Numberformat.Format = format.Replace(".##", "").Replace(".#", "");
-                        }
-                        else
-                        {
-                            rateCell.Style.Numberformat.Format = format;
-                        }
+                    if (format.Contains(".#") && rateVal == Math.Truncate(rateVal))
+                    {
+                        rateCell.Style.Numberformat.Format = format.Replace(".##", "").Replace(".#", "");
                     }
                     else
                     {
-                        rateCell.Value = null;
+                        rateCell.Style.Numberformat.Format = format;
                     }
-                    rateCell.Style.Font.Bold = true;
-                    rateCell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Right;
                 }
+                else
+                {
+                    rateCell.Value = null;
+                }
+                rateCell.Style.Font.Bold = true;
+                rateCell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Right;
             }
-
-            // Định dạng font Bold và viền đầy đủ cho dòng Grand Total
-            worksheet.Row(grandTotalRowIndex).Style.Font.Bold = true;
-            for (int col = startCol; col <= endCol; col++)
-            {
-                var cell = worksheet.Cells[grandTotalRowIndex, col];
-                cell.Style.Font.Bold = true;
-                cell.Style.Border.Top.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
-                cell.Style.Border.Bottom.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
-                cell.Style.Border.Left.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
-                cell.Style.Border.Right.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
-            }
-
-            // Đảm bảo độ rộng tối thiểu cho cột tỉ lệ %, text, ngày và tối ưu ô metadata
-            OptimizeExcelLayout(worksheet, mappings, columnFormats, metadataCellMappings, data);
         }
+
+        // Định dạng font Bold và viền đầy đủ cho dòng Grand Total
+        worksheet.Row(grandTotalRowIndex).Style.Font.Bold = true;
+        for (int col = startCol; col <= endCol; col++)
+        {
+            var cell = worksheet.Cells[grandTotalRowIndex, col];
+            cell.Style.Font.Bold = true;
+            cell.Style.Border.Top.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+            cell.Style.Border.Bottom.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+            cell.Style.Border.Left.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+            cell.Style.Border.Right.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+        }
+
+        // Đảm bảo độ rộng tối thiểu cho cột tỉ lệ %, text, ngày và tối ưu ô metadata
+        OptimizeExcelLayout(worksheet, mappings, columnFormats, metadataCellMappings, data);
     }
 
     // Điền dữ liệu dạng Horizontal (Bảng lưới thông thường)
@@ -792,6 +848,24 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
                         ExcelColumnIndex = c
                     });
                     break;
+                }
+            }
+        }
+
+        // Clear pre-existing merged cells in the data rows to avoid clashing with dynamic merging
+        if (worksheet.MergedCells != null)
+        {
+            var mergedRanges = new List<string>();
+            foreach (var address in worksheet.MergedCells)
+            {
+                mergedRanges.Add(address);
+            }
+            foreach (var address in mergedRanges)
+            {
+                var range = worksheet.Cells[address];
+                if (range.Start.Row >= dataStartRowIndex)
+                {
+                    range.Merge = false;
                 }
             }
         }
@@ -851,6 +925,24 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
         }
 
         int dataStartRowIndex = headerRowIndex + 1;
+
+        // Clear pre-existing merged cells in the data rows to avoid clashing with dynamic merging
+        if (worksheet.MergedCells != null)
+        {
+            var mergedRanges = new List<string>();
+            foreach (var address in worksheet.MergedCells)
+            {
+                mergedRanges.Add(address);
+            }
+            foreach (var address in mergedRanges)
+            {
+                var range = worksheet.Cells[address];
+                if (range.Start.Row >= dataStartRowIndex)
+                {
+                    range.Merge = false;
+                }
+            }
+        }
 
         if (subtotalConfig != null && (rowLabels == null || rowLabels.Count == 0))
         {
@@ -1121,5 +1213,21 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
     private Dictionary<string, string> GetNumericColumns(DataTable table, Dictionary<string, string>? columnFormats)
     {
         return ExcelDataHelper.GetNumericColumns(table, columnFormats);
+    }
+
+    private string GetExcelColumnLetter(int columnNumber)
+    {
+        int dividend = columnNumber;
+        string columnName = string.Empty;
+        int modulo;
+
+        while (dividend > 0)
+        {
+            modulo = (dividend - 1) % 26;
+            columnName = Convert.ToChar(65 + modulo).ToString() + columnName;
+            dividend = (int)((dividend - modulo) / 26);
+        }
+
+        return columnName;
     }
 }
