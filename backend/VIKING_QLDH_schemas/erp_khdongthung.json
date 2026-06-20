@@ -1,0 +1,568 @@
+{
+  "table": "ERP_KHDONGTHUNG",
+  "purpose": "Lưu trữ thông tin chi tiết về kế hoạch đóng thùng, danh sách thùng carton, quy cách đóng gói và trạng thái xuất nhập kho thành phẩm.",
+  "when_to_use": "Sử dụng khi câu hỏi yêu cầu truy vấn thông tin kế hoạch đóng thùng, số lượng thùng sản phẩm, trạng thái đóng thùng, xuất/nhập kho thành phẩm, hoặc kích thước/trọng lượng của thùng hàng.",
+  "when_not_to_use": "Không sử dụng khi câu hỏi chỉ liên quan đến nguyên phụ liệu, kiểm vải, kiểm phụ liệu, hoặc kế hoạch may/KCS không liên quan đến khâu đóng gói thành phẩm.",
+  "table_rules": [],
+  "columns": [
+    {
+      "name": "ID",
+      "type": "int",
+      "role": "primary_key",
+      "desc": "Khóa chính của bảng kế hoạch đóng thùng."
+    },
+    {
+      "name": "MaPKL",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mã Packing List (ví dụ: 'PKL_01')."
+    },
+    {
+      "name": "MaDH",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mã đơn hàng liên kết (liên kết với ERP_LENHSX.MaGop)."
+    },
+    {
+      "name": "MaDVSX",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mã đơn vị sản xuất."
+    },
+    {
+      "name": "MaLenh",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mã lệnh sản xuất chi tiết."
+    },
+    {
+      "name": "DotSX",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Đợt sản xuất."
+    },
+    {
+      "name": "MaHang",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mã hàng/sản phẩm."
+    },
+    {
+      "name": "POID",
+      "type": "int",
+      "role": "info",
+      "desc": "ID đơn hàng PO mua."
+    },
+    {
+      "name": "PO",
+      "type": "int",
+      "role": "filter",
+      "desc": "Số đơn hàng PO (Purchase Order)."
+    },
+    {
+      "name": "Store",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Cửa hàng/Điểm bán."
+    },
+    {
+      "name": "DauSizeID",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mã đầu kích thước (ID)."
+    },
+    {
+      "name": "DauSize",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Tên đầu kích thước (ví dụ: 'REG')."
+    },
+    {
+      "name": "ColorID",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Mã màu sắc sản phẩm."
+    },
+    {
+      "name": "TenMau",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Tên màu sắc sản phẩm."
+    },
+    {
+      "name": "SizeID",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mã kích thước (ID)."
+    },
+    {
+      "name": "Size",
+      "type": "nvarchar",
+      "role": "filter",
+      "desc": "Tên kích thước sản phẩm (Size)."
+    },
+    {
+      "name": "NgayLapKH",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Ngày lập kế hoạch đóng thùng."
+    },
+    {
+      "name": "ChieuDai",
+      "type": "int",
+      "role": "info",
+      "desc": "Chiều dài thùng đóng gói."
+    },
+    {
+      "name": "ChieuRong",
+      "type": "int",
+      "role": "info",
+      "desc": "Chiều rộng thùng đóng gói."
+    },
+    {
+      "name": "ChieuCao",
+      "type": "int",
+      "role": "info",
+      "desc": "Chiều cao thùng đóng gói."
+    },
+    {
+      "name": "TrongLuong",
+      "type": "decimal",
+      "role": "measure",
+      "desc": "Trọng lượng thùng đóng gói."
+    },
+    {
+      "name": "KhoiLuong",
+      "type": "int",
+      "role": "measure",
+      "desc": "Khối lượng thùng đóng gói."
+    },
+    {
+      "name": "SoLuongThung",
+      "type": "int",
+      "role": "measure",
+      "desc": "Số lượng thùng."
+    },
+    {
+      "name": "TuThung",
+      "type": "int",
+      "role": "info",
+      "desc": "Số thứ tự thùng bắt đầu."
+    },
+    {
+      "name": "DenThung",
+      "type": "int",
+      "role": "info",
+      "desc": "Số thứ tự thùng kết thúc."
+    },
+    {
+      "name": "SttThung",
+      "type": "int",
+      "role": "info",
+      "desc": "Số thứ tự của thùng hiện tại."
+    },
+    {
+      "name": "SoLuongSP",
+      "type": "int",
+      "role": "measure",
+      "desc": "Số lượng sản phẩm trong thùng."
+    },
+    {
+      "name": "PCB_Pack",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Quy cách đóng gói PCB (Pieces per Carton)."
+    },
+    {
+      "name": "Pack_Ctn",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Số lượng gói trên mỗi thùng."
+    },
+    {
+      "name": "IsDongThung",
+      "type": "bit",
+      "role": "filter",
+      "desc": "Trạng thái đóng thùng (1: Đã đóng thùng, 0: Chưa)."
+    },
+    {
+      "name": "NgayDongThung",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Ngày thực hiện đóng thùng."
+    },
+    {
+      "name": "QRCode",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mã QR Code 1 định danh thùng."
+    },
+    {
+      "name": "QRCode2",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mã QR Code 2 định danh thùng."
+    },
+    {
+      "name": "IsScan",
+      "type": "bit",
+      "role": "info",
+      "desc": "Trạng thái đã scan thùng."
+    },
+    {
+      "name": "IsNhapKho",
+      "type": "bit",
+      "role": "filter",
+      "desc": "Trạng thái nhập kho thành phẩm (1: Đã nhập, 0: Chưa)."
+    },
+    {
+      "name": "NgayNhapKho",
+      "type": "datetime",
+      "role": "filter",
+      "desc": "Ngày nhập kho thành phẩm."
+    },
+    {
+      "name": "KyHieu",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Ký hiệu QC hoặc kiểm định."
+    },
+    {
+      "name": "Chon",
+      "type": "bit",
+      "role": "info",
+      "desc": "Đánh dấu chọn bản ghi."
+    },
+    {
+      "name": "KieuLap",
+      "type": "int",
+      "role": "info",
+      "desc": "Kiểu lắp ráp hoặc đóng gói."
+    },
+    {
+      "name": "SttThung_temp",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột SttThung_temp."
+    },
+    {
+      "name": "SttThung_LapMau",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột SttThung_LapMau."
+    },
+    {
+      "name": "SttThung_decat",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột SttThung_decat."
+    },
+    {
+      "name": "SttThung_start",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột SttThung_start."
+    },
+    {
+      "name": "Dot",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột Dot."
+    },
+    {
+      "name": "IsThungLe",
+      "type": "bit",
+      "role": "info",
+      "desc": "Đánh dấu thùng lẻ/thùng thiếu (1: Thùng lẻ, 0: Thùng nguyên)."
+    },
+    {
+      "name": "TuThungTon",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột TuThungTon."
+    },
+    {
+      "name": "DenThungTon",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột DenThungTon."
+    },
+    {
+      "name": "IsTonKho",
+      "type": "bit",
+      "role": "filter",
+      "desc": "Trạng thái tồn kho."
+    },
+    {
+      "name": "MaPKL_TK",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột MaPKL_TK."
+    },
+    {
+      "name": "StatusChuyen",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột StatusChuyen."
+    },
+    {
+      "name": "TuThung_Chuyen",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột TuThung_Chuyen."
+    },
+    {
+      "name": "DenThung_Chuyen",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột DenThung_Chuyen."
+    },
+    {
+      "name": "MaPKL_Chuyen",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột MaPKL_Chuyen."
+    },
+    {
+      "name": "TuThung_XH",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột TuThung_XH."
+    },
+    {
+      "name": "DenThung_XH",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột DenThung_XH."
+    },
+    {
+      "name": "TuThung_XHR",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột TuThung_XHR."
+    },
+    {
+      "name": "DenThung_XHR",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột DenThung_XHR."
+    },
+    {
+      "name": "IsXuatHang",
+      "type": "bit",
+      "role": "filter",
+      "desc": "Trạng thái xuất hàng (1: Đã xuất, 0: Chưa)."
+    },
+    {
+      "name": "MaPKL_XH",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột MaPKL_XH."
+    },
+    {
+      "name": "StatusTraHang",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột StatusTraHang."
+    },
+    {
+      "name": "MaPKL_TH",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột MaPKL_TH."
+    },
+    {
+      "name": "MaKho",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột MaKho."
+    },
+    {
+      "name": "MaKhoDen",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột MaKhoDen."
+    },
+    {
+      "name": "Cont_CK",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột Cont_CK."
+    },
+    {
+      "name": "POID_CK",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột POID_CK."
+    },
+    {
+      "name": "MaDH_CK",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột MaDH_CK."
+    },
+    {
+      "name": "Cont",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột Cont."
+    },
+    {
+      "name": "MaDH_XH",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột MaDH_XH."
+    },
+    {
+      "name": "POID_XH",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột POID_XH."
+    },
+    {
+      "name": "Destination",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột Destination."
+    },
+    {
+      "name": "NVien",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Nhân viên thực hiện."
+    },
+    {
+      "name": "IsXacNhan",
+      "type": "bit",
+      "role": "info",
+      "desc": "Trạng thái xác nhận kế hoạch."
+    },
+    {
+      "name": "Ngay_XN",
+      "type": "datetime",
+      "role": "info",
+      "desc": "Ngày xác nhận."
+    },
+    {
+      "name": "NVien_XN",
+      "type": "datetime",
+      "role": "info",
+      "desc": "Nhân viên xác nhận."
+    },
+    {
+      "name": "KieuLapPCB",
+      "type": "int",
+      "role": "info",
+      "desc": "Mô tả cho cột KieuLapPCB."
+    },
+    {
+      "name": "StylePackNo",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột StylePackNo."
+    },
+    {
+      "name": "DeliveryTo",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột DeliveryTo."
+    },
+    {
+      "name": "Terms",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Điều khoản giao hàng (FOB, CIF,...)."
+    },
+    {
+      "name": "CountryOfOrigin",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Nước xuất xứ sản phẩm."
+    },
+    {
+      "name": "StyleName",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Tên mẫu mã/thiết kế."
+    },
+    {
+      "name": "DeptNo",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mã bộ phận mua hàng."
+    },
+    {
+      "name": "IsStoreThieu",
+      "type": "bit",
+      "role": "info",
+      "desc": "Mô tả cho cột IsStoreThieu."
+    },
+    {
+      "name": "NgayNhapKho_TC",
+      "type": "datetime",
+      "role": "info",
+      "desc": "Mô tả cho cột NgayNhapKho_TC."
+    },
+    {
+      "name": "NgayNhapKhoLuuChuyen_TC",
+      "type": "datetime",
+      "role": "info",
+      "desc": "Mô tả cho cột NgayNhapKhoLuuChuyen_TC."
+    },
+    {
+      "name": "MaDH_SMS",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột MaDH_SMS."
+    },
+    {
+      "name": "TenDH_SMS",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột TenDH_SMS."
+    },
+    {
+      "name": "DotDT",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột DotDT."
+    },
+    {
+      "name": "NgayXNDotDT",
+      "type": "datetime",
+      "role": "info",
+      "desc": "Mô tả cho cột NgayXNDotDT."
+    },
+    {
+      "name": "POID_G",
+      "type": "nvarchar",
+      "role": "info",
+      "desc": "Mô tả cho cột POID_G."
+    },
+    {
+      "name": "PO_G",
+      "type": "decimal",
+      "role": "info",
+      "desc": "Mô tả cho cột PO_G."
+    },
+    {
+      "name": "NgayNhanKien",
+      "type": "datetime",
+      "role": "info",
+      "desc": "Mô tả cho cột NgayNhanKien."
+    },
+    {
+      "name": "IsTon",
+      "type": "bit",
+      "role": "info",
+      "desc": "Mô tả cho cột IsTon."
+    }
+  ],
+  "relationships": [
+    {
+      "target_table": "ERP_LENHSX",
+      "join_on": "ERP_KHDONGTHUNG.MaDH = ERP_LENHSX.MaGop",
+      "notes": "Liên kết kế hoạch đóng thùng với lệnh sản xuất thông qua mã đơn hàng (MaDH) và mã gộp lệnh (MaGop)."
+    }
+  ]
+}
