@@ -206,6 +206,12 @@
       "category": "synchronized_filtering",
       "severity": "CRITICAL",
       "rule": "LỌC ĐỒNG BỘ TRÊN CÁC CTE/BẢNG: Khi truy vấn kết hợp nhiều bảng hoặc nhiều CTE độc lập (ví dụ: CTE loi lấy từ QTY_MAHANG_NGAYKIEM và CTE dat lấy từ SEW_CoefficientSize), nếu có các điều kiện lọc (như Chuyền Name, Lệnh sản xuất MaLenh/PlanCode/PoId, Mã hàng StyleId/StyleID, hay khoảng ngày) thì bắt buộc phải áp dụng ĐỒNG BỘ và ĐẦY ĐỦ các điều kiện lọc này trong TỪNG CTE/bảng riêng biệt trước khi JOIN (ví dụ: CTE loi lọc q.PlanCode = 332 thì CTE dat cũng bắt buộc phải JOIN ERP_LENHSX và lọc e.MaLenh = 332). Việc này để tránh việc CTE này chứa dữ liệu của lệnh khác làm phát sinh các dòng ngày trống hoặc số liệu dư thừa = 0 của các lệnh khác sau khi FULL OUTER JOIN."
+    },
+    {
+      "id": "G036",
+      "category": "final_data_join_rule",
+      "severity": "CRITICAL",
+      "rule": "KẾT HỢP DỮ LIỆU CUỐI CÙNG (FINAL DATA): Khi kết hợp dữ liệu lỗi (CTE Loi) và sản lượng đạt (CTE Dat) theo từng ngày và bộ phận (CheckType), BẮT BUỘC phải thực hiện FULL OUTER JOIN giữa hai CTE này trên cả hai trường: `l.Ngay = d.Ngay AND l.CheckType = d.CheckType` (trong một CTE trung gian đặt tên là FinalData, sử dụng COALESCE(l.Ngay, d.Ngay) AS Ngay, COALESCE(l.CheckType, d.CheckType) AS CheckType, ISNULL(l.TongLoi, 0) AS TongLoi, ISNULL(d.TongDat, 0) AS TongDat). Sau đó, câu lệnh SELECT ngoài cùng BẮT BUỘC phải truy vấn trực tiếp từ `FinalData` (ví dụ: `FROM FinalData f`). TUYỆT ĐỐI CẤM tự tạo thêm CTE ngày trung gian (BaseDates) rồi thực hiện LEFT JOIN thủ công từ các CTE thô (Loi, Dat) ở ngoài cùng vì điều này sẽ gây mất dữ liệu sản lượng (hoặc lỗi) khi ngày đó không có dữ liệu ở chiều ngược lại."
     }
   ]
 }
