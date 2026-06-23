@@ -91,7 +91,7 @@
       "id": "G015",
       "category": "table_routing_defect",
       "severity": "CRITICAL",
-      "rule": "ĐỊNH TUYẾN BẢNG LỖI: Không nhắc gì dùng QTY_MAHANG_NGAYKIEM hoặc QTY_MaHang_KiemQC_ChiTiet. Có từ 'final'/'QA'/'thành phẩm cuối' dùng QTY_KiemQA_NgayKiem/QTY_KiemQA_CHITIET. Có từ 'inline' dùng QTY_InLineQC_NgayKiem/QTY_InLineQC_CHITIET."
+      "rule": "ĐỊNH TUYẾN BẢNG LỖI: Không nhắc gì dùng QTY_MAHANG_NGAYKIEM hoặc QTY_MaHang_KiemQC_ChiTiet. Có từ 'final'/'QA'/'thành phẩm cuối' dùng QTY_KiemQA_NgayKiem/QTY_KiemQA_CHITIET (Ngoại trừ trường hợp hỏi về 'lượt kiểm xuất xưởng Final', 'lượt kiểm Final', 'số lượt Pass/Fail của Final' hoặc 'tác vụ final' thì dùng bảng TskFinal). Có từ 'inline' dùng QTY_InLineQC_NgayKiem/QTY_InLineQC_CHITIET."
     },
     {
       "id": "G016",

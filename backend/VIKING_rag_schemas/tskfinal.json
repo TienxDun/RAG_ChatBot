@@ -1,8 +1,8 @@
 {
   "table": "TskFinal",
   "purpose": "Lưu trữ thông tin và trạng thái của các tác vụ kiểm tra thành phẩm cuối cùng trước khi đóng gói / xuất hàng (Final Inspection Task).",
-  "when_to_use": "CHỈ sử dụng khi câu hỏi CÓ CHỨA RÕ RÀNG từ khóa 'final', 'Final', 'FINAL' hoặc 'thành phẩm cuối' VÀ liên quan đến trạng thái sửa lỗi (Status, Note, UpdateAt) hoặc nhật ký/tác vụ kiểm tra thành phẩm cuối cùng.",
-  "when_not_to_use": "TUYỆT ĐỐI KHÔNG dùng bảng này khi câu hỏi KHÔNG chứa từ khóa 'final'/'thành phẩm cuối'. Khi không nhắc final, mặc định dùng QTY_MAHANG_NGAYKIEM. Cũng không sử dụng nếu câu hỏi hỏi về số lượng lỗi, số lượng đạt KCS, số lượng kiểm tra của QA/final (dùng QTY_KiemQA_NgayKiem), hoặc hỏi chi tiết mã lỗi, tọa độ lỗi của QA/final (dùng QTY_KiemQA_CHITIET).",
+  "when_to_use": "CHỈ sử dụng khi câu hỏi CÓ CHỨA RÕ RÀNG từ khóa 'final', 'Final', 'FINAL' hoặc 'thành phẩm cuối' VÀ liên quan đến: (1) các lượt kiểm xuất xưởng Final, lượt kiểm Final, số lượt Pass/Fail của Final; hoặc (2) trạng thái sửa lỗi (Status, Note, UpdateAt) hoặc nhật ký/tác vụ kiểm tra thành phẩm cuối cùng.",
+  "when_not_to_use": "TUYỆT ĐỐI KHÔNG dùng bảng này khi câu hỏi KHÔNG chứa từ khóa 'final'/'thành phẩm cuối'. Khi không nhắc final, mặc định dùng QTY_MAHANG_NGAYKIEM. Cũng không sử dụng nếu câu hỏi hỏi về số lượng lỗi QA, số lượng đạt KCS, số lượng mẫu kiểm tra của QA/final (dùng QTY_KiemQA_NgayKiem), hoặc hỏi chi tiết mã lỗi, tọa độ lỗi của QA/final (dùng QTY_KiemQA_CHITIET).",
   "table_rules": [
     {
       "id": "T_TSK_FN_001",
