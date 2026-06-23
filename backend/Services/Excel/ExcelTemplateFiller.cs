@@ -309,9 +309,11 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
         int availableRowsCount = endRow - startRow + 1;
 
         // Nếu thiếu dòng trong template, chèn thêm dòng
+        int rowsInserted = 0;
         if (requiredRows > availableRowsCount)
         {
             int rowsToInsert = requiredRows - availableRowsCount;
+            rowsInserted = rowsToInsert;
             int insertAt = endRow; // Chèn tại dòng trống cuối cùng ngay trước dòng tổng lớn
             worksheet.InsertRow(insertAt, rowsToInsert);
 
@@ -689,6 +691,7 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
         }
 
         // 5. Xóa bớt dòng trống dư thừa
+        int rowsDeleted = 0;
         if (requiredRows < availableRowsCount)
         {
             int startDeleteRow = totalRowIndex.HasValue ? currentExcelRow : currentExcelRow + 1;
@@ -696,24 +699,28 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
             if (rowsToDelete > 0)
             {
                 worksheet.DeleteRow(startDeleteRow, rowsToDelete);
+                rowsDeleted = rowsToDelete;
             }
         }
 
         // 6. Điền thông tin dòng Tổng toàn bảng (Grand Total)
-        int grandTotalRowIndex = totalRowIndex.HasValue ? totalRowIndex.Value : currentExcelRow;
+        int grandTotalRowIndex = totalRowIndex.HasValue ? totalRowIndex.Value + rowsInserted - rowsDeleted : currentExcelRow;
 
-        // Ghi nhãn "Tổng cộng"
-        string labelText = "Tổng cộng";
-        var grandTotalLabelMapping = mappings.FirstOrDefault(m => 
-            m.DataTableColumnName.Equals(subtotalConfig.LabelColumn, StringComparison.OrdinalIgnoreCase) ||
-            m.DataTableColumnName.Equals(subtotalConfig.GroupByColumn, StringComparison.OrdinalIgnoreCase));
-        if (grandTotalLabelMapping != null)
+        // Ghi nhãn "Tổng cộng" nếu template chưa có dòng tổng cộng sẵn
+        if (!totalRowIndex.HasValue)
         {
-            worksheet.Cells[grandTotalRowIndex, grandTotalLabelMapping.ExcelColumnIndex].Value = labelText;
-        }
-        else if (mappings.Count > 0)
-        {
-            worksheet.Cells[grandTotalRowIndex, mappings[0].ExcelColumnIndex].Value = labelText;
+            string labelText = "Tổng cộng";
+            var grandTotalLabelMapping = mappings.FirstOrDefault(m => 
+                m.DataTableColumnName.Equals(subtotalConfig.LabelColumn, StringComparison.OrdinalIgnoreCase) ||
+                m.DataTableColumnName.Equals(subtotalConfig.GroupByColumn, StringComparison.OrdinalIgnoreCase));
+            if (grandTotalLabelMapping != null)
+            {
+                worksheet.Cells[grandTotalRowIndex, grandTotalLabelMapping.ExcelColumnIndex].Value = labelText;
+            }
+            else if (mappings.Count > 0)
+            {
+                worksheet.Cells[grandTotalRowIndex, mappings[0].ExcelColumnIndex].Value = labelText;
+            }
         }
 
         // Tính và điền Grand Totals cho các cột được cấu hình trong SumColumns
@@ -863,7 +870,7 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
             foreach (var address in mergedRanges)
             {
                 var range = worksheet.Cells[address];
-                if (range.Start.Row >= dataStartRowIndex)
+                if (range.Start.Row >= dataStartRowIndex && (!totalRowIndex.HasValue || range.Start.Row < totalRowIndex.Value))
                 {
                     range.Merge = false;
                 }
@@ -937,7 +944,7 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
             foreach (var address in mergedRanges)
             {
                 var range = worksheet.Cells[address];
-                if (range.Start.Row >= dataStartRowIndex)
+                if (range.Start.Row >= dataStartRowIndex && (!totalRowIndex.HasValue || range.Start.Row < totalRowIndex.Value))
                 {
                     range.Merge = false;
                 }
