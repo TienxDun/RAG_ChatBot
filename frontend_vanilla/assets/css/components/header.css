@@ -135,7 +135,8 @@
 }
 
 #header-dropdown-trigger,
-#header-new-chat {
+#header-new-chat,
+#open-search {
     width: 40px;
     height: 40px;
     padding: 0;
@@ -152,7 +153,8 @@
 }
 
 #header-dropdown-trigger i,
-#header-new-chat i {
+#header-new-chat i,
+#open-search i {
     font-size: 1.25rem;
     transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -165,6 +167,11 @@
 
 #header-new-chat:hover i {
     transform: rotate(90deg);
+    color: var(--primary);
+}
+
+#open-search:hover i {
+    transform: scale(1.15);
     color: var(--primary);
 }
 
@@ -228,7 +235,8 @@
 
 /* Dark Mode styles */
 [data-theme="dark"] #header-dropdown-trigger,
-[data-theme="dark"] #header-new-chat {
+[data-theme="dark"] #header-new-chat,
+[data-theme="dark"] #open-search {
     background: rgba(30, 41, 59, 0.6);
     border-color: rgba(255, 255, 255, 0.15);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
@@ -236,7 +244,8 @@
 
 [data-theme="dark"] #header-dropdown-trigger:hover,
 [data-theme="dark"] .header__dropdown-container.active #header-dropdown-trigger,
-[data-theme="dark"] #header-new-chat:hover {
+[data-theme="dark"] #header-new-chat:hover,
+[data-theme="dark"] #open-search:hover {
     border-color: color-mix(in srgb, var(--primary) 40%, transparent);
     box-shadow: 0 0 15px color-mix(in srgb, var(--primary) 25%, transparent);
     color: var(--primary-foreground);
@@ -286,12 +295,14 @@
     .status-dot { width: 6px; height: 6px; }
     
     #header-dropdown-trigger,
-    #header-new-chat {
+    #header-new-chat,
+    #open-search {
         width: 36px;
         height: 36px;
     }
     #header-dropdown-trigger i,
-    #header-new-chat i {
+    #header-new-chat i,
+    #open-search i {
         font-size: 1.15rem;
     }
     .header__dropdown-menu {
@@ -430,7 +441,7 @@
 
     .header__dropdown-container .template-cache-popup {
         position: absolute;
-        top: 130px; /* Căn chỉnh hoàn hảo với nút đính kèm Attach (nút thứ 3) */
+        top: 82px; /* Căn chỉnh hoàn hảo với nút đính kèm Attach (nút thứ 2) */
         bottom: auto;
         right: calc(100% + 16px);
         left: auto;
