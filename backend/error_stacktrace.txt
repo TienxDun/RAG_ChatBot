@@ -1,2 +1,0 @@
-System.InvalidOperationException: Không tìm thấy dữ liệu phát sinh cho kế hoạch này trong khoảng thời gian đã chọn.
-   at Backend.Services.ExcelReportService.ProcessExcelTemplateAsync(Stream stream, String fileName, String additionalQuery, String collectionName, Func`2 onStep, Func`2 onFinalChunk, CancellationToken ct) in C:\khoa\RAG_ChatBot\backend\Services\ExcelReportService.cs:line 268

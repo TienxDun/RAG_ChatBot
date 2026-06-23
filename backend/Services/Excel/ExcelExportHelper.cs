@@ -45,6 +45,8 @@ public static class ExcelExportHelper
             {
                 var cell = worksheet.Cells[rowIndex + 2, colIndex + 1];
                 var val = data[rowIndex][headers[colIndex]];
+                var headerName = headers[colIndex];
+                bool isIdOrCode = IsIdOrCodeColumn(headerName);
 
                 if (val is JsonElement element)
                 {
@@ -63,8 +65,13 @@ public static class ExcelExportHelper
                             break;
                         case JsonValueKind.String:
                             var str = element.GetString() ?? "";
+                            // Nếu là cột ID/Code, giữ nguyên dạng text để tránh mất số 0 ở đầu và lỗi hiển thị
+                            if (isIdOrCode)
+                            {
+                                cell.Value = str;
+                            }
                             // Thử parse số để định dạng đúng trong Excel nếu chuỗi chỉ chứa số
-                            if (double.TryParse(str, NumberStyles.Any, CultureInfo.InvariantCulture, out double dbl))
+                            else if (double.TryParse(str, NumberStyles.Any, CultureInfo.InvariantCulture, out double dbl))
                             {
                                 cell.Value = dbl;
                             }
@@ -87,27 +94,43 @@ public static class ExcelExportHelper
                     cell.Value = val;
                 }
 
-                // Căn lề phải và format dấu phẩy cho các cột số cho chuyên nghiệp
+                // Căn lề và format số/ngày
                 if (cell.Value is double || cell.Value is float || cell.Value is decimal)
                 {
                     double dVal = Convert.ToDouble(cell.Value);
-                    double testVal = Math.Round(dVal, 2);
-                    if (testVal == Math.Truncate(testVal))
+                    if (isIdOrCode)
                     {
-                        cell.Style.Numberformat.Format = "#,##0";
+                        cell.Style.Numberformat.Format = "0";
+                        cell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
                     }
                     else
                     {
-                        cell.Style.Numberformat.Format = "#,##0.##";
+                        double testVal = Math.Round(dVal, 2);
+                        if (testVal == Math.Truncate(testVal))
+                        {
+                            cell.Style.Numberformat.Format = "#,##0";
+                        }
+                        else
+                        {
+                            cell.Style.Numberformat.Format = "#,##0.##";
+                        }
+                        cell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Right;
                     }
-                    cell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Right;
                 }
                 else if (cell.Value is long || cell.Value is int)
                 {
-                    cell.Style.Numberformat.Format = "#,##0";
-                    cell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Right;
+                    if (isIdOrCode)
+                    {
+                        cell.Style.Numberformat.Format = "0";
+                        cell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                    }
+                    else
+                    {
+                        cell.Style.Numberformat.Format = "#,##0";
+                        cell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Right;
+                    }
                 }
-                else if (cell.Value is DateTime || cell.Value is DateTimeOffset || headers[colIndex].Contains("Ngay", StringComparison.OrdinalIgnoreCase) || headers[colIndex].Contains("Date", StringComparison.OrdinalIgnoreCase) || headers[colIndex].Contains("Time", StringComparison.OrdinalIgnoreCase))
+                else if (cell.Value is DateTime || cell.Value is DateTimeOffset || headerName.Contains("Ngay", StringComparison.OrdinalIgnoreCase) || headerName.Contains("Date", StringComparison.OrdinalIgnoreCase) || headerName.Contains("Time", StringComparison.OrdinalIgnoreCase))
                 {
                     // Nếu là string dạng ngày, thử chuyển sang DateTime để format chuẩn
                     if (cell.Value is string strDate && MarkdownTableParser.TryParseDateTime(strDate, out DateTime parsedDate))
@@ -216,5 +239,31 @@ public static class ExcelExportHelper
         }
         worksheet.Cells[1, 1, currentRow - 1, tableRows[0].Count].AutoFitColumns(12);
         return package.GetAsByteArray();
+    }
+
+    private static bool IsIdOrCodeColumn(string columnName)
+    {
+        if (string.IsNullOrEmpty(columnName)) return false;
+        var normalized = columnName.ToLowerInvariant();
+        
+        // Tránh nhầm lẫn các cột số lượng, tiền tệ chứa từ "mã" hoặc "id" (ví dụ: "Số lượng mã hàng")
+        if (normalized.Contains("lượng") || normalized.Contains("tiền") || normalized.Contains("giá") || normalized.Contains("tổng"))
+            return false;
+
+        return normalized.Contains("id") 
+            || normalized.Contains("mã") 
+            || normalized.Contains("code") 
+            || normalized.Contains("key") 
+            || normalized.Contains("stt") 
+            || normalized.Contains("no")
+            || normalized.Contains("barcode")
+            || normalized.Contains("sku")
+            || normalized.Contains("serial")
+            || normalized.Contains("partno")
+            || normalized.Contains("uid")
+            || normalized.Contains("uuid")
+            || normalized.Contains("sđt")
+            || normalized.Contains("phone")
+            || normalized.Contains("tel");
     }
 }
