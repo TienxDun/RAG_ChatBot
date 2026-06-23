@@ -505,12 +505,21 @@
 
                 <!-- Collection Name Input -->
                 <div class="modal-input-group">
-                    <label for="collection-name-input" class="modal-label">Collection Name (Optional)</label>
-                    <div class="input-with-icon">
+                    <label for="collection-name-select" class="modal-label">Collection Name (Optional)</label>
+                    <div class="input-with-icon" style="position: relative;">
                         <i class="ph-duotone ph-database"></i>
-                        <input type="text" id="collection-name-input" placeholder="Mặc định: db_schema" class="modal-text-input">
+                        <select id="collection-name-select" class="modal-text-input" style="padding-right: 2.5rem; appearance: none; -webkit-appearance: none;">
+                            <option value="db_schema">db_schema (VIKING_1)</option>
+                        </select>
+                        <i class="ph-bold ph-caret-down" style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--muted-foreground); margin: 0; opacity: 1; font-size: 0.9rem;"></i>
                     </div>
-                    <p class="modal-help-text">Để trống nếu bạn muốn dùng collection mặc định.</p>
+                    
+                    <!-- Nhập tay nếu cần -->
+                    <div id="custom-collection-wrapper" class="input-with-icon hidden" style="margin-top: 0.5rem;">
+                        <i class="ph-duotone ph-keyboard"></i>
+                        <input type="text" id="collection-name-input" placeholder="Nhập tên collection mới..." class="modal-text-input">
+                    </div>
+                    <p class="modal-help-text">Chọn collection có sẵn hoặc chọn 'Khác' để tạo mới.</p>
                 </div>
 
                 <!-- Selected Files List -->
