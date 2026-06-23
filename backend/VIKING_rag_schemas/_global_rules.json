@@ -145,7 +145,7 @@
       "id": "G025",
       "category": "alias_scoping",
       "severity": "CRITICAL",
-      "rule": "Cấm dùng bí danh cột (alias) trong WHERE, GROUP BY hoặc các biểu thức tính toán cùng cấp SELECT."
+      "rule": "Cấm dùng bí danh cột (alias) trong WHERE, GROUP BY hoặc các biểu thức tính toán cùng cấp SELECT. Ví dụ: cấm GROUP BY Ngay (nếu Ngay là alias trong SELECT), bắt buộc viết đầy đủ biểu thức gốc như GROUP BY CAST(NgayKiem AS DATE)."
     },
     {
       "id": "G026",
@@ -169,7 +169,7 @@
       "id": "G029",
       "category": "order_column_accuracy",
       "severity": "CRITICAL",
-      "rule": "Bắt buộc ghi đúng tên cột đại diện cho Lệnh/Kế hoạch sản xuất (MaLenh): 'PlanCode' trong QTY_MAHANG_NGAYKIEM và QTY_MaHang_KiemQC_ChiTiet; 'PoId' trong các bảng SEW_*; 'LenhSX' trong các bảng QTY_KiemQA_* và QTY_InLineQC_*. TUYỆT ĐỐI CẤM sử dụng lẫn lộn hoặc tự ý bịa tên cột giữa các bảng."
+      "rule": "Bắt buộc ghi đúng tên cột đại diện cho Lệnh/Kế hoạch sản xuất (MaLenh): 'PlanCode' trong QTY_MAHANG_NGAYKIEM and QTY_MaHang_KiemQC_ChiTiet; 'PoId' trong các bảng SEW_*; 'LenhSX' trong các bảng QTY_KiemQA_* và QTY_InLineQC_*. TUYỆT ĐỐI CẤM sử dụng lẫn lộn hoặc tự ý bịa tên cột giữa các bảng."
     },
     {
       "id": "G030",
@@ -194,6 +194,12 @@
       "category": "order_id_filtering_rule",
       "severity": "CRITICAL",
       "rule": "Quy tắc lọc Lệnh sản xuất (MaLenh/TenLenh): Khi câu hỏi yêu cầu lọc hoặc so sánh theo mã lệnh sản xuất (ví dụ: '376' hoặc 'SA_893_208_133'), TUYỆT ĐỐI CẤM lọc trực tiếp điều kiện này trên cột PoId của các bảng SEW_CoefficientSize hay SEW_CoefficientStyle (ví dụ: cấm dùng t1.PoId = '376'). Bắt buộc phải kết nối (JOIN) với bảng ERP_LENHSX và thực hiện lọc điều kiện trên cột tương ứng của ERP_LENHSX (ví dụ: `WHERE e.MaLenh = '376'` hoặc `WHERE e.TenLenh = 'SA_893_208_133'`)."
+    },
+    {
+      "id": "G034",
+      "category": "alias_scope_safety",
+      "severity": "CRITICAL",
+      "rule": "QUY TẮC AN TOÀN TẦM VỰC BÍ DANH (ALIAS SCOPE SAFETY): Khi viết SQL dựa trên mô tả cột Excel (excel_mappings), các chỉ dẫn mapping có thể chứa các bí danh thô (ví dụ: c.Code, c.NgayKiem, c.CheckType, q.PO, e.MaLenh, k.KhachHang). Bạn TUYỆT ĐỐI KHÔNG được chép nguyên văn các bí danh này vào câu SELECT ngoài cùng hoặc các mệnh đề WHERE/GROUP BY nếu bí danh đó chỉ nằm trong một CTE/subquery cụ thể hoặc không được định nghĩa trong mệnh đề FROM hiện tại. Bắt buộc phải điều chỉnh các bí danh này (c, q, e, n, line...) sao cho khớp hoàn toàn với các bí danh bảng thực tế được JOIN ở truy vấn ngoài cùng (ví dụ: đổi c.CheckType thành j.CheckType hoặc nt.CheckType tương ứng với alias ngoài cùng)."
     }
   ]
 }

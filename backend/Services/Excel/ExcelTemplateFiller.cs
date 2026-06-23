@@ -690,7 +690,7 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
             }
         }
 
-        // 5. Xóa bớt dòng trống dư thừa
+        // 5. Ẩn các dòng trống dư thừa thay vì xóa (để tránh làm hỏng cấu trúc ô merge của template gốc và tránh bị Excel tự động khôi phục dòng trống)
         int rowsDeleted = 0;
         if (requiredRows < availableRowsCount)
         {
@@ -698,8 +698,13 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
             int rowsToDelete = availableRowsCount - requiredRows;
             if (rowsToDelete > 0)
             {
-                worksheet.DeleteRow(startDeleteRow, rowsToDelete);
-                rowsDeleted = rowsToDelete;
+                for (int r = startDeleteRow; r < startDeleteRow + rowsToDelete; r++)
+                {
+                    worksheet.Row(r).Hidden = true;
+                }
+                // Giữ nguyên rowsDeleted = 0 vì dòng không bị xóa khỏi file vật lý,
+                // giúp dòng Grand Total phía dưới ghi chính xác vào địa chỉ dòng gốc
+                rowsDeleted = 0;
             }
         }
 
@@ -1078,12 +1083,15 @@ public class ExcelTemplateFiller : IExcelTemplateFiller
                 EnsureRowBorders(worksheet, targetRows[i], mappings);
             }
 
-            // Xóa các dòng trống dư thừa nếu số dòng dữ liệu thực tế ít hơn số dòng trong template
+            // Ẩn các dòng trống dư thừa nếu số dòng dữ liệu thực tế ít hơn số dòng trong template (để tránh làm hỏng cấu trúc ô merge và bị Excel tự khôi phục dòng)
             if (dataRowsCount < availableRowsCount)
             {
                 int startDeleteRow = targetRows[dataRowsCount];
                 int rowsToDelete = availableRowsCount - dataRowsCount;
-                worksheet.DeleteRow(startDeleteRow, rowsToDelete);
+                for (int r = startDeleteRow; r < startDeleteRow + rowsToDelete; r++)
+                {
+                    worksheet.Row(r).Hidden = true;
+                }
             }
         }
         else
