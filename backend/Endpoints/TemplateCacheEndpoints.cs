@@ -224,7 +224,7 @@ public static class TemplateCacheEndpoints
                 type = result.Type.ToString(),
                 headerRowIndex = result.HeaderRowIndex,
                 startColumnIndex = result.StartColumnIndex,
-                columns = result.Columns.Select(c => new
+                columns = (result.Columns ?? []).Select(c => new
                 {
                     columnIndex = c.ColumnIndex,
                     parentHeader = c.ParentHeader,
