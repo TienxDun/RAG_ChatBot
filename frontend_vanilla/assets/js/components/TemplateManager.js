@@ -176,9 +176,14 @@ export class TemplateManagerComponent {
                         <span class="template-card-name" title="${item.fileName}">${item.fileName}</span>
                         <span class="template-card-size">${sizeKB} KB</span>
                     </div>
-                    <button class="btn-delete-template-card" title="Xóa mẫu này" data-id="${item.id}">
-                        <i class="ph-bold ph-trash"></i>
-                    </button>
+                    <div style="display: flex; gap: 4px;">
+                        <button class="btn-edit-template-card" title="Đổi tên mẫu này" data-id="${item.id}" data-filename="${item.fileName}">
+                            <i class="ph-bold ph-pencil-simple"></i>
+                        </button>
+                        <button class="btn-delete-template-card" title="Xóa mẫu này" data-id="${item.id}">
+                            <i class="ph-bold ph-trash"></i>
+                        </button>
+                    </div>
                 </div>
             `;
         }).join('');
@@ -186,12 +191,54 @@ export class TemplateManagerComponent {
         // Gán sự kiện click cho từng template card
         listContainer.querySelectorAll('.template-card').forEach(card => {
             card.addEventListener('click', (e) => {
-                // Nếu click vào nút xóa thì bỏ qua
-                if (e.target.closest('.btn-delete-template-card')) return;
+                // Nếu click vào nút xóa hoặc sửa tên thì bỏ qua
+                if (e.target.closest('.btn-delete-template-card') || e.target.closest('.btn-edit-template-card')) return;
                 
                 const id = card.getAttribute('data-id');
                 const filename = card.getAttribute('data-filename');
                 this.selectTemplate(id, filename);
+            });
+        });
+
+        // Gán sự kiện click đổi tên template card
+        listContainer.querySelectorAll('.btn-edit-template-card').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const id = btn.getAttribute('data-id');
+                const oldName = btn.getAttribute('data-filename');
+                
+                const newName = prompt('Nhập tên mới cho file mẫu template (đuôi file phải là .xlsx):', oldName);
+                if (newName === null) return; // Người dùng nhấn Cancel
+                
+                const trimmedName = newName.trim();
+                if (!trimmedName) {
+                    this.showToast('Tên file không được để trống.', 'error');
+                    return;
+                }
+                
+                if (trimmedName === oldName) return;
+                
+                try {
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="ph-bold ph-spinner animate-spin"></i>';
+                    
+                    const result = await TemplateCacheService.renameTemplate(id, trimmedName);
+                    this.showToast('Đổi tên mẫu template thành công!', 'success');
+                    
+                    // Nếu template này đang được chọn hiển thị, cập nhật lại selectedTemplate
+                    if (this.selectedTemplate && this.selectedTemplate.id === id) {
+                        this.selectedTemplate.fileName = result.fileName;
+                        // Reload lại chi tiết template
+                        this.selectTemplate(id, result.fileName);
+                    }
+                    
+                    await this.loadTemplatesList();
+                } catch (error) {
+                    this.showToast(error.message || 'Lỗi khi đổi tên mẫu template.', 'error');
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="ph-bold ph-pencil-simple"></i>';
+                }
             });
         });
 

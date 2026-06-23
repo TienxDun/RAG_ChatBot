@@ -69,7 +69,8 @@ public static class ChatEndpoints
                     previewData = result.PreviewData,
                     excelBase64 = result.ExcelBase64,
                     rawData = result.PreviewData,
-                    downloadUrl = downloadUrl
+                    downloadUrl = downloadUrl,
+                    downloadFileName = parameters.File.FileName
                 });
             }
             else

@@ -111,4 +111,31 @@ export class TemplateCacheService {
             return null;
         }
     }
+
+    /**
+     * Đổi tên một template cụ thể
+     * @param {string} id - ID của template cần đổi tên
+     * @param {string} newName - Tên file mới
+     * @returns {Promise<object>} Trả về JSON kết quả
+     */
+    static async renameTemplate(id, newName) {
+        try {
+            const url = ApiClient._resolveUrl(`/templates/cache/${id}/rename`);
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ newName })
+            });
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData.error || 'Lỗi khi đổi tên file mẫu.');
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('❌ Failed to rename template:', error);
+            throw error;
+        }
+    }
 }

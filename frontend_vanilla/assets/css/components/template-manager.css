@@ -215,6 +215,26 @@
     transform: scale(1.1);
 }
 
+.btn-edit-template-card {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: var(--muted-foreground);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-edit-template-card:hover {
+    background: rgba(124, 58, 237, 0.1);
+    color: var(--primary);
+    transform: scale(1.1);
+}
+
 /* Right Panel: Detail view */
 .template-detail-panel {
     flex: 1;

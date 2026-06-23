@@ -12,6 +12,7 @@ public interface IExcelMappingService
     Dictionary<string, string> GetMapping(string fileName);
     void SaveTemplateMapping(string fileName, ExcelTemplateMapping mapping);
     ExcelTemplateMapping GetTemplateMapping(string fileName);
+    void RenameMapping(string oldFileName, string newFileName);
 }
 
 public class ExcelMappingService : IExcelMappingService
@@ -248,6 +249,21 @@ public class ExcelMappingService : IExcelMappingService
                 return mapping;
             }
             return new ExcelTemplateMapping();
+        }
+    }
+
+    public void RenameMapping(string oldFileName, string newFileName)
+    {
+        if (string.IsNullOrWhiteSpace(oldFileName) || string.IsNullOrWhiteSpace(newFileName)) return;
+        lock (_lock)
+        {
+            LoadFromFile();
+            if (_mappingsStore.TryGetValue(oldFileName, out var mapping))
+            {
+                _mappingsStore[newFileName] = mapping;
+                _mappingsStore.Remove(oldFileName);
+                SaveToFile();
+            }
         }
     }
 }

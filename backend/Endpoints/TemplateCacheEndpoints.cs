@@ -35,6 +35,11 @@ public static class TemplateCacheEndpoints
         group.MapDelete("/{id}", HandleDelete)
             .WithName("DeleteCachedTemplate");
 
+        // POST /api/templates/cache/{id}/rename - Đổi tên template
+        group.MapPost("/{id}/rename", HandleRenameAsync)
+            .WithName("RenameCachedTemplate")
+            .DisableAntiforgery();
+
         // DELETE /api/templates/cache - Xóa sạch bộ nhớ đệm
         group.MapDelete("/", HandleClearAll)
             .WithName("ClearTemplateCache");
@@ -169,6 +174,48 @@ public static class TemplateCacheEndpoints
     {
         cacheService.ClearAll();
         return Results.Ok(new { message = "Đã làm sạch toàn bộ bộ nhớ đệm template." });
+    }
+
+    public sealed class RenameTemplateRequest
+    {
+        public string NewName { get; set; } = string.Empty;
+    }
+
+    /// Xử lý đổi tên tệp mẫu template.
+    public static IResult HandleRenameAsync(
+        string id,
+        RenameTemplateRequest request,
+        TemplateCacheService cacheService,
+        Backend.Services.Excel.IExcelMappingService mappingService)
+    {
+        if (request == null || string.IsNullOrWhiteSpace(request.NewName))
+        {
+            return Results.BadRequest(new { error = "Tên file mới không được để trống." });
+        }
+
+        try
+        {
+            var success = cacheService.RenameTemplate(id, request.NewName, mappingService);
+            if (success)
+            {
+                var template = cacheService.GetTemplate(id);
+                return Results.Ok(new
+                {
+                    message = "Đổi tên mẫu template thành công.",
+                    id = id,
+                    fileName = template?.FileName
+                });
+            }
+            return Results.NotFound(new { error = "Không tìm thấy mẫu template tương ứng để đổi tên." });
+        }
+        catch (ArgumentException ex)
+        {
+            return Results.BadRequest(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return Results.Problem($"Lỗi khi đổi tên mẫu: {ex.Message}");
+        }
     }
 
     /// Xử lý phân tích cấu trúc template Excel trả về danh sách các cột tiêu đề

@@ -264,6 +264,59 @@ public class TemplateCacheService
         }
     }
 
+    public bool RenameTemplate(string id, string newFileName, Excel.IExcelMappingService mappingService)
+    {
+        if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(newFileName)) return false;
+
+        // Đảm bảo tên file mới có đuôi .xlsx
+        if (!newFileName.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase))
+        {
+            newFileName += ".xlsx";
+        }
+
+        newFileName = SanitizeFileName(newFileName);
+
+        lock (_lock)
+        {
+            var item = _cache.FirstOrDefault(t => t.Id == id);
+            if (item == null) return false;
+
+            var oldFileName = item.FileName;
+            if (oldFileName.Equals(newFileName, StringComparison.OrdinalIgnoreCase)) return true; // Trùng tên thì không cần đổi
+
+            // Kiểm tra trùng lặp tên file mới với template khác trong cache
+            if (_cache.Any(t => t.Id != id && t.FileName.Equals(newFileName, StringComparison.OrdinalIgnoreCase)))
+            {
+                throw new ArgumentException($"Tên file '{newFileName}' đã tồn tại trong bộ nhớ đệm.");
+            }
+
+            try
+            {
+                var oldPath = Path.Combine(_templatesDir, oldFileName);
+                var newPath = Path.Combine(_templatesDir, newFileName);
+
+                if (File.Exists(oldPath))
+                {
+                    File.Move(oldPath, newPath, overwrite: true);
+                }
+
+                // Cập nhật in-memory
+                item.FileName = newFileName;
+                item.CachedAt = DateTime.UtcNow;
+
+                // Cập nhật mapping tương ứng
+                mappingService.RenameMapping(oldFileName, newFileName);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠️ Lỗi khi đổi tên file template: {ex.Message}");
+                throw;
+            }
+        }
+    }
+
     // Tính SHA256 hash của byte array và trả về hex string — dùng để so sánh nội dung file O(1)
     private static string ComputeHash(byte[] bytes)
         => Convert.ToHexString(SHA256.HashData(bytes));
