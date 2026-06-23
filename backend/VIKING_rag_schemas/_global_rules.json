@@ -200,6 +200,12 @@
       "category": "alias_scope_safety",
       "severity": "CRITICAL",
       "rule": "QUY TẮC AN TOÀN TẦM VỰC BÍ DANH (ALIAS SCOPE SAFETY): Khi viết SQL dựa trên mô tả cột Excel (excel_mappings), các chỉ dẫn mapping có thể chứa các bí danh thô (ví dụ: c.Code, c.NgayKiem, c.CheckType, q.PO, e.MaLenh, k.KhachHang). Bạn TUYỆT ĐỐI KHÔNG được chép nguyên văn các bí danh này vào câu SELECT ngoài cùng hoặc các mệnh đề WHERE/GROUP BY nếu bí danh đó chỉ nằm trong một CTE/subquery cụ thể hoặc không được định nghĩa trong mệnh đề FROM hiện tại. Bắt buộc phải điều chỉnh các bí danh này (c, q, e, n, line...) sao cho khớp hoàn toàn với các bí danh bảng thực tế được JOIN ở truy vấn ngoài cùng (ví dụ: đổi c.CheckType thành j.CheckType hoặc nt.CheckType tương ứng với alias ngoài cùng)."
+    },
+    {
+      "id": "G035",
+      "category": "synchronized_filtering",
+      "severity": "CRITICAL",
+      "rule": "LỌC ĐỒNG BỘ TRÊN CÁC CTE/BẢNG: Khi truy vấn kết hợp nhiều bảng hoặc nhiều CTE độc lập (ví dụ: CTE loi lấy từ QTY_MAHANG_NGAYKIEM và CTE dat lấy từ SEW_CoefficientSize), nếu có các điều kiện lọc (như Chuyền Name, Lệnh sản xuất MaLenh/PlanCode/PoId, Mã hàng StyleId/StyleID, hay khoảng ngày) thì bắt buộc phải áp dụng ĐỒNG BỘ và ĐẦY ĐỦ các điều kiện lọc này trong TỪNG CTE/bảng riêng biệt trước khi JOIN (ví dụ: CTE loi lọc q.PlanCode = 332 thì CTE dat cũng bắt buộc phải JOIN ERP_LENHSX và lọc e.MaLenh = 332). Việc này để tránh việc CTE này chứa dữ liệu của lệnh khác làm phát sinh các dòng ngày trống hoặc số liệu dư thừa = 0 của các lệnh khác sau khi FULL OUTER JOIN."
     }
   ]
 }

@@ -54,7 +54,7 @@ public static class TemplateCacheEndpoints
             .DisableAntiforgery();
 
         // POST /api/templates/save-mapping - Lưu chú thích cột Excel
-        app.MapPost("/api/templates/save-mapping", HandleSaveMappingAsync)
+        app.MapPost("/api/templates/save-mapping", HandleSaveMapping)
             .WithName("SaveTemplateMapping")
             .DisableAntiforgery();
 
@@ -304,7 +304,7 @@ public static class TemplateCacheEndpoints
     }
 
     /// Xử lý lưu các chú thích/ánh xạ cột Excel của người dùng
-    public static async Task<IResult> HandleSaveMappingAsync(SaveMappingRequest request, Backend.Services.Excel.IExcelMappingService mappingService)
+    public static IResult HandleSaveMapping(SaveMappingRequest request, Backend.Services.Excel.IExcelMappingService mappingService)
     {
         if (request == null || string.IsNullOrWhiteSpace(request.FileName))
         {
