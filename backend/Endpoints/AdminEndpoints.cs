@@ -136,12 +136,8 @@ public static class AdminEndpoints
                 return Results.BadRequest(new { error = "Qdrant Collection không được để trống." });
             }
 
-            // If user did not provide a new connection string (masked or empty), preserve the existing one
-            string? newCS = request.ConnectionString;
-            if (string.IsNullOrEmpty(newCS) || newCS.Contains("***"))
-            {
-                newCS = existing.ConnectionString;
-            }
+            // Hòa trộn chuỗi kết nối mới và cũ để giữ lại các phần được mask (như password) mà không làm mất thông tin chỉnh sửa khác
+            string? newCS = MergeConnectionString(existing.ConnectionString, request.ConnectionString);
 
             var updated = new DataSourceConfig
             {
@@ -284,5 +280,48 @@ public static class AdminEndpoints
     private static bool IPAddressExists(string text)
     {
         return Regex.IsMatch(text, @"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$");
+    }
+
+    private static string MergeConnectionString(string? existingCS, string? requestCS)
+    {
+        if (string.IsNullOrEmpty(requestCS)) return existingCS ?? "";
+        if (string.IsNullOrEmpty(existingCS)) return requestCS ?? "";
+
+        var existingPairs = ParseConnectionString(existingCS);
+        var requestPairs = ParseConnectionString(requestCS);
+
+        foreach (var pair in requestPairs)
+        {
+            var key = pair.Key;
+            var value = pair.Value;
+
+            // Nếu giá trị gửi lên không bị mask (không chứa *** hoặc *******) thì tiến hành ghi đè cập nhật
+            bool isMasked = string.IsNullOrEmpty(value) || value.Contains("***") || value.Contains("********");
+            if (!isMasked)
+            {
+                existingPairs[key] = value;
+            }
+        }
+
+        return string.Join("; ", existingPairs.Select(p => $"{p.Key}={p.Value}"));
+    }
+
+    private static Dictionary<string, string> ParseConnectionString(string? connectionString)
+    {
+        var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrEmpty(connectionString)) return dict;
+
+        var pairs = connectionString.Split(';', StringSplitOptions.RemoveEmptyEntries);
+        foreach (var pair in pairs)
+        {
+            var idx = pair.IndexOf('=');
+            if (idx > 0)
+            {
+                var key = pair.Substring(0, idx).Trim();
+                var value = pair.Substring(idx + 1).Trim();
+                dict[key] = value;
+            }
+        }
+        return dict;
     }
 }

@@ -198,7 +198,13 @@ public sealed class DataSourceRegistry : IDisposable
 
     public string GetConnectionString(DataSourceConfig dataSource)
     {
-        // First try Env variable
+        // 1. Ưu tiên chuỗi kết nối được cấu hình trực tiếp từ UI Admin (datasources.json)
+        if (!string.IsNullOrEmpty(dataSource.ConnectionString))
+        {
+            return dataSource.ConnectionString;
+        }
+
+        // 2. Fallback về biến môi trường nếu không cấu hình trực tiếp
         if (!string.IsNullOrEmpty(dataSource.ConnectionStringEnvVar))
         {
             var envCS = _configuration[dataSource.ConnectionStringEnvVar];
@@ -206,12 +212,6 @@ public sealed class DataSourceRegistry : IDisposable
             {
                 return envCS;
             }
-        }
-
-        // Fallback to direct connection string
-        if (!string.IsNullOrEmpty(dataSource.ConnectionString))
-        {
-            return dataSource.ConnectionString;
         }
 
         throw new InvalidOperationException($"Connection string for '{dataSource.DisplayName}' is not configured.");
