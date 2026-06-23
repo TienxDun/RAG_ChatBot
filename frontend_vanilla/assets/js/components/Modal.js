@@ -13,6 +13,8 @@ export class ModalComponent {
         
         this.dropzone = document.querySelector(SELECTORS.DROPZONE);
         this.fileInput = document.querySelector(SELECTORS.FILE_INPUT);
+        this.collectionSelect = document.getElementById('collection-name-select');
+        this.customCollectionWrapper = document.getElementById('custom-collection-wrapper');
         this.collectionInput = document.getElementById('collection-name-input');
         this.fileList = document.querySelector(SELECTORS.FILE_LIST);
         this.infoText = document.querySelector(SELECTORS.MODAL_INFO_TEXT);
@@ -40,6 +42,17 @@ export class ModalComponent {
             this.fileInput.addEventListener('change', (e) => this.handleFiles(e.target.files));
         }
 
+        if (this.collectionSelect) {
+            this.collectionSelect.addEventListener('change', () => {
+                if (this.collectionSelect.value === '__custom__') {
+                    if (this.customCollectionWrapper) this.customCollectionWrapper.classList.remove('hidden');
+                    if (this.collectionInput) this.collectionInput.focus();
+                } else {
+                    if (this.customCollectionWrapper) this.customCollectionWrapper.classList.add('hidden');
+                }
+            });
+        }
+
         if (this.startBtn) {
             this.startBtn.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -54,7 +67,10 @@ export class ModalComponent {
         });
     }
 
-    show() { this.modal.classList.remove('hidden'); }
+    show() { 
+        this.modal.classList.remove('hidden'); 
+        this.loadCollections();
+    }
     hide() { 
         if (state.isUploading) return;
         this.modal.classList.add('hidden');
@@ -76,15 +92,45 @@ export class ModalComponent {
         state.selectedFiles = files;
     }
 
+    async loadCollections() {
+        if (!this.collectionSelect) return;
+        try {
+            const dataSources = await ApiClient.get(ENDPOINTS.COLLECTIONS);
+            if (Array.isArray(dataSources)) {
+                let optionsHtml = '';
+                dataSources.forEach(ds => {
+                    if (ds.qdrantCollection) {
+                        optionsHtml += `<option value="${ds.qdrantCollection}">${ds.qdrantCollection} (${ds.displayName || ds.id})</option>`;
+                    }
+                });
+                optionsHtml += '<option value="__custom__">Khác (Nhập thủ công...)</option>';
+                this.collectionSelect.innerHTML = optionsHtml;
+            }
+        } catch (error) {
+            console.error('Failed to load collections for select:', error);
+            this.collectionSelect.innerHTML = `
+                <option value="db_schema">db_schema (VIKING_1)</option>
+                <option value="__custom__">Khác (Nhập thủ công...)</option>
+            `;
+        }
+    }
+
     async upload() {
         if (state.selectedFiles.length === 0 || state.isUploading) return;
         
         state.isUploading = true;
         this.progressContainer.classList.remove('hidden');
         this.dropzone.classList.add('hidden');
-        if (this.collectionInput) this.collectionInput.closest('.modal-input-group').classList.add('hidden');
+        if (this.collectionSelect) this.collectionSelect.closest('.modal-input-group').classList.add('hidden');
         
-        const collectionName = this.collectionInput ? this.collectionInput.value.trim() : '';
+        let collectionName = '';
+        if (this.collectionSelect) {
+            if (this.collectionSelect.value === '__custom__') {
+                collectionName = this.collectionInput ? this.collectionInput.value.trim() : '';
+            } else {
+                collectionName = this.collectionSelect.value;
+            }
+        }
 
         try {
             await ApiClient.uploadFiles(ENDPOINTS.UPLOAD, state.selectedFiles, collectionName, (data) => {
@@ -171,8 +217,15 @@ export class ModalComponent {
     resetProgress() {
         this.progressContainer.classList.add('hidden');
         this.dropzone.classList.remove('hidden');
+        if (this.collectionSelect) {
+            const inputGroup = this.collectionSelect.closest('.modal-input-group');
+            if (inputGroup) inputGroup.classList.remove('hidden');
+            this.collectionSelect.selectedIndex = 0;
+        }
+        if (this.customCollectionWrapper) {
+            this.customCollectionWrapper.classList.add('hidden');
+        }
         if (this.collectionInput) {
-            this.collectionInput.closest('.modal-input-group').classList.remove('hidden');
             this.collectionInput.value = '';
         }
         this.progressBar.style.width = '0%';
