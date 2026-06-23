@@ -207,6 +207,13 @@ export class TemplateManagerComponent {
                 const id = btn.getAttribute('data-id');
                 const oldName = btn.getAttribute('data-filename');
                 
+                const password = prompt('Vui lòng nhập mật khẩu quản trị để thực hiện sửa đổi:');
+                if (password === null) return; // Người dùng nhấn Cancel
+                if (password !== 'admin') {
+                    this.showToast('Mật khẩu không chính xác.', 'error');
+                    return;
+                }
+                
                 const newName = prompt('Nhập tên mới cho file mẫu template (đuôi file phải là .xlsx):', oldName);
                 if (newName === null) return; // Người dùng nhấn Cancel
                 
@@ -247,6 +254,14 @@ export class TemplateManagerComponent {
             btn.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 const id = btn.getAttribute('data-id');
+                
+                const password = prompt('Vui lòng nhập mật khẩu quản trị để thực hiện xóa:');
+                if (password === null) return; // Người dùng nhấn Cancel
+                if (password !== 'admin') {
+                    this.showToast('Mật khẩu không chính xác.', 'error');
+                    return;
+                }
+                
                 if (confirm('Bạn có chắc chắn muốn xóa tệp mẫu này cùng toàn bộ cấu hình ánh xạ của nó không?')) {
                     const success = await TemplateCacheService.removeTemplate(id);
                     if (success) {

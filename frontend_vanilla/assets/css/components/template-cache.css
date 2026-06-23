@@ -158,35 +158,7 @@
     opacity: 0.3;
 }
 
-/* Nút xóa template */
-.btn-remove-template {
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    background: transparent;
-    color: #888;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    opacity: 0;
-}
 
-.template-item:hover .btn-remove-template {
-    opacity: 1;
-}
-
-.btn-remove-template:hover {
-    background: rgba(255, 0, 0, 0.1);
-    color: #ff4d4d;
-    transform: scale(1.1);
-}
-
-[data-theme="dark"] .btn-remove-template:hover {
-    background: rgba(255, 80, 80, 0.2);
-}
 
 @keyframes slideUpFade {
     from {
