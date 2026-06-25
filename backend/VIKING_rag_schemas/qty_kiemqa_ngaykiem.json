@@ -318,7 +318,7 @@
     {
       "target_table": "QTY_KiemQA_CHITIET",
       "join_on": "QTY_KiemQA_NgayKiem.LenhSX = QTY_KiemQA_CHITIET.LenhSX AND QTY_KiemQA_NgayKiem.LineX = QTY_KiemQA_CHITIET.LineX AND QTY_KiemQA_NgayKiem.MaHang = QTY_KiemQA_CHITIET.MaHang AND QTY_KiemQA_NgayKiem.Size = QTY_KiemQA_CHITIET.Size AND CAST(QTY_KiemQA_NgayKiem.NgayKiem AS DATE) = CAST(QTY_KiemQA_CHITIET.NgayKiem AS DATE)",
-      "notes": "Để liên kết lấy chi tiết mã lỗi (Code), hình ảnh lỗi, nội dung lỗi từ bảng chi tiết của ngày đó."
+      "notes": "CẤM JOIN TỰ Ý. Chỉ JOIN khi câu hỏi yêu cầu lấy chi tiết mã lỗi (Code), hình ảnh lỗi (Image), nội dung lỗi (NoiDung, SLLoi chi tiết) mà bảng ngày không có. Xem G037."
     },
     {
       "target_table": "tbl_SettingLineX",

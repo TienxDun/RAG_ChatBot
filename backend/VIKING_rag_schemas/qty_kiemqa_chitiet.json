@@ -255,7 +255,7 @@
     {
       "target_table": "QTY_KiemQA_NgayKiem",
       "join_on": "QTY_KiemQA_CHITIET.LenhSX = QTY_KiemQA_NgayKiem.LenhSX AND QTY_KiemQA_CHITIET.LineX = QTY_KiemQA_NgayKiem.LineX AND QTY_KiemQA_CHITIET.MaHang = QTY_KiemQA_NgayKiem.MaHang AND QTY_KiemQA_CHITIET.Size = QTY_KiemQA_NgayKiem.Size AND CAST(QTY_KiemQA_CHITIET.NgayKiem AS DATE) = CAST(QTY_KiemQA_NgayKiem.NgayKiem AS DATE)",
-      "notes": "Để liên kết với bảng tổng hợp QA theo ngày."
+      "notes": "CẤM JOIN TỰ Ý. Chỉ JOIN khi câu hỏi yêu cầu lọc/lấy trường đặc thù của bảng QTY_KiemQA_NgayKiem (như StatusHT, SoLuongKiem) mà bảng chi tiết không có. Xem G037."
     },
     {
       "target_table": "tbl_SettingLineX",

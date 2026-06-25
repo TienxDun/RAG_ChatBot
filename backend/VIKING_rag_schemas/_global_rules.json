@@ -212,6 +212,12 @@
       "category": "final_data_join_rule",
       "severity": "CRITICAL",
       "rule": "KẾT HỢP DỮ LIỆU CUỐI CÙNG (FINAL DATA): Khi kết hợp dữ liệu lỗi (CTE Loi) và sản lượng đạt (CTE Dat) theo từng ngày và bộ phận (CheckType), BẮT BUỘC phải thực hiện FULL OUTER JOIN giữa hai CTE này trên cả hai trường: `l.Ngay = d.Ngay AND l.CheckType = d.CheckType` (trong một CTE trung gian đặt tên là FinalData, sử dụng COALESCE(l.Ngay, d.Ngay) AS Ngay, COALESCE(l.CheckType, d.CheckType) AS CheckType, ISNULL(l.TongLoi, 0) AS TongLoi, ISNULL(d.TongDat, 0) AS TongDat). Sau đó, câu lệnh SELECT ngoài cùng BẮT BUỘC phải truy vấn trực tiếp từ `FinalData` (ví dụ: `FROM FinalData f`). TUYỆT ĐỐI CẤM tự tạo thêm CTE ngày trung gian (BaseDates) rồi thực hiện LEFT JOIN thủ công từ các CTE thô (Loi, Dat) ở ngoài cùng vì điều này sẽ gây mất dữ liệu sản lượng (hoặc lỗi) khi ngày đó không có dữ liệu ở chiều ngược lại."
+    },
+    {
+      "id": "G037",
+      "category": "redundant_join_prevention",
+      "severity": "CRITICAL",
+      "rule": "CẤM JOIN DƯ THỪA (REDUNDANT JOIN): Tuyệt đối không thực hiện JOIN thêm bảng nếu tất cả các trường dữ liệu cần hiển thị (SELECT) và lọc (WHERE/GROUP BY/ORDER BY) đã có sẵn trong bảng chính hoặc các bảng đã JOIN trước đó. Đặc biệt: (1) CẤM tự ý JOIN `QTY_KiemQA_CHITIET` với `QTY_KiemQA_NgayKiem` (và ngược lại) khi chỉ cần tính tổng số lỗi/đếm lỗi hoặc lọc theo ngày, chuyền, size, màu, mã hàng (vì bảng chi tiết đã có sẵn các thông tin này). (2) Chỉ thực hiện JOIN hai bảng này khi cần lấy cột đặc thù của bảng kia mà bảng hiện tại không có (ví dụ: cần lọc/lấy StatusHT, SoLuongKiem từ bảng NgayKiem, hoặc cần lấy chi tiết mã lỗi Code, NoiDung, SLLoi chi tiết từ bảng CHITIET)."
     }
   ]
 }
